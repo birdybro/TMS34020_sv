@@ -3,15 +3,15 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `7b5aaa6ea37dcbfc525bf2afd08f3fa140d15d1f`
-- Passing tests: foundation, reference/hash, delta, 21-case ISA sweep, 106 directed model
+- Latest verified baseline commit: `31e0fa2c003949ec033b38b6fb4652d0ff2eaf7b`
+- Passing tests: foundation, reference/hash, delta, 21-case ISA sweep, 108 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 65 of 67 currently extracted encoding forms have bounded
+- Model status: all 67 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
@@ -23,8 +23,8 @@
   same-register, and shared-SP hazards. The extracted ISA is far from complete;
   BLMOVE overlap,
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain.
-  BTST.K/R decode but have exact snapshot-rollback guards until semantic
-  implementation
+  BTST.K/R cover every primary input row with RSC-0018's one contradictory
+  status digit corrected, plus A/B, same-register, and shared-SP cases
   (`TMS20-0006`, `TMS20-0007`)
 - RTL status: generated 67-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
@@ -82,5 +82,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: implement and independently verify BTST.K/R architectural-model
-  semantics without using the RTL as an oracle
+- Next task: implement BTST.K/R in the bounded RTL register-execution path with
+  independent leaf, commit, dependency, and synthesis checks

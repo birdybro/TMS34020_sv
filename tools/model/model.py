@@ -104,6 +104,8 @@ class Tms34020Model:
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
             "RL.R": self._execute_rl_register,
+            "BTST.K": self._execute_btst_constant,
+            "BTST.R": self._execute_btst_register,
             "SLA.K": self._execute_sla_constant,
             "SLA.R": self._execute_sla_register,
             "SLL.K": self._execute_sll_constant,
@@ -668,6 +670,29 @@ class Tms34020Model:
         return self._execute_rotate_left(
             register_file, destination_index, count
         )
+
+    def _execute_btst_constant(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, destination = self._decode_destination(words[0])
+        encoded_bit = (words[0] >> 5) & 0x1F
+        bit_index = (~encoded_bit) & 0x1F
+        value = self.state.read_reg(register_file, destination)
+        self._set_status_bit(Z_BIT, not bool(value & (1 << bit_index)))
+        return 1
+
+    def _execute_btst_register(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source, destination = (
+            self._decode_source_destination(words[0])
+        )
+        bit_index = self.state.read_reg(register_file, source) & 0x1F
+        value = self.state.read_reg(register_file, destination)
+        self._set_status_bit(Z_BIT, not bool(value & (1 << bit_index)))
+        return 1
 
     def _execute_shift(
         self,

@@ -101,10 +101,11 @@ Z when it is one, preserve every other ST field, and take one TMS34020 machine
 state. Sources: TMS34020 guide printed pp.13-46..13-47 and summary p.13-30.
 The acquired TMS34010 guide, printed pp.12-46..12-47, independently confirms
 object-code and semantic compatibility, but reports older timing cases;
-compatibility does not assert equal timing. At this extraction checkpoint the
-model rejects and atomically rolls back both forms, while the RTL decodes but
-blocks them from execution and commit. This keeps metadata evidence separate
-from the next implementation checkpoint.
+compatibility does not assert equal timing. At the current model checkpoint the
+independent model executes both forms and tests all 25 published input rows,
+with the single contradictory p.13-47 status digit resolved in RSC-0018. The
+RTL still decodes but blocks both forms from execution and commit pending its
+own implementation checkpoint.
 
 ADDXY and SUBXY operate on the X and Y 16-bit halves independently, without
 carry or borrow propagation between halves. ADDXY derives N from X-result

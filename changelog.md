@@ -43,6 +43,10 @@
   guides, including the complemented constant field, same-file register count,
   Z-only status behavior, TMS34020 one-state timing, independent opcode
   fixtures, exact model rollback guards, and explicit RTL noncommit checks.
+- Independent BTST.K/R architectural-model semantics with all 25 primary input
+  rows, complemented constant recovery, upper-source-bit truncation, Z-only
+  status changes, A/B, same-register, and shared-SP tests; RSC-0018 records and
+  corrects the one example-table status digit that contradicts its operands.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -152,9 +156,8 @@
   Cyclone V Analysis & Synthesis reports 8,038 leaf and 4,726 bounded-scalar
   diagnostic logic cells; these are portability metrics, not fitted core area
   or timing closure.
-- The 106-case independent model suite covers bounded semantics for 65 of 67
-  currently extracted forms. The two BTST forms decode but atomically roll back
-  pending semantic implementation. This remains coverage of a partial ISA
+- The 108-case independent model suite covers bounded semantics for all 67
+  currently extracted forms. This remains coverage of a partial ISA
   extraction, not instruction completeness.
 - Expanded the collision-free ISA slice to 67 entries covering 22,736 first
   words. BTST.K/R decode across their complete primary-defined ranges while

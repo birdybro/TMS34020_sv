@@ -1917,18 +1917,139 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_btst_extracted_forms_roll_back_until_implemented(self) -> None:
-        for opcode in (0x1FE0, 0x4A20):
+    def test_btst_constant_primary_examples(self) -> None:
+        cases = (
+            (0, 0x5555_5555, 0),
+            (15, 0x5555_5555, 1),
+            (31, 0x5555_5555, 1),
+            (0, 0xAAAA_AAAA, 1),
+            (15, 0xAAAA_AAAA, 0),
+            (31, 0xAAAA_AAAA, 0),
+            (0, 0xFFFF_FFFF, 0),
+            (15, 0xFFFF_FFFF, 0),
+            (31, 0xFFFF_FFFF, 0),
+            (0, 0x0000_0000, 1),
+            (15, 0x0000_0000, 1),
+            (31, 0x0000_0000, 1),
+        )
+        for bit_index, destination, expected_z in cases:
+            with self.subTest(
+                bit_index=bit_index, destination=f"{destination:08X}"
+            ):
+                model = Tms34020Model()
+                encoded_bit = (~bit_index) & 0x1F
+                model.load_program([0x1C00 | (encoded_bit << 5)])
+                model.state.write_reg("A", 0, destination)
+                initial_st = (
+                    0xD020_001F if expected_z else 0xF020_001F
+                )
+                model.state.st = initial_st
+                event = model.step()
+                expected_st = (
+                    (initial_st & ~(1 << 29)) | (expected_z << 29)
+                )
+                self.assertEqual(model.state.st, expected_st)
+                self.assertEqual(model.state.read_reg("A", 0), destination)
+                self.assertEqual(event.register_writes, [])
+                self.assertEqual(event.machine_states, 1)
+                self.assertEqual(event.mnemonic, "BTST.K")
+
+    def test_btst_register_primary_examples(self) -> None:
+        cases = (
+            (0x0000_0000, 0x5555_5555, 0),
+            (0x0000_000F, 0x5555_5555, 1),
+            (0x0000_001F, 0x5555_5555, 1),
+            (0x0000_0000, 0xAAAA_AAAA, 1),
+            (0x0000_000F, 0xAAAA_AAAA, 0),
+            (0x0000_001F, 0xAAAA_AAAA, 0),
+            (0xFFFF_FF8F, 0xFFFF_7FFF, 1),
+            (0x0000_0000, 0xFFFF_FFFF, 0),
+            (0x0000_000F, 0xFFFF_FFFF, 0),
+            (0x0000_001F, 0xFFFF_FFFF, 0),
+            (0x0000_0000, 0x0000_0000, 1),
+            (0x0000_000F, 0x0000_0000, 1),
+            (0x0000_001F, 0x0000_0000, 1),
+        )
+        for source, destination, expected_z in cases:
+            with self.subTest(
+                source=f"{source:08X}", destination=f"{destination:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x4A20])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                initial_st = (
+                    0xD020_001F if expected_z else 0xF020_001F
+                )
+                model.state.st = initial_st
+                event = model.step()
+                expected_st = (
+                    (initial_st & ~(1 << 29)) | (expected_z << 29)
+                )
+                self.assertEqual(model.state.st, expected_st)
+                self.assertEqual(model.state.read_reg("A", 1), source)
+                self.assertEqual(model.state.read_reg("A", 0), destination)
+                self.assertEqual(event.register_writes, [])
+                self.assertEqual(event.machine_states, 1)
+                self.assertEqual(event.mnemonic, "BTST.R")
+
+    def test_btst_register_files_same_register_and_shared_sp(self) -> None:
+        cases = (
+            (0x4A30, "B", 1, 0xFFFF_FFEF, "B", 0, 0x0000_8000, 0),
+            (0x4A42, "A", 2, 0x8000_001F, "A", 2, 0x8000_001F, 0),
+            (0x4BF0, "B", 15, 0xFFFF_FFE4, "B", 0, 0x0000_0000, 1),
+            (0x4A2F, "A", 1, 0x0000_0000, "A", 15, 0x0000_0001, 0),
+        )
+        for (
+            opcode,
+            source_file,
+            source_index,
+            source_value,
+            destination_file,
+            destination_index,
+            destination_value,
+            expected_z,
+        ) in cases:
             with self.subTest(opcode=f"{opcode:04X}"):
                 model = Tms34020Model()
-                model.load_program([opcode], bit_address=0x80)
-                model.state.write_reg("A", 0, 0x5555_5555)
-                model.state.write_reg("A", 1, 15)
-                model.state.st = 0xD020_001F
-                before = model.snapshot()
-                with self.assertRaises(ModelError):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
+                model.load_program([opcode])
+                model.state.write_reg(
+                    source_file, source_index, source_value
+                )
+                model.state.write_reg(
+                    destination_file, destination_index, destination_value
+                )
+                before_state = model.state.snapshot()
+                before_registers = (
+                    before_state["a"],
+                    before_state["b"],
+                    before_state["sp"],
+                )
+                model.state.st = (
+                    0xD020_001F if expected_z else 0xF020_001F
+                )
+                event = model.step()
+                after_state = model.state.snapshot()
+                self.assertEqual(
+                    (
+                        after_state["a"],
+                        after_state["b"],
+                        after_state["sp"],
+                    ),
+                    before_registers,
+                )
+                self.assertEqual((model.state.st >> 29) & 1, expected_z)
+                self.assertEqual(event.register_writes, [])
+                self.assertEqual(event.machine_states, 1)
+
+        constant_sp = Tms34020Model()
+        constant_sp.load_program([0x1C1F])
+        constant_sp.state.sp = 0x7FFF_FFFF
+        constant_sp.state.st = 0xD020_001F
+        event = constant_sp.step()
+        self.assertEqual(constant_sp.state.sp, 0x7FFF_FFFF)
+        self.assertEqual(constant_sp.state.st, 0xF020_001F)
+        self.assertEqual(event.register_writes, [])
 
     def test_sla_constant_primary_examples(self) -> None:
         cases = (

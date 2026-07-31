@@ -20,6 +20,7 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGPC, GETPC, GETST, ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
+  BTST.K, BTST.R,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
   ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
   CMPI.W, CMPI.L,
@@ -28,11 +29,8 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 65 of the 67 currently extracted database forms. BTST.K
-and BTST.R decode from the database but deliberately raise `ModelError` and
-restore the exact pre-step snapshot until their semantics are implemented and
-independently tested. This is coverage of a current partial extraction, not
-instruction completeness.
+These handlers cover all 67 currently extracted database forms. This is
+coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -47,6 +45,15 @@ arithmetic operations leave lower ST fields intact. Sources: TI *TMS34020
 User's Guide*, August 1990, printed pp.13-38..13-39 and 13-246; ADDXY/SUBXY
 compatibility cross-check: TI *TMS34010 User's Guide*, 1988, printed pp.12-41
 and 12-251..12-252.
+
+BTST.K recovers the selected bit from the one's-complement object field.
+BTST.R uses only the low five bits of its same-file source. Both preserve every
+register and every ST bit except Z, set Z for a zero tested bit, and take one
+TMS34020 machine state. Tests cover all 25 published input rows plus A/B,
+same-register, and source/destination shared-SP cases. One p.13-47 example
+prints the opposite Z digit from its own operands and bit definition; RSC-0018
+records the evidence and corrected expectation. Sources: TI *TMS34020 User's
+Guide*, August 1990, printed pp.13-46..13-47.
 
 RPIX implements every
 legal PSIZE and the page-13-225 state counts. MWAIT exposes an abstract

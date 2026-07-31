@@ -306,3 +306,28 @@
   Overlap, intermediate checkpoints, page-mode transactions, dynamic sizing,
   faults, and retries remain unresolved. Confidence: `VERIFIED_PRIMARY` for
   the alignment and final state, `UNKNOWN` for omitted physical sequencing.
+
+## RSC-0018: one BTST register example contradicts the bit definition
+
+- Status: resolved internal example-table error
+- Conflicting primary text: TI *TMS34020 User's Guide*, August 1990, BTST
+  register, printed p.13-47, gives source `FFFF_FF8Fh`, destination
+  `FFFF_7FFFh`, and `Z=0`. The source's low five bits select bit 15, which is
+  zero in the destination, so that row conflicts with the same page's rule
+  that a zero tested bit sets Z.
+- Repeated primary evidence: every other BTST.K/R example on printed
+  pp.13-46..13-47 follows the stated bit rule. The independently acquired TI
+  *TMS34010 User's Guide*, 1988, printed pp.12-46..12-47 repeats both the rule
+  and the same contradictory register row.
+- Secondary corroboration: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 438–462 selects the
+  complemented destination bit using the decoded constant or source low five
+  bits. It produces Z=1 for this row. MAME's cycle counts are not used here.
+- Decision: implement the explicit bit definition and expect Z=1 for the
+  contradictory row. The independent model tests all 25 published input rows,
+  with only this status digit corrected, and separately checks upper-source-bit
+  truncation, both register files, same-register use, and shared SP. This is a
+  documentation resolution, not physical-hardware evidence. Confidence:
+  `VERIFIED_PRIMARY` for the bit relation and `CORROBORATED` for the secondary
+  implementation.
