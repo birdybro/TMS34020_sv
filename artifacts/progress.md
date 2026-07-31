@@ -1,8 +1,8 @@
 # Progress
 
 - Current milestone: device/delta research and architecture extraction
-- Completed task IDs: `TMS20-0001`
-- Latest commit: `af24345f45ced6bdd614e71f38a922535b07cf3f`
+- Completed task IDs: `TMS20-0001`, `TMS20-0003`
+- Latest commit: `7172c130aa07b0010d160a8976884097888023e1`
 - Passing tests: foundation, reference-manifest/hash, reuse-audit, and
   device-scope policy checks
 - Failing tests: none observed
