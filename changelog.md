@@ -11,6 +11,8 @@
 - Reproducibly pinned TMS34010 reference, full initial module-level reuse
   classification, empty copied-file provenance ledger, and reuse/core
   architecture ADRs.
+- Hash-pinned TI/MAME reference manifest with safe fetch, verify, and missing
+  source reporting tools; copyrighted payloads remain untracked.
 
 ### Changed
 
@@ -28,6 +30,8 @@
 - The requested TMS34010 baseline commit exists on its upstream `main` branch.
 - The baseline commit/tree metadata and MIT license are preserved; every
   upstream RTL and simulation-model module is named in the reuse audit.
+- Verified local SHA-256 values for seven TI documents and the pinned eleven-file
+  MAME TMS34020 source set.
 
 ### Documentation
 

@@ -16,6 +16,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SUITES = {
     "foundation": ("IMPLEMENTED", "TMS20-0001"),
     "lint": ("IMPLEMENTED", "TMS20-0001"),
+    "references": ("IMPLEMENTED", "TMS20-0002"),
     "model": ("NOT_IMPLEMENTED", "TMS20-0007"),
     "decode": ("NOT_IMPLEMENTED", "TMS20-0006"),
     "instruction": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0010"),
@@ -83,6 +84,23 @@ def lint() -> None:
     else:
         print("SKIP: no SystemVerilog RTL exists yet (TMS20-0009)")
     print("PASS: implemented lint checks")
+
+
+def references() -> None:
+    run([sys.executable, "scripts/verify_reference_hashes.py", "--validate-only"])
+    run(
+        [
+            sys.executable,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "tests/unit",
+            "-p",
+            "test_references.py",
+        ]
+    )
+    print("PASS: reference manifest and available-cache hashes")
 
 
 def doctor() -> None:
@@ -158,6 +176,8 @@ def main() -> None:
         foundation()
     elif args.suite == "lint":
         lint()
+    elif args.suite == "references":
+        references()
 
 
 if __name__ == "__main__":

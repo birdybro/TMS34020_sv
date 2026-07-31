@@ -12,8 +12,8 @@
 - Bus status: not implemented (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
 - Formal status: not implemented; SymbiYosys unavailable locally
 - Synthesis status: RTL absent; Yosys unavailable; Quartus 17.0 available
-- Documentation acquired: local gitignored copies of the August 1990 TMS34020
-  User's Guide, SPVS004D, and SGUS057; manifest work pending
+- Documentation acquired: seven hash-verified TI documents plus an eleven-file
+  pinned MAME source set; all payloads are gitignored
 - Provisional behavior: none implemented
 - Unresolved conflicts: original versus A revision; exact game parts
 - Battletoads readiness: not ready

@@ -5,7 +5,7 @@ QUARTUS_SH ?= quartus_sh
 
 .DEFAULT_GOAL := help
 
-.PHONY: help doctor foundation lint model-tests decode-tests instruction-tests
+.PHONY: help doctor foundation lint reference-tests model-tests decode-tests instruction-tests
 .PHONY: compatibility-tests cache-tests memory-tests graphics-tests video-tests
 .PHONY: host-tests fault-tests coprocessor-tests bus-tests differential fuzz
 .PHONY: formal synth-yosys synth-quartus battletoads-tests revx-tests test clean
@@ -21,6 +21,9 @@ foundation:
 
 lint:
 	@$(PYTHON) scripts/run_suite.py lint
+
+reference-tests:
+	@$(PYTHON) scripts/run_suite.py references
 
 model-tests:
 	@$(PYTHON) scripts/run_suite.py model
@@ -79,7 +82,7 @@ battletoads-tests:
 revx-tests:
 	@$(PYTHON) scripts/run_suite.py revx
 
-test: foundation lint model-tests decode-tests
+test: foundation lint reference-tests model-tests decode-tests
 	@printf '%s\n' 'PASS: implemented regression suites'
 
 clean:
