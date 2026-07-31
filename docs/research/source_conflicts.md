@@ -238,3 +238,24 @@
   conversion-value-1 is retained as the documented multiplication sentinel.
   MAME remains a differential target, not the expected result for these
   instructions. Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0015: pinned MAME VLCOL handler has no architectural effect
+
+- Status: open secondary-reference implementation gap; bounded TI success path
+  modeled
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, §8.12.3 printed
+  p.8-38 defines a load-color-register local-memory cycle with status `0111b`,
+  nominal all-zero address, and all 32 COLOR1 bits on LAD. VLCOL printed
+  pp.13-264..13-265 requires that cycle, ignores field size, preserves status,
+  and reports `2 (1)` states.
+- Secondary evidence: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 2514–2519 contains only a log
+  call; its COLOR1 diagnostic is commented out and no color-latch or bus state
+  changes.
+- Decision: the model follows TI for the successful special-cycle transaction
+  and external color-latch result. MAME cannot be used as a differential
+  expected value here. BUSFLT/LRDY sampling, retry, and pin timing remain
+  unimplemented and explicitly outside the current model claim. Confidence:
+  `VERIFIED_PRIMARY` for the success path and `UNKNOWN` for unresolved fault
+  timing.

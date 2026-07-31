@@ -47,3 +47,17 @@ owner.
 Pinned MAME is not the oracle for this family. Its SETCDP conversion fields
 disagree with TI and its SETCMP/SETCSP handlers are stubs; see
 `docs/research/source_conflicts.md` RSC-0014.
+
+## VRAM color-register load
+
+VLCOL copies the full 32-bit B9/COLOR1 value to the color registers in all
+external VRAMs. It ignores field size, drives nominal address zero, and uses
+special local-cycle status `0111b`. Its timing is `2 (1)`: two visible states
+and one hidden write state. ST is unchanged. Sources: the same guide,
+§8.12.3 printed p.8-38 and VLCOL printed pp.13-264..13-265.
+
+The independent model records a successful `special_vram_color_load`
+transaction and updates an explicit external color-latch abstraction. It does
+not yet model LRDY/BUSFLT handling or pin phases for the special cycle. No RTL
+VLCOL request owner exists. Pinned MAME's VLCOL handler is a logging stub; see
+RSC-0015.

@@ -335,6 +335,12 @@
   and explicit 4/6/3 visible-state outputs. The scalar opcodes remain blocked
   pending a verified hidden-I/O write owner. Warning-free Quartus
   requalification reports 6,804 leaf logic cells and 2,021 registers.
+- Implemented the independent VLCOL success path as a full-width B9/COLOR1
+  load to an explicit external VRAM color-latch state with nominal address
+  zero, special status `0111b`, `2 (1)` timing, field-size independence, and
+  unchanged ST. The 82-test model covers 50/52 extracted forms. Special-cycle
+  fault/retry and RTL request ownership remain absent; RSC-0015 records that
+  pinned MAME's VLCOL handler is a logging stub.
 
 ### Documentation
 

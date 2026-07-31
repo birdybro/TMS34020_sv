@@ -3,17 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `78a4c59b1de82bb6b50261a1202a3704d6d386e1`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 80 directed model
+- Latest commit: `ebc93f9397d6e310456fc890b953b087c1a235f3`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 82 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 49 of 52 extracted encoding forms, including complete
+- Model status: 50 of 52 extracted encoding forms, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
-  SETCDP/SETCMP/SETCSP forms, fetch opcodes/extensions through
+  SETCDP/SETCMP/SETCSP plus successful VLCOL forms, fetch opcodes/extensions
+  through
   transaction-level cache/retry state with traces, rollback and snapshot
   replay; full ISA/interfaces remain (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,

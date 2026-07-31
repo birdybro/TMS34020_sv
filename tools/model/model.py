@@ -132,6 +132,7 @@ class Tms34020Model:
             "SETCDP": self._execute_setcdp,
             "SETCMP": self._execute_setcmp,
             "SETCSP": self._execute_setcsp,
+            "VLCOL": self._execute_vlcol,
         }
         self._active_trace: StepTrace | None = None
         self._new_hidden_write_states = 0
@@ -1108,3 +1109,25 @@ class Tms34020Model:
     ) -> int:
         del instruction, words
         return self._execute_set_pitch_conversion(1, CONVSP_ADDRESS)
+
+    def _execute_vlcol(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        color = self.state.read_reg("B", 9)
+        self.state.vram_color_latch = color
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "special_vram_color_load",
+                "bit_address": 0,
+                "width": 32,
+                "value": color,
+                "status_code": 0b0111,
+            }
+        )
+        self._new_hidden_write_states = 1
+        self._active_trace.notes.append(
+            "successful VLCOL abstraction; special-cycle fault/retry pending"
+        )
+        return 2

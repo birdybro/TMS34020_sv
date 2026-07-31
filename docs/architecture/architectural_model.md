@@ -22,7 +22,8 @@ Implemented:
   MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry,
-  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, and SETCSP.
+  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, SETCSP, and
+  VLCOL.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -50,6 +51,13 @@ internal-I/O write state. Sources: the same guide, CONVxP description printed
 pp.4-28..4-29, Figure 12-20 on p.12-49, instruction pages
 13-227..13-229, and timing table p.15-8. Pinned MAME discrepancies are recorded
 in `docs/research/source_conflicts.md` RSC-0014.
+VLCOL emits a successful special-VRAM color-load transaction at nominal
+address zero, records status code `0111b`, copies all 32 bits of B9/COLOR1 into
+the external color-latch abstraction, preserves ST, and schedules the
+documented hidden write state. Field size is ignored. Sources: the same guide,
+§8.12.3 printed p.8-38 and VLCOL pp.13-264..13-265. Special-cycle bus
+fault/retry is not modeled, and the pinned MAME handler is only a stub; see
+RSC-0015.
 The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,
@@ -153,7 +161,7 @@ raises `ModelError` for any other current value. That is a verification guard,
 not a claim that physical silicon traps or otherwise behaves the same way for
 an undocumented PSIZE value.
 
-Decoded BLMOVE, TRAPL, and VLCOL entries intentionally
+Decoded BLMOVE and TRAPL entries intentionally
 raise `UnsupportedInstruction` without changing state. Their presence in the
 ISA database is not an implementation claim.
 
@@ -231,6 +239,7 @@ CMPK constants/flags; PSIZE get/exchange; RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
 pending states, all SETCDP/SETCMP/SETCSP primary conversion rows, implied
 source/destination selection, conversion-field boundaries, hidden writes,
+VLCOL full-width/field-size-independent successful special-cycle traces,
 IDLE claim boundaries, no mutation on unsupported
 instructions, and snapshot/replay equivalence.
 

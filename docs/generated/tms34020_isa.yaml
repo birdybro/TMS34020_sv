@@ -1901,7 +1901,7 @@
       "bus_16_effects": "special-cycle applicability requires chapter 8 audit",
       "bus_32_effects": "writes full COLOR1 through VRAM color-load cycle",
       "page_mode_effects": "special-cycle timing defined separately from ordinary page mode",
-      "source_citations": ["TI-TMS34020-UG-1990 VLCOL, printed pp.13-264..13-265", "TI-TMS34020-UG-1990 §8.10 special VRAM operations"],
+      "source_citations": ["TI-TMS34020-UG-1990 VLCOL, printed pp.13-264..13-265", "TI-TMS34020-UG-1990 §8.12.3, printed p.8-38"],
       "compatible_with_tms34010": false,
       "confidence": "VERIFIED_PRIMARY"
     }

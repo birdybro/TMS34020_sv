@@ -1436,6 +1436,40 @@ class ExecutionTests(unittest.TestCase):
                 )
                 self.assertIn("hidden conversion-register", event.notes[-1])
 
+    def test_vlcol_successful_special_cycle_contract(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0A00])
+        model.state.write_reg("B", 9, 0xA5C3_5A3C)
+        model.state.write_io(PSIZE_ADDRESS, 3)
+        model.state.st = 0xF020_001F
+        event = model.step()
+        self.assertEqual(model.state.vram_color_latch, 0xA5C3_5A3C)
+        self.assertEqual(model.state.st, 0xF020_001F)
+        self.assertEqual(event.machine_states, 2)
+        self.assertEqual(model.state.pending_write_states, 1)
+        self.assertEqual(
+            event.transactions[-1],
+            {
+                "class": "special_vram_color_load",
+                "bit_address": 0,
+                "width": 32,
+                "value": 0xA5C3_5A3C,
+                "status_code": 0b0111,
+            },
+        )
+        self.assertIn("fault/retry pending", event.notes[-1])
+
+    def test_vlcol_uses_full_color1_and_replaces_external_latch(self) -> None:
+        for color in (0, 1, 0xFFFF_0000, 0xFFFF_FFFF):
+            with self.subTest(color=f"{color:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x0A00])
+                model.state.vram_color_latch = 0x1234_5678
+                model.state.write_reg("B", 9, color)
+                event = model.step()
+                self.assertEqual(model.state.vram_color_latch, color)
+                self.assertEqual(event.register_writes, [])
+
     def test_idle_retains_pc_and_marks_timing_incomplete(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0040], bit_address=0x100)

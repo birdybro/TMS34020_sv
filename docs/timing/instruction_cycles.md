@@ -48,6 +48,11 @@ SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 records 4/6/3 visible states and one pending hidden internal-I/O write state.
 Source: User's Guide instruction pages 13-227..13-229 and timing table p.15-8.
 
+VLCOL takes `2 (1)` states: two visible instruction states and one hidden
+load-color-register write state. Source: User's Guide VLCOL printed p.13-264
+and timing table p.15-8. The model carries the hidden state abstractly; no
+special-cycle pin timing or fault/retry cycle count is claimed.
+
 ## Cache-fetch interaction
 
 A cache hit reads an instruction word in one machine state, normally overlapped
