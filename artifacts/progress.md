@@ -3,15 +3,15 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `397f8510e89fc3e8ea61a8ebea83b2b6e922bc79`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 103 directed model
+- Latest verified baseline commit: `5af6c6251f6662b6dfdf39ffbbd6faa155a544f7`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 105 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 63 of 65 currently extracted encoding forms have bounded
+- Model status: all 65 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
@@ -19,8 +19,9 @@
   fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
   replay, including GETPC/EXGPC sequential-PC, redirect, alignment, A/B, and
-  shared-SP behavior. ADDXY and SUBXY are decode-only and rollback atomically
-  pending semantic implementation. The extracted ISA is far from complete; BLMOVE overlap,
+  shared-SP behavior, plus every published ADDXY/SUBXY row and B-file,
+  same-register, and shared-SP hazards. The extracted ISA is far from complete;
+  BLMOVE overlap,
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
   (`TMS20-0006`, `TMS20-0007`)
 - RTL status: generated 65-entry partial decode, with ADDXY/SUBXY explicitly

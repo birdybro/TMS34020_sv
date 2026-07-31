@@ -115,6 +115,7 @@ class Tms34020Model:
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
+            "ADDXY": self._execute_addxy,
             "ADDI.W": self._execute_addi_word,
             "ADDI.L": self._execute_addi_long,
             "SUBI.W": self._execute_subi_word,
@@ -123,6 +124,7 @@ class Tms34020Model:
             "CMPI.L": self._execute_cmpi_long,
             "SUB": self._execute_sub,
             "SUBB": self._execute_subb,
+            "SUBXY": self._execute_subxy,
             "CMP": self._execute_cmp,
             "AND": self._execute_and,
             "ANDN": self._execute_andn,
@@ -887,6 +889,51 @@ class Tms34020Model:
         del instruction
         return self._execute_binary_arithmetic(words, "ADDC")
 
+    def _execute_xy_arithmetic(
+        self, words: list[int], subtract: bool
+    ) -> int:
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        source = self.state.read_reg(register_file, source_index)
+        destination = self.state.read_reg(register_file, destination_index)
+        source_x = source & 0xFFFF
+        source_y = (source >> 16) & 0xFFFF
+        destination_x = destination & 0xFFFF
+        destination_y = (destination >> 16) & 0xFFFF
+
+        if subtract:
+            result_x = (destination_x - source_x) & 0xFFFF
+            result_y = (destination_y - source_y) & 0xFFFF
+            status_n = source_x == destination_x
+            status_c = source_y > destination_y
+            status_z = source_y == destination_y
+            status_v = source_x > destination_x
+        else:
+            result_x = (destination_x + source_x) & 0xFFFF
+            result_y = (destination_y + source_y) & 0xFFFF
+            status_n = result_x == 0
+            status_c = bool(result_y & 0x8000)
+            status_z = result_y == 0
+            status_v = bool(result_x & 0x8000)
+
+        self.state.write_reg(
+            register_file,
+            destination_index,
+            result_x | (result_y << 16),
+        )
+        self._set_status_bit(N_BIT, status_n)
+        self._set_status_bit(C_BIT, status_c)
+        self._set_status_bit(Z_BIT, status_z)
+        self._set_status_bit(V_BIT, status_v)
+        return 1
+
+    def _execute_addxy(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_xy_arithmetic(words, False)
+
     def _execute_immediate_add(
         self, words: list[int], long_form: bool
     ) -> int:
@@ -1007,6 +1054,12 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_binary_arithmetic(words, "SUBB")
+
+    def _execute_subxy(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_xy_arithmetic(words, True)
 
     def _execute_cmp(
         self, instruction: Instruction, words: list[int]

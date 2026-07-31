@@ -21,25 +21,31 @@ Implemented:
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGPC, GETPC, GETST, ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
-  ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
+  ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
+  CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 63 of the 65 currently extracted database forms. ADDXY
-and SUBXY are classified by the database but intentionally have no handler at
-this extraction checkpoint; directed tests prove that either opcode raises
-`UnsupportedInstruction` and rolls PC, cache, trace, registers, ST, and memory
-back to the pre-step snapshot. This is partial extraction and bounded semantic
-coverage, not instruction completeness.
+These handlers cover all 65 currently extracted database forms. This is
+coverage of the current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
 4-2..4-3.
 
-The ADDXYI model adds the X and Y 16-bit halves independently and implements
-the instruction's unusual documented flag meanings. RPIX implements every
+ADDXY and ADDXYI add the X and Y 16-bit halves independently and implement
+their unusual documented flag meanings. SUBXY independently subtracts the
+source halves from the destination halves; N/Z report X/Y equality while V/C
+report unsigned X/Y borrows. The source and destination are both captured
+before writeback, including same-register and shared-SP aliases. All three XY
+arithmetic operations leave lower ST fields intact. Sources: TI *TMS34020
+User's Guide*, August 1990, printed pp.13-38..13-39 and 13-246; ADDXY/SUBXY
+compatibility cross-check: TI *TMS34010 User's Guide*, 1988, printed pp.12-41
+and 12-251..12-252.
+
+RPIX implements every
 legal PSIZE and the page-13-225 state counts. MWAIT exposes an abstract
 pending-write-state input so its minimum/remaining-state timing can be tested.
 IDLE enters the documented wait state but does not yet model interrupt
@@ -260,8 +266,9 @@ make model-tests
 ```
 
 Directed tests cover SP aliasing, crossing bit memory, reset vector handling,
-seed reproducibility, instruction PC increments, decode-only ADDXY/SUBXY
-rollback, ADDXYI edge behavior and flags, all TI example rows for
+seed reproducibility, instruction PC increments, all 16 ADDXY and nine SUBXY
+published rows, B-file/same-register/shared-SP hazards, ADDXYI edge behavior
+and flags, all TI example rows for
 ABS/NEG/NEGB/NOT, directed
 ADD/ADDC/SUB/SUBB/CMP arithmetic boundaries and nondestructive CMP,
 all TI ADDI example rows, signed-word extension, long-immediate alignment

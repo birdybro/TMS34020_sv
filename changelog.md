@@ -45,6 +45,9 @@
 - Independent LMO architectural-model semantics with all five TI result rows,
   Z-only status updates, same-register prewrite behavior, B-file selection,
   and shared-SP source/destination coverage.
+- Independent ADDXY/SUBXY architectural-model semantics with all 25 published
+  rows, exact NCZV replacement, one-state accounting, B-file selection,
+  same-register read-before-write, and shared-SP source/destination coverage.
 - A synthesizable LMO leading-priority leaf, Z-only atomic register/ST commit,
   cache-fed dependency sequence, and A/B/same-register/shared-SP RTL coverage.
 - Primary-page-verified ABS, NEG, NEGB, and NOT ISA/model/RTL semantics with
@@ -134,10 +137,13 @@
 
 ### Verified
 
+- The 105-case independent model suite covers bounded semantics for all 65
+  currently extracted forms. This remains coverage of a partial ISA
+  extraction, not instruction completeness.
 - Expanded the collision-free ISA slice to 65 entries covering 21,200 first
   words. ADDXY and SUBXY decode across their complete primary-defined ranges
-  while remaining atomically non-executable in model and RTL at this
-  extraction-only checkpoint. All four decoder-bearing Quartus Cyclone V
+  while remaining atomically non-executable in RTL at the extraction
+  checkpoint. All four decoder-bearing Quartus Cyclone V
   Analysis & Synthesis smokes pass with zero errors/warnings: 7,695 leaf, 380
   fetch, 755 frontend, and 4,559 scalar diagnostic logic cells. These are
   analysis-only portability metrics, not fitted core area or timing closure.

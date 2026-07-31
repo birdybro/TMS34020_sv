@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -50,18 +49,6 @@ class StateTests(unittest.TestCase):
 
 
 class ExecutionTests(unittest.TestCase):
-    def test_decode_only_xy_arithmetic_rolls_back_atomically(self) -> None:
-        for opcode in (0xE020, 0xE220):
-            with self.subTest(opcode=f"{opcode:04X}"):
-                model = Tms34020Model()
-                model.load_program([opcode], bit_address=0x80)
-                model.state.write_reg("A", 0, 0x1234_5678)
-                model.state.write_reg("A", 1, 0x9ABC_DEF0)
-                before = model.snapshot()
-                with self.assertRaises(UnsupportedInstruction):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
-
     def test_nop_advances_bit_addressed_pc(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0300], bit_address=0x20000)
@@ -911,6 +898,102 @@ class ExecutionTests(unittest.TestCase):
         model.state.write_reg("B", 2, 0x00000004)
         model.step()
         self.assertEqual(model.state.read_reg("B", 2), 0x00000007)
+
+    def test_addxy_all_primary_examples_and_status_replacement(self) -> None:
+        cases = (
+            (0x00000000, 0x00000000, 0x00000000, 0b1010),
+            (0x00000000, 0x00000001, 0x00000001, 0b0010),
+            (0x00000000, 0x00010000, 0x00010000, 0b1000),
+            (0x00000000, 0x00010001, 0x00010001, 0b0000),
+            (0x0000FFFF, 0x00000001, 0x00000000, 0b1010),
+            (0x0000FFFF, 0x00010001, 0x00010000, 0b1000),
+            (0x0000FFFF, 0x00000002, 0x00000001, 0b0010),
+            (0x0000FFFF, 0x00010002, 0x00010001, 0b0000),
+            (0xFFFF0000, 0x00010000, 0x00000000, 0b1010),
+            (0xFFFF0000, 0x00010001, 0x00000001, 0b0010),
+            (0xFFFF0000, 0x00020000, 0x00010000, 0b1000),
+            (0xFFFF0000, 0x00020001, 0x00010001, 0b0000),
+            (0xFFFFFFFF, 0x00010001, 0x00000000, 0b1010),
+            (0xFFFFFFFF, 0x00010002, 0x00000001, 0b0010),
+            (0xFFFFFFFF, 0x00020001, 0x00010000, 0b1000),
+            (0xFFFFFFFF, 0x00020002, 0x00010001, 0b0000),
+        )
+        for source, destination, expected_result, expected_nczv in cases:
+            with self.subTest(
+                source=f"{source:08X}", destination=f"{destination:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0xE020])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                model.state.st = 0x0ABC_DEF0
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    model.state.st,
+                    (expected_nczv << 28) | 0x0ABC_DEF0,
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_subxy_all_primary_examples_and_status_replacement(self) -> None:
+        cases = (
+            (0x00010001, 0x00090009, 0x00080008, 0b0000),
+            (0x00090001, 0x00090009, 0x00000008, 0b0010),
+            (0x00010009, 0x00090009, 0x00080000, 0b1000),
+            (0x00090009, 0x00090009, 0x00000000, 0b1010),
+            (0x00000010, 0x00090009, 0x0009FFF9, 0b0001),
+            (0x00090010, 0x00090009, 0x0000FFF9, 0b0011),
+            (0x00100000, 0x00090009, 0xFFF90009, 0b0100),
+            (0x00100009, 0x00090009, 0xFFF90000, 0b1100),
+            (0x00100010, 0x00090009, 0xFFF9FFF9, 0b0101),
+        )
+        for source, destination, expected_result, expected_nczv in cases:
+            with self.subTest(
+                source=f"{source:08X}", destination=f"{destination:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0xE220])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                model.state.st = 0x0ABC_DEF0
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    model.state.st,
+                    (expected_nczv << 28) | 0x0ABC_DEF0,
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
+        model = Tms34020Model()
+        model.load_program([
+            0xE052,
+            0xE252,
+            0xE1E0,
+            0xE23F,
+        ])
+        model.state.write_reg("B", 2, 0x00010002)
+        model.state.sp = 0x00030004
+
+        add_same = model.step()
+        self.assertEqual(model.state.read_reg("B", 2), 0x00020004)
+        self.assertEqual(add_same.machine_states, 1)
+
+        sub_same = model.step()
+        self.assertEqual(model.state.read_reg("B", 2), 0)
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b1010)
+
+        add_sp_source = model.step()
+        self.assertEqual(model.state.read_reg("A", 0), 0x00030004)
+
+        model.state.write_reg("B", 1, 0x00010001)
+        sub_sp_destination = model.step()
+        self.assertEqual(model.state.sp, 0x00020003)
+        self.assertEqual(model.state.read_reg("A", 15), 0x00020003)
 
     def test_addi_word_sign_extension_flags_and_files(self) -> None:
         cases = (

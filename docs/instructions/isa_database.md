@@ -99,9 +99,9 @@ respectively. Both use a same-file register pair, replace NCZV, and take one
 state. The encodings and semantics agree between the TMS34020 guide, printed
 pp.13-38 and 13-246, and the independently acquired TMS34010 guide, printed
 pp.12-41 and 12-251..12-252. They are therefore classified compatible from
-primary sources. At this extraction checkpoint they decode in the generated
-RTL but are deliberately rejected by execution and commit, and the model
-rolls either operation back with `UnsupportedInstruction`.
+primary sources. The independent model executes every published row and
+same-register/B/shared-SP hazards. At this model checkpoint they decode in the
+generated RTL but remain deliberately rejected by execution and commit.
 
 The `.W` and `.L` suffixes on the ADDI, CMPI, and SUBI record pairs are
 canonical database encoding-form names. TI's source mnemonics remain `ADDI`,
