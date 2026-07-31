@@ -3,16 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest committed baseline: `df55e713ef24e9dde0e2703f253f7a0f48fd8605`
-- Passing tests: foundation, reference/hash, delta, 33-case ISA sweep, 137 directed model
+- Latest committed baseline: `ec56a801bd92619fc9fbd142437fc828ffaeb158`
+- Passing tests: foundation, reference/hash, delta, 34-case ISA sweep, 139 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 82 of 83 currently extracted encoding forms have bounded
-  successful semantics. REV is decoded but atomically rolls back as unsupported
+- Model status: 83 of 84 currently extracted encoding forms have bounded
+  successful semantics. TRAP covers every vector, trap-zero no-save behavior,
+  aligned/unaligned stack frames, wrap/alignment, and 7/10/12-state cases. REV
+  is decoded but atomically rolls back as unsupported
   until a physical-device profile supplies an evidence-backed complete result.
   CMPXY reproduces all primary rows, result-sign C/V
   rather than borrow/overflow, nondestructive A/B/same-register/shared-SP
@@ -40,7 +42,7 @@
   bank-dependent state count. Other implemented coverage includes complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
-  BLMOVE, and successful TRAPL/VLCOL forms;
+  BLMOVE, and successful TRAP/TRAPL/VLCOL forms;
   CLR is represented canonically as XOR with equal source/destination fields
   and covers every A/B register encoding, shared SP, Z-only status change, and
   the primary one-state case;
@@ -56,7 +58,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 83-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 84-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 52 one-word instructions, with externally gated one-edge
@@ -88,6 +90,9 @@
   a result-sign-versus-borrow discriminator, A/B/same-register/shared-SP
   routing, ordered commit, cache-fed execution, and a status-only runtime
   assertion pass; the documented one-state retirement is not implemented.
+  TRAP 0 and 31 decode but remain explicitly noncommitting in the RTL router;
+  the model's successful entry semantics do not bypass absent stack/vector
+  ownership, fault/retry state, or physical timing.
   CLR requires no duplicate execution opcode: the existing XOR path decodes
   all 32 same-register alias words, routes equal source/destination selectors,
   clears the selected A/B/shared-SP register, sets Z, and preserves N/C/V.
@@ -143,9 +148,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 8,777 logic cells
+  warnings; the current decoder-bearing leaf wrapper uses 8,773 logic cells
   and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 419, 785, and 5,330 logic cells;
+  the fetch, frontend, and scalar wrappers use 406, 784, and 5,236 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

@@ -401,3 +401,29 @@
   differential oracle for this instruction. Confidence: `VERIFIED_PRIMARY`
   for encoding, layout, examples, status, and timing; `UNKNOWN` for the
   exact target-board silicon and spin-off fields.
+
+## RSC-0022: pinned MAME applies one shared TRAP cycle count
+
+- Status: resolved secondary-reference timing defect; successful architectural
+  entry modeled, physical stack/vector cycles still pending
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, TRAP and
+  Figure 13-12, printed pp.13-253..13-255 specifies 7 machine states for
+  TRAP 0, 10 for a nonzero trap whose saved-ST address is 32-bit aligned,
+  and 12 otherwise. TRAP 0 saves neither PC nor ST and leaves SP unchanged;
+  all nonzero traps push the next PC and complete ST before fetching the
+  vector.
+- Compatibility evidence: TI *TMS34010 User's Guide*, 1988, TRAP, printed
+  pp.12-253..12-254 gives the same encoding and visible entry rules but
+  substantially different `16,19` aligned and `30,33` unaligned timing.
+- Secondary conflict: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 1895–1907 uses the same
+  handler for both processor classes and charges 16 cycles for every trap,
+  including TRAP 0 and unaligned frames.
+- Decision: follow the TMS34020's three primary timing cases in the independent
+  model and retain the common visible semantics. The RTL execution router
+  rejects all TRAP packets until stack/vector memory ownership, fault/retry,
+  and physical timing exist. MAME remains useful for state comparison but not
+  TRAP timing. Confidence: `VERIFIED_PRIMARY` for the instruction-boundary
+  state and three timing cases; `UNKNOWN` for unimplemented physical-cycle
+  decomposition.

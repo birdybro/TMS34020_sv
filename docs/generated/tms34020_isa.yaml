@@ -3,7 +3,7 @@
   "format_note": "JSON subset of YAML 1.2. This is an incomplete primary-source extraction, not an instruction-completeness claim.",
   "coverage": {
     "status": "INCOMPLETE_PRIMARY_EXTRACTION",
-    "entry_count": 83,
+    "entry_count": 84,
     "first_word_space": 65536,
     "unmatched_first_words_are_reserved": false,
     "next_source_range": "TI-TMS34020-UG-1990 chapter 13 summary and alphabetical reference",
@@ -11,7 +11,8 @@
       "ISA-DISC-0001-TRAPL-length",
       "ISA-DISC-0002-fixed-low-bits",
       "ISA-DISC-0003-EXGF-F1-timing",
-      "ISA-DISC-0004-REV-device-value"
+      "ISA-DISC-0004-REV-device-value",
+      "ISA-DISC-0005-TRAP-timing"
     ]
   },
   "instructions": [
@@ -3129,6 +3130,43 @@
       "page_mode_effects": "instruction refill timing only",
       "source_citations": ["TI-TMS34020-UG-1990 REV, printed p.13-221", "TI-TMS34010-UG-1988 REV, printed p.12-233"],
       "compatible_with_tms34010": false,
+      "confidence": "VERIFIED_PRIMARY"
+    },
+    {
+      "mnemonic": "TRAP",
+      "aliases": [],
+      "instruction_length_words": 1,
+      "opcode_mask": "0xFFE0",
+      "opcode_value": "0x0900",
+      "operand_fields": [
+        {"name": "trap_number", "word": 0, "lsb": 0, "width": 5, "encoding": "unsigned N in the range 0..31"}
+      ],
+      "register_file": "SP implied when N is nonzero",
+      "immediate_fields": [
+        {"name": "N", "word": 0, "lsb": 0, "width": 5, "signed": false, "vector_formula": "0xFFFFFFE0 - (N << 5)"}
+      ],
+      "condition_fields": [],
+      "addressing_modes": ["immediate", "stack_predecrement_when_N_nonzero"],
+      "source_registers": ["PC and ST when N is nonzero", "SP when N is nonzero"],
+      "destination_registers": ["PC", "entire ST", "SP when N is nonzero"],
+      "status_bits_read": [],
+      "status_bits_written": ["entire ST becomes 00000010h"],
+      "undefined_status_bits": [],
+      "memory_transactions": ["when N is nonzero, push 32-bit return PC then 32-bit ST", "fetch 32-bit trap vector"],
+      "graphics_register_dependencies": [],
+      "cache_interactions": ["the single instruction word is fetched through the instruction cache"],
+      "pipeline_interactions": ["flush control flow to trap vector; N=0 is the reset exception and does not save PC/ST or change SP"],
+      "interruptibility": "software interrupt entry is atomic at its documented boundary",
+      "restartability": "nonzero traps save the address after TRAP; TRAP 0 saves no return state",
+      "bus_fault_behavior": "stack/vector fault and retry behavior requires chapter 6/15 extraction",
+      "documented_cycles": {"kind": "cases", "cases": [{"when": "N=0", "machine_states": 7}, {"when": "N!=0 and saved ST is 32-bit aligned", "machine_states": 10}, {"when": "N!=0 and saved ST is not 32-bit aligned", "machine_states": 12}]},
+      "cache_hit_cycles": "7 machine states for N=0; otherwise 10/12 according to saved-ST alignment",
+      "cache_miss_cycles": "instruction refill and stack/vector transaction latency plus the documented entry case",
+      "bus_16_effects": "splits each 32-bit stack write and vector fetch; exact timing pending",
+      "bus_32_effects": "native 32-bit stack writes/vector fetch when aligned; exact timing pending",
+      "page_mode_effects": "may affect consecutive stack writes and vector fetch; exact timing pending",
+      "source_citations": ["TI-TMS34020-UG-1990 TRAP and Figure 13-12, printed pp.13-253..13-255", "TI-TMS34010-UG-1988 TRAP, printed pp.12-253..12-254"],
+      "compatible_with_tms34010": true,
       "confidence": "VERIFIED_PRIMARY"
     }
   ]

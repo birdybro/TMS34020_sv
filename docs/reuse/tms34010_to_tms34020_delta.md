@@ -97,6 +97,14 @@ constant or TMS34010 execution leaf is therefore incorrect. Sources:
 TMS34020 guide printed p.13-221; TMS34010 guide printed p.12-233. Exact
 target-game revision words remain OQ-0014.
 
+TRAP retains its `0900h`/`FFE0h` encoding, vector map, stack frame, complete-ST
+replacement, and trap-zero no-save exception, but not its TMS34010 timing. The
+TMS34020 uses 7 states for trap zero and 10/12 for nonzero aligned/unaligned
+saved-ST addresses; the TMS34010 guide publishes `16,19` and `30,33` cases.
+Entry-state logic may be shared only after independent verification; the
+TMS34010 sequencer cannot. Sources: TMS34020 guide printed pp.13-253..13-255;
+TMS34010 guide printed pp.12-253..12-254.
+
 ## Cache and internal parallelism
 
 The cache changes the observable memory trace and execution timing, so it cannot

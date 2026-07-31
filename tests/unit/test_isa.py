@@ -227,6 +227,8 @@ class IsaTests(unittest.TestCase):
             0x0BDF: ("XORI", 3),
             0x0040: ("IDLE", 1),
             0x0080: ("MWAIT", 1),
+            0x0900: ("TRAP", 1),
+            0x091F: ("TRAP", 1),
             0x0C00: ("ADDXYI", 3),
             0x0C1E: ("ADDXYI", 3),
             0x00F0: ("BLMOVE", 1),
@@ -271,8 +273,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 25842)
-        self.assertEqual(unclassified, 65536 - 25842)
+        self.assertEqual(matched, 25874)
+        self.assertEqual(unclassified, 65536 - 25874)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -298,6 +300,40 @@ class IsaTests(unittest.TestCase):
         self.assertIn(
             "selected physical-device revision identity",
             instruction.metadata["source_registers"],
+        )
+
+    def test_trap_records_reset_exception_stack_and_timing_cases(self) -> None:
+        for word in range(0x0900, 0x0920):
+            with self.subTest(word=f"{word:04X}"):
+                decoded = self.database.decode(word)
+                self.assertIsNotNone(decoded)
+                self.assertEqual(decoded.mnemonic, "TRAP")
+        instruction = self.database.decode(0x0900)
+        self.assertEqual(instruction.opcode_mask, 0xFFE0)
+        self.assertEqual(instruction.opcode_value, 0x0900)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(
+            instruction.metadata["status_bits_written"],
+            ["entire ST becomes 00000010h"],
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"]["cases"],
+            [
+                {"when": "N=0", "machine_states": 7},
+                {
+                    "when": "N!=0 and saved ST is 32-bit aligned",
+                    "machine_states": 10,
+                },
+                {
+                    "when": "N!=0 and saved ST is not 32-bit aligned",
+                    "machine_states": 12,
+                },
+            ],
+        )
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+        self.assertIn(
+            "does not save PC/ST or change SP",
+            instruction.metadata["pipeline_interactions"][0],
         )
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:

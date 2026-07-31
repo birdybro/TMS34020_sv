@@ -8,13 +8,14 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 83 page-verified encoding records and covers 25,842 of 65,536
+slice contains 84 page-verified encoding records and covers 25,874 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
 |---|---:|---:|---|
 | NOP | `0300h` | 1 | p.13-180 |
 | REV | `0020h`, mask `FFE0h` | 1 | p.13-221 |
+| TRAP | `0900h`, mask `FFE0h` | 1 | pp.13-253..13-255 |
 | ABS | `0380h`, mask `FFE0h` | 1 | p.13-32 |
 | NEG | `03A0h`, mask `FFE0h` | 1 | p.13-178 |
 | NEGB | `03C0h`, mask `FFE0h` | 1 | p.13-179 |
@@ -134,6 +135,19 @@ implementation, as recorded in RSC-0021. Because the target-game silicon
 steppings remain unknown, the database classifies REV but model and RTL tests
 require execution to remain unsupported until an explicit evidence-backed
 device profile supplies the complete result.
+
+TRAP embeds an unsigned trap number 0–31 in bits `[4:0]` of the
+`0900h`/`FFE0h` form. Nonzero traps predecrement SP twice, save the address
+after the instruction followed by the complete old ST, replace ST with
+`0000_0010h`, fetch the vector at `FFFF_FFE0h - (N << 5)`, and load the
+aligned vector target into PC. TRAP 0 is the reset exception: it performs no
+stack write and leaves SP unchanged before replacing ST and fetching vector
+zero. The TMS34020 cases are 7 states for trap zero, 10 for a nonzero aligned
+saved-ST address, and 12 otherwise. The independent model covers all 32 vector
+numbers and both alignment classes. RTL remains noncommitting until the memory,
+fault/retry, and entry sequencer own this operation. Sources: TMS34020 User's
+Guide printed pp.13-253..13-255; TMS34010 User's Guide printed
+pp.12-253..12-254.
 
 JUMP reads an A/B register or the shared-SP alias, clears target bits `[3:0]`,
 and redirects PC in two machine states without changing ST. Its

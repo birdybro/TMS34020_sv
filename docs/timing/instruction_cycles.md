@@ -60,6 +60,16 @@ alignment class. Sources: User's Guide TRAPL printed p.13-257 and timing table
 p.15-9. These counts assume successful memory cycles under the chapter-15
 conditions; stack/vector wait, retry, and fault timing is not implemented.
 
+TRAP takes 7 states for trap number zero. That reset exception does not push
+PC/ST and does not change SP. A nonzero trap takes 10 states when the
+post-predecrement saved-ST address is 32-bit aligned and 12 otherwise. The
+TMS34010 publishes materially different aligned/unaligned timing, and pinned
+MAME charges one shared 16-cycle value, so neither is a TMS34020 timing
+reference. Sources: TMS34020 User's Guide printed pp.13-253..13-255;
+TMS34010 User's Guide printed pp.12-253..12-254. The model reports the three
+instruction-boundary cases; physical stack/vector waits, width conversion,
+faults, and retries remain absent.
+
 EXGF takes one state when exchanging FS0/FE0 (`F=0`) and two states when
 exchanging FS1/FE1 (`F=1`). This is a TMS34020 timing distinction: the
 TMS34010 guide lists one cache-hit state for EXGF without a field-bank split,

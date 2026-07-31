@@ -1859,6 +1859,100 @@ class ExecutionTests(unittest.TestCase):
                     ],
                 )
 
+    def test_trap_all_vectors_and_trap_zero_no_save_exception(self) -> None:
+        for trap_number in range(32):
+            with self.subTest(trap_number=trap_number):
+                model = Tms34020Model()
+                model.load_program(
+                    [0x0900 | trap_number],
+                    bit_address=0x0000_1000,
+                )
+                model.state.sp = 0x8000_0000
+                model.state.st = 0xF123_4567
+                saved_pc_address = 0x7FFF_FFE0
+                saved_st_address = 0x7FFF_FFC0
+                model.state.memory.write_bits(
+                    saved_pc_address, 32, 0xA5A5_5A5A
+                )
+                model.state.memory.write_bits(
+                    saved_st_address, 32, 0x5A5A_A5A5
+                )
+                vector_address = (
+                    0xFFFF_FFE0 - (trap_number << 5)
+                ) & 0xFFFF_FFFF
+                target = 0x1000_0000 | (trap_number << 4)
+                model.state.memory.write_bits(vector_address, 32, target)
+
+                event = model.step()
+
+                self.assertEqual(model.state.pc, target)
+                self.assertEqual(model.state.st, 0x0000_0010)
+                self.assertEqual(
+                    event.transactions[-1],
+                    {
+                        "class": "interrupt_vector_fetch",
+                        "bit_address": vector_address,
+                        "width": 32,
+                        "value": target,
+                    },
+                )
+                writes = [
+                    transaction
+                    for transaction in event.transactions
+                    if transaction["class"] == "data_write"
+                ]
+                if trap_number == 0:
+                    self.assertEqual(model.state.sp, 0x8000_0000)
+                    self.assertEqual(event.machine_states, 7)
+                    self.assertEqual(writes, [])
+                    self.assertEqual(
+                        model.state.memory.read_bits(
+                            saved_pc_address, 32
+                        ),
+                        0xA5A5_5A5A,
+                    )
+                    self.assertEqual(
+                        model.state.memory.read_bits(
+                            saved_st_address, 32
+                        ),
+                        0x5A5A_A5A5,
+                    )
+                else:
+                    self.assertEqual(model.state.sp, saved_st_address)
+                    self.assertEqual(event.machine_states, 10)
+                    self.assertEqual(
+                        [write["value"] for write in writes],
+                        [0x0000_1010, 0xF123_4567],
+                    )
+                self.assertIn(
+                    "successful atomic TRAP abstraction",
+                    event.notes[-1],
+                )
+
+    def test_trap_unaligned_stack_and_vector_target_alignment(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x091F], bit_address=0xFFFF_FFF0)
+        model.state.sp = 0x8000_0007
+        model.state.st = 0xFFFF_FFFF
+        model.state.memory.write_bits(
+            0xFFFF_FC00, 32, 0x1234_567F
+        )
+
+        event = model.step()
+
+        self.assertEqual(model.state.pc, 0x1234_5670)
+        self.assertEqual(model.state.sp, 0x7FFF_FFC7)
+        self.assertEqual(model.state.st, 0x0000_0010)
+        self.assertEqual(event.machine_states, 12)
+        self.assertEqual(
+            model.state.memory.read_bits(0x7FFF_FFE7, 32),
+            0x0000_0000,
+        )
+        self.assertEqual(
+            model.state.memory.read_bits(0x7FFF_FFC7, 32),
+            0xFFFF_FFFF,
+        )
+
     def test_blmove_all_modes_successful_boundary(self) -> None:
         fixtures = (
             (0x00F0, 0x0000_0400, 0x0000_0800, 0, 0),

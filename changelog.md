@@ -4,6 +4,12 @@
 
 ### Added
 
+- Primary-page-verified TRAP `0900h`/`FFE0h` metadata plus an independent model
+  covering all 32 vectors, trap-zero no-save behavior, aligned/unaligned stack
+  frames, exact transaction traces, PC wrap/alignment, complete ST replacement,
+  and the documented 7/10/12-state cases.
+- Direct RTL noncommit guards for TRAP 0 and 31 pending a real stack/vector
+  sequencer, memory ownership, and fault/retry implementation.
 - Primary-page-verified REV `0020h`/`FFE0h` device-identity metadata, its
   TMS34010/TMS34020 result and timing delta, exact A/B/SP decode fixtures, and
   explicit model rollback plus RTL noncommit guards pending an evidence-backed
@@ -255,6 +261,11 @@
 
 ### Changed
 
+- Factored the model's successful atomic TRAP/TRAPL boundary through one
+  independently tested stack/vector helper while retaining their different
+  immediates, trap-zero rule, instruction lengths, and traces.
+- Expanded the generated partial decoder from 83 to 84 records and from
+  25,842 to 25,874 uniquely classified first words.
 - Expanded the generated partial decoder from 82 to 83 records and from
   25,810 to 25,842 uniquely classified first words without treating any
   remaining unmatched word as reserved.
@@ -295,6 +306,13 @@
 
 ### Verified
 
+- The 34-case ISA suite, 54-entry delta ledger, and 139-case model suite pass.
+  Every TRAP vector and both stack-alignment classes are covered, and prior
+  TRAPL cases still pass after helper extraction. All decoder-bearing Cyclone V
+  smoke targets pass with zero errors/warnings: leaf 8,773, fetch 406,
+  frontend 784, and scalar 5,236 logic cells. These are bounded
+  instruction-state and synthesis-portability results, not physical
+  stack/vector timing, fit, or TimeQuest evidence.
 - The 33-case ISA suite, 53-entry delta ledger, and 137-case model suite pass.
   REV is the only extracted form without successful model semantics: a
   directed snapshot test proves decoded execution rolls back exactly, and the
@@ -777,6 +795,9 @@
 
 ### Documentation
 
+- Documented the TRAP vector map, reset exception, stack frame, timing delta,
+  pinned MAME 16-cycle discrepancy (RSC-0022), and the explicit boundary
+  between model success semantics and absent physical memory/fault ownership.
 - Documented REV's identity bit layout, TMS34010/TMS34020 behavior and timing
   boundary, the pinned MAME conflict, and the rule that target-game profiles
   may not guess an unverified stepping result.
@@ -850,6 +871,9 @@
 
 ### Known Issues
 
+- TRAP has instruction-boundary model semantics only. RTL execution, external
+  stack/vector transaction decomposition, waits, dynamic width, page mode,
+  bus faults, retries, and exact pin/machine-state timing remain unimplemented.
 - REV execution is intentionally unsupported until an evidence-backed
   physical-device profile provides the complete 32-bit identity. Exact
   Battletoads and Revolution X silicon results remain unknown, and pinned MAME

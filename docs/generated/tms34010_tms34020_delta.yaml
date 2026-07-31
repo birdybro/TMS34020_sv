@@ -536,6 +536,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 REV, printed p.13-221", "TI-TMS34010-UG-1988 REV, printed p.12-233"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact silicon-revision and spin-off fields for the processors fitted to Battletoads and Revolution X remain unknown."]
+    },
+    {
+      "feature": "trap_instruction_entry_timing",
+      "tms34010_behavior": "TRAP has the same 0900h/FFE0h encoding, vector map, TRAP-0 no-save exception, stack frame, and visible reset-ST behavior, but publishes 16/19 states for aligned SP and 30/33 for unaligned SP.",
+      "tms34020_behavior": "TRAP 0 takes 7 machine states and does not save PC/ST or change SP. Nonzero TRAP takes 10 states when the saved-ST address is 32-bit aligned and 12 otherwise.",
+      "rtl_impact": "Share verified entry semantics only; implement a dedicated TMS34020 stack/vector schedule and special TRAP-0 path rather than reusing TMS34010 or MAME cycle charging.",
+      "test_impact": "All 32 trap numbers, TRAP-0 no-write behavior, aligned/unaligned frames, return PC, full ST replacement, vector reads, cache cases, width/page/wait/fault/retry, and exact retirement timing.",
+      "source_citation": ["TI-TMS34020-UG-1990 TRAP and Figure 13-12, printed pp.13-253..13-255", "TI-TMS34010-UG-1988 TRAP, printed pp.12-253..12-254"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Stack/vector bus-fault, retry, dynamic-width, and page-mode decomposition remains pending."]
     }
   ]
 }

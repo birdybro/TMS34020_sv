@@ -29,15 +29,25 @@ Implemented:
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
-  TRAPL, and VLCOL.
+  TRAP, TRAPL, and VLCOL.
 
-These handlers cover 82 of 83 currently extracted database forms. REV is
+These handlers cover 83 of 84 currently extracted database forms. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
 verified. A directed test proves that attempting REV raises
 `UnsupportedInstruction` and restores the complete preinstruction model/cache
 snapshot. This is coverage of a current partial extraction, not instruction
 completeness.
+
+TRAP shares the model's independently implemented atomic software-trap helper
+with TRAPL while retaining its own unsigned five-bit vector number and
+trap-zero exception. All 32 vector numbers are tested. TRAP 0 performs no
+stack write, leaves SP unchanged, replaces ST with `0000_0010h`, and reports
+seven states. Nonzero traps save the next PC then old ST through two 32-bit
+predecrements, report 10/12 aligned/unaligned states, and align the fetched
+target PC. This is an instruction-boundary success abstraction; stack/vector
+fault, retry, width, page, and pin transactions remain unmodeled. Source:
+TMS34020 User's Guide, printed pp.13-253..13-255.
 
 JACC tests cover all 16 condition codes, a taken case for every code and a
 false case for every conditional code, low-word/high-word target assembly,
