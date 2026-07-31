@@ -82,8 +82,8 @@
 - A portable cache/fetch frontend with native memory and fault controls, plus
   integrated Verilator and Cyclone V synthesis qualification.
 - A bounded scalar composition that admits 23 verified one-word packets plus
-  complete ANDNI/ORI/XORI packets to A/B/SP and ST commit and exposes every
-  other packet as blocked.
+  complete ANDNI/ORI/XORI and ADDXYI packets to A/B/SP and ST commit and
+  exposes every other packet as blocked.
 - Self-checking scalar-composition and warning-enforcing Cyclone V synthesis
   commands.
 
@@ -194,6 +194,10 @@
   ORI-to-XORI sequence. Incomplete ANDNI and unclassified packets cannot write.
   Requalified Quartus wrappers report 5,583 leaf logic cells and 3,512 scalar
   logic cells, with zero errors/warnings.
+- ADDXYI now passes complete-packet gating, independent X/Y half addition,
+  full NCZV replacement, A/B selection, shared-SP commit, and dependent fetched
+  packet tests. Requalified Quartus wrappers report 5,681 leaf logic cells and
+  3,598 scalar logic cells, with zero errors/warnings.
 
 ### Documentation
 
@@ -242,7 +246,7 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
-- Documented the exact 26-operation scalar admission set, blocked-packet
+- Documented the exact 27-operation scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
 
@@ -254,8 +258,8 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 23 one-word and three
-  immediate-logical operations, and every other packet blocks. There is no
+  bounded scalar composition accepts only 23 one-word and four three-word
+  immediate operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain

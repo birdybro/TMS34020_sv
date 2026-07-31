@@ -292,6 +292,35 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_addxyi_register_execute(
+        input logic [15:0] first_word,
+        input logic [31:0] immediate,
+        input logic [31:0] destination,
+        input logic [31:0] expected_register_data,
+        input logic [3:0] expected_nczv,
+        input string message
+    );
+        execute_first_word = first_word;
+        execute_packet_length = 3'd3;
+        execute_immediate = immediate;
+        execute_source = 32'd0;
+        execute_destination = destination;
+        execute_status = 32'h0FFF_FFFF;
+        #1;
+        check_condition(
+            execute_supported &&
+            execute_register_file == first_word[4] &&
+            execute_source_index == first_word[3:0] &&
+            execute_destination_index == first_word[3:0] &&
+            execute_register_write_enable &&
+            execute_register_write_data == expected_register_data &&
+            execute_status_write_enable &&
+            execute_status_write_data == {expected_nczv, 28'd0} &&
+            execute_status_write_mask == 32'hF000_0000,
+            message
+        );
+    endtask
+
     task automatic check_decode(
         input logic [15:0] first_word,
         input tms34020_opcode_id_t expected_id,
@@ -334,6 +363,44 @@ module tb_tms34020_verified_leaves;
             commit_status_write_data ==
                 {2'd0, expected_zero, 29'd0} &&
             commit_status_write_mask == 32'h2000_0000,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
+    task automatic commit_addxyi_instruction(
+        input logic [15:0] first_word,
+        input logic [31:0] immediate,
+        input logic expected_register_file,
+        input logic [3:0] expected_register_index,
+        input logic [31:0] expected_register_data,
+        input logic [3:0] expected_nczv,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {immediate, first_word};
+        commit_packet_length = 3'd3;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            commit_register_write_enable &&
+            commit_register_write_file == expected_register_file &&
+            commit_register_write_index == expected_register_index &&
+            commit_register_write_data == expected_register_data &&
+            commit_status_write_enable &&
+            commit_status_write_data == {expected_nczv, 28'd0} &&
+            commit_status_write_mask == 32'hF000_0000,
             message
         );
         @(posedge clk);
@@ -809,6 +876,21 @@ module tb_tms34020_verified_leaves;
             "register execute XORI B-file nonzero"
         );
         check_register_execute(
+            16'h0C00, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "incomplete ADDXYI cannot enter register execute"
+        );
+        check_addxyi_register_execute(
+            16'h0C00, 32'hFFFF_FFFF, 32'h0001_0001,
+            32'd0, 4'b1010,
+            "register execute ADDXYI independent halves"
+        );
+        check_addxyi_register_execute(
+            16'h0C12, 32'h7FFF_7FFF, 32'h0002_0001,
+            32'h8001_8000, 4'b0101,
+            "register execute ADDXYI B-file sign flags"
+        );
+        check_register_execute(
             16'hFFFF, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "unclassified register execute instruction"
@@ -957,6 +1039,24 @@ module tb_tms34020_verified_leaves;
             1'b1, 4'd2, 32'd0, 1'b1,
             32'h2000_0010, 32'd1,
             "register commit ANDNI B2 packet"
+        );
+        commit_addxyi_instruction(
+            16'h0C00, 32'hFFFF_0000,
+            1'b0, 4'd0, 32'hFFFF_0000, 4'b1100,
+            32'hC000_0010, 32'd1,
+            "register commit ADDXYI packet"
+        );
+        commit_addxyi_instruction(
+            16'h0C00, 32'h0001_FFFF,
+            1'b0, 4'd0, 32'h0000_FFFF, 4'b0011,
+            32'h3000_0010, 32'd1,
+            "register commit ADDXYI observes prior result"
+        );
+        commit_addxyi_instruction(
+            16'h0C1F, 32'hFFFF_FFFF,
+            1'b1, 4'd15, 32'hFFFF_0000, 4'b1100,
+            32'hC000_0010, 32'hFFFF_0000,
+            "register commit ADDXYI updates shared SP"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");

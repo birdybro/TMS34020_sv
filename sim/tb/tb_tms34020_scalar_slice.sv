@@ -135,6 +135,12 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0160: memory_word = 16'h0B80;
                 32'h0000_0170: memory_word = 16'hFFFF;
                 32'h0000_0180: memory_word = 16'hFFFF;
+                32'h0000_0190: memory_word = 16'h0C00;
+                32'h0000_01A0: memory_word = 16'h0000;
+                32'h0000_01B0: memory_word = 16'hFFFF;
+                32'h0000_01C0: memory_word = 16'h0C00;
+                32'h0000_01D0: memory_word = 16'hFFFF;
+                32'h0000_01E0: memory_word = 16'h0001;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -158,6 +164,51 @@ module tb_tms34020_scalar_slice;
         if (!condition) begin
             $display("FAIL: %s", message);
             $fatal(1);
+        end
+    endtask
+
+    task automatic serve_addxyi_and_commit(
+        input logic [31:0] expected_pc,
+        input logic [31:0] expected_register_data,
+        input logic [3:0] expected_nczv,
+        input logic [31:0] expected_status,
+        input string message
+    );
+        begin
+            serve_word(expected_pc);
+            serve_word(expected_pc + 32'd16);
+            serve_word(expected_pc + 32'd32);
+            wait (commit_accepted);
+            check_condition(
+                packet_valid &&
+                packet_supported &&
+                !packet_blocked &&
+                packet_opcode_id == TMS20_OP_ADDXYI &&
+                packet_length_words == 3'd3 &&
+                packet_start_pc == expected_pc &&
+                packet_words[47:0] == {
+                    memory_word(expected_pc + 32'd32),
+                    memory_word(expected_pc + 32'd16),
+                    memory_word(expected_pc)
+                } &&
+                packet_words[79:48] == 32'd0 &&
+                register_write_enable &&
+                !register_write_file &&
+                register_write_index == 4'd0 &&
+                register_write_data == expected_register_data &&
+                status_write_enable &&
+                status_write_data == {expected_nczv, 28'd0} &&
+                status_write_mask == 32'hF000_0000,
+                message
+            );
+            @(posedge clk);
+            #1;
+            check_condition(
+                !commit_accepted &&
+                status == expected_status &&
+                sp == 32'd0,
+                message
+            );
         end
     endtask
 
@@ -485,7 +536,22 @@ module tb_tms34020_scalar_slice;
             "three immediate-logical packet commits"
         );
 
-        serve_word(32'h190);
+        serve_addxyi_and_commit(
+            32'h190, 32'hFFFF_0000, 4'b1100,
+            32'hC000_0010,
+            "scalar ADDXYI packet commit"
+        );
+        serve_addxyi_and_commit(
+            32'h1C0, 32'h0000_FFFF, 4'b0011,
+            32'h3000_0010,
+            "scalar ADDXYI observes prior result"
+        );
+        check_condition(
+            commit_count == 5,
+            "five three-word packet commits"
+        );
+
+        serve_word(32'h1F0);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -502,8 +568,8 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 3 &&
-                status == 32'h2000_0010 &&
+                commit_count == 5 &&
+                status == 32'h3000_0010 &&
                 sp == 32'd0,
                 "blocked unclassified packet cannot mutate state"
             );

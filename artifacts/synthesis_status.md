@@ -9,11 +9,11 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 5,583 logic cells after synthesis, 2,021 registers,
+- Analysis resources: 5,681 logic cells after synthesis, 2,021 registers,
   127 pins, 0 block-memory bits, 0 DSP blocks, and 0 PLLs
 - Scope: generated 38-entry partial decoder, A/B/SP register file, masked ST state,
   nineteen instruction semantic leaves, decoder-controlled register-execution
-  intents and externally gated state commit for 26 register/status instructions,
+  intents and externally gated state commit for 27 register/status instructions,
   and an observability-only synthesis wrapper
 - Utilization caveat: the diagnostic top deliberately instantiates both the raw
   register/status leaves and a second integrated register/status pair inside
@@ -78,11 +78,11 @@
 
 - Command: `make quartus-scalar-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 3,512 logic cells, 1,357 registers, 82 pins, 4,096
+- Analysis resources: 3,598 logic cells, 1,357 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`
-- Scope: cache/fetch frontend, 26-operation register executor, A/B/SP and ST
+- Scope: cache/fetch frontend, 27-operation register executor, A/B/SP and ST
   state, bounded acceptance/completion, and observability wrapper
 - Fit/placement/routing and TimeQuest: not run; no timing-closure claim
 - Qualification claim: warning-free Analysis & Synthesis for only the bounded

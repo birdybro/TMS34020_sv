@@ -59,6 +59,6 @@ TimeQuest, cycle accuracy, or a complete-core area result.
 
 `scalar_execution_slice.md` documents the bounded consumer that accepts 23
 page-verified one-word register/status operations plus the three-word
-ANDNI/ORI/XORI family. Other multiword, control-flow, faulted, and interrupting
-operations remain noncommitting until their individual ordering is implemented
-and tested.
+ANDNI/ORI/XORI and ADDXYI operations. Other multiword, control-flow, faulted,
+and interrupting operations remain noncommitting until their individual
+ordering is implemented and tested.

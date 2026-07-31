@@ -19,6 +19,7 @@ SOURCES = [
     ROOT / "rtl/execute/tms34020_cmpk.sv",
     ROOT / "rtl/execute/tms34020_rmo.sv",
     ROOT / "rtl/execute/tms34020_logical.sv",
+    ROOT / "rtl/execute/tms34020_addxyi.sv",
     ROOT / "rtl/execute/tms34020_register_execute.sv",
     ROOT / "rtl/core/tms34020_regfile.sv",
     ROOT / "rtl/core/tms34020_status.sv",

@@ -40,6 +40,8 @@ module tms34020_register_execute (
     tms34020_logical_op_t immediate_logical_operation;
     logic [31:0] immediate_logical_result;
     logic immediate_logical_z;
+    logic [31:0] addxyi_result;
+    logic [3:0] addxyi_nczv;
     tms34020_binary_op_t increment_decrement_operation;
     logic [31:0] increment_decrement_result;
     logic [3:0] increment_decrement_nczv;
@@ -110,6 +112,16 @@ module tms34020_register_execute (
         .destination_i(destination_i),
         .result_o(immediate_logical_result),
         .status_z_o(immediate_logical_z)
+    );
+
+    tms34020_addxyi addxyi (
+        .destination_i(destination_i),
+        .immediate_i(immediate_i),
+        .result_o(addxyi_result),
+        .status_n_o(addxyi_nczv[3]),
+        .status_c_o(addxyi_nczv[2]),
+        .status_z_o(addxyi_nczv[1]),
+        .status_v_o(addxyi_nczv[0])
     );
 
     always_comb begin
@@ -236,6 +248,16 @@ module tms34020_register_execute (
                     status_write_data_o =
                         {2'd0, immediate_logical_z, 29'd0};
                     status_write_mask_o = 32'h2000_0000;
+                end
+
+                TMS20_OP_ADDXYI: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = addxyi_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = {addxyi_nczv, 28'd0};
+                    status_write_mask_o = 32'hF000_0000;
                 end
 
                 TMS20_OP_RMO: begin

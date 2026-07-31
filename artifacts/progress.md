@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `f1617bd5f1b5b9765d670529ab353f8243e43915`
+- Latest commit: `968368863a059b5542dfbaf32b463cce2ac5c65f`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 52 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -21,9 +21,9 @@
   ordered-state tests; standalone native-completion cache lookup/refill RTL;
   an integrated serialized cache/instruction-packet frontend with explicit
   completion and abort/reload; and a bounded fetch-to-commit path for those 23
-  one-word operations plus complete ANDNI/ORI/XORI packets. Other packets
-  block. There is no architectural completion timing or complete executable
-  processor core
+  one-word operations plus complete ANDNI/ORI/XORI and ADDXYI packets. Other
+  packets block. There is no architectural completion timing or complete
+  executable processor core
   (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
   current-cycle fault/retry contracts are covered by the model and bounded RTL;
@@ -39,7 +39,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 3,512 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 3,598 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
@@ -50,5 +50,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: route page-verified ADDXYI through complete-packet commit while
-  preserving the explicit blocked-packet boundary
+- Next task: extract the next primary-source common scalar ALU family with
+  independent fixtures before widening packet admission
