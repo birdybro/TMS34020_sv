@@ -212,6 +212,14 @@
   incomplete-packet rejection, and dependent mixed-length fetched-packet
   tests. Requalified Quartus wrappers report 5,850 leaf logic cells and 3,696
   scalar logic cells with zero errors/warnings.
+- Extracted collision-free SUBI.W and SUBI.L records from TI printed
+  pp.13-243..13-244. The partial ISA now contains 42 records covering 6,736
+  first words, and the independent model covers 36 forms with complemented
+  object words, every arithmetic example row, short/long timing cases, borrow
+  and overflow, and SP aliasing. The scalar regression proves SUBI.W remains
+  decoded but noncommitting pending RTL execution work. Warning-free Quartus
+  requalification reports 5,859 leaf, 350 fetch, 723 frontend, and 3,679
+  scalar logic cells.
 
 ### Documentation
 
@@ -263,6 +271,9 @@
 - Documented the exact 29-operation scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
+- Recorded RSC-0009 for the SUBI.L example row that prints `NCZV=0001` despite
+  a zero, non-overflowing result; the model follows the page's flag definitions
+  and its other zero-result rows (`0010`).
 
 ### Integration
 

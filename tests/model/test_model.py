@@ -557,6 +557,95 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(model.state.sp, 1)
         self.assertEqual(model.state.read_reg("A", 15), 1)
 
+    def test_subi_word_primary_rows_and_complemented_encoding(self) -> None:
+        cases = (
+            (32765, 0x0000_7FFE, 0x0000_0001, 0b0000),
+            (32766, 0x0000_7FFE, 0x0000_0000, 0b0010),
+            (32767, 0x0000_7FFE, 0xFFFF_FFFF, 0b1100),
+            (32766, 0x8000_7FFE, 0x8000_0000, 0b1000),
+            (32767, 0x8000_7FFE, 0x7FFF_FFFF, 0b0001),
+            (-32766, 0xFFFF_8001, 0xFFFF_FFFF, 0b1100),
+            (-32767, 0xFFFF_8001, 0x0000_0000, 0b0010),
+            (-32768, 0xFFFF_8001, 0x0000_0001, 0b0000),
+            (-32767, 0x7FFF_8000, 0x7FFF_FFFF, 0b0100),
+            (-32768, 0x7FFF_8000, 0x8000_0000, 0b1101),
+        )
+        for immediate, destination, result, nczv in cases:
+            encoded = (~immediate) & 0xFFFF
+            with self.subTest(
+                immediate=immediate,
+                destination=f"{destination:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([0x0BE0, encoded])
+                model.state.write_reg("A", 0, destination)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), result)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.mnemonic, "SUBI.W")
+                self.assertEqual(event.instruction_words[1], encoded)
+                self.assertEqual(event.machine_states, 2)
+
+    def test_subi_long_primary_rows_alignment_and_source_conflict(self) -> None:
+        cases = (
+            (2147483647, 0x7FFF_FFFF, 0x0000_0000, 0b0010),
+            (32768, 0x0000_8001, 0x0000_0001, 0b0000),
+            (32769, 0x0000_8001, 0x0000_0000, 0b0010),
+            (32770, 0x0000_8001, 0xFFFF_FFFF, 0b1100),
+            (32768, 0x8000_8000, 0x8000_0000, 0b1000),
+            (32769, 0x8000_8000, 0x7FFF_FFFF, 0b0001),
+            (-2147483648, 0x8000_0000, 0x0000_0000, 0b0010),
+            (-32769, 0xFFFF_7FFE, 0xFFFF_FFFF, 0b1100),
+            (-32770, 0xFFFF_7FFE, 0x0000_0000, 0b0010),
+            (-32771, 0xFFFF_7FFE, 0x0000_0001, 0b0000),
+            (-32770, 0x7FFF_7FFD, 0x7FFF_FFFF, 0b0100),
+            (-32771, 0x7FFF_7FFD, 0x8000_0000, 0b1101),
+        )
+        for case_index, (
+            immediate,
+            destination,
+            result,
+            nczv,
+        ) in enumerate(cases):
+            encoded = (~immediate) & 0xFFFF_FFFF
+            start_address = 0x10 if case_index & 1 else 0
+            with self.subTest(
+                immediate=immediate,
+                destination=f"{destination:08X}",
+                start_address=f"{start_address:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program(
+                    [0x0D00, encoded & 0xFFFF, encoded >> 16],
+                    bit_address=start_address,
+                )
+                model.state.write_reg("A", 0, destination)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), result)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.mnemonic, "SUBI.L")
+                self.assertEqual(
+                    event.instruction_words[1:],
+                    [encoded & 0xFFFF, encoded >> 16],
+                )
+                self.assertEqual(
+                    event.machine_states,
+                    2 if start_address == 0x10 else 3,
+                )
+
+    def test_subi_destination_15_updates_shared_sp(self) -> None:
+        immediate = 2
+        encoded = (~immediate) & 0xFFFF_FFFF
+        model = Tms34020Model()
+        model.load_program(
+            [0x0D1F, encoded & 0xFFFF, encoded >> 16],
+            bit_address=0x10,
+        )
+        model.state.sp = 1
+        model.step()
+        self.assertEqual(model.state.sp, 0xFFFF_FFFF)
+        self.assertEqual(model.state.read_reg("A", 15), 0xFFFF_FFFF)
+
     def test_logical_primary_examples_and_only_z_changes(self) -> None:
         cases = (
             (0x5000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF),

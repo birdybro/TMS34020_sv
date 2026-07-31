@@ -118,3 +118,19 @@
 - Decision: `CF=1` clears/forces clear all 32 subsegment-present flags. Treat
   "all 4" on p.4-61 as a typographical error, not a four-flag cache variant.
   Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0009: SUBI.L first example status
+
+- Status: resolved internal example-table error
+- Conflicting primary text: TI *TMS34020 User's Guide*, August 1990, SUBI
+  32-bit form, printed p.13-244, gives `7FFFFFFFh - 7FFFFFFFh = 00000000h`
+  but prints `NCZV=0001`.
+- Resolving primary evidence: the same page defines Z as one when the result is
+  zero and V as one only on overflow. The identical operands produce neither
+  signed overflow nor a borrow. The remaining zero-result SUBI examples on
+  pp.13-243..13-244 print `NCZV=0010`, consistent with those definitions and
+  with the programmer's-model status definition in §4.1, printed pp.4-2..4-3.
+- Decision: expect `NCZV=0010` for that row and preserve the printed `0001`
+  value here as a source conflict. The model test names this resolution
+  explicitly; the table value is not silently copied or silently corrected.
+  Confidence: `VERIFIED_PRIMARY`.

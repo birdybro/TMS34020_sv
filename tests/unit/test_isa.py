@@ -98,6 +98,10 @@ class IsaTests(unittest.TestCase):
             0x0B1F: ("ADDI.W", 2),
             0x0B20: ("ADDI.L", 3),
             0x0B3F: ("ADDI.L", 3),
+            0x0BE0: ("SUBI.W", 2),
+            0x0BFF: ("SUBI.W", 2),
+            0x0D00: ("SUBI.L", 3),
+            0x0D1F: ("SUBI.L", 3),
             0x4400: ("SUB", 1),
             0x45FF: ("SUB", 1),
             0x4600: ("SUBB", 1),
@@ -153,7 +157,7 @@ class IsaTests(unittest.TestCase):
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x101F, 0x1040, 0x141F, 0x1440, 0x33FF, 0x3800,
-                     0x0AFF, 0x0B40, 0x0B7F, 0x0BE0, 0x3FFF, 0x4A00,
+                     0x0AFF, 0x0B40, 0x0B7F, 0x0C20, 0x3FFF, 0x4A00,
                      0x4FFF, 0x5800,
                      0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
@@ -161,8 +165,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 6672)
-        self.assertEqual(unclassified, 65536 - 6672)
+        self.assertEqual(matched, 6736)
+        self.assertEqual(unclassified, 65536 - 6736)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -198,6 +202,23 @@ class IsaTests(unittest.TestCase):
         self.assertTrue(short.metadata["immediate_fields"][0]["signed"])
         self.assertEqual(long.metadata["immediate_fields"][0]["width"], 32)
         self.assertTrue(long.metadata["immediate_fields"][0]["signed"])
+
+    def test_subi_encoding_forms_record_complemented_object_words(self) -> None:
+        short = self.database.decode(0x0BE0)
+        long = self.database.decode(0x0D00)
+        self.assertEqual(short.metadata["aliases"], ["SUBI"])
+        self.assertEqual(long.metadata["aliases"], ["SUBI"])
+        self.assertEqual(short.metadata["immediate_fields"][0]["width"], 16)
+        self.assertTrue(short.metadata["immediate_fields"][0]["signed"])
+        self.assertEqual(long.metadata["immediate_fields"][0]["width"], 32)
+        self.assertTrue(long.metadata["immediate_fields"][0]["signed"])
+        for instruction in (short, long):
+            self.assertEqual(
+                instruction.metadata["immediate_fields"][0][
+                    "object_encoding"
+                ],
+                "ones_complement_of_source_immediate",
+            )
 
 
 if __name__ == "__main__":

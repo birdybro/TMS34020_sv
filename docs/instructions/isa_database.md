@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains forty page-verified encoding records and covers 6,672 of 65,536
+slice contains 42 page-verified encoding records and covers 6,736 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -29,6 +29,8 @@ first words without collisions:
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
 | ADDI.W / ADDI | `0B00h`, mask `FFE0h` | 2 | p.13-35 |
 | ADDI.L / ADDI | `0B20h`, mask `FFE0h` | 3 | p.13-36 |
+| SUBI.W / SUBI | `0BE0h`, mask `FFE0h` | 2 | p.13-243 |
+| SUBI.L / SUBI | `0D00h`, mask `FFE0h` | 3 | p.13-244 |
 | SUB | `4400h`, mask `FE00h` | 1 | p.13-241 |
 | SUBB | `4600h`, mask `FE00h` | 1 | p.13-242 |
 | CMP | `4800h`, mask `FE00h` | 1 | p.13-80 |
@@ -60,10 +62,12 @@ reads/writes, memory transactions, graphics dependencies, cache/pipeline
 interaction, interrupt/restart/fault behavior, documented cycle cases,
 16/32-bit/page effects, compatibility, citations, and confidence.
 
-The `.W` and `.L` suffixes on the two ADDI records are canonical
-database encoding-form names. TI's source mnemonic remains `ADDI` in each
-record's aliases. The form names keep different first words, lengths, immediate
-widths, and timing cases unambiguous without inventing an opcode distinction.
+The `.W` and `.L` suffixes on the ADDI and SUBI record pairs are canonical
+database encoding-form names. TI's source mnemonics remain `ADDI` and `SUBI`
+in the respective aliases. The form names keep different first words, lengths,
+immediate widths, object encodings, and timing cases unambiguous without
+inventing source-level opcode distinctions. SUBI stores the one's complement
+of its source immediate in each extension word as shown on pp.13-243..13-244.
 
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database
@@ -106,6 +110,10 @@ RSC-0006 records an internal wording error on the ORI page: both timing cases
 say “aligned.” The same guide's chapter 15 timing table distinguishes two
 states for aligned immediate data and three for unaligned data. The database
 cites both primary locations and uses the timing-table distinction.
+
+RSC-0009 records that the first SUBI.L example prints `NCZV=0001` for a zero
+result without signed overflow. The model follows the same page's flag
+definitions and the other zero-result rows by expecting `0010`.
 
 ## Validation
 

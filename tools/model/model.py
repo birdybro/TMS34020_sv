@@ -96,6 +96,8 @@ class Tms34020Model:
             "ADDC": self._execute_addc,
             "ADDI.W": self._execute_addi_word,
             "ADDI.L": self._execute_addi_long,
+            "SUBI.W": self._execute_subi_word,
+            "SUBI.L": self._execute_subi_long,
             "SUB": self._execute_sub,
             "SUBB": self._execute_subb,
             "CMP": self._execute_cmp,
@@ -583,6 +585,50 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_immediate_add(words, True)
+
+    def _execute_immediate_subtract(
+        self, words: list[int], long_form: bool
+    ) -> int:
+        register_file, index = self._decode_destination(words[0])
+        destination = self.state.read_reg(register_file, index)
+        if long_form:
+            encoded_immediate = words[1] | (words[2] << 16)
+            source = (~encoded_immediate) & MASK32
+        else:
+            source = (~words[1]) & 0xFFFF
+            if source & 0x8000:
+                source |= 0xFFFF_0000
+
+        result = (destination - source) & MASK32
+        borrow = destination < source
+        overflow = bool(
+            (destination ^ source)
+            & (destination ^ result)
+            & 0x8000_0000
+        )
+
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, borrow)
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, overflow)
+
+        if not long_form:
+            return 2
+        immediate_address = (self.state.pc - 32) & MASK32
+        return 2 if immediate_address & 0x1F == 0 else 3
+
+    def _execute_subi_word(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_subtract(words, False)
+
+    def _execute_subi_long(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_subtract(words, True)
 
     def _execute_sub(
         self, instruction: Instruction, words: list[int]

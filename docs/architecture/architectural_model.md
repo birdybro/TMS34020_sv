@@ -19,7 +19,7 @@ Implemented:
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, INC, DEC, SETC, ADD,
-  ADDC, ADDI.W, ADDI.L, SUB, SUBB, CMP, AND, ANDN, OR, XOR,
+  ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, AND, ANDN, OR, XOR,
   ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry, MWAIT, ADDXYI, CMPK,
   EXGPS, GETPS, RMO, and RPIX.
 
@@ -56,6 +56,15 @@ the long form takes two states when its first extension word is long-word
 aligned and three otherwise. `ADDI.W` and `ADDI.L` are database form names;
 the TI assembly mnemonic for both remains `ADDI`. Source: TI *TMS34020 User's
 Guide*, August 1990, printed pp.13-35..13-36.
+
+The two SUBI encoding forms recover the source immediate from the documented
+one's-complement extension word or words, subtract it from Rd, and replace
+NCZV with N, borrow, zero, and signed overflow. The short form takes two
+states; the long form uses the same aligned two-state/unaligned three-state
+split as ADDI.L. `SUBI.W` and `SUBI.L` are database form names; TI uses `SUBI`
+for both. Source: the same guide, printed pp.13-243..13-244. The inconsistent
+first long-form example flag is resolved explicitly in
+`docs/research/source_conflicts.md` RSC-0009.
 
 The register and immediate logical families implement AND/ANDN/OR/XOR and
 ANDNI/ORI/XORI while changing only Z. ANDI is the documented assembler alias
@@ -140,7 +149,9 @@ seed reproducibility, instruction PC increments, ADDXYI edge behavior and
 flags, all TI example rows for ABS/NEG/NEGB/NOT, directed
 ADD/ADDC/SUB/SUBB/CMP arithmetic boundaries and nondestructive CMP,
 all TI ADDI example rows, signed-word extension, long-immediate alignment
-timing, A/B selection, and SP aliasing,
+timing, A/B selection, and SP aliasing; all TI SUBI arithmetic rows,
+one's-complement object words, borrow/overflow boundaries, alignment timing,
+and SP aliasing, with the RSC-0009 status-table correction kept explicit;
 all TI register/immediate logical example rows, ANDI encoded-complement
 behavior, aligned and unaligned immediate timing,
 CLRC/SETC preservation, DINT/EINT IE changes, complete GETST transfer, all TI
