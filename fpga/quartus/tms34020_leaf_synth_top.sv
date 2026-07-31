@@ -53,6 +53,17 @@ module tms34020_leaf_synth_top (
     logic execute_status_write_enable;
     logic [31:0] execute_status_write_data;
     logic [31:0] execute_status_write_mask;
+    logic commit_supported;
+    logic commit_accepted;
+    logic commit_register_write_enable;
+    logic commit_register_write_file;
+    logic [3:0] commit_register_write_index;
+    logic [31:0] commit_register_write_data;
+    logic commit_status_write_enable;
+    logic [31:0] commit_status_write_data;
+    logic [31:0] commit_status_write_mask;
+    logic [31:0] commit_status;
+    logic [31:0] commit_sp;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -72,6 +83,15 @@ module tms34020_leaf_synth_top (
         execute_register_write_data ^
         execute_status_write_data ^
         execute_status_write_mask ^
+        commit_register_write_data ^
+        commit_status_write_data ^
+        commit_status_write_mask ^
+        commit_status ^
+        commit_sp ^
+        {24'd0, commit_supported, commit_accepted,
+         commit_register_write_enable, commit_register_write_file,
+         commit_register_write_index} ^
+        {31'd0, commit_status_write_enable} ^
         {20'd0, execute_supported, execute_register_file,
          execute_source_index, execute_destination_index,
          execute_register_write_enable, execute_status_write_enable} ^
@@ -188,6 +208,24 @@ module tms34020_leaf_synth_top (
         .status_write_enable_o(execute_status_write_enable),
         .status_write_data_o(execute_status_write_data),
         .status_write_mask_o(execute_status_write_mask)
+    );
+
+    tms34020_register_commit register_commit (
+        .clk_i(clk_i),
+        .reset_i(reset_i),
+        .commit_i(write_enable_i),
+        .first_word_i(first_word_i),
+        .supported_o(commit_supported),
+        .commit_accepted_o(commit_accepted),
+        .register_write_enable_o(commit_register_write_enable),
+        .register_write_file_o(commit_register_write_file),
+        .register_write_index_o(commit_register_write_index),
+        .register_write_data_o(commit_register_write_data),
+        .status_write_enable_o(commit_status_write_enable),
+        .status_write_data_o(commit_status_write_data),
+        .status_write_mask_o(commit_status_write_mask),
+        .status_o(commit_status),
+        .sp_o(commit_sp)
     );
 
 endmodule

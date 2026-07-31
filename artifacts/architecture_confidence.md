@@ -10,7 +10,7 @@
 | Exact Revolution X silicon | INFERRED | 40 MHz board/driver evidence and commercial A-40 catalog option; marking unreadable |
 | ISA | PROVISIONAL | 31 primary-page-verified entries/4,464 first words; complete extraction pending |
 | Architectural model slice | PROVISIONAL | 25 page-verified instructions and deterministic state/replay; cache/full ISA absent |
-| Synthesizable RTL slice | PROVISIONAL | Generated 31-entry partial decoder, A/B/SP and masked ST storage, common unary/binary arithmetic, six TMS34020-specific semantic leaves, and decoder-controlled write intents for 19 one-word instructions pass directed Verilator and Cyclone V synthesis; no fetch, retirement, timing, or executable core |
+| Synthesizable RTL slice | PROVISIONAL | Generated 31-entry partial decoder, A/B/SP and masked ST storage, common unary/binary arithmetic, six TMS34020-specific semantic leaves, and externally gated commit for 19 one-word instructions pass directed Verilator and Cyclone V synthesis; no fetch, PC sequencing, architectural retirement timing, or executable core |
 | Cache organization | VERIFIED_PRIMARY | August 1990 guide Chapter 5 |
 | Pipeline timing | UNKNOWN | Detailed timing-case extraction pending |
 | Memory/bus timing | PROVISIONAL | A clock-stretch cases identified; complete phase extraction pending |

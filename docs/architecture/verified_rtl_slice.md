@@ -10,6 +10,7 @@ core, sequencer, pipeline, cache, memory controller, or pin interface.
 |---|---|---|
 | `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 31 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
+| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit for the 19 one-word instructions supported by `tms34020_register_execute`; unsupported words cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for `tms34020_register_execute` |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
@@ -60,6 +61,11 @@ Verilator. It checks:
   selection, source/destination indices, CMP write inhibition, partial status
   masks, carry/borrow edges, and rejection of decoded-but-unsupported and
   unclassified words.
+- thirteen ordered commit checks covering EINT, SETC, GETST, INC, DINT, DEC,
+  ABS, shared-SP write/read, ADD, nondestructive CMP, RMO, unsupported BLMOVE
+  rejection, and state-neutral NOP. These checks prove that a later operation
+  observes the preceding committed register/ST state; they do not assign an
+  architectural cycle count to the commit edge.
 
 The testbench must emit `PASS: tms34020 verified leaf RTL`; simulator exit
 status alone is not accepted.
@@ -69,18 +75,23 @@ the leaf qualification wrapper on Cyclone V device `5CSEBA6U23I7`. The wrapper
 keeps both register-file read ports, arithmetic flags, decoder outputs, PSIZE
 data paths, unary and binary arithmetic, RMO, and RPIX timing outputs
 observable. It also keeps every output of the register-execution router
-observable. This is an early portability check only:
+observable and instantiates the commit composition. The wrapper deliberately
+retains both the original raw state leaves and the integrated commit instance,
+so its resource count is not a core-area estimate. This is an early portability
+check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
 
 ## Explicitly absent
 
 There is no instruction fetch, PC owner, execution sequencer, retirement
-boundary, register-file writeback connection, ST writeback connection,
-interrupt logic, cache, memory access, page mode, bus-fault/retry, host
-interface, multiprocessor interface, coprocessor interface, display subsystem,
-original-pin bus, or game wrapper. The register-execution module emits
-combinational write *intents* only; it neither commits state nor supplies
-architectural timing. Its presence does not mean any instruction can execute
-in RTL. In particular, the EXGPS leaf does not implement the documented hidden
-internal-I/O write cycle.
+boundary derived from processor state, interrupt logic, cache, memory access,
+page mode, bus-fault/retry, host interface, multiprocessor interface,
+coprocessor interface, display subsystem, original-pin bus, or game wrapper.
+The register-execution module emits combinational write *intents*. The bounded
+commit composition can apply those intents to its private register/ST state,
+but only when an external controller asserts `commit_i`; it does not fetch,
+advance PC, schedule, overlap, stall, retry, interrupt, or supply architectural
+timing. Its presence therefore does not constitute an executable processor
+core. In particular, the EXGPS leaf does not implement the documented hidden
+internal-I/O write cycle and is not routed through this composition.

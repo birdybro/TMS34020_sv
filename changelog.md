@@ -45,6 +45,9 @@
   intents but no retirement or timing claim.
 - Primary-page-verified CLRC, DINT, EINT, GETST, INC, DEC, and SETC database,
   model, generated-decode, and RTL write-intent paths.
+- An externally gated register/ST commit composition for the nineteen verified
+  one-word register operations, with explicit write-event observability and no
+  pipeline or timing claim.
 
 ### Changed
 
@@ -94,6 +97,12 @@
 - Verilator verifies the seven new register/status write-intent paths; Quartus
   synthesizes the expanded leaf slice to 2,689 logic cells with zero errors and
   zero warnings.
+- Verilator verifies thirteen ordered state-commit sequences, including
+  preceding-state dependencies, shared-SP access, masked ST changes,
+  nondestructive CMP, NOP acceptance, and unsupported-operation rejection.
+  Quartus synthesizes the expanded diagnostic wrapper to 5,298 logic cells and
+  2,021 registers with zero errors and zero warnings; duplicate raw and
+  integrated state instances make this unsuitable as a core-area estimate.
 
 ### Documentation
 
@@ -110,6 +119,8 @@
   TI fixes bits 4–0 to zero.
 - Documented the first synthesizable RTL boundary and its explicit exclusions;
   deterministic FPGA register clearing is not represented as silicon behavior.
+- Documented the bounded commit contract: a future sequencer owns the real
+  architectural completion boundary, stalls, faults, interrupts, and timing.
 - Recorded the SPVU004/SPVU020 tool-guide catalog evidence and lawful search
   result without treating secondary GSPA notes as a syntax specification.
 
@@ -119,9 +130,9 @@
 
 ### Known Issues
 
-- The architectural model and RTL cover only a small verified slice; the new
-  combinational write intents do not form an executable RTL core, and there is
-  no fetch/retirement sequencer, cache, pipeline, memory bus, or subsystem
+- The architectural model and RTL cover only a small verified slice; externally
+  gated state commit does not form an executable RTL core, and there is no
+  fetch/PC/timed retirement sequencer, cache, pipeline, memory bus, or subsystem
   integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.

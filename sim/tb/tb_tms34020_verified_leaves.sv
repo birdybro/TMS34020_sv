@@ -91,6 +91,20 @@ module tb_tms34020_verified_leaves;
     logic [31:0] execute_status_write_data;
     logic [31:0] execute_status_write_mask;
 
+    logic commit_valid;
+    logic [15:0] commit_first_word;
+    logic commit_supported;
+    logic commit_accepted;
+    logic commit_register_write_enable;
+    logic commit_register_write_file;
+    logic [3:0] commit_register_write_index;
+    logic [31:0] commit_register_write_data;
+    logic commit_status_write_enable;
+    logic [31:0] commit_status_write_data;
+    logic [31:0] commit_status_write_mask;
+    logic [31:0] commit_status;
+    logic [31:0] commit_sp;
+
     tms34020_decode decode_dut (
         .first_word_i(decode_word),
         .valid_o(decode_valid),
@@ -199,6 +213,24 @@ module tb_tms34020_verified_leaves;
         .status_write_enable_o(execute_status_write_enable),
         .status_write_data_o(execute_status_write_data),
         .status_write_mask_o(execute_status_write_mask)
+    );
+
+    tms34020_register_commit register_commit_dut (
+        .clk_i(clk),
+        .reset_i(reset),
+        .commit_i(commit_valid),
+        .first_word_i(commit_first_word),
+        .supported_o(commit_supported),
+        .commit_accepted_o(commit_accepted),
+        .register_write_enable_o(commit_register_write_enable),
+        .register_write_file_o(commit_register_write_file),
+        .register_write_index_o(commit_register_write_index),
+        .register_write_data_o(commit_register_write_data),
+        .status_write_enable_o(commit_status_write_enable),
+        .status_write_data_o(commit_status_write_data),
+        .status_write_mask_o(commit_status_write_mask),
+        .status_o(commit_status),
+        .sp_o(commit_sp)
     );
 
     always #5 clk = ~clk;
@@ -342,6 +374,56 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic commit_register_instruction(
+        input logic [15:0] first_word,
+        input logic expected_supported,
+        input logic expected_register_write,
+        input logic expected_register_file,
+        input logic [3:0] expected_register_index,
+        input logic [31:0] expected_register_data,
+        input logic expected_status_write,
+        input logic [31:0] expected_status_data,
+        input logic [31:0] expected_status_mask,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_first_word = first_word;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported == expected_supported &&
+            commit_accepted == expected_supported &&
+            commit_register_write_enable == expected_register_write &&
+            commit_status_write_enable == expected_status_write,
+            message
+        );
+        if (expected_register_write) begin
+            check_condition(
+                commit_register_write_file == expected_register_file &&
+                commit_register_write_index == expected_register_index &&
+                commit_register_write_data == expected_register_data,
+                message
+            );
+        end
+        if (expected_status_write) begin
+            check_condition(
+                commit_status_write_data == expected_status_data &&
+                commit_status_write_mask == expected_status_mask,
+                message
+            );
+        end
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
@@ -377,6 +459,8 @@ module tb_tms34020_verified_leaves;
         execute_source = 32'd0;
         execute_destination = 32'd0;
         execute_status = 32'd0;
+        commit_valid = 1'b0;
+        commit_first_word = 16'd0;
 
         repeat (2) @(posedge clk);
         reset = 1'b0;
@@ -548,6 +632,98 @@ module tb_tms34020_verified_leaves;
             16'hFFFF, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "unclassified register execute instruction"
+        );
+
+        commit_register_instruction(
+            16'h0D60, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h0020_0000, 32'h0020_0000,
+            32'h0020_0010, 32'd0,
+            "register commit EINT"
+        );
+        commit_register_instruction(
+            16'h0DE0, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h4000_0000, 32'h4000_0000,
+            32'h4020_0010, 32'd0,
+            "register commit SETC"
+        );
+        commit_register_instruction(
+            16'h0192, 1'b1,
+            1'b1, 1'b1, 4'd2, 32'h4020_0010,
+            1'b0, 32'd0, 32'd0,
+            32'h4020_0010, 32'd0,
+            "register commit GETST B2"
+        );
+        commit_register_instruction(
+            16'h1032, 1'b1,
+            1'b1, 1'b1, 4'd2, 32'h4020_0011,
+            1'b1, 32'd0, 32'hF000_0000,
+            32'h0020_0010, 32'd0,
+            "register commit INC reads prior B2"
+        );
+        commit_register_instruction(
+            16'h0360, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'd0, 32'h0020_0000,
+            32'h0000_0010, 32'd0,
+            "register commit DINT"
+        );
+        commit_register_instruction(
+            16'h1420, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'hFFFF_FFFF,
+            1'b1, 32'hC000_0000, 32'hF000_0000,
+            32'hC000_0010, 32'd0,
+            "register commit DEC A0"
+        );
+        commit_register_instruction(
+            16'h0380, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'd1,
+            1'b1, 32'd0, 32'hB000_0000,
+            32'h4000_0010, 32'd0,
+            "register commit ABS preserves carry"
+        );
+        commit_register_instruction(
+            16'h102F, 1'b1,
+            1'b1, 1'b0, 4'd15, 32'd1,
+            1'b1, 32'd0, 32'hF000_0000,
+            32'h0000_0010, 32'd1,
+            "register commit INC shared SP"
+        );
+        commit_register_instruction(
+            16'h41E0, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'd2,
+            1'b1, 32'd0, 32'hF000_0000,
+            32'h0000_0010, 32'd1,
+            "register commit ADD reads SP"
+        );
+        commit_register_instruction(
+            16'h4800, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h2000_0000, 32'hF000_0000,
+            32'h2000_0010, 32'd1,
+            "register commit CMP is nondestructive"
+        );
+        commit_register_instruction(
+            16'h7A01, 1'b1,
+            1'b1, 1'b0, 4'd1, 32'd1,
+            1'b1, 32'd0, 32'h2000_0000,
+            32'h0000_0010, 32'd1,
+            "register commit RMO clears zero"
+        );
+        commit_register_instruction(
+            16'h00F0, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects unsupported BLMOVE"
+        );
+        commit_register_instruction(
+            16'h0300, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit accepts NOP without state write"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
