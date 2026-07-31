@@ -82,8 +82,8 @@
 - A portable cache/fetch frontend with native memory and fault controls, plus
   integrated Verilator and Cyclone V synthesis qualification.
 - A bounded scalar composition that admits 23 verified one-word packets,
-  complete two-word ADDI.W/SUBI.W, and complete three-word
-  ANDNI/ORI/XORI/ADDXYI/ADDI.L/SUBI.L packets to A/B/SP and ST commit and
+  complete two-word ADDI.W/CMPI.W/SUBI.W, and complete three-word
+  ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/SUBI.L packets to A/B/SP and ST commit and
   exposes every other packet as blocked.
 - Self-checking scalar-composition and warning-enforcing Cyclone V synthesis
   commands.
@@ -234,6 +234,11 @@
   cases. The scalar regression proves a complete decoded CMPI.W packet remains
   noncommitting. Warning-free decoder requalification reports 6,028 leaf, 348
   fetch, 735 frontend, and 3,792 scalar logic cells.
+- CMPI.W and CMPI.L now pass complete-packet gating, complemented object-word
+  recovery, word sign extension, nondestructive A/B/shared-SP reads, full NCZV
+  replacement, incomplete-packet rejection, and dependent fetched-packet
+  tests. Requalified Quartus wrappers report 6,040 leaf logic cells and 3,814
+  scalar logic cells with zero errors/warnings.
 
 ### Documentation
 
@@ -282,7 +287,7 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
-- Documented the exact 31-operation scalar admission set, blocked-packet
+- Documented the exact 33-operation scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
 - Recorded RSC-0009 for the SUBI.L example row that prints `NCZV=0001` despite
@@ -297,7 +302,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 23 one-word, two two-word, and six
+  bounded scalar composition accepts only 23 one-word, three two-word, and seven
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

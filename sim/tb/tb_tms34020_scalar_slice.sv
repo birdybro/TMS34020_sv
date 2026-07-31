@@ -155,6 +155,9 @@ module tb_tms34020_scalar_slice;
                 32'h0000_02A0: memory_word = 16'h7FFF;
                 32'h0000_02B0: memory_word = 16'h0B40;
                 32'h0000_02C0: memory_word = 16'hFFFE;
+                32'h0000_02D0: memory_word = 16'h0B60;
+                32'h0000_02E0: memory_word = 16'h0001;
+                32'h0000_02F0: memory_word = 16'h0000;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -178,6 +181,54 @@ module tb_tms34020_scalar_slice;
         if (!condition) begin
             $display("FAIL: %s", message);
             $fatal(1);
+        end
+    endtask
+
+    task automatic serve_immediate_compare_and_commit(
+        input logic [31:0] expected_pc,
+        input tms34020_opcode_id_t expected_opcode,
+        input logic [2:0] expected_length,
+        input logic [3:0] expected_nczv,
+        input logic [31:0] expected_status,
+        input string message
+    );
+        begin
+            serve_word(expected_pc);
+            serve_word(expected_pc + 32'd16);
+            if (expected_length == 3'd3) begin
+                serve_word(expected_pc + 32'd32);
+            end
+            wait (commit_accepted);
+            check_condition(
+                packet_valid &&
+                packet_supported &&
+                !packet_blocked &&
+                packet_opcode_id == expected_opcode &&
+                packet_length_words == expected_length &&
+                packet_start_pc == expected_pc &&
+                packet_words[15:0] == memory_word(expected_pc) &&
+                packet_words[31:16] ==
+                    memory_word(expected_pc + 32'd16) &&
+                (
+                    expected_length == 3'd2 ||
+                    packet_words[47:32] ==
+                        memory_word(expected_pc + 32'd32)
+                ) &&
+                packet_words[79:48] == 32'd0 &&
+                !register_write_enable &&
+                status_write_enable &&
+                status_write_data == {expected_nczv, 28'd0} &&
+                status_write_mask == 32'hF000_0000,
+                message
+            );
+            @(posedge clk);
+            #1;
+            check_condition(
+                !commit_accepted &&
+                status == expected_status &&
+                sp == 32'd0,
+                message
+            );
         end
     endtask
 
@@ -652,35 +703,22 @@ module tb_tms34020_scalar_slice;
             "ten multiword packet commits"
         );
 
-        serve_word(32'h2B0);
-        serve_word(32'h2C0);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_CMPI_W &&
-            packet_length_words == 3'd2 &&
-            packet_words[31:0] == 32'hFFFE_0B40 &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "decoded CMPI.W packet remains blocked"
+        serve_immediate_compare_and_commit(
+            32'h2B0, TMS20_OP_CMPI_W, 3'd2,
+            4'b1000, 32'h8000_0010,
+            "scalar CMPI.W nondestructive packet commit"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 10 &&
-                status == 32'hD000_0010 &&
-                sp == 32'd0,
-                "blocked CMPI.W packet cannot mutate state"
-            );
-        end
+        serve_immediate_compare_and_commit(
+            32'h2D0, TMS20_OP_CMPI_L, 3'd3,
+            4'b0010, 32'h2000_0010,
+            "scalar CMPI.L observes CMPI.W-preserved A0"
+        );
+        check_condition(
+            commit_count == 12,
+            "twelve multiword packet commits"
+        );
 
-        apply_reset();
-        load_pc(32'h2D0);
-        serve_word(32'h2D0);
+        serve_word(32'h300);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -697,8 +735,8 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 0 &&
-                status == 32'h0000_0010 &&
+                commit_count == 12 &&
+                status == 32'h2000_0010 &&
                 sp == 32'd0,
                 "blocked unclassified packet cannot mutate state"
             );

@@ -154,7 +154,8 @@ module tms34020_register_execute (
 
     always_comb begin
         immediate_subtract_source = ~immediate_i;
-        if (opcode_id == TMS20_OP_SUBI_W) begin
+        if (opcode_id == TMS20_OP_SUBI_W ||
+            opcode_id == TMS20_OP_CMPI_W) begin
             immediate_subtract_source = {
                 {16{~immediate_i[15]}},
                 ~immediate_i[15:0]
@@ -327,6 +328,19 @@ module tms34020_register_execute (
                     source_index_o = first_word_i[3:0];
                     register_write_enable_o =
                         immediate_subtract_write_enable;
+                    register_write_data_o =
+                        immediate_subtract_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o =
+                        {immediate_subtract_nczv, 28'd0};
+                    status_write_mask_o = 32'hF000_0000;
+                end
+
+                TMS20_OP_CMPI_W,
+                TMS20_OP_CMPI_L: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o = 1'b0;
                     register_write_data_o =
                         immediate_subtract_result;
                     status_write_enable_o = 1'b1;

@@ -351,6 +351,34 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_immediate_compare_register_execute(
+        input logic [15:0] first_word,
+        input logic [2:0] packet_length,
+        input logic [31:0] immediate,
+        input logic [31:0] destination,
+        input logic [3:0] expected_nczv,
+        input string message
+    );
+        execute_first_word = first_word;
+        execute_packet_length = packet_length;
+        execute_immediate = immediate;
+        execute_source = 32'd0;
+        execute_destination = destination;
+        execute_status = 32'h0FFF_FFFF;
+        #1;
+        check_condition(
+            execute_supported &&
+            execute_register_file == first_word[4] &&
+            execute_source_index == first_word[3:0] &&
+            execute_destination_index == first_word[3:0] &&
+            !execute_register_write_enable &&
+            execute_status_write_enable &&
+            execute_status_write_data == {expected_nczv, 28'd0} &&
+            execute_status_write_mask == 32'hF000_0000,
+            message
+        );
+    endtask
+
     task automatic check_decode(
         input logic [15:0] first_word,
         input tms34020_opcode_id_t expected_id,
@@ -467,6 +495,41 @@ module tb_tms34020_verified_leaves;
             commit_register_write_file == expected_register_file &&
             commit_register_write_index == expected_register_index &&
             commit_register_write_data == expected_register_data &&
+            commit_status_write_enable &&
+            commit_status_write_data == {expected_nczv, 28'd0} &&
+            commit_status_write_mask == 32'hF000_0000,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
+    task automatic commit_immediate_compare_instruction(
+        input logic [15:0] first_word,
+        input logic [2:0] packet_length,
+        input logic [31:0] immediate,
+        input logic [3:0] expected_nczv,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {immediate, first_word};
+        commit_packet_length = packet_length;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            !commit_register_write_enable &&
+            commit_register_write_file == first_word[4] &&
+            commit_register_write_index == first_word[3:0] &&
             commit_status_write_enable &&
             commit_status_write_data == {expected_nczv, 28'd0} &&
             commit_status_write_mask == 32'hF000_0000,
@@ -1030,6 +1093,41 @@ module tb_tms34020_verified_leaves;
             "incomplete SUBI.L cannot enter register execute"
         );
         check_register_execute(
+            16'h0B40, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "incomplete CMPI.W cannot enter register execute"
+        );
+        check_immediate_compare_register_execute(
+            16'h0B40, 3'd2, 32'h0000_FFFE, 32'd1,
+            4'b0010,
+            "register execute CMPI.W nondestructive zero"
+        );
+        check_immediate_compare_register_execute(
+            16'h0B50, 3'd2, 32'h0000_0000, 32'h7FFF_FFFF,
+            4'b1101,
+            "register execute CMPI.W B-file overflow"
+        );
+        check_immediate_compare_register_execute(
+            16'h0B60, 3'd3, 32'hFFFF_7FFE, 32'h0000_8001,
+            4'b0010,
+            "register execute CMPI.L nondestructive zero"
+        );
+        check_immediate_compare_register_execute(
+            16'h0B60, 3'd3, 32'h0000_8002, 32'h7FFF_7FFD,
+            4'b1101,
+            "register execute CMPI.L borrow and overflow"
+        );
+        execute_first_word = 16'h0B60;
+        execute_packet_length = 3'd2;
+        execute_immediate = 32'hFFFF_7FFE;
+        #1;
+        check_condition(
+            !execute_supported &&
+            !execute_register_write_enable &&
+            !execute_status_write_enable,
+            "incomplete CMPI.L cannot enter register execute"
+        );
+        check_register_execute(
             16'hFFFF, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "unclassified register execute instruction"
@@ -1244,6 +1342,21 @@ module tb_tms34020_verified_leaves;
             1'b1, 4'd15, 32'd2, 4'b0100,
             32'h4000_0010, 32'd2,
             "register commit SUBI.L updates shared SP"
+        );
+        commit_immediate_compare_instruction(
+            16'h0B40, 3'd2, 32'h0000_0000,
+            4'b0100, 32'h4000_0010, 32'd2,
+            "register commit CMPI.W suppresses A0 write"
+        );
+        commit_immediate_compare_instruction(
+            16'h0B60, 3'd3, 32'h8000_8000,
+            4'b0010, 32'h2000_0010, 32'd2,
+            "register commit CMPI.L observes unchanged A0"
+        );
+        commit_immediate_compare_instruction(
+            16'h0B5F, 3'd2, 32'h0000_FFFD,
+            4'b0010, 32'h2000_0010, 32'd2,
+            "register commit CMPI.W preserves shared SP"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
