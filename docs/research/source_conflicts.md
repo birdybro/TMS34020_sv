@@ -33,3 +33,18 @@
 - Decision: use `src/mame/williams/midxunit.cpp`. The candidate
   `src/mame/midway/midxunit.cpp` does not exist at that commit. Confidence:
   `VERIFIED_PRIMARY` for source-tree identity.
+
+## RSC-0004: TRAPL instruction length in pinned MAME disassembler
+
+- Status: open secondary-reference defect; TI encoding verified
+- Primary evidence: TI *TMS34020 User's Guide*, TRAPL instruction reference,
+  printed page 13-256, shows first word `080Fh` followed by a 16-bit signed trap
+  number. The chapter 13 summary table also lists two words.
+- Secondary evidence: MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010dsm.cpp`, lines 588–598, recognizes TRAPL but
+  neither reads nor advances past an extension word. The routine's consumed
+  length is derived from its local `pos`, so this path reports one word.
+- Decision: encode TRAPL as two words in the project ISA database. Do not change
+  TI behavior to agree with MAME. Add a differential-disassembly fixture when
+  the local disassembler is implemented. Confidence: `VERIFIED_PRIMARY`.

@@ -2,7 +2,7 @@
 
 - Current milestone: device/delta research and architecture extraction
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `7172c130aa07b0010d160a8976884097888023e1`
+- Latest commit: `a31dfb5ffc2f72671274821b1e3230117381f91c`
 - Passing tests: foundation, reference-manifest/hash, reuse-audit, and
   device-scope/delta schema and required-feature coverage checks
 - Failing tests: none observed
@@ -20,5 +20,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: ISA schema/seed extraction and independent architectural-model
-  foundation
+- Next task: expand primary ISA extraction and implement the independent
+  architectural-model state/first verified instruction slice

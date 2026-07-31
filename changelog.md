@@ -19,6 +19,9 @@
 - A 50-entry machine-readable TMS34010/TMS34020 delta ledger and human
   architectural crosswalk covering cache, bus, faults, interfaces, graphics,
   display, reset, clocks, compatibility, and A-revision clock stretch.
+- The first primary-page-verified ISA database slice, deterministic query
+  library, independent opcode fixtures, and a collision sweep across all 65,536
+  first words.
 
 ### Changed
 
@@ -51,6 +54,8 @@
   substituting later high-reliability data sheets for the original user guide.
 - Documented unresolved opcode/status/timing, CONTROL2, errata, and
   first-silicon questions as unknown rather than assigning inferred behavior.
+- Recorded a pinned MAME disassembler discrepancy: TI's TRAPL consumes a signed
+  extension word, but the secondary path does not advance over it.
 
 ### Integration
 
