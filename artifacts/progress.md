@@ -3,16 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `f83b25146dbfebbd40d55dc6a85c0f1fd20ac87a`
-- Passing tests: foundation, reference/hash, delta, 31-case ISA sweep, 134 directed model
+- Latest verified baseline commit: `f0693430ff62dd6a583b4b1f8d2f5dd7a13ea9d0`
+- Passing tests: foundation, reference/hash, delta, 32-case ISA sweep, 135 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 81 currently extracted encoding forms have bounded
-  successful semantics. JACC covers all 16 conditions, every possible false
+- Model status: 81 of 82 currently extracted encoding forms have bounded
+  successful semantics; CMPXY decodes but has an exact unsupported
+  state/cache rollback guard pending its independent handler. JACC covers all
+  16 conditions, every possible false
   outcome, low/high absolute-target assembly, forced alignment, false-path PC
   wrap, exact traces, complete state preservation, and three-/four-state
   cases. Long JRcc covers all 16 conditions, every possible
@@ -52,7 +54,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 81-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 82-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 51 one-word instructions, with externally gated one-edge
@@ -134,7 +136,8 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,767 logic cells and 2,048 registers, while
+  warnings; the current decoder-bearing leaf wrapper uses 8,723 logic cells
+  and 2,048 registers, while
   the fetch, frontend, and scalar wrappers use 411, 785, and 5,262 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result

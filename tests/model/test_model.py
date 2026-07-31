@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1950,6 +1951,19 @@ class ExecutionTests(unittest.TestCase):
         model.load_program([0x0000], bit_address=0x80)
         before = model.snapshot()
         with self.assertRaises(UnclassifiedEncoding):
+            model.step()
+        self.assertEqual(model.snapshot(), before)
+
+    def test_cmpxy_decodes_but_rolls_back_before_model_implementation(
+        self,
+    ) -> None:
+        model = Tms34020Model()
+        model.load_program([0xE420], bit_address=0x80)
+        model.state.write_reg("A", 0, 0x0001_0001)
+        model.state.write_reg("A", 1, 0x0009_0009)
+        model.state.st = 0xA5A5_5A5A
+        before = model.snapshot()
+        with self.assertRaises(UnsupportedInstruction):
             model.step()
         self.assertEqual(model.snapshot(), before)
 

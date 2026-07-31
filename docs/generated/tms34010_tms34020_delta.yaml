@@ -68,6 +68,16 @@
       "unresolved_questions": ["Instruction-by-instruction timing extraction remains open."]
     },
     {
+      "feature": "cmpxy_instruction_timing",
+      "tms34010_behavior": "CMPXY has the same E400h/FE00h encoding and visible half-compare/status semantics, but the 1988 guide reports 1,4 timing.",
+      "tms34020_behavior": "CMPXY executes in one machine state and preserves the compatible nondestructive signed-XY compare/status behavior.",
+      "rtl_impact": "The paired-half compare/status datapath may be independently shared after verification, but the TMS34020 sequencer must use its own one-state retirement case.",
+      "test_impact": "Check all published NCZV rows, A/B/shared-SP and same-register hazards, nondestructive behavior, and the TMS34020 one-state case without importing TMS34010 clock timing.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMPXY, printed p.13-84", "TI-TMS34010-UG-1988 CMPXY, printed p.12-56"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
       "feature": "changed_status_behavior",
       "tms34010_behavior": "First-generation ST bit definitions and instruction side effects.",
       "tms34020_behavior": "TMS34020 ST is defined in §4.1; a complete bit/instruction delta has not yet been extracted.",

@@ -9,9 +9,9 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 8,767 logic cells after synthesis, 2,048 registers,
+- Analysis resources: 8,723 logic cells after synthesis, 2,048 registers,
   127 pins, 0 block-memory bits, 0 DSP blocks, and 0 PLLs
-- Scope: generated 81-entry partial decoder, A/B/SP register file, masked ST state,
+- Scope: generated 82-entry partial decoder, A/B/SP register file, masked ST state,
   instruction semantic leaves including pitch conversion, decoder-controlled
   register-execution and direct-PC intents, and externally gated state commit
   for 68 register/status/direct-PC instructions, including JAcc and long JRcc,
@@ -53,7 +53,8 @@
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
 - Analysis resources: 411 logic cells, 175 registers, 74 pins, 0 block-memory
   bits, 0 DSP blocks, and 0 PLLs
-- Scope: generated 81-entry partial decoder, aligned instruction-start cursor,
+- Scope at the last fetch-only requalification, before CMPXY extraction:
+  generated 81-entry partial decoder, aligned instruction-start cursor,
   one-to-five-word packet storage, per-word cache classifications, decoupled
   cache/packet/completion handshakes, sequential/redirect selection, abort
   discard/reload, and an observability-only wrapper
@@ -61,7 +62,8 @@
 - TimeQuest/setup/hold: not run; the 20 ns SDC is an analysis boundary, not a
   timing-closure result
 - Qualification claim: warning-free Cyclone V Analysis & Synthesis for only the
-  named serialized fetch slice
+  named serialized fetch slice; the current 82-entry decoder has not yet been
+  separately requalified in this wrapper
 
 ## Composed cache/fetch frontend smoke
 

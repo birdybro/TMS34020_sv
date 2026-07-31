@@ -4,6 +4,10 @@
 
 ### Added
 
+- Primary-page-verified CMPXY `E400h`/`FE00h` metadata, status semantics,
+  one-state TMS34020 timing, TMS34010 `1,4` timing delta, independent
+  base/end fixtures, and explicit model/RTL nonexecution guards ahead of
+  implementation.
 - Primary-page-verified CLR alias metadata and independent tests establishing
   that exactly the 32 same-number source/destination words in the existing XOR
   range spell CLR. The model and RTL tests cover every A/B register encoding,
@@ -270,6 +274,12 @@
 
 ### Verified
 
+- The 82-entry partial decoder classifies 25,810 first words without collision.
+  The 32-case ISA suite, 65-entry delta ledger, 135-case model suite, and
+  warning-free Verilator leaf checks pass. CMPXY remains atomically unsupported
+  in the model and noncommitting in RTL at this source checkpoint. Cyclone V
+  leaf Analysis & Synthesis passes with 0 errors/warnings at 8,723 logic cells,
+  2,048 registers, and no RAM; this is not CMPXY execution or timing evidence.
 - JAcc RTL passes warning-free direct, commit, cache-fed scalar, and Cyclone V
   Analysis & Synthesis checks. Leaf/scalar diagnostic tops use 8,767/5,262
   logic cells with 2,048/1,414 registers; fetch and frontend remain at 411/785

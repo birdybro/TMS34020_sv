@@ -204,6 +204,8 @@ class IsaTests(unittest.TestCase):
             0xE3FF: ("SUBXY", 1),
             0x4800: ("CMP", 1),
             0x49FF: ("CMP", 1),
+            0xE400: ("CMPXY", 1),
+            0xE5FF: ("CMPXY", 1),
             0x4A00: ("BTST.R", 1),
             0x4A20: ("BTST.R", 1),
             0x4BFF: ("BTST.R", 1),
@@ -259,7 +261,7 @@ class IsaTests(unittest.TestCase):
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF, 0xD000,
                      0x0AFF, 0x0C20,
-                     0x5800,
+                     0x5800, 0xE600,
                      0x79FF, 0x7C00,
                      0xD4FF, 0xD520, 0xD6FF, 0xD720):
             with self.subTest(word=f"{word:04X}"):
@@ -267,8 +269,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 25298)
-        self.assertEqual(unclassified, 65536 - 25298)
+        self.assertEqual(matched, 25810)
+        self.assertEqual(unclassified, 65536 - 25810)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -309,6 +311,29 @@ class IsaTests(unittest.TestCase):
                     "same file",
                     instruction.metadata["register_file"],
                 )
+
+    def test_cmpxy_records_nondestructive_primary_status_contract(self) -> None:
+        instruction = self.database.decode(0xE400)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "CMPXY")
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(instruction.opcode_mask, 0xFE00)
+        self.assertEqual(instruction.opcode_value, 0xE400)
+        self.assertEqual(
+            instruction.metadata["status_bits_written"],
+            ["N", "C", "Z", "V"],
+        )
+        self.assertEqual(instruction.metadata["destination_registers"], [])
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {"kind": "fixed", "machine_states": 1},
+        )
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+        self.assertIn("same file", instruction.metadata["register_file"])
+        self.assertIn(
+            "X=bits 15:0",
+            instruction.metadata["graphics_register_dependencies"][0],
+        )
 
     def test_btst_forms_record_complemented_constant_and_status_only(self) -> None:
         constant = self.database.decode(0x1FE0)

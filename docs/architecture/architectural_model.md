@@ -31,8 +31,10 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 81 currently extracted database forms. This is
-coverage of a current partial extraction, not instruction completeness.
+These handlers cover 81 of the 82 currently extracted database forms. CMPXY
+is decoded but deliberately raises `UnsupportedInstruction` with exact
+state/cache rollback until its independent semantic handler is implemented.
+This is coverage of a current partial extraction, not instruction completeness.
 
 JACC tests cover all 16 condition codes, a taken case for every code and a
 false case for every conditional code, low-word/high-word target assembly,

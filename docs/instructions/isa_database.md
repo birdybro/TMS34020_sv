@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 81 page-verified encoding records and covers 25,298 of 65,536
+slice contains 82 page-verified encoding records and covers 25,810 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -70,6 +70,7 @@ first words without collisions:
 | SUBB | `4600h`, mask `FE00h` | 1 | p.13-242 |
 | SUBXY | `E200h`, mask `FE00h` | 1 | p.13-246 |
 | CMP | `4800h`, mask `FE00h` | 1 | p.13-80 |
+| CMPXY | `E400h`, mask `FE00h` | 1 | p.13-84 |
 | AND | `5000h`, mask `FE00h` | 1 | p.13-40 |
 | ANDN | `5200h`, mask `FE00h` | 1 | p.13-42 |
 | OR | `5400h`, mask `FE00h` | 1 | p.13-182 |
@@ -109,6 +110,17 @@ machine state, a zero destination, Z set, and N/C/V unchanged; the TMS34010
 guide gives the same encoding and visible behavior but different clock-count
 notation. Sources: TMS34020 User's Guide printed pp.13-57 and 13-266;
 TMS34010 User's Guide printed p.12-51.
+
+CMPXY is the nondestructive same-file XY compare at `E400h`/`FE00h`. It
+subtracts the signed 16-bit X and Y halves independently for status only:
+N reports X equality, C is the sign of the wrapped Y-half difference, Z
+reports Y equality, and V is the sign of the wrapped X-half difference.
+Despite the conventional flag names, CMPXY performs no overflow detection and
+writes no register. The TMS34020 page specifies one machine state; the
+TMS34010 page documents identical encoding and visible behavior with `1,4`
+timing, so the compatibility classification does not authorize reuse of the
+older sequencer. Sources: TMS34020 User's Guide printed p.13-84; TMS34010
+User's Guide printed p.12-56.
 
 JUMP reads an A/B register or the shared-SP alias, clears target bits `[3:0]`,
 and redirects PC in two machine states without changing ST. Its

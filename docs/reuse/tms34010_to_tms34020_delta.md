@@ -79,6 +79,14 @@ Compatible encodings and results therefore do not authorize reuse of the older
 sequencer. Sources: TMS34020 guide printed pp.13-230..13-232 and 13-268;
 TMS34010 guide printed pp.12-237..12-238 and 12-257.
 
+CMPXY is a second quantified timing delta. Both primary guides give the same
+`E400h`/`FE00h` encoding, nondestructive signed-half comparisons, and unusual
+NCZV meanings. The TMS34020 executes it in one machine state, while the 1988
+TMS34010 guide reports `1,4`. The paired-half semantic datapath can therefore
+be reused only after independent verification; the older instruction timing
+state machine cannot. Sources: TMS34020 guide printed p.13-84; TMS34010 guide
+printed p.12-56.
+
 ## Cache and internal parallelism
 
 The cache changes the observable memory trace and execution timing, so it cannot

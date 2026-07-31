@@ -2965,6 +2965,12 @@ module tb_tms34020_verified_leaves;
             "unclassified register execute instruction"
         );
         check_register_execute(
+            16'hE420, 32'h0009_0009, 32'h0001_0001,
+            32'hA5A5_5A5A,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CMPXY remains noncommitting before RTL implementation"
+        );
+        check_register_execute(
             16'h01A0, 32'hA5C3_5A3C, 32'd0, 32'hF000_0FFF,
             1'b1, 1'b0, 32'd0, 1'b1,
             32'hA5C3_5A3C, 32'hFFFF_FFFF,
@@ -3977,6 +3983,10 @@ module tb_tms34020_verified_leaves;
         check_decode(16'hE3FF, TMS20_OP_SUBXY, 3'd1,
                      "SUBXY masked decode");
         check_decode(16'h49FF, TMS20_OP_CMP, 3'd1, "CMP masked decode");
+        check_decode(16'hE400, TMS20_OP_CMPXY, 3'd1,
+                     "CMPXY base decode");
+        check_decode(16'hE5FF, TMS20_OP_CMPXY, 3'd1,
+                     "CMPXY masked decode");
         check_decode(16'h51FF, TMS20_OP_AND, 3'd1, "AND masked decode");
         check_decode(16'h53FF, TMS20_OP_ANDN, 3'd1, "ANDN masked decode");
         check_decode(16'h55FF, TMS20_OP_OR, 3'd1, "OR masked decode");
