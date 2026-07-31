@@ -15,8 +15,8 @@ Implemented:
 - deterministic randomized state;
 - program loading, single stepping, JSON snapshot/replay, and checkpoint traces;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, INC, DEC, SETC, ADD,
-  ADDC, SUB, SUBB, CMP, IDLE entry, MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO,
-  and RPIX.
+  ADDC, SUB, SUBB, CMP, AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation,
+  ORI, XORI, IDLE entry, MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -44,6 +44,16 @@ writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 The binary register family implements ADD/ADDC carry and SUB/SUBB/CMP borrow,
 including carry/borrow inputs and one-state timing. Sources: the same guide,
 printed pp.13-33..13-34, 13-80, and 13-241..13-242.
+
+The register and immediate logical families implement AND/ANDN/OR/XOR and
+ANDNI/ORI/XORI while changing only Z. ANDI is the documented assembler alias
+for ANDNI and complements its requested operand in the two extension words.
+The model executes the encoded ANDNI operation and counts two states when the
+first extension word is long-word aligned and three otherwise. Sources: TI
+*TMS34020 User's Guide*, August 1990, printed pp.13-40..13-43,
+13-182..13-183, 13-266..13-267, and timing-table pp.15-3, 15-7, and 15-9.
+The ORI page's duplicated “aligned” wording is resolved in
+`docs/research/source_conflicts.md` RSC-0006.
 
 CLRC/SETC and DINT/EINT update only C and IE respectively. GETST copies the
 complete ST value without modifying it. INC and DEC implement the documented
@@ -96,6 +106,8 @@ Directed tests cover SP aliasing, crossing bit memory, reset vector handling,
 seed reproducibility, instruction PC increments, ADDXYI edge behavior and
 flags, all TI example rows for ABS/NEG/NEGB/NOT, directed
 ADD/ADDC/SUB/SUBB/CMP arithmetic boundaries and nondestructive CMP,
+all TI register/immediate logical example rows, ANDI encoded-complement
+behavior, aligned and unaligned immediate timing,
 CLRC/SETC preservation, DINT/EINT IE changes, complete GETST transfer, all TI
 INC/DEC example rows, CMPK constants/flags, PSIZE get/exchange, RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT

@@ -444,6 +444,77 @@ class ExecutionTests(unittest.TestCase):
                 )
                 self.assertEqual(event.machine_states, 1)
 
+    def test_immediate_logical_primary_examples_flags_and_alignment(self) -> None:
+        cases = (
+            (0x0B80, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000),
+            (0x0B80, 0xFFFFFFFF, 0x00000000, 0x00000000),
+            (0x0B80, 0x00000000, 0x00000000, 0x00000000),
+            (0x0B80, 0xAAAAAAAA, 0x55555555, 0x55555555),
+            (0x0B80, 0xAAAAAAAA, 0xAAAAAAAA, 0x00000000),
+            (0x0B80, 0x55555555, 0x55555555, 0x00000000),
+            (0x0B80, 0x55555555, 0xAAAAAAAA, 0xAAAAAAAA),
+            (0x0BA0, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF),
+            (0x0BA0, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF),
+            (0x0BA0, 0xAAAAAAAA, 0x55555555, 0xFFFFFFFF),
+            (0x0BA0, 0x00000000, 0x00000000, 0x00000000),
+            (0x0BC0, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF),
+            (0x0BC0, 0xFFFFFFFF, 0xAAAAAAAA, 0x55555555),
+            (0x0BC0, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000),
+            (0x0BC0, 0x00000000, 0x00000000, 0x00000000),
+            (0x0BC0, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF),
+        )
+        for case_index, (
+            opcode_base,
+            immediate,
+            destination,
+            expected,
+        ) in enumerate(cases):
+            register_file = "B" if case_index & 1 else "A"
+            file_bit = 0x10 if register_file == "B" else 0
+            start_address = 0x10 if case_index & 2 else 0
+            expected_states = 2 if start_address == 0x10 else 3
+            with self.subTest(
+                opcode=f"{opcode_base | file_bit:04X}",
+                immediate=f"{immediate:08X}",
+                destination=f"{destination:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program(
+                    [
+                        opcode_base | file_bit,
+                        immediate & 0xFFFF,
+                        immediate >> 16,
+                    ],
+                    bit_address=start_address,
+                )
+                model.state.write_reg(register_file, 0, destination)
+                model.state.st = 0xD000_0010
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg(register_file, 0), expected
+                )
+                self.assertEqual(
+                    (model.state.st >> 29) & 1, int(expected == 0)
+                )
+                self.assertEqual(
+                    model.state.st & 0xD000_0000, 0xD000_0000
+                )
+                self.assertEqual(event.machine_states, expected_states)
+
+    def test_andi_alias_encodes_complement_for_andni_execution(self) -> None:
+        requested_and_immediate = 0x0F0F_F0F0
+        encoded_andni_immediate = (~requested_and_immediate) & 0xFFFF_FFFF
+        model = Tms34020Model()
+        model.load_program([
+            0x0B80,
+            encoded_andni_immediate & 0xFFFF,
+            encoded_andni_immediate >> 16,
+        ])
+        model.state.write_reg("A", 0, 0xFFFF_00FF)
+        event = model.step()
+        self.assertEqual(model.state.read_reg("A", 0), 0x0F0F_00F0)
+        self.assertEqual(event.mnemonic, "ANDNI")
+
     def test_addxyi_adds_halves_without_cross_carry_and_sets_nczv(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0C00, 0xFFFF, 0xFFFF], bit_address=0x10)

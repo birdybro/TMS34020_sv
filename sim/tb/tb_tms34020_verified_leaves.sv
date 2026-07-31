@@ -693,6 +693,11 @@ module tb_tms34020_verified_leaves;
             "decoded but unsupported register execute instruction"
         );
         check_register_execute(
+            16'h0B80, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "three-word ANDNI cannot enter one-word register execute"
+        );
+        check_register_execute(
             16'hFFFF, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "unclassified register execute instruction"
@@ -850,6 +855,12 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h53FF, TMS20_OP_ANDN, 3'd1, "ANDN masked decode");
         check_decode(16'h55FF, TMS20_OP_OR, 3'd1, "OR masked decode");
         check_decode(16'h57FF, TMS20_OP_XOR, 3'd1, "XOR masked decode");
+        check_decode(16'h0B9F, TMS20_OP_ANDNI, 3'd3,
+                     "ANDNI masked three-word decode");
+        check_decode(16'h0BBF, TMS20_OP_ORI, 3'd3,
+                     "ORI masked three-word decode");
+        check_decode(16'h0BDF, TMS20_OP_XORI, 3'd3,
+                     "XORI masked three-word decode");
         check_decode(16'h0273, TMS20_OP_SETCDP, 3'd1,
                      "SETCDP exact decode");
         check_decode(16'h02FB, TMS20_OP_SETCMP, 3'd1,

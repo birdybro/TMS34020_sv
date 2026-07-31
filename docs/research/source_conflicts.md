@@ -75,3 +75,18 @@
   execution behavior of MAME or physical silicon for undocumented words.
   Confidence: `VERIFIED_PRIMARY` for the legal encodings and `CORROBORATED`
   for the secondary overdecode.
+
+## RSC-0006: ORI unaligned-immediate wording
+
+- Status: resolved by the same guide's timing table
+- Conflicting primary text: TI *TMS34020 User's Guide*, August 1990, ORI,
+  printed p.13-183, says both the two-state and three-state cases apply when
+  immediate data is long-word aligned.
+- Resolving primary text: the timing table on printed p.15-7 assigns two
+  machine states when ORI immediate data is long-word aligned and three when
+  it is not. The adjacent ANDI/ANDNI references on pp.13-41 and 13-43 and XORI
+  on p.13-267 give the same aligned/unaligned split for the identical
+  three-word layout.
+- Decision: encode ORI as two states with an aligned first extension word and
+  three otherwise. Cite both the instruction page and timing table so the
+  correction remains auditable. Confidence: `VERIFIED_PRIMARY`.

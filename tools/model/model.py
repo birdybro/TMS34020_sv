@@ -92,6 +92,9 @@ class Tms34020Model:
             "ANDN": self._execute_andn,
             "OR": self._execute_or,
             "XOR": self._execute_xor,
+            "ANDNI": self._execute_andni,
+            "ORI": self._execute_ori,
+            "XORI": self._execute_xori,
             "IDLE": self._execute_idle,
             "MWAIT": self._execute_mwait,
             "ADDXYI": self._execute_addxyi,
@@ -474,9 +477,10 @@ class Tms34020Model:
             result = (~source & MASK32) & destination
         elif operation == "OR":
             result = source | destination
-        else:
-            assert operation == "XOR"
+        elif operation == "XOR":
             result = source ^ destination
+        else:
+            raise AssertionError(f"unknown logical operation {operation}")
         self.state.write_reg(register_file, destination_index, result)
         self._set_status_bit(Z_BIT, result == 0)
         return 1
@@ -504,6 +508,47 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_logical(words, "XOR")
+
+    def _execute_immediate_logical(
+        self,
+        words: list[int],
+        operation: str,
+    ) -> int:
+        register_file, index = self._decode_destination(words[0])
+        destination = self.state.read_reg(register_file, index)
+        immediate = words[1] | (words[2] << 16)
+        if operation == "ANDNI":
+            result = (~immediate & MASK32) & destination
+        elif operation == "ORI":
+            result = immediate | destination
+        elif operation == "XORI":
+            result = immediate ^ destination
+        else:
+            raise AssertionError(
+                f"unknown immediate logical operation {operation}"
+            )
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(Z_BIT, result == 0)
+        immediate_address = (self.state.pc - 32) & MASK32
+        return 2 if immediate_address & 0x1F == 0 else 3
+
+    def _execute_andni(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_logical(words, "ANDNI")
+
+    def _execute_ori(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_logical(words, "ORI")
+
+    def _execute_xori(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_logical(words, "XORI")
 
     def _execute_idle(
         self, instruction: Instruction, words: list[int]

@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains thirty-five page-verified instructions and covers 6,512 of 65,536
+slice contains thirty-eight page-verified instructions and covers 6,608 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -30,6 +30,13 @@ first words without collisions:
 | SUB | `4400h`, mask `FE00h` | 1 | p.13-241 |
 | SUBB | `4600h`, mask `FE00h` | 1 | p.13-242 |
 | CMP | `4800h`, mask `FE00h` | 1 | p.13-80 |
+| AND | `5000h`, mask `FE00h` | 1 | p.13-40 |
+| ANDN | `5200h`, mask `FE00h` | 1 | p.13-42 |
+| OR | `5400h`, mask `FE00h` | 1 | p.13-182 |
+| XOR | `5600h`, mask `FE00h` | 1 | p.13-266 |
+| ANDNI / ANDI alias | `0B80h`, mask `FFE0h` | 3 | pp.13-41, 13-43 |
+| ORI | `0BA0h`, mask `FFE0h` | 3 | p.13-183 |
+| XORI | `0BC0h`, mask `FFE0h` | 3 | p.13-267 |
 | IDLE | `0040h` | 1 | p.13-133 |
 | MWAIT | `0080h` | 1 | p.13-177 |
 | ADDXYI | `0C00h`, mask `FFE0h` | 3 | p.13-39 |
@@ -87,6 +94,11 @@ ignores bits 4–0 for several fixed no-operand instructions, while TI's
 instruction diagrams specify those bits as zero. The database follows the
 exact TI words and keeps the neighboring encodings unclassified. See
 `docs/research/source_conflicts.md` RSC-0005 for pinned lines and scope.
+
+RSC-0006 records an internal wording error on the ORI page: both timing cases
+say “aligned.” The same guide's chapter 15 timing table distinguishes two
+states for aligned immediate data and three for unaligned data. The database
+cites both primary locations and uses the timing-table distinction.
 
 ## Validation
 

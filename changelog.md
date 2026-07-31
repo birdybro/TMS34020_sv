@@ -50,6 +50,8 @@
   pipeline or timing claim.
 - Primary-page-verified AND, ANDN, OR, and XOR database, model, generated
   decode, Z-only RTL logical leaf, register-execution routing, and state commit.
+- Primary-page-verified ANDNI/ANDI-alias, ORI, and XORI three-word decode and
+  independent-model semantics, including extension alignment timing.
 
 ### Changed
 
@@ -113,6 +115,12 @@
   register-logical example rows pass in the model; Verilator checks the four
   leaf/router/commit paths. Quartus synthesizes the diagnostic wrapper to 5,481
   logic cells and 2,021 registers with zero errors and zero warnings.
+- Expanded the collision-free ISA slice to 38 entries covering 6,608 first
+  words and the independent model to 32 instructions. All 16 TI
+  immediate-logical example rows and an ANDI complement-encoding fixture pass;
+  RTL verifies three-word decode and rejection at the one-word router boundary.
+  Quartus synthesizes the diagnostic wrapper to 5,504 logic cells with zero
+  errors and zero warnings.
 
 ### Documentation
 
@@ -133,6 +141,8 @@
   architectural completion boundary, stalls, faults, interrupts, and timing.
 - Recorded the SPVU004/SPVU020 tool-guide catalog evidence and lawful search
   result without treating secondary GSPA notes as a syntax specification.
+- Recorded and resolved the ORI instruction-page alignment wording error
+  against the same guide's chapter 15 timing table.
 
 ### Integration
 

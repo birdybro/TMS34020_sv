@@ -8,7 +8,7 @@ core, sequencer, pipeline, cache, memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 35 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 38 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
 | `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit for the 23 one-word instructions supported by `tms34020_register_execute`; unsupported words cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for `tms34020_register_execute` |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
@@ -42,6 +42,8 @@ Verilator. It checks:
 
 - every currently extracted decoder entry, including masked register/mode
   encodings and instruction-word count;
+- explicit three-word decode and one-word-router rejection for the ANDNI/ORI/
+  XORI immediate-logical family;
 - a near-neighbor that must remain unclassified;
 - two ADDXYI arithmetic/flag cases;
 - CMPK constant-32, borrow, and overflow cases;

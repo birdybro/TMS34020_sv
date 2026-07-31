@@ -3,9 +3,9 @@
 | Area | Status | Evidence |
 |---|---|---|
 | Repository policy | Verified current scope | `foundation-check` |
-| ISA database | Partial: 35 entries/6,512 first words | `make isa-tests`; full decode remains `TMS20-0006` |
-| Architectural model | Partial: state/replay and 29 instructions | 34 directed `make model-tests` cases, including all 21 TI register-logical example rows; full model remains `TMS20-0007` |
-| RTL semantics | Partial leaf slice | `make rtl-leaf-tests`: 35-entry partial decode, A/B/SP, masked ST, unary/binary arithmetic, register logical operations, TMS34020-specific leaves, decoder-controlled write intents, and 17 ordered state-commit checks for 23 one-word instructions; no fetch, PC sequencer, timed retirement, or executable core |
+| ISA database | Partial: 38 entries/6,608 first words | `make isa-tests`; full decode remains `TMS20-0006` |
+| Architectural model | Partial: state/replay and 32 instructions | 36 directed `make model-tests` cases, including all 21 register-logical and 16 immediate-logical TI example rows; full model remains `TMS20-0007` |
+| RTL semantics | Partial leaf slice | `make rtl-leaf-tests`: 38-entry partial decode, A/B/SP, masked ST, unary/binary arithmetic, register logical operations, TMS34020-specific leaves, decoder-controlled write intents, and 17 ordered state-commit checks for 23 one-word instructions; three-word immediate logical operations are decoded but intentionally rejected before a sequencer exists; no fetch, PC sequencer, timed retirement, or executable core |
 | Timing | Not implemented | `TMS20-0013` |
 | Cache | Not implemented | `TMS20-0012` |
 | Memory/bus | Not implemented | `TMS20-0014`–`TMS20-0019` |

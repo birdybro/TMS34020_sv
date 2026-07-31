@@ -3,12 +3,12 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `b84dcc225bffe68e3cd20f65e641f2ca7b7ff0cf`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 34 directed model
+- Latest commit: `9f6b2317bc8e38b678e53318053cf0d17438fe7b`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 36 directed model
   cases, warning-free Verilator lint, verified RTL leaf simulation, and
   warning-free Quartus Cyclone V leaf Analysis & Synthesis
 - Failing tests: none observed
-- Model status: independent state/replay plus 29 of 35 extracted instructions;
+- Model status: independent state/replay plus 32 of 38 extracted instructions;
   full ISA/cache/interfaces not implemented (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX

@@ -108,6 +108,12 @@ class IsaTests(unittest.TestCase):
             0x55FF: ("OR", 1),
             0x5600: ("XOR", 1),
             0x57FF: ("XOR", 1),
+            0x0B80: ("ANDNI", 3),
+            0x0B9F: ("ANDNI", 3),
+            0x0BA0: ("ORI", 3),
+            0x0BBF: ("ORI", 3),
+            0x0BC0: ("XORI", 3),
+            0x0BDF: ("XORI", 3),
             0x0040: ("IDLE", 1),
             0x0080: ("MWAIT", 1),
             0x0C00: ("ADDXYI", 3),
@@ -143,14 +149,15 @@ class IsaTests(unittest.TestCase):
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x101F, 0x1040, 0x141F, 0x1440, 0x33FF, 0x3800,
-                     0x3FFF, 0x4A00, 0x4FFF, 0x5800, 0x79FF, 0x7C00):
+                     0x0B7F, 0x0BE0, 0x3FFF, 0x4A00, 0x4FFF, 0x5800,
+                     0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 6512)
-        self.assertEqual(unclassified, 65536 - 6512)
+        self.assertEqual(matched, 6608)
+        self.assertEqual(unclassified, 65536 - 6608)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -169,6 +176,13 @@ class IsaTests(unittest.TestCase):
             "ISA-DISC-0002-fixed-low-bits",
             self.raw["coverage"]["known_secondary_discrepancies"],
         )
+
+    def test_andi_alias_records_complemented_extension_encoding(self) -> None:
+        andni = self.database.decode(0x0B80)
+        self.assertIsNotNone(andni)
+        self.assertIn("ANDI", andni.metadata["aliases"])
+        immediate = andni.metadata["immediate_fields"][0]
+        self.assertIn("ones-complement", immediate["alias_encoding"])
 
 
 if __name__ == "__main__":

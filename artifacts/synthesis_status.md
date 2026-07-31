@@ -7,9 +7,9 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 5,481 logic cells after synthesis, 2,021 registers,
+- Analysis resources: 5,504 logic cells after synthesis, 2,021 registers,
   127 pins, 0 block-memory bits, 0 DSP blocks, and 0 PLLs
-- Scope: generated partial decoder, A/B/SP register file, masked ST state,
+- Scope: generated 38-entry partial decoder, A/B/SP register file, masked ST state,
   nineteen instruction semantic leaves, decoder-controlled register-execution
   intents and externally gated state commit for 23 one-word instructions,
   and an observability-only synthesis wrapper
