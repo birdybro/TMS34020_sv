@@ -59,6 +59,22 @@ class ReferenceManifestTests(unittest.TestCase):
         self.assertNotIn("src/mame/midway/midxunit.cpp", paths)
         self.assertEqual(len(source["commit"]), 40)
 
+    def test_toolchain_editions_are_not_conflated(self) -> None:
+        sources = {
+            source["id"]: source for source in self.manifest["sources"]
+        }
+        self.assertEqual(
+            sources["TI-TMS340-CODEGEN-SPVU004"]["publication_number"],
+            "SPVU004",
+        )
+        self.assertEqual(
+            sources["TI-TMS340-CODEGEN-TOOLS"]["publication_number"],
+            "SPVU020",
+        )
+        tiga = sources["TI-TMS340-INTERFACE-SPVU015C"]
+        self.assertEqual(tiga["publication_number"], "SPVU015C")
+        self.assertEqual(len(tiga["sha256"]), 64)
+
 
 if __name__ == "__main__":
     unittest.main()

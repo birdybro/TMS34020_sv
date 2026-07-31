@@ -16,14 +16,19 @@
 
 ## RSC-0002: Code-generation tools literature number
 
-- Status: unresolved
+- Status: partially resolved as distinct cataloged editions; actual guides
+  remain missing
 - Evidence:
   - August 1990 TMS34020 guide preface page iv calls the code-generation tools
     guide SPVU004;
   - August 1990 SPVU027 preface page iv calls it SPVU020.
-- Hypotheses: separate editions, a catalog renumbering, or a publication typo.
-- Decision: retain both identifiers and mark the manual missing until an actual
-  title page/revision is acquired. Confidence: `UNKNOWN`.
+  - TI SPVU015C, September 1990, preface page iv also calls the guide SPVU020;
+    its §2.2 requires code-generation tools version 4.0 or later.
+- Hypotheses: SPVU004 is an earlier edition and SPVU020 a later revision or
+  replacement; a catalog renumbering cannot be excluded without title pages.
+- Decision: catalog SPVU004 and SPVU020 as separate missing reference records.
+  Do not collapse either identifier into the other. Confidence:
+  `CORROBORATED` for distinct catalog identities, `UNKNOWN` for edition content.
 
 ## RSC-0003: MAME Midway X-unit path
 

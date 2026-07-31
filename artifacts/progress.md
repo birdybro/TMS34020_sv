@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `30d741d32a5b863a39287b28c0464e43453a8df0`
+- Latest commit: `e144c189d0aeacb547b5de080793770f8c99874f`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 18 directed model
   cases, warning-free Verilator lint, verified RTL leaf simulation, and
   warning-free Quartus Cyclone V leaf Analysis & Synthesis
@@ -19,7 +19,7 @@
 - Formal status: not implemented; SymbiYosys unavailable locally
 - Synthesis status: leaf-only Quartus 17.0.2 Analysis & Synthesis passes with
   0 errors/0 warnings; Yosys unavailable; no fit or TimeQuest result
-- Documentation acquired: seven hash-verified TI documents plus an eleven-file
+- Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
 - Provisional behavior: none implemented
 - Unresolved conflicts: exact game parts, original/A errata and first-silicon

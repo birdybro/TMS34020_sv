@@ -32,6 +32,8 @@
   Synthesis runner.
 - Primary-page-verified CMPK, EXGPS, GETPS, and RMO ISA entries, model
   execution, generated decode, RTL semantic leaves, and directed tests.
+- A hash-pinned official SPVU015C TMS340 Interface guide and separate missing
+  records for the SPVU004 and SPVU020 code-generation-tool guide editions.
 
 ### Changed
 
@@ -80,6 +82,8 @@
   extension word, but the secondary path does not advance over it.
 - Documented the first synthesizable RTL boundary and its explicit exclusions;
   deterministic FPGA register clearing is not represented as silicon behavior.
+- Recorded the SPVU004/SPVU020 tool-guide catalog evidence and lawful search
+  result without treating secondary GSPA notes as a syntax specification.
 
 ### Integration
 
