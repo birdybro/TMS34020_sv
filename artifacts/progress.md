@@ -3,16 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest committed baseline: `9d810d6fa5a1caf775bf8c295fd038b69e86a024`
-- Passing tests: foundation, reference/hash, delta, 32-case ISA sweep, 136 directed model
+- Latest committed baseline: `df55e713ef24e9dde0e2703f253f7a0f48fd8605`
+- Passing tests: foundation, reference/hash, delta, 33-case ISA sweep, 137 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 82 currently extracted encoding forms have bounded
-  successful semantics. CMPXY reproduces all primary rows, result-sign C/V
+- Model status: 82 of 83 currently extracted encoding forms have bounded
+  successful semantics. REV is decoded but atomically rolls back as unsupported
+  until a physical-device profile supplies an evidence-backed complete result.
+  CMPXY reproduces all primary rows, result-sign C/V
   rather than borrow/overflow, nondestructive A/B/same-register/shared-SP
   behavior, and one state. JACC covers all 16 conditions, every possible false
   outcome, low/high absolute-target assembly, forced alignment, false-path PC
@@ -54,7 +56,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 82-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 83-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 52 one-word instructions, with externally gated one-edge
@@ -141,9 +143,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 8,784 logic cells
+  warnings; the current decoder-bearing leaf wrapper uses 8,777 logic cells
   and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 411, 785, and 5,215 logic cells;
+  the fetch, frontend, and scalar wrappers use 419, 785, and 5,330 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
@@ -151,8 +153,8 @@
 - Provisional behavior: the cache model represents architecturally
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
   transactions rather than pin-level dynamic-width cycles
-- Unresolved conflicts: exact game parts, original/A errata and first-silicon
-  history
+- Unresolved conflicts: exact game parts and REV values, original/A errata and
+  first-silicon history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
 - Next task: continue primary ISA extraction and preserve explicit noncommit

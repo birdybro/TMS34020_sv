@@ -31,8 +31,13 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 82 currently extracted database forms. This is
-coverage of a current partial extraction, not instruction completeness.
+These handlers cover 82 of 83 currently extracted database forms. REV is
+decoded but deliberately has no handler: its complete result is a physical-
+device profile value, and exact target-board silicon identity is not yet
+verified. A directed test proves that attempting REV raises
+`UnsupportedInstruction` and restores the complete preinstruction model/cache
+snapshot. This is coverage of a current partial extraction, not instruction
+completeness.
 
 JACC tests cover all 16 condition codes, a taken case for every code and a
 false case for every conditional code, low-word/high-word target assembly,

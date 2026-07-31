@@ -526,6 +526,16 @@
       "source_citation": ["TI-TMS34020-DS-SPVS004D description p.2 and clock stretch pp.21..22"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Target-game exact markings and silicon errata remain unavailable."]
+    },
+    {
+      "feature": "rev_instruction_device_identity",
+      "tms34010_behavior": "REV uses the same 0020h/FFE0h register form, returns a revision word with the TMS34010 family bit 3 set (the guide's example is 00000008h), preserves ST, and has published 1,4 timing.",
+      "tms34020_behavior": "REV returns a device-profile identity with TMS34020 family bit 4 set, silicon revision in bits 2:0, and optional spin-off identity in bits 23:16; the guide examples are 00000010h for revision 1.0 and 00000011h for revision 2.0. It preserves ST and takes one machine state.",
+      "rtl_impact": "Do not reuse a TMS34010 or shared-emulator constant. Execution requires an explicit physical-device revision profile whose complete 32-bit result is documented.",
+      "test_impact": "Decode every A/B/SP destination, verify exact result for each supported profile, preserve all ST bits, test one-state retirement, and reject execution when the selected profile lacks an evidence-backed REV value.",
+      "source_citation": ["TI-TMS34020-UG-1990 REV, printed p.13-221", "TI-TMS34010-UG-1988 REV, printed p.12-233"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact silicon-revision and spin-off fields for the processors fitted to Battletoads and Revolution X remain unknown."]
     }
   ]
 }

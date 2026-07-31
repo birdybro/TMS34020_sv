@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -2012,6 +2013,16 @@ class ExecutionTests(unittest.TestCase):
         model.load_program([0x0000], bit_address=0x80)
         before = model.snapshot()
         with self.assertRaises(UnclassifiedEncoding):
+            model.step()
+        self.assertEqual(model.snapshot(), before)
+
+    def test_rev_requires_an_explicit_device_profile_and_rolls_back(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0020], bit_address=0x80)
+        model.state.write_reg("A", 0, 0xDEAD_BEEF)
+        model.state.st = 0xA123_4567
+        before = model.snapshot()
+        with self.assertRaises(UnsupportedInstruction):
             model.step()
         self.assertEqual(model.snapshot(), before)
 

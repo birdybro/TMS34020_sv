@@ -75,6 +75,15 @@ that their branch pipelines are generally timing-equivalent. Sources: TMS34020
 User's Guide printed p.13-141; TMS34010 User's Guide printed p.12-98 and its
 instruction summary.
 
+REV takes one TMS34020 machine state, writes the selected device's revision
+identity to its destination register, and preserves ST. The same object-code
+form has `1,4` timing and a different family-identification result on the
+TMS34010, so neither its value nor timing implementation may be inherited from
+the older core. Sources: TMS34020 User's Guide printed p.13-221; TMS34010
+User's Guide printed p.12-233. The current model and RTL deliberately reject
+execution until an explicit device profile supplies a verified revision word;
+there is therefore no implemented retirement-timing claim.
+
 JAcc takes three machine states when its condition is false and four when its
 three-word absolute target is taken. It reads N/C/Z/V without changing ST or
 registers. The compatible TMS34010 form has alignment-dependent published

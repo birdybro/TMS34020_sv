@@ -87,6 +87,16 @@ be reused only after independent verification; the older instruction timing
 state machine cannot. Sources: TMS34020 guide printed p.13-84; TMS34010 guide
 printed p.12-56.
 
+REV is an architecturally visible identity delta despite using the same
+`0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
+with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family
+bit 4, carries silicon revision in bits `[2:0]`, and optionally identifies a
+spin-off in bits `[23:16]`; its revision-1.0/revision-2.0 examples are
+`0000_0010h` and `0000_0011h`, and it executes in one machine state. A shared
+constant or TMS34010 execution leaf is therefore incorrect. Sources:
+TMS34020 guide printed p.13-221; TMS34010 guide printed p.12-233. Exact
+target-game revision words remain OQ-0014.
+
 ## Cache and internal parallelism
 
 The cache changes the observable memory trace and execution timing, so it cannot

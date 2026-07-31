@@ -64,9 +64,12 @@ RTL.
 ## Revision-selector implications
 
 A future device parameter must at minimum determine whether CONFIG.CSE exists
-and whether eligible machine cycles may enter Q4b. It must not alter opcode,
-cache, status, host, graphics, display, interrupt, fault, multiprocessor, or
-coprocessor behavior without a cited delta.
+and whether eligible machine cycles may enter Q4b. It must also provide an
+explicit, cited 32-bit REV result: TMS34020 family bit 4 is established, but
+the silicon-revision and spin-off fields must not be inferred merely from the
+profile name. It must not alter opcode, cache, status, host, graphics, display,
+interrupt, fault, multiprocessor, or coprocessor behavior without a cited
+delta.
 
 The non-A SMJ34020 shall remain an invalid/unimplemented selection until an
 applicable primary publication is acquired. Package selection will remain

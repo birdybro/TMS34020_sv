@@ -8,12 +8,13 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 82 page-verified encoding records and covers 25,810 of 65,536
+slice contains 83 page-verified encoding records and covers 25,842 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
 |---|---:|---:|---|
 | NOP | `0300h` | 1 | p.13-180 |
+| REV | `0020h`, mask `FFE0h` | 1 | p.13-221 |
 | ABS | `0380h`, mask `FFE0h` | 1 | p.13-32 |
 | NEG | `03A0h`, mask `FFE0h` | 1 | p.13-178 |
 | NEGB | `03C0h`, mask `FFE0h` | 1 | p.13-179 |
@@ -121,6 +122,18 @@ TMS34010 page documents identical encoding and visible behavior with `1,4`
 timing, so the compatibility classification does not authorize reuse of the
 older sequencer. Sources: TMS34020 User's Guide printed p.13-84; TMS34010
 User's Guide printed p.12-56.
+
+REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
+identity to an A/B destination or the shared SP alias without changing ST. In
+the TMS34020 format, bits `[2:0]` identify the silicon revision, bit 4 is the
+TMS34020 family tag, and bits `[23:16]` identify spin-offs; the guide gives
+`0000_0010h` and `0000_0011h` as revision-1.0 and revision-2.0 examples. The
+same TMS34010 encoding instead uses family bit 3 and its guide example returns
+`0000_0008h`. Pinned MAME shares that TMS34010 constant with its TMS34020
+implementation, as recorded in RSC-0021. Because the target-game silicon
+steppings remain unknown, the database classifies REV but model and RTL tests
+require execution to remain unsupported until an explicit evidence-backed
+device profile supplies the complete result.
 
 JUMP reads an A/B register or the shared-SP alias, clears target bits `[3:0]`,
 and redirects PC in two machine states without changing ST. Its

@@ -2507,6 +2507,11 @@ module tb_tms34020_verified_leaves;
             "decoded but unsupported register execute instruction"
         );
         check_register_execute(
+            16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "REV cannot execute without a selected device revision profile"
+        );
+        check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
             1'b1, 1'b1, 32'd4,
             1'b1, 32'd0, 32'h2000_0000,
@@ -3897,6 +3902,10 @@ module tb_tms34020_verified_leaves;
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
         check_decode(16'h0080, TMS20_OP_MWAIT, 3'd1, "MWAIT exact decode");
+        check_decode(16'h0020, TMS20_OP_REV, 3'd1,
+                     "REV A-file lower-bound decode");
+        check_decode(16'h003F, TMS20_OP_REV, 3'd1,
+                     "REV B-file shared-SP decode");
         check_decode(16'h0300, TMS20_OP_NOP, 3'd1, "NOP exact decode");
         check_decode(16'h039F, TMS20_OP_ABS, 3'd1, "ABS masked decode");
         check_decode(16'h03BF, TMS20_OP_NEG, 3'd1, "NEG masked decode");

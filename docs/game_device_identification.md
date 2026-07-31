@@ -86,6 +86,9 @@ materials naming the orderable CPU would be equivalent primary board evidence.
 - The portable core must not contain either game's memory map or peripherals.
 - The eventual revision parameter must be visible in both synthetic harnesses
   and in trace metadata.
+- Each selected profile must expose its cited REV instruction value; until a
+  target-board stepping is verified, synthetic tests must either select a
+  clearly named guide-example profile or require REV execution to fail.
 - Battletoads tests must exercise original and A/CSE-disabled profiles until
   physical identification resolves the choice.
 - Revolution X tests may use A/CSE-disabled as a clearly labeled provisional

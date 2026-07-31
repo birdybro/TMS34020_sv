@@ -38,6 +38,15 @@ retrieval details are in [references/manifest.yaml](references/manifest.yaml).
 No unqualified profile will silently alias `SM34020A`, `SMJ34020A`, or an
 unverified first-silicon behavior.
 
+The `REV` instruction makes silicon identity architecturally visible. The
+TMS34020 guide defines the result layout and gives `0000_0010h` and
+`0000_0011h` as revision-1.0 and revision-2.0 examples, while the TMS34010
+guide's same-encoding instruction returns a word with family bit 3 rather than
+TMS34020 family bit 4. Until readable target-board markings or physical
+execution establish the fitted stepping and spin-off fields, no Battletoads or
+Revolution X profile may guess a REV result. RSC-0021 records that pinned MAME
+incorrectly returns the TMS34010 example value for its TMS34020 class.
+
 ## Established original-to-A delta
 
 SPVS004D explicitly says its information applies to both TMS34020 and

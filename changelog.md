@@ -4,6 +4,12 @@
 
 ### Added
 
+- Primary-page-verified REV `0020h`/`FFE0h` device-identity metadata, its
+  TMS34010/TMS34020 result and timing delta, exact A/B/SP decode fixtures, and
+  explicit model rollback plus RTL noncommit guards pending an evidence-backed
+  physical-device revision profile.
+- RSC-0021 records that pinned MAME returns the TMS34010 `0000_0008h` identity
+  for its TMS34020 class, while OQ-0014 tracks the target-game silicon result.
 - Independent CMPXY model execution with explicit wrapped halfword
   differences, equality N/Z, result-sign C/V, nondestructive register behavior,
   all nine primary rows, borrow-distinguishing boundaries, A/B, same-register,
@@ -249,6 +255,9 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 82 to 83 records and from
+  25,810 to 25,842 uniquely classified first words without treating any
+  remaining unmatched word as reserved.
 - Expanded the initial one-line README into an evidence and build-oriented
   project introduction.
 - ADDXYI now reuses the shared XY-add leaf, keeping its independently verified
@@ -258,6 +267,10 @@
 
 ### Fixed
 
+- Corrected progress text that had overstated the machine-readable delta ledger
+  as 65 entries; it contained 52 before this milestone and contains 53 after
+  adding REV. The schema and all 37 mandatory feature names were already
+  covered, so no test expectation or architectural entry was removed.
 - Model instruction errors roll back PC and all other state instead of leaving a
   partially committed checkpoint.
 - The Quartus qualification digest now keeps ADDXYI flags and both register-file
@@ -282,6 +295,15 @@
 
 ### Verified
 
+- The 33-case ISA suite, 53-entry delta ledger, and 137-case model suite pass.
+  REV is the only extracted form without successful model semantics: a
+  directed snapshot test proves decoded execution rolls back exactly, and the
+  RTL leaf test proves the same packet cannot produce register or status write
+  intent. All decoder-bearing Cyclone V smoke targets pass Analysis &
+  Synthesis with zero errors/warnings: leaf 8,777, fetch 419, frontend 785,
+  and scalar 5,330 logic cells. These are source-classification and synthesis-
+  portability results, not a REV value, one-state retirement, fit, or
+  TimeQuest claim.
 - CMPXY passes all nine published status rows plus a result-sign-versus-borrow
   discriminator in warning-free direct-leaf, router, ordered-commit, bypass
   fetch, and cache-refill tests. Cyclone V Analysis & Synthesis passes with
@@ -294,7 +316,7 @@
   neither its one-state model result nor the untimed fetch boundary constitutes
   RTL retirement-timing evidence.
 - The 82-entry partial decoder classifies 25,810 first words without collision.
-  The 32-case ISA suite, 65-entry delta ledger, 135-case model suite, and
+  The 32-case ISA suite, 52-entry delta ledger, 135-case model suite, and
   warning-free Verilator leaf checks pass. CMPXY remains atomically unsupported
   in the model and noncommitting in RTL at this source checkpoint. Cyclone V
   leaf Analysis & Synthesis passes with 0 errors/warnings at 8,723 logic cells,
@@ -755,6 +777,9 @@
 
 ### Documentation
 
+- Documented REV's identity bit layout, TMS34010/TMS34020 behavior and timing
+  boundary, the pinned MAME conflict, and the rule that target-game profiles
+  may not guess an unverified stepping result.
 - Defined evidence precedence, TMS34010 reuse constraints, coding/CDC/synthesis
   rules, completion claims, and current architectural risks.
 - Distinguished TMS34020, TMS34020A, SMJ34020, SMJ34020A, and SM34020A without
@@ -825,6 +850,10 @@
 
 ### Known Issues
 
+- REV execution is intentionally unsupported until an evidence-backed
+  physical-device profile provides the complete 32-bit identity. Exact
+  Battletoads and Revolution X silicon results remain unknown, and pinned MAME
+  is not a valid TMS34020 oracle for this instruction.
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
   bounded scalar composition accepts only 51 one-word, eight two-word, and nine
