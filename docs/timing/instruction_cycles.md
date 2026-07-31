@@ -75,6 +75,16 @@ that their branch pipelines are generally timing-equivalent. Sources: TMS34020
 User's Guide printed p.13-141; TMS34010 User's Guide printed p.12-98 and its
 instruction summary.
 
+Long `JRcc` takes two machine states when its condition is false and three when
+the signed 16-bit relative redirect is taken. The condition reads N/C/Z/V and
+neither case changes ST. The TMS34010 guide confirms the encoding and visible
+operation but publishes alignment-dependent 34010 timing that is materially
+different; it is compatibility evidence, not a reusable timing schedule.
+Sources: TMS34020 User's Guide printed pp.13-138..13-140 and timing table
+p.15-5; TMS34010 User's Guide printed pp.12-96..12-97. The independent model
+and bounded RTL deliberately reject the newly decoded packet at this extraction
+checkpoint, so neither currently claims these state counts.
+
 DSJ, DSJEQ, and DSJNE each take two machine states when no jump occurs and
 three when the decremented register remains nonzero and the relative redirect
 is taken. DSJEQ suppresses both decrement and redirect when Z is zero; DSJNE

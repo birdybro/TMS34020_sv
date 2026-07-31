@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 79 page-verified encoding records and covers 25,266 of 65,536
+slice contains 80 page-verified encoding records and covers 25,282 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -22,6 +22,7 @@ first words without collisions:
 | DINT | `0360h` | 1 | p.13-95 |
 | EINT | `0D60h` | 1 | p.13-109 |
 | JUMP | `0160h`, mask `FFE0h` | 1 | p.13-141 |
+| JR.L / long JRcc | `C000h`, mask `F0FFh` | 2 | pp.13-139..13-140 |
 | GETST | `0180h`, mask `FFE0h` | 1 | p.13-132 |
 | PUTST | `01A0h`, mask `FFE0h` | 1 | p.13-216 |
 | POPST | `01C0h` | 1 | p.13-214 |
@@ -107,6 +108,25 @@ pipeline as reusable. Sources: TMS34020 User's Guide printed p.13-141 and
 The independent model implements the successful redirect boundary. The bounded
 RTL implements the same aligned redirect without a register or status write;
 the documented two-state retirement is not implemented.
+
+The extracted long `JRcc` form has first word
+`1100_CCCC_0000_0000` and a signed 16-bit word displacement in its second
+word. Its target is the sequential address after that word plus the
+sign-extended displacement shifted left four. Condition codes 0 through F are
+respectively true, P, LS, HI, LT, GE, LE, GT, C, NC, EQ, NE, V, NV, N, and NN;
+they read N/C/Z/V and change no status bit. A false condition takes two machine
+states and falls through; a true condition takes three and redirects. Sources:
+TMS34020 User's Guide condition table, printed pp.13-27 and 13-138; long-form
+JR reference, printed pp.13-139..13-140; timing table p.15-5. The TMS34010
+guide printed pp.12-96..12-97 confirms the encoding and visible semantics but
+publishes different timing, so no TMS34010 timing machine is reused.
+
+Only the exact 16 long first words are classified at this checkpoint. The
+remaining `CcodeXXh` space is deliberately unclassified until the short
+eight-bit `JRcc` form can be represented while reserving `XX=00h` for the long
+form and `XX=80h` for `JAcc`. The independent model therefore rolls a decoded
+long packet back as unsupported, and bounded RTL fetch/commit tests require it
+to remain nonmutating until execution is implemented.
 
 DSJ, DSJEQ, and DSJNE each consume a signed 16-bit **word** displacement in
 their second word. When the instruction's decrement condition is true, the

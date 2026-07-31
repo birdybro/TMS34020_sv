@@ -131,6 +131,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_00C0: memory_word = 16'h0D80;
                 32'h0000_00D0: memory_word = 16'h0001;
                 32'h0000_00E0: memory_word = 16'h3FFF;
+                32'h0000_0C00: memory_word = 16'hC000;
+                32'h0000_0C10: memory_word = 16'h0002;
                 32'h0000_0100: memory_word = 16'h0BA0;
                 32'h0000_0110: memory_word = 16'h5678;
                 32'h0000_0120: memory_word = 16'h1234;
@@ -858,6 +860,34 @@ module tb_tms34020_scalar_slice;
             commit_count == 1,
             "DSJS backward maximum redirect reaches wrapped target"
         );
+
+        apply_reset();
+        load_pc(32'hC00);
+        serve_word(32'hC00);
+        serve_word(32'hC10);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_JR_L &&
+            packet_length_words == 3'd2 &&
+            packet_words[31:0] == {16'h0002, 16'hC000} &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "complete JR.L packet is blocked before implementation"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 0 &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0,
+                "blocked JR.L packet cannot mutate scalar state"
+            );
+        end
 
         apply_reset();
         load_pc(32'h100);

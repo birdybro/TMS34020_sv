@@ -2078,6 +2078,13 @@ module tb_tms34020_verified_leaves;
             "PC execute DSJS maximum backward redirect wraps PC"
         );
         check_pc_execute(
+            16'hC000, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'hDEAD_BEEF, 32'hA000_0010,
+            1'b0, 1'b0, 32'd0,
+            1'b0, 32'd0,
+            "decoded JR.L cannot enter PC execute before implementation"
+        );
+        check_pc_execute(
             16'h0121, 3'd2, 16'd0, 32'h0000_2090,
             32'h1234_567F, 32'hA000_0010,
             1'b0, 1'b0, 32'd0,
@@ -2736,6 +2743,19 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "decode-only DSJS cannot enter register execute"
         );
+        execute_first_word = 16'hC000;
+        execute_packet_length = 3'd2;
+        execute_immediate = 32'h0000_0002;
+        execute_source = 32'd0;
+        execute_destination = 32'h1234_5678;
+        execute_status = 32'hA000_0010;
+        #1;
+        check_condition(
+            !execute_supported &&
+            !execute_register_write_enable &&
+            !execute_status_write_enable,
+            "complete JR.L cannot enter register execute"
+        );
         check_register_execute(
             16'hD505, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
             1'b1, 1'b1, 32'h0000_003F, 1'b1,
@@ -2897,6 +2917,29 @@ module tb_tms34020_verified_leaves;
             32'h0002_0003, 4'b0000,
             "register execute SUBXY shared-SP destination selector"
         );
+
+        commit_packet_words = {16'd0, 16'h0002, 16'hC000};
+        commit_packet_length = 3'd2;
+        commit_sequential_next_pc = 32'h0000_1020;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            !commit_supported &&
+            !commit_accepted &&
+            !commit_register_write_enable &&
+            !commit_status_write_enable &&
+            !commit_pc_redirect_enable,
+            "decoded JR.L packet cannot commit before implementation"
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == TMS34020_ST_RESET &&
+            commit_sp == 32'd0,
+            "blocked JR.L packet cannot mutate architectural state"
+        );
+        commit_valid = 1'b0;
+        #1;
 
         commit_register_instruction(
             16'h0D60, 1'b1,
@@ -3513,6 +3556,12 @@ module tb_tms34020_verified_leaves;
                      "DSJS backward-zero A-file lower-bound decode");
         check_decode(16'h3FFF, TMS20_OP_DSJS, 3'd1,
                      "DSJS backward-max B-file shared-SP decode");
+        check_decode(16'hC000, TMS20_OP_JR_L, 3'd2,
+                     "JR.L true-condition decode");
+        check_decode(16'hC700, TMS20_OP_JR_L, 3'd2,
+                     "JR.L greater-than condition decode");
+        check_decode(16'hCF00, TMS20_OP_JR_L, 3'd2,
+                     "JR.L nonnegative condition decode");
         check_decode(16'h019F, TMS20_OP_GETST, 3'd1,
                      "GETST masked decode");
         check_decode(16'h01A0, TMS20_OP_PUTST, 3'd1,
@@ -3673,6 +3722,14 @@ module tb_tms34020_verified_leaves;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
                "nearby unclassified word must not alias TRAPL");
+        decode_word = 16'hC001;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "unextracted short JR offset cannot alias JR.L");
+        decode_word = 16'hC080;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "unextracted JAcc form cannot alias JR.L");
 
         add_destination = 32'h0001_0001;
         add_immediate = 32'hFFFF_FFFF;

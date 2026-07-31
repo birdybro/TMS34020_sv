@@ -113,6 +113,12 @@
   range interpretation, two-/three-state timing, TMS34010 semantic
   compatibility, complete boundary fixtures, atomic model rollback guards, and
   explicit RTL packet noncommit checks.
+- Primary-page-verified long JRcc encoding with all 16 condition predicates,
+  signed 16-bit word displacement, two-/three-state timing, TMS34010 semantic
+  compatibility and distinct timing, exact `C?00h` decode, independent
+  fixtures, atomic model rollback, and direct/commit/cache-fed RTL noncommit
+  guards. Short JRcc and JAcc remain deliberately unclassified pending an
+  exclusion-capable decode representation.
 - Independent DSJS model execution covering every published row, both
   directions, zero/max magnitudes, instruction-range endpoints, PC wrap,
   A/B/shared-SP selection, exact write traces, complete status preservation,
@@ -234,6 +240,13 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 80 entries covering 25,282 first
+  words. The 29-case ISA suite checks all long-JR conditions and neighboring
+  exclusions across the complete 65,536-word sweep; the 130-case model suite
+  proves unsupported execution rolls back exactly. Verilator leaf/scalar and
+  all four decoder-bearing Cyclone V analyses pass with zero warnings at 8,645
+  leaf, 410 fetch, 778 frontend, and 5,227 scalar logic cells. This is decode,
+  noncommit, and synthesis-portability evidence, not JR.L execution or timing.
 - DSJS functional RTL passes direct-PC, ordered commit, and cache-fed scalar
   tests for zero/nonzero results, zero/max magnitudes, both directions,
   A/B/shared-SP destinations, exact status preservation, and PC wrap. The

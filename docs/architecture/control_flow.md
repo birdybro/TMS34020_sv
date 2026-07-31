@@ -115,6 +115,47 @@ This proves functional ordering in the serialized FPGA handshake only; it does
 not reproduce GETPC's documented one machine state, EXGPC's two machine states,
 JUMP's two machine states, or speculative pipeline overlap.
 
+## Conditional relative jumps
+
+The long `JRcc` first word is `1100_CCCC_0000_0000`, followed by a signed
+16-bit word displacement. With `PC'` equal to the address after the extension
+word, a satisfied condition loads:
+
+`PC = PC' + (sign_extend(displacement) << 4) mod 2^32`
+
+An unsatisfied condition leaves PC at `PC'`. The 16 condition codes are:
+
+| Code | Name | Condition |
+|---:|---|---|
+| `0` | U | true |
+| `1` | P | `!N && !Z` |
+| `2` | LS | `C || Z` |
+| `3` | HI | `!C && !Z` |
+| `4` | LT | `N != V` |
+| `5` | GE | `N == V` |
+| `6` | LE | `(N != V) || Z` |
+| `7` | GT | `(N == V) && !Z` |
+| `8` | C | `C` |
+| `9` | NC | `!C` |
+| `A` | EQ | `Z` |
+| `B` | NE | `!Z` |
+| `C` | V | `V` |
+| `D` | NV | `!V` |
+| `E` | N | `N` |
+| `F` | NN | `!N` |
+
+ST is read but not changed. The false/taken cases require two/three machine
+states. Sources: TI *TMS34020 User's Guide*, August 1990, condition table
+printed pp.13-27 and 13-138, long JR reference printed pp.13-139..13-140, and
+timing table p.15-5. TMS34010 User's Guide printed pp.12-96..12-97 gives the
+same object format and visible behavior but materially different timing.
+
+The current generated decoder classifies only the exact 16 long-form first
+words (`C?00h`). Short `JRcc` and `JAcc` share the surrounding `CcodeXXh`
+region, so they remain unclassified pending an explicit exclusion-capable
+decode representation. Model rollback and bounded RTL noncommit guards prove
+that extraction alone cannot advance or mutate architectural state.
+
 ## Decrement-and-jump instructions
 
 `DSJ`, `DSJEQ`, and `DSJNE` occupy the adjacent `0D80h`, `0DA0h`, and `0DC0h`

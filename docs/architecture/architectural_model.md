@@ -31,7 +31,9 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 79 currently extracted database forms. This is
+These handlers cover 79 of the 80 currently extracted database forms. The
+newly decoded long JRcc form has an exact rollback test and remains
+non-executable until its independent condition handler is added. This is
 coverage of a current partial extraction, not instruction completeness.
 
 DSJ/DSJEQ/DSJNE tests reproduce all 15 published example rows, both condition

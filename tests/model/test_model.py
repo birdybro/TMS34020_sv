@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1922,6 +1923,15 @@ class ExecutionTests(unittest.TestCase):
         model.load_program([0x0000], bit_address=0x80)
         before = model.snapshot()
         with self.assertRaises(UnclassifiedEncoding):
+            model.step()
+        self.assertEqual(model.snapshot(), before)
+
+    def test_decoded_jr_long_without_handler_rolls_back(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0xC000, 0x0002], bit_address=0x80)
+        model.state.st = 0xB5A3_4A95
+        before = model.snapshot()
+        with self.assertRaises(UnsupportedInstruction):
             model.step()
         self.assertEqual(model.snapshot(), before)
 

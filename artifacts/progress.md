@@ -3,16 +3,17 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `110c42bca952ae077f83a0b50047cc72ecf8ce16`
-- Passing tests: foundation, reference/hash, delta, 28-case ISA sweep, 129 directed model
+- Latest verified baseline commit: `596fe46a80bd6da85fecf340adc0b1b8a672b2c3`
+- Passing tests: foundation, reference/hash, delta, 29-case ISA sweep, 130 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 79 currently extracted encoding forms have bounded
-  successful semantics. DSJS covers every published row, direction/magnitude
+- Model status: 79 of 80 currently extracted encoding forms have bounded
+  successful semantics. The newly decoded long JRcc packet rolls back exactly
+  until its independent condition implementation lands. DSJS covers every published row, direction/magnitude
   endpoints, instruction-range endpoints, PC wrap, A/B/shared-SP, exact writes,
   ST preservation, and two-/three-state cases. DSJ, DSJEQ, and DSJNE reproduce
   all published rows,
@@ -44,7 +45,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 79-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 80-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 51 one-word instructions, with externally gated one-edge
@@ -95,7 +96,9 @@
   A/B/shared-SP destinations, preserve ST, and issue signed relative redirects
   only for nonzero results; their documented two-/three-state retirement is not
   implemented. POPST and PUSHST remain blocked and noncommitting pending
-  memory-transaction ownership.
+  memory-transaction ownership. Long JRcc is fetched as a complete two-word
+  packet but remains explicitly blocked, nonwriting, and nonredirecting at this
+  extraction checkpoint.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -112,8 +115,8 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,641 logic cells and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 416, 790, and 5,255 logic cells;
+  warnings; the leaf wrapper uses 8,645 logic cells and 2,048 registers, while
+  the fetch, frontend, and scalar wrappers use 410, 778, and 5,227 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
