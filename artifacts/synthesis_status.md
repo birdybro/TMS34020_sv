@@ -9,9 +9,9 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 8,038 logic cells after synthesis, 2,021 registers,
+- Analysis resources: 7,986 logic cells after synthesis, 2,021 registers,
   127 pins, 0 block-memory bits, 0 DSP blocks, and 0 PLLs
-- Scope: generated 65-entry partial decoder, A/B/SP register file, masked ST state,
+- Scope: generated 67-entry partial decoder, A/B/SP register file, masked ST state,
   instruction semantic leaves including pitch conversion, decoder-controlled
   register-execution and direct-PC intents, and externally gated state commit
   for 54 register/status/direct-PC instructions, including ADDXY/SUBXY, LMO,
@@ -50,7 +50,7 @@
 
 - Command: `make quartus-fetch-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 380 logic cells, 175 registers, 74 pins, 0 block-memory
+- Analysis resources: 393 logic cells, 175 registers, 74 pins, 0 block-memory
   bits, 0 DSP blocks, and 0 PLLs
 - Scope: generated partial decoder, aligned instruction-start cursor,
   one-to-five-word packet storage, per-word cache classifications, decoupled
@@ -66,7 +66,7 @@
 
 - Command: `make quartus-frontend-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 755 logic cells, 373 registers, 82 pins, 4,096
+- Analysis resources: 765 logic cells, 373 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`
@@ -80,7 +80,7 @@
 
 - Command: `make quartus-scalar-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 4,726 logic cells, 1,387 registers, 82 pins, 4,096
+- Analysis resources: 4,806 logic cells, 1,387 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`

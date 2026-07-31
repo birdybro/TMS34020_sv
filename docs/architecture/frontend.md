@@ -50,7 +50,7 @@ width/class/sequence metadata, cache present/tag/LRU state, and explicit pass
 marker `PASS: tms34020 cache/fetch frontend`.
 
 `make quartus-frontend-smoke` performs warning-free Cyclone V Analysis &
-Synthesis. The diagnostic wrapper uses 755 logic cells, 373 registers, and
+Synthesis. The diagnostic wrapper uses 765 logic cells, 373 registers, and
 4,096 block-memory bits; Quartus retains the portable cache data array as a
 128×32 dual-port `altsyncram`. This is Analysis & Synthesis only, not fit,
 TimeQuest, cycle accuracy, or a complete-core area result.

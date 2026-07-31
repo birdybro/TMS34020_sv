@@ -99,6 +99,10 @@ class IsaTests(unittest.TestCase):
             0x1800: ("MOVK", 1),
             0x1820: ("MOVK", 1),
             0x1BFF: ("MOVK", 1),
+            0x1C00: ("BTST.K", 1),
+            0x1E00: ("BTST.K", 1),
+            0x1FE0: ("BTST.K", 1),
+            0x1FFF: ("BTST.K", 1),
             0x09C0: ("MOVI.W", 2),
             0x09DF: ("MOVI.W", 2),
             0x09E0: ("MOVI.L", 3),
@@ -155,6 +159,9 @@ class IsaTests(unittest.TestCase):
             0xE3FF: ("SUBXY", 1),
             0x4800: ("CMP", 1),
             0x49FF: ("CMP", 1),
+            0x4A00: ("BTST.R", 1),
+            0x4A20: ("BTST.R", 1),
+            0x4BFF: ("BTST.R", 1),
             0x5000: ("AND", 1),
             0x51FF: ("AND", 1),
             0x5200: ("ANDN", 1),
@@ -205,8 +212,8 @@ class IsaTests(unittest.TestCase):
         for word in (0x0041, 0x0081, 0x017F, 0x01A0, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
-                     0x0FFF, 0x1C00, 0x3800,
-                     0x0AFF, 0x0C20, 0x3FFF, 0x4A00,
+                     0x0FFF, 0x3800,
+                     0x0AFF, 0x0C20, 0x3FFF,
                      0x5800,
                      0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
@@ -214,8 +221,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 21200)
-        self.assertEqual(unclassified, 65536 - 21200)
+        self.assertEqual(matched, 22736)
+        self.assertEqual(unclassified, 65536 - 22736)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -256,6 +263,30 @@ class IsaTests(unittest.TestCase):
                     "same file",
                     instruction.metadata["register_file"],
                 )
+
+    def test_btst_forms_record_complemented_constant_and_status_only(self) -> None:
+        constant = self.database.decode(0x1FE0)
+        register = self.database.decode(0x4A20)
+        self.assertEqual(constant.mnemonic, "BTST.K")
+        self.assertEqual(register.mnemonic, "BTST.R")
+        self.assertEqual(
+            constant.metadata["immediate_fields"][0]["object_encoding"],
+            "ones_complement_of_bit_index",
+        )
+        self.assertIn("same file", register.metadata["register_file"])
+        for instruction in (constant, register):
+            self.assertEqual(instruction.length_words, 1)
+            self.assertEqual(
+                instruction.metadata["status_bits_written"], ["Z"]
+            )
+            self.assertEqual(instruction.metadata["destination_registers"], [])
+            self.assertEqual(
+                instruction.metadata["documented_cycles"],
+                {"kind": "fixed", "machine_states": 1},
+            )
+            self.assertTrue(
+                instruction.metadata["compatible_with_tms34010"]
+            )
 
     def test_shift_forms_record_direct_and_twos_complement_counts(self) -> None:
         direct_constant = self.database.decode(0x20E1)

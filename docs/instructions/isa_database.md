@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 65 page-verified encoding records and covers 21,200 of 65,536
+slice contains 67 page-verified encoding records and covers 22,736 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -30,6 +30,8 @@ first words without collisions:
 | MOVE | `4C00h`, mask `FC00h` | 1 | p.13-158 |
 | RL.K / RL constant | `3000h`, mask `FC00h` | 1 | p.13-222 |
 | RL.R / RL register | `6800h`, mask `FE00h` | 1 | p.13-223 |
+| BTST.K / BTST constant | `1C00h`, mask `FC00h` | 1 | p.13-46 |
+| BTST.R / BTST register | `4A00h`, mask `FE00h` | 1 | p.13-47 |
 | SLA.K / SLA constant | `2000h`, mask `FC00h` | 1 | p.13-233 |
 | SLA.R / SLA register | `6000h`, mask `FE00h` | 1 | p.13-234 |
 | SLL.K / SLL constant | `2400h`, mask `FC00h` | 1 | p.13-235 |
@@ -90,6 +92,19 @@ in both the TMS34020 guide, printed p.13-147, and the independently acquired
 1988 TMS34010 guide, printed p.12-108. This establishes the database's
 compatibility classification; neither MAME nor the pinned RTL is the source of
 that claim.
+
+BTST.K stores the one's complement of the bit number in its five-bit K field.
+BTST.R obtains the bit number from the low five bits of a same-file source
+register and ignores that source's upper 27 bits. Both forms read but do not
+write the destination, set Z when the selected destination bit is zero, clear
+Z when it is one, preserve every other ST field, and take one TMS34020 machine
+state. Sources: TMS34020 guide printed pp.13-46..13-47 and summary p.13-30.
+The acquired TMS34010 guide, printed pp.12-46..12-47, independently confirms
+object-code and semantic compatibility, but reports older timing cases;
+compatibility does not assert equal timing. At this extraction checkpoint the
+model rejects and atomically rolls back both forms, while the RTL decodes but
+blocks them from execution and commit. This keeps metadata evidence separate
+from the next implementation checkpoint.
 
 ADDXY and SUBXY operate on the X and Y 16-bit halves independently, without
 carry or borrow propagation between halves. ADDXY derives N from X-result

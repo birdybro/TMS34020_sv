@@ -39,6 +39,10 @@
 - Primary-page-verified ADDXY/SUBXY encodings and metadata from both processor
   guides, generated 7-bit decode identifiers, boundary fixtures, explicit RTL
   noncommit checks, and atomic model rollback guards.
+- Primary-page-verified BTST.K/R encodings and metadata from both processor
+  guides, including the complemented constant field, same-file register count,
+  Z-only status behavior, TMS34020 one-state timing, independent opcode
+  fixtures, exact model rollback guards, and explicit RTL noncommit checks.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -148,15 +152,16 @@
   Cyclone V Analysis & Synthesis reports 8,038 leaf and 4,726 bounded-scalar
   diagnostic logic cells; these are portability metrics, not fitted core area
   or timing closure.
-- The 105-case independent model suite covers bounded semantics for all 65
-  currently extracted forms. This remains coverage of a partial ISA
+- The 106-case independent model suite covers bounded semantics for 65 of 67
+  currently extracted forms. The two BTST forms decode but atomically roll back
+  pending semantic implementation. This remains coverage of a partial ISA
   extraction, not instruction completeness.
-- Expanded the collision-free ISA slice to 65 entries covering 21,200 first
-  words. ADDXY and SUBXY decode across their complete primary-defined ranges
-  while remaining atomically non-executable in RTL at the extraction
-  checkpoint. All four decoder-bearing Quartus Cyclone V
-  Analysis & Synthesis smokes pass with zero errors/warnings: 7,695 leaf, 380
-  fetch, 755 frontend, and 4,559 scalar diagnostic logic cells. These are
+- Expanded the collision-free ISA slice to 67 entries covering 22,736 first
+  words. BTST.K/R decode across their complete primary-defined ranges while
+  remaining atomically non-executable in RTL at this extraction checkpoint.
+  All four decoder-bearing Quartus Cyclone V Analysis & Synthesis smokes pass
+  with zero errors/warnings: 7,986 leaf, 393 fetch, 765 frontend, and 4,806
+  scalar diagnostic logic cells. These are
   analysis-only portability metrics, not fitted core area or timing closure.
 - Verilator leaf/scalar regressions and warning-free Cyclone V Analysis &
   Synthesis cover LMO at the register-execution boundary. The leaf diagnostic

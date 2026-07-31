@@ -187,6 +187,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0510: memory_word = 16'h1841;
                 32'h0000_0520: memory_word = 16'hE020;
                 32'h0000_0530: memory_word = 16'hE201;
+                32'h0000_0540: memory_word = 16'h1FE0;
+                32'h0000_0550: memory_word = 16'h4A20;
                 32'h2468_ACF0: memory_word = 16'h0154;
                 default: memory_word = 16'hFFFF;
             endcase
@@ -1077,6 +1079,36 @@ module tb_tms34020_scalar_slice;
         check_condition(
             commit_count == 4,
             "four dependent MOVK and XY arithmetic commits"
+        );
+
+        apply_reset();
+        load_pc(32'h540);
+        serve_word(32'h540);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_BTST_K &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable &&
+            status == TMS34020_ST_RESET,
+            "decode-only BTST.K remains atomically blocked"
+        );
+
+        apply_reset();
+        load_pc(32'h550);
+        serve_word(32'h550);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_BTST_R &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable &&
+            status == TMS34020_ST_RESET,
+            "decode-only BTST.R remains atomically blocked"
         );
 
         apply_reset();

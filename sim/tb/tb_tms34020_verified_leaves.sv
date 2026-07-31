@@ -2236,6 +2236,16 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "unclassified register execute instruction"
         );
+        check_register_execute(
+            16'h1FE0, 32'd0, 32'h5555_5555, 32'hD020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only BTST.K cannot enter register execute"
+        );
+        check_register_execute(
+            16'h4A20, 32'd15, 32'h5555_5555, 32'hD020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only BTST.R cannot enter register execute"
+        );
         check_xy_register_execute(
             16'hE020, 32'h0001_0002, 32'h0003_0004,
             32'h0004_0006, 4'b0000,
@@ -2404,6 +2414,20 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'd0, 32'h2000_0000,
             32'h0000_0010, 32'd1,
             "register commit LMO reads shared SP"
+        );
+        commit_register_instruction(
+            16'h1FE0, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only BTST.K"
+        );
+        commit_register_instruction(
+            16'h4A20, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only BTST.R"
         );
         commit_register_instruction(
             16'h00F0, 1'b0,
@@ -2692,6 +2716,14 @@ module tb_tms34020_verified_leaves;
                      "MOVE lower-bound decode");
         check_decode(16'h4FFF, TMS20_OP_MOVE, 3'd1,
                      "MOVE upper-bound decode");
+        check_decode(16'h1C00, TMS20_OP_BTST_K, 3'd1,
+                     "BTST.K lower-bound decode");
+        check_decode(16'h1FFF, TMS20_OP_BTST_K, 3'd1,
+                     "BTST.K upper-bound decode");
+        check_decode(16'h4A00, TMS20_OP_BTST_R, 3'd1,
+                     "BTST.R lower-bound decode");
+        check_decode(16'h4BFF, TMS20_OP_BTST_R, 3'd1,
+                     "BTST.R upper-bound decode");
         check_decode(16'h23FF, TMS20_OP_SLA_K, 3'd1,
                      "SLA.K masked decode");
         check_decode(16'h61FF, TMS20_OP_SLA_R, 3'd1,

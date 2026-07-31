@@ -1917,6 +1917,19 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
+    def test_btst_extracted_forms_roll_back_until_implemented(self) -> None:
+        for opcode in (0x1FE0, 0x4A20):
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=0x80)
+                model.state.write_reg("A", 0, 0x5555_5555)
+                model.state.write_reg("A", 1, 15)
+                model.state.st = 0xD020_001F
+                before = model.snapshot()
+                with self.assertRaises(ModelError):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
     def test_sla_constant_primary_examples(self) -> None:
         cases = (
             (0, 0x3333_3333, 0x3333_3333, 0b0000),
