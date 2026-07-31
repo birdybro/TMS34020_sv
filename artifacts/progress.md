@@ -4,7 +4,7 @@
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest commit: `7172c130aa07b0010d160a8976884097888023e1`
 - Passing tests: foundation, reference-manifest/hash, reuse-audit, and
-  device-scope policy checks
+  device-scope/delta schema and required-feature coverage checks
 - Failing tests: none observed
 - Model status: not implemented (`TMS20-0007`)
 - RTL status: not implemented (`TMS20-0009`, `TMS20-0010`)
@@ -20,5 +20,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: machine-readable TMS34010/TMS34020 delta and primary-guide
-  architecture extraction
+- Next task: ISA schema/seed extraction and independent architectural-model
+  foundation

@@ -16,6 +16,9 @@
 - Source-cited device scope, five-variant matrix, and target-game identification
   record with mechanical checks against missing categories and readiness
   overclaims.
+- A 50-entry machine-readable TMS34010/TMS34020 delta ledger and human
+  architectural crosswalk covering cache, bus, faults, interfaces, graphics,
+  display, reset, clocks, compatibility, and A-revision clock stretch.
 
 ### Changed
 
@@ -46,6 +49,8 @@
   rules, completion claims, and current architectural risks.
 - Distinguished TMS34020, TMS34020A, SMJ34020, SMJ34020A, and SM34020A without
   substituting later high-reliability data sheets for the original user guide.
+- Documented unresolved opcode/status/timing, CONTROL2, errata, and
+  first-silicon questions as unknown rather than assigning inferred behavior.
 
 ### Integration
 

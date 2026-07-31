@@ -1,0 +1,511 @@
+{
+  "schema_version": 1,
+  "format_note": "JSON subset of YAML 1.2; architectural requirements ledger, not implementation-completeness evidence.",
+  "comparison_baseline": {
+    "tms34010_reference_commit": "94a258e80a07ceb4303ce0b99818df832e96007f",
+    "tms34020_primary_guide": "TI-TMS34020-UG-1990",
+    "commercial_device_data_sheet": "TI-TMS34020-DS-SPVS004D"
+  },
+  "entries": [
+    {
+      "feature": "pin_compatibility",
+      "tms34010_behavior": "16-bit local interface with TMS34010 pin set.",
+      "tms34020_behavior": "Explicitly not pin-compatible; 32-bit LAD interface and revised host, multiprocessor, and coprocessor pins.",
+      "rtl_impact": "Use a dedicated TMS34020 pin wrapper and bus controller; do not wrap the TMS34010 pins.",
+      "test_impact": "Pin-name/polarity audit and waveform tests for every TMS34020 cycle family.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed pp.1-16..1-18", "TI-TMS34020-UG-1990 chapter 2, §§2.2..2.3"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Package-specific signal availability remains to be audited."]
+    },
+    {
+      "feature": "inherited_opcode_compatibility",
+      "tms34010_behavior": "Defines the first-generation object-code instruction set.",
+      "tms34020_behavior": "TMS34010 object code is described as upward compatible subject to the explicit restrictions in §1.6.",
+      "rtl_impact": "Common encodings require semantic revalidation, not automatic reuse of timing/decode RTL.",
+      "test_impact": "Run compatible programs at instruction boundaries; allow documented timing differences.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed pp.1-16..1-18"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["The complete legal common-encoding set awaits ISA extraction."]
+    },
+    {
+      "feature": "new_opcodes",
+      "tms34010_behavior": "Does not contain the TMS34020 extension instructions.",
+      "tms34020_behavior": "Adds general, graphics, array, VRAM, coprocessor, and control operations documented in chapters 13 and 14.",
+      "rtl_impact": "Generate decode from the TMS34020 ISA database and add dedicated execution paths.",
+      "test_impact": "One directed semantic/status/timing/fault test family per legal new encoding.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapters 13 and 14"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact encoding inventory is tracked by TMS20-0006."]
+    },
+    {
+      "feature": "removed_or_redefined_opcodes",
+      "tms34010_behavior": "Contains legal and illegal encodings defined for TMS34010.",
+      "tms34020_behavior": "No complete removed/redefined list has yet been extracted; §1.6 warns that TMS34010 illegal-opcode behavior is not portable.",
+      "rtl_impact": "Do not import the upstream decode table until all 65,536 first words are classified.",
+      "test_impact": "Exhaustive opcode sweep must identify collisions, redefinitions, and reserved encodings.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-18", "TI-TMS34020-UG-1990 chapters 13 and 14"],
+      "confidence": "UNKNOWN",
+      "unresolved_questions": ["Which, if any, formerly legal encodings are removed or redefined?"]
+    },
+    {
+      "feature": "illegal_opcode_handling",
+      "tms34010_behavior": "Some software may have depended on illegal opcodes other than 0000h trapping.",
+      "tms34020_behavior": "Compatibility text permits reliance only on 0000h causing TRAP 30; other illegal behavior is not promised.",
+      "rtl_impact": "Reserved decode behavior must be explicit and evidence-driven.",
+      "test_impact": "Sweep all reserved first words and independently test 0000h.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-18"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Behavior of each other reserved encoding awaits extraction or hardware evidence."]
+    },
+    {
+      "feature": "changed_instruction_timing",
+      "tms34010_behavior": "TMS34010 cycle cases and the upstream RTL sequencer are device-specific.",
+      "tms34020_behavior": "Cache, parallel execution/memory, 32/16-bit transfers, and page mode alter instruction timing; §1.6 rejects timing-loop portability.",
+      "rtl_impact": "Reconstruct a TMS34020 pipeline/sequencer instead of copying the TMS34010 state machine.",
+      "test_impact": "Generate timing tests for every documented cache/bus/page/overlap case.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-17", "TI-TMS34020-UG-1990 chapter 5, §§5.3..5.5", "TI-TMS34020-UG-1990 chapters 13 and 14"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Instruction-by-instruction timing extraction remains open."]
+    },
+    {
+      "feature": "changed_status_behavior",
+      "tms34010_behavior": "First-generation ST bit definitions and instruction side effects.",
+      "tms34020_behavior": "TMS34020 ST is defined in §4.1; a complete bit/instruction delta has not yet been extracted.",
+      "rtl_impact": "Implement status from the TMS34020 tables, not inherited RTL assumptions.",
+      "test_impact": "Exhaustive per-instruction read/write/undefined status checks against the ISA database.",
+      "source_citation": ["TI-TMS34020-UG-1990 §4.1, printed pp.4-2..4-4", "TI-TMS34020-UG-1990 chapters 13 and 14"],
+      "confidence": "UNKNOWN",
+      "unresolved_questions": ["Which common instructions have changed or newly defined status effects?"]
+    },
+    {
+      "feature": "instruction_cache",
+      "tms34010_behavior": "Comparison table gives 256 bytes; the pinned FPGA reference deliberately omits a silicon cache.",
+      "tms34020_behavior": "Mandatory 512-byte instruction cache holding 128 long words or 256 instruction words.",
+      "rtl_impact": "Implement a first-class cache between PC fetch and local memory.",
+      "test_impact": "Cold/hit/conflict/boundary/branch/reset/fault/wait tests; cache cannot be bypassed for release.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6 table 1-1, printed p.1-16", "TI-TMS34020-UG-1990 §5.1, printed p.5-2", "docs/reuse/tms34010_reuse_audit.md cache row"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
+      "feature": "cache_hit_and_miss_timing",
+      "tms34010_behavior": "Not represented by the pinned reference cacheless fetch path.",
+      "tms34020_behavior": "Lookup takes one machine state and overlaps execution; a miss refills four long words with the requested opcode/immediate long word last.",
+      "rtl_impact": "Pipeline cache lookup and ordered refill with explicit stall/fault state.",
+      "test_impact": "Cycle traces for hits, each miss position, immediate crossing, waits, 16/32-bit and page modes.",
+      "source_citation": ["TI-TMS34020-UG-1990 §§5.3.1..5.3.3, printed pp.5-5..5-7"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Full external cycle count matrix remains to be extracted."]
+    },
+    {
+      "feature": "cache_organization_and_replacement",
+      "tms34010_behavior": "Comparison table gives a smaller cache; the pinned RTL has no replacement state.",
+      "tms34020_behavior": "Four 64-instruction-word segments; eight four-long-word subsegments each; per-segment 22-bit SSA and 32 present bits; four-entry LRU ordering.",
+      "rtl_impact": "New tag/presence/data/LRU structures with deterministic replacement.",
+      "test_impact": "Exercise all segments, subsegments, present bits, and every LRU transition/replacement.",
+      "source_citation": ["TI-TMS34020-UG-1990 §§5.1..5.2, printed pp.5-2..5-5"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["FPGA RAM mapping must preserve exact externally visible refill order."]
+    },
+    {
+      "feature": "cache_invalidation",
+      "tms34010_behavior": "No corresponding cache control in the pinned cacheless implementation.",
+      "tms34020_behavior": "HSTCTLH.CF flushes the cache; reset invalidation and exact host access semantics require detailed extraction.",
+      "rtl_impact": "Add flush arbitration and prevent stale refill commits.",
+      "test_impact": "Flush idle/hit/miss/refill/reset and asynchronous-host scenarios.",
+      "source_citation": ["TI-TMS34020-UG-1990 §5.3.5, printed p.5-8"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact reset/host ordering around an in-flight refill?"]
+    },
+    {
+      "feature": "self_modifying_code",
+      "tms34010_behavior": "Compatibility code could rely on the first-generation cache behavior.",
+      "tms34020_behavior": "Data writes bypass the instruction cache and do not update resident instructions; software must flush before executing modified code.",
+      "rtl_impact": "Do not snoop ordinary data writes into cached data.",
+      "test_impact": "Modify resident and nonresident words, execute before/after CF, and cross line/segment boundaries.",
+      "source_citation": ["TI-TMS34020-UG-1990 §§5.3.4..5.3.5, printed pp.5-7..5-8"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
+      "feature": "host_writes_to_cached_code",
+      "tms34010_behavior": "Host/cache interaction follows TMS34010 rules.",
+      "tms34020_behavior": "Host can address local memory directly, but no automatic cache coherence rule has yet been established; CF is the documented flush mechanism.",
+      "rtl_impact": "Keep host write and cache control separate until a primary rule is cited.",
+      "test_impact": "Host modifies cached code with/without explicit CF under randomized CDC phase.",
+      "source_citation": ["TI-TMS34020-UG-1990 §5.3.5, printed p.5-8", "TI-TMS34020-UG-1990 chapter 7"],
+      "confidence": "PROVISIONAL",
+      "unresolved_questions": ["Does any host path automatically flush or invalidate?"]
+    },
+    {
+      "feature": "cache_disable",
+      "tms34010_behavior": "Pinned implementation fetches without a silicon cache.",
+      "tms34020_behavior": "CONTROL.CD bypasses cache access while preserving cache contents.",
+      "rtl_impact": "Bypass must not destroy tags/data/LRU unless another control requires it.",
+      "test_impact": "Toggle CD around hits, misses, branches, self-modification, and CF.",
+      "source_citation": ["TI-TMS34020-UG-1990 §5.3.6, printed p.5-8"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Instruction-boundary timing of CD writes requires extraction."]
+    },
+    {
+      "feature": "local_data_bus_32_bit",
+      "tms34010_behavior": "16-bit external local-memory bus.",
+      "tms34020_behavior": "32-bit multiplexed LAD0..LAD31 interface; aligned long-word reads and byte-oriented writes.",
+      "rtl_impact": "Native 32-bit transactions, 32-bit refill/data paths, and separate pin multiplexing.",
+      "test_impact": "Aligned/unaligned 1..32-bit fields and every byte-lane combination.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6 table 1-1, printed p.1-16", "TI-TMS34020-UG-1990 §3.2, printed pp.3-3..3-5", "TI-TMS34020-UG-1990 chapter 8"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
+      "feature": "dynamic_16_bit_bus_fallback",
+      "tms34010_behavior": "Native interface is already 16 bits.",
+      "tms34020_behavior": "A target can dynamically request 16-bit transfers for a cycle on an otherwise 32-bit interface.",
+      "rtl_impact": "Split and order beats while retaining one architectural transaction and byte meaning.",
+      "test_impact": "Random width targets, crossed fields, read/modify/write, refill, wait, and fault cases.",
+      "source_citation": ["TI-TMS34020-UG-1990 §8.9, printed pp.8-25..8-29"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact partial-completion checkpoint rules require fault-section correlation."]
+    },
+    {
+      "feature": "size16_behavior",
+      "tms34010_behavior": "No dynamic width-selection input equivalent.",
+      "tms34020_behavior": "SIZE16 is sampled/used to select 16-bit versus 32-bit data transfer according to §8.9 timing.",
+      "rtl_impact": "Expose target-width response at the native interface and accurately drive/sample SIZE16 in the pin wrapper.",
+      "test_impact": "Waveform assertions for sampling point, upper/lower half selection, waits, page mode, and locked cycles.",
+      "source_citation": ["TI-TMS34020-UG-1990 §2.2 SIZE16 signal description", "TI-TMS34020-UG-1990 §§8.9.1..8.9.3, printed pp.8-26..8-29"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Sampling behavior during fault/retry remains to be extracted."]
+    },
+    {
+      "feature": "four_byte_oriented_cas_strobes",
+      "tms34010_behavior": "Two-byte 16-bit organization.",
+      "tms34020_behavior": "Four CAS strobes support byte selection on the 32-bit local interface.",
+      "rtl_impact": "Carry four explicit byte enables through memory, graphics, cache and pin interfaces.",
+      "test_impact": "All 16 masks plus alignment/endian/16-bit split cases.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 2 local-memory signal descriptions", "TI-TMS34020-UG-1990 chapter 8, §§8.3..8.9"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact CAS naming/polarity will be locked by the pin audit."]
+    },
+    {
+      "feature": "page_mode_access",
+      "tms34010_behavior": "Different first-generation memory controller/timing.",
+      "tms34020_behavior": "Multiple local-memory cycles can use page mode, with explicit eligibility, timing, termination, and interaction with dynamic sizing.",
+      "rtl_impact": "Dedicated page-state controller and transaction metadata.",
+      "test_impact": "Page hits/exits/boundaries, read/write/refill, SIZE16, waits, faults and arbitration.",
+      "source_citation": ["TI-TMS34020-UG-1990 §§8.7..8.9.2, printed pp.8-15..8-28"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact early termination cases and overlap matrix remain to be tabulated."]
+    },
+    {
+      "feature": "memory_and_instruction_overlap",
+      "tms34010_behavior": "Pinned RTL uses a functional multicycle sequence and does not claim silicon timing.",
+      "tms34020_behavior": "Cache, execution unit, and memory interface can operate in parallel.",
+      "rtl_impact": "Separate pipeline/cache/memory state with explicit hazards and completion checkpoints.",
+      "test_impact": "Trace overlapping fetch, ALU, read/write, branch, miss, interrupt and fault cases.",
+      "source_citation": ["TI-TMS34020-UG-1990 §5.5, figure 5-4, printed pp.5-10..5-13"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Full per-instruction overlap restrictions remain to be extracted."]
+    },
+    {
+      "feature": "pipelined_writes",
+      "tms34010_behavior": "Device-specific write sequencing in the upstream field sequencer.",
+      "tms34020_behavior": "Local-memory controller pipelines variable-size field writes and permits memory/instruction overlap.",
+      "rtl_impact": "Queued write completion must be architecturally ordered and fault-safe.",
+      "test_impact": "Back-to-back writes, read-after-write, branch/interrupt/fault and arbitrary wait traces.",
+      "source_citation": ["TI-TMS34020-DS-SPVS004D description, data-sheet p.2", "TI-TMS34020-UG-1990 chapter 5 internal parallelism and chapter 8 write timing"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Maximum outstanding depth and exact completion point require extraction."]
+    },
+    {
+      "feature": "expanded_64_register_io_map",
+      "tms34010_behavior": "32 16-bit I/O locations in the compatibility comparison.",
+      "tms34020_behavior": "64 programmable 16-bit I/O registers with moved, expanded, and new functions.",
+      "rtl_impact": "Reimplement the full address map, masks, reset, access ownership and side effects.",
+      "test_impact": "Exhaustive 64-address read/write/reset/host/CPU/domain matrix.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6 table 1-1, printed p.1-16", "TI-TMS34020-UG-1990 chapter 4 I/O-register overview and map"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Reserved and revision-specific reset values require full table extraction."]
+    },
+    {
+      "feature": "pmask_low_and_high",
+      "tms34010_behavior": "Compatibility notes describe a 16-bit PMASK value.",
+      "tms34020_behavior": "PMASKL and PMASKH form a full 32-bit plane mask.",
+      "rtl_impact": "Use a 32-bit plane-mask datapath and preserve two 16-bit I/O accesses.",
+      "test_impact": "Every pixel width/plane position, both halves, host/CPU access and graphics operation.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-17", "TI-TMS34020-UG-1990 chapter 4 PMASK register description"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
+      "feature": "convmp",
+      "tms34010_behavior": "No separate mask-pitch conversion register in the stated compatibility model.",
+      "tms34020_behavior": "CONVMP supplies mask XV-to-linear conversion and is loaded by SETCMP.",
+      "rtl_impact": "Add register, address-generation selection, dependency/stall behavior, and SETCMP execution.",
+      "test_impact": "CVMXYL/SETCMP values, arbitrary MPTCH, hazard/MWAIT and array-mask address traces.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 4 CONVMP description, printed register-map area", "TI-TMS34020-UG-1990 chapter 13 SETCMP, printed p.13-228"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact result-availability latency must be captured in the timing database."]
+    },
+    {
+      "feature": "control2",
+      "tms34010_behavior": "No TMS34020 CONTROL2 register.",
+      "tms34020_behavior": "A CONTROL2 candidate is required by project scope, but its authoritative register definition has not yet been located in the acquired 1990 guide text.",
+      "rtl_impact": "Reserve no guessed address or bits; add only after a cited applicable revision source.",
+      "test_impact": "Future address/reset/read/write/side-effect/revision tests.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 4 register-map audit pending", "docs/research/open_questions.md"],
+      "confidence": "UNKNOWN",
+      "unresolved_questions": ["Is CONTROL2 a later revision register, alternate name, or secondary-source artifact?"]
+    },
+    {
+      "feature": "config",
+      "tms34010_behavior": "Does not have the same TMS34020 reset-vector-loaded system configuration semantics.",
+      "tms34020_behavior": "CONFIG selects endian/address/VRAM parameters; its low four reset-vector bits are loaded as configuration before PC low bits are cleared. A devices add CSE bit 4.",
+      "rtl_impact": "Split reset-vector PC/config loading, protect/configure the low byte, and parameterize documented A CSE.",
+      "test_impact": "All reset-vector low-nibble combinations, CBP protection, endian/RCA/VRAM effects, and A CSE.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-17", "TI-TMS34020-UG-1990 chapter 4 CONFIG description", "TI-TMS34020-DS-SPVS004D pp.21..22"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Complete original reset value and protected-bit behavior extraction remains."]
+    },
+    {
+      "feature": "additional_display_registers",
+      "tms34010_behavior": "Smaller/mapped-differently display register set.",
+      "tms34020_behavior": "Compatibility notes say most display/video registers moved and the 64-register map contains added display state.",
+      "rtl_impact": "Reimplement display I/O decode and state from the TMS34020 map.",
+      "test_impact": "Register-by-register reset/access/side-effect/domain and display address sequencing tests.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-18", "TI-TMS34020-UG-1990 chapter 4 register map", "TI-TMS34020-UG-1990 chapter 9"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Complete added/moved register crosswalk awaits extraction."]
+    },
+    {
+      "feature": "revised_display_sequencing",
+      "tms34010_behavior": "First-generation display sequencer and timing.",
+      "tms34020_behavior": "TMS34020 display/VRAM sequencing is described in chapter 9 and uses the revised I/O map; exact semantic delta is not yet fully tabulated.",
+      "rtl_impact": "Reimplement video timing rather than copying the upstream sequencer.",
+      "test_impact": "Line/frame/sync/blanking/transfer/refresh/error timing for all documented modes.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 9", "TI-TMS34020-UG-1990 §1.6, printed p.1-18"],
+      "confidence": "PROVISIONAL",
+      "unresolved_questions": ["Which sequence rules changed versus TMS34010 and which silicon errata apply?"]
+    },
+    {
+      "feature": "bus_fault_detection",
+      "tms34010_behavior": "No equivalent architecture in the pinned implementation.",
+      "tms34020_behavior": "BUSFLT completion can abort a local-memory access and generate architectural bus-fault handling with saved address/status.",
+      "rtl_impact": "Fault controller, fault registers/vectoring, pipeline checkpoint and transaction cancellation.",
+      "test_impact": "Inject BUSFLT in every meaningful address/data/wait/page/refill/graphics/host phase.",
+      "source_citation": ["TI-TMS34020-UG-1990 §§6.9..6.9.2, printed pp.6-17..6-21", "TI-TMS34020-UG-1990 §8.6.4, printed p.8-14"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Nested-fault and partial-write details require complete section extraction."]
+    },
+    {
+      "feature": "retry",
+      "tms34010_behavior": "No equivalent upstream retry protocol.",
+      "tms34020_behavior": "LRDY/PGMD/BUSFLT completion codes include retry behavior for local and host-related accesses.",
+      "rtl_impact": "Retain transaction identity and continuation checkpoint; never double-commit writes or register updates.",
+      "test_impact": "Idempotence matrix for reads/writes/fields/refills/graphics/host across every retry phase.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 2 completion-code signal table", "TI-TMS34020-UG-1990 §§6.9 and 8.6.4"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact LRDY/PGMD/BUSFLT truth table and sampling edge must enter bus specifications."]
+    },
+    {
+      "feature": "instruction_continuation",
+      "tms34010_behavior": "No equivalent saved continuation architecture in the pinned core.",
+      "tms34020_behavior": "Virtual-memory support includes instruction continuation so faulted/interrupted operations can resume.",
+      "rtl_impact": "Architectural continuation record for long memory/graphics operations and precise commit boundaries.",
+      "test_impact": "Resume each restartable instruction after fault and interrupt without lost or duplicated side effects.",
+      "source_citation": ["TI-TMS34020-DS-SPVS004D description, data-sheet p.2", "TI-TMS34020-UG-1990 chapter 6 bus-fault interrupt and chapters 13..14 instruction restartability"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Continuation storage format and exact interruptible checkpoints require extraction."]
+    },
+    {
+      "feature": "host_direct_addressing",
+      "tms34010_behavior": "Compatibility registers/addressing are narrower and mapped differently.",
+      "tms34020_behavior": "Host can directly address the local address space and also use implicit/prefetch mechanisms.",
+      "rtl_impact": "Dedicated 32-bit host address/state engine and coherent CDC request/response path.",
+      "test_impact": "Direct/implicit/prefetch accesses over full address range with randomized asynchronous phase.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 7, especially §§7.3..7.7", "TI-TMS34020-UG-1990 §1.6, printed p.1-18"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Detailed ownership races and prefetch invalidation require extraction."]
+    },
+    {
+      "feature": "host_byte_selects",
+      "tms34010_behavior": "16-bit host transfer organization.",
+      "tms34020_behavior": "HBS0..HBS3 select bytes for 32-bit host transfers.",
+      "rtl_impact": "Carry four host byte enables through CDC and local-memory arbitration.",
+      "test_impact": "All byte masks, alignments, endian modes, register/local-memory targets, waits and faults.",
+      "source_citation": ["TI-TMS34020-UG-1990 §2.3.4 host signal descriptions", "TI-TMS34020-UG-1990 chapter 7"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
+      "feature": "multiprocessor_r0_r1_gi",
+      "tms34010_behavior": "Uses a HOLD/HOLDA-style ownership model.",
+      "tms34020_behavior": "GI grant input and encoded R0/R1 requests cover priority/termination and bus release/reacquisition.",
+      "rtl_impact": "New arbitration FSM; do not adapt HOLD/HOLDA semantics without proof.",
+      "test_impact": "Every request code, priority, termination, refresh/display/host/fault interaction and eventual-grant liveness.",
+      "source_citation": ["TI-TMS34020-UG-1990 §2.3.3", "TI-TMS34020-UG-1990 chapter 11, especially table 11-1 and §§11.4..11.6"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Documented fairness guarantees require extraction."]
+    },
+    {
+      "feature": "coprocessor_interface",
+      "tms34010_behavior": "External processors generally appear as memory-mapped peripherals.",
+      "tms34020_behavior": "Direct coprocessor interface with general-purpose coprocessor instructions, command and direct/indirect data transfers.",
+      "rtl_impact": "Dedicated protocol block and sequencer integration; external coprocessor remains outside the core.",
+      "test_impact": "Synthetic coprocessor command/data/wait/fault/return/illegal-sequence tests.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 10, §§10.2..10.5", "TI-TMS34020-UG-1990 chapters 13 and 14"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exception/nesting details and complete opcode list await ISA extraction."]
+    },
+    {
+      "feature": "special_function_cycles",
+      "tms34010_behavior": "First-generation SF/VRAM cycle set.",
+      "tms34020_behavior": "Revised SF signaling supports VRAM serial/block/split operations and coprocessor-related transfers.",
+      "rtl_impact": "Represent function class explicitly in native transactions and drive exact pin codes in the wrapper.",
+      "test_impact": "Waveform test each documented SF code and illegal/reserved combination.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 2 SF signal description", "TI-TMS34020-UG-1990 chapters 8 and 10"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Complete function-code table extraction remains."]
+    },
+    {
+      "feature": "one_megabit_vram_features",
+      "tms34010_behavior": "Earlier VRAM serial-register feature set.",
+      "tms34020_behavior": "Adds support for 1M VRAM functions, including enhanced page/block/split-serial behaviors controlled by CONFIG.VEN and graphics operations.",
+      "rtl_impact": "New VRAM request classes, address/control sequences and mask handling.",
+      "test_impact": "VLCOL/VBLT/VFILL and transfer cycles with VEN, PMASKL/H, waits, faults and display arbitration.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 8, §§8.10..8.12", "TI-TMS34020-UG-1990 chapters 12 and 13 graphics/VRAM operations"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Per-device external VRAM compatibility and timing limits require board audit."]
+    },
+    {
+      "feature": "reset_behavior",
+      "tms34010_behavior": "Reset vector is consumed according to first-generation PC/config rules.",
+      "tms34020_behavior": "Reset-vector low four bits initialize CONFIG and are then cleared from PC; HCS at reset release selects halt behavior; cache/I/O/bus details are TMS34020-specific.",
+      "rtl_impact": "Dedicated reset FSM covering asynchronous assertion, synchronized release, host mode, config load, cache invalidation and first fetch.",
+      "test_impact": "All vector nibbles, HCS modes, reset timing phases, bus outputs, cache/I/O/video/interrupt initial state.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-17", "TI-TMS34020-UG-1990 §6.10 reset", "TI-TMS34020-UG-1990 §2.3.4 HCS signal description"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Complete reset-value table and first-silicon differences remain open."]
+    },
+    {
+      "feature": "local_clock_relationship",
+      "tms34010_behavior": "Pinned FPGA implementation uses an eight-times local-bus method that is not evidence for TMS34020.",
+      "tms34020_behavior": "CLKIN generates LCLK1/LCLK2 quarter-phase timing; A CSE may add Q4b to eligible cycles.",
+      "rtl_impact": "Use one FPGA clock with explicit phase enables/FSM; original clocks only in the pin wrapper.",
+      "test_impact": "Phase/edge waveform assertions, wait extension, reset release and CSE cases.",
+      "source_citation": ["TI-TMS34020-UG-1990 §2.3 clock signal descriptions and chapter 8 timing", "TI-TMS34020-DS-SPVS004D pp.21..22", "docs/reuse/tms34010_reuse_audit.md clocking rows"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["FPGA oversampling ratio and constraints await timing implementation."]
+    },
+    {
+      "feature": "emulator_debug_interface",
+      "tms34010_behavior": "First-generation emulator/debug pins and upstream simulation hooks.",
+      "tms34020_behavior": "Four EMU pins and a documented 12-pin emulation connector/protocol are described for TMS34020.",
+      "rtl_impact": "Keep optional debug hooks separate from architectural behavior; reproduce pins only when their protocol is evidenced.",
+      "test_impact": "Debug must be synthesis-optional and must not perturb execution when disabled.",
+      "source_citation": ["TI-TMS34020-UG-1990 appendix A, §§A.1..A.2, printed pp.A-2..A-10"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["XDS-specific emulation transaction details await SPVU028."]
+    },
+    {
+      "feature": "endianness",
+      "tms34010_behavior": "Little endian.",
+      "tms34020_behavior": "Reset-configurable little or big endian through CONFIG.BEN.",
+      "rtl_impact": "Apply endian selection consistently to memory, cache refill, host, fields, pixels and byte enables.",
+      "test_impact": "Mirror every memory/host/graphics access fixture in both endian modes.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6 table 1-1, printed p.1-16", "TI-TMS34020-UG-1990 §3.6, figures 3-16..3-17"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Pinned MAME explicitly lacks big-endian support and cannot validate these cases."]
+    },
+    {
+      "feature": "unlimited_horizontal_pitch",
+      "tms34010_behavior": "Comparison table restricts horizontal pitch to powers of two.",
+      "tms34020_behavior": "Supports arbitrary pitch using SPTCH/DPTCH/MPTCH and conversion-register setup.",
+      "rtl_impact": "Rework XY conversion/address generation and dependencies.",
+      "test_impact": "Power-of-two and arbitrary pitches, negative directions, conversion hazards and boundary traces.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6 table 1-1 and compatibility note, printed pp.1-16..1-17", "TI-TMS34020-UG-1990 §§3.5..3.6"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact conversion latency for each SETC* operation awaits timing extraction."]
+    },
+    {
+      "feature": "new_graphics_operations",
+      "tms34010_behavior": "First-generation PIXT/PIXBLT/line and raster-operation set.",
+      "tms34020_behavior": "Adds/revises graphics, array, curve, clipping, pixel compare/read, three-operand and VRAM operations documented in chapters 12..14.",
+      "rtl_impact": "Semantic delta audit for every graphics matrix cell; new engines only where justified.",
+      "test_impact": "Generated conformance matrix plus exact request-by-request memory traces for every defined cell.",
+      "source_citation": ["TI-TMS34020-UG-1990 chapter 12", "TI-TMS34020-UG-1990 chapters 13 and 14"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Complete operation/encoding inventory is TMS20-0006/TMS20-0024."]
+    },
+    {
+      "feature": "color_and_pattern_width",
+      "tms34010_behavior": "Compatibility code often uses 16-bit COLOR0/COLOR1 and a shorter B13 pattern assumption.",
+      "tms34020_behavior": "COLOR0/COLOR1 are full 32-bit values; compatible code must replicate color and set B13 pattern bits appropriately.",
+      "rtl_impact": "Full 32-bit graphics color/pattern datapaths and no implicit 16-bit replication.",
+      "test_impact": "All pixel sizes, upper/lower color halves, pattern wrap and legacy compatibility fixtures.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-17"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
+      "feature": "alignment_requirements",
+      "tms34010_behavior": "Compatibility software may align code/data on 16-bit boundaries.",
+      "tms34020_behavior": "Compatibility guidance calls for 32-bit alignment where cache/memory behavior depends on it.",
+      "rtl_impact": "Support legal unaligned fields while preserving long-word bus/refill boundaries.",
+      "test_impact": "Instruction/immediate and data crossings at every bit offset on 16/32-bit targets.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-17", "TI-TMS34020-UG-1990 §§3.2..3.3"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
+      "feature": "cache_load_order_compatibility",
+      "tms34010_behavior": "Legacy code could observe or rely on first-generation cache load order.",
+      "tms34020_behavior": "Compatibility notes prohibit that reliance; TMS34020 refill requests the required opcode/immediate long word last.",
+      "rtl_impact": "Preserve the documented TMS34020 refill order exactly.",
+      "test_impact": "Bus trace for miss at every long-word position and instruction/immediate crossing.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-17", "TI-TMS34020-UG-1990 §5.3.3, printed pp.5-6..5-7"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
+      "feature": "graphics_context_saving",
+      "tms34010_behavior": "Legacy interrupt handlers may save a smaller graphics context.",
+      "tms34020_behavior": "Compatibility notes require saving additional/expanded graphics state before use by an interrupt handler.",
+      "rtl_impact": "Interrupt entry itself must preserve architectural ordering; software-visible context must be complete and documented.",
+      "test_impact": "Interrupt every long graphics operation and verify save/restore/continuation state.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed pp.1-17..1-18", "TI-TMS34020-UG-1990 chapters 6 and 12"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact required register set per operation awaits instruction metadata extraction."]
+    },
+    {
+      "feature": "interrupt_compatibility",
+      "tms34010_behavior": "Legacy handlers may assume first-generation stack contents and source/register layout.",
+      "tms34020_behavior": "Compatibility notes reject assumptions about unchanged interrupt stack/context; bus fault and expanded I/O introduce new interactions.",
+      "rtl_impact": "Reimplement priority, recognition, entry, saved PC/ST, return and long-operation continuation.",
+      "test_impact": "All sources/priorities/nesting plus cache miss, write pipeline, host, video, fault and graphics checkpoints.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-18", "TI-TMS34020-UG-1990 chapter 6, §§6.4..6.9"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Complete source map, cycle timing, and revision errata remain."]
+    },
+    {
+      "feature": "host_interface_compatibility",
+      "tms34010_behavior": "Host registers and shared structures follow 16-bit TMS34010 conventions.",
+      "tms34020_behavior": "Compatibility access exists for HSTADR, but shared structures generally require 32-bit alignment and the host interface is otherwise expanded.",
+      "rtl_impact": "Provide documented compatibility aliases without reusing the TMS34010 host FSM.",
+      "test_impact": "Legacy HSTADR programs plus native direct, implicit, byte-select, prefetch and fault tests.",
+      "source_citation": ["TI-TMS34020-UG-1990 §1.6, printed p.1-18", "TI-TMS34020-UG-1990 chapter 7"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["All register aliases and side effects await the I/O map extraction."]
+    },
+    {
+      "feature": "a_revision_clock_stretch",
+      "tms34010_behavior": "Not applicable.",
+      "tms34020_behavior": "Commercial TMS34020A defines CONFIG.CSE; reset clears it. When enabled, true address cycles and read data cycles of read-modify-write sequences can add Q4b and become 25 percent longer, with listed exceptions.",
+      "rtl_impact": "Explicit device profile and eligible-phase insertion in the pin/machine-cycle model.",
+      "test_impact": "CSE reset/read/write and all eligible/ineligible cycles, multiprocessor warning, waits/page/fault combinations.",
+      "source_citation": ["TI-TMS34020-DS-SPVS004D description p.2 and clock stretch pp.21..22"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Target-game exact markings and silicon errata remain unavailable."]
+    }
+  ]
+}

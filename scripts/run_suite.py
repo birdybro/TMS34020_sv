@@ -17,6 +17,7 @@ SUITES = {
     "foundation": ("IMPLEMENTED", "TMS20-0001"),
     "lint": ("IMPLEMENTED", "TMS20-0001"),
     "references": ("IMPLEMENTED", "TMS20-0002"),
+    "delta": ("IMPLEMENTED", "TMS20-0005"),
     "model": ("NOT_IMPLEMENTED", "TMS20-0007"),
     "decode": ("NOT_IMPLEMENTED", "TMS20-0006"),
     "instruction": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0010"),
@@ -103,6 +104,22 @@ def references() -> None:
     print("PASS: reference manifest and available-cache hashes")
 
 
+def delta() -> None:
+    run(
+        [
+            sys.executable,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "tests/unit",
+            "-p",
+            "test_delta.py",
+        ]
+    )
+    print("PASS: architectural delta schema and required-feature coverage")
+
+
 def doctor() -> None:
     required = ("git", "make", "python3")
     optional = (
@@ -144,7 +161,7 @@ def list_suites() -> None:
     print("  make doctor             report required and optional tools")
     for name, (status, task) in SUITES.items():
         target = f"{name}-tests" if name in {
-            "model", "decode", "instruction", "compatibility", "cache",
+            "delta", "model", "decode", "instruction", "compatibility", "cache",
             "memory", "graphics", "video", "host", "fault", "coprocessor",
         } else name
         print(f"  make {target:18} {status:15} {task}")
@@ -178,6 +195,8 @@ def main() -> None:
         lint()
     elif args.suite == "references":
         references()
+    elif args.suite == "delta":
+        delta()
 
 
 if __name__ == "__main__":

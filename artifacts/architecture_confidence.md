@@ -5,6 +5,7 @@
 | Required device family list | VERIFIED_PRIMARY | Project scope |
 | TMS34010 pin commit identity | VERIFIED_PRIMARY | Git commit/tree and upstream remote |
 | Commercial original/A revision delta | VERIFIED_PRIMARY | SPVS004D bounds the stated delta to A clock stretch |
+| TMS34010/TMS34020 required-topic delta coverage | PROVISIONAL | 50 schema-checked entries; opcode/status/timing quantification pending |
 | Exact Battletoads silicon | UNKNOWN | 32 MHz fits both commercial original and A parts; marking unreadable |
 | Exact Revolution X silicon | INFERRED | 40 MHz board/driver evidence and commercial A-40 catalog option; marking unreadable |
 | ISA | UNKNOWN | Primary guide acquired; complete encoding extraction pending |
