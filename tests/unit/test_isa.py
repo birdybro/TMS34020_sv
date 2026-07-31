@@ -90,6 +90,10 @@ class IsaTests(unittest.TestCase):
             0x015F: ("GETPC", 1),
             0x0180: ("GETST", 1),
             0x019F: ("GETST", 1),
+            0x01A0: ("PUTST", 1),
+            0x01AF: ("PUTST", 1),
+            0x01B0: ("PUTST", 1),
+            0x01BF: ("PUTST", 1),
             0x1000: ("ADDK", 1),
             0x1020: ("ADDK", 1),
             0x13FF: ("ADDK", 1),
@@ -229,7 +233,7 @@ class IsaTests(unittest.TestCase):
                 )
 
     def test_nearby_reserved_or_other_words_do_not_alias_fixed_opcodes(self) -> None:
-        for word in (0x0041, 0x0081, 0x017F, 0x01A0, 0x0250, 0x0252,
+        for word in (0x0041, 0x0081, 0x017F, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x0FFF, 0x3800,
@@ -242,8 +246,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 23056)
-        self.assertEqual(unclassified, 65536 - 23056)
+        self.assertEqual(matched, 23088)
+        self.assertEqual(unclassified, 65536 - 23088)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -377,6 +381,25 @@ class IsaTests(unittest.TestCase):
             "ISA-DISC-0003-EXGF-F1-timing",
             self.raw["coverage"]["known_secondary_discrepancies"],
         )
+
+    def test_putst_records_full_status_write_and_primary_timing(self) -> None:
+        putst_a = self.database.decode(0x01A0)
+        putst_b_sp = self.database.decode(0x01BF)
+
+        self.assertIs(putst_a, putst_b_sp)
+        self.assertEqual(putst_a.mnemonic, "PUTST")
+        self.assertEqual(putst_a.metadata["source_registers"], ["Rs"])
+        self.assertEqual(putst_a.metadata["destination_registers"], ["ST"])
+        self.assertEqual(
+            putst_a.metadata["status_bits_written"], ["entire ST"]
+        )
+        self.assertEqual(
+            putst_a.metadata["documented_cycles"],
+            {"kind": "fixed", "machine_states": 3},
+        )
+        self.assertTrue(putst_a.metadata["compatible_with_tms34010"])
+        self.assertIsNone(self.database.decode(0x01C0))
+        self.assertIsNone(self.database.decode(0x01C1))
 
     def test_shift_forms_record_direct_and_twos_complement_counts(self) -> None:
         direct_constant = self.database.decode(0x20E1)

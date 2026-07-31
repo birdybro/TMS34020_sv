@@ -26,10 +26,12 @@ ST is a 32-bit special-purpose register. TI specifies reset value
 Source: TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and
 Table 4-1, printed pp.4-2..4-3.
 
-TI says software should write zero to reserved bits for compatibility. That
-statement does not establish whether arbitrary reserved-bit writes are stored,
-ignored, or read back on every silicon revision. The current implementation
-therefore does not assign a PUTST reserved-bit policy.
+TI says software should write zero to reserved bits for compatibility. PUTST's
+primary instruction page says the complete source register is copied into ST
+and depicts the reserved positions as part of that 32-bit destination, but this
+does not establish arbitrary reserved-bit readback on every silicon revision.
+The new PUTST decode record therefore specifies the documented full-width copy
+while silicon-revision readback remains an explicit qualification question.
 
 ## Implemented state owner
 
@@ -88,8 +90,9 @@ two-machine-state timing.
 
 The following are not yet implemented:
 
-- PUTST, PUSHST, and POPST semantics or sequencing, plus EXGF architectural
-  retirement timing;
+- classified PUTST full-status semantics and three-state timing are not yet
+  owned by the model or RTL; PUSHST and POPST semantics/sequencing also remain,
+  as does EXGF architectural retirement timing;
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;

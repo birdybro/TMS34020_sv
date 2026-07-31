@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 71 page-verified encoding records and covers 23,056 of 65,536
+slice contains 72 page-verified encoding records and covers 23,088 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -22,6 +22,7 @@ first words without collisions:
 | DINT | `0360h` | 1 | p.13-95 |
 | EINT | `0D60h` | 1 | p.13-109 |
 | GETST | `0180h`, mask `FFE0h` | 1 | p.13-132 |
+| PUTST | `01A0h`, mask `FFE0h` | 1 | p.13-216 |
 | ADDK / INC alias when K=1 | `1000h`, mask `FC00h` | 1 | pp.13-37, 13-134 |
 | SUBK / DEC alias when K=1 | `1400h`, mask `FC00h` | 1 | pp.13-94, 13-245 |
 | MOVK | `1800h`, mask `FC00h` | 1 | p.13-169 |
@@ -96,6 +97,15 @@ files. TI specifies one TMS34020 state for field bank zero and two for field
 bank one; pinned MAME charges one for both, as recorded in RSC-0019. Source:
 TMS34020 User's Guide printed p.13-111 and timing table p.15-4.
 
+PUTST copies all 32 source-register bits into ST and takes three machine
+states. Its `01A0h`/`FFE0h` range covers A/B and the shared-SP alias. The
+adjacent `01C0h` POPST encoding is not classified by this record. The same
+encoding and full-register copy appear in the TMS34010 guide, establishing
+semantic compatibility without inferring broader status or pipeline
+equivalence. Sources: TMS34020 User's Guide printed pp.4-2..4-3 and 13-216,
+timing table p.15-7; TMS34010 User's Guide printed p.12-229 and its instruction
+summary.
+
 LMO uses a same-file register pair, returns the number of leading zero bits
 for a nonzero source, and returns zero for a zero source. It writes only Z and
 takes one state. The exact `6A00h`/`FE00h` encoding and semantics are present
@@ -130,10 +140,10 @@ states; ZEXT zero-extends and replaces only Z in one state. SETF itself takes
 one state. Sources: TMS34020 guide printed pp.4-2..4-3, 13-230..13-232, and
 13-268. The 1988 TMS34010 guide printed pp.12-237..12-238 and 12-257 confirms
 compatible encodings and results but documents different timing; this is
-recorded as the first quantified instruction-specific timing delta. At this
-extraction checkpoint the independent model rolls all three forms back as
-unsupported, and the RTL decoder classifies their complete encoding ranges
-while register execution rejects them without state writes.
+recorded as the first quantified instruction-specific timing delta. The
+independent model and bounded RTL implement all three forms across both banks,
+all field sizes, A/B, and shared SP. Their serialized commit edge is not
+architectural machine-state timing.
 
 ADDXY and SUBXY operate on the X and Y 16-bit halves independently, without
 carry or borrow propagation between halves. ADDXY derives N from X-result

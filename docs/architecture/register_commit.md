@@ -81,7 +81,7 @@ atomic register/selected-bank exchange through ordinary A and shared-SP
 destinations in both field banks,
 state-neutral NOP, GETPC into a B register, EXGPC old-value capture and aligned
 redirect through an A register and shared SP, and rejection of an otherwise
-decoded but unsupported BLMOVE word. Two runtime assertions additionally
+decoded but unsupported PUTST or BLMOVE word. Two runtime assertions additionally
 check mutual exclusion between execution owners and require every redirect to
 be accepted and aligned. The
 testbench requires the explicit marker

@@ -68,6 +68,13 @@ TMS34020 primary source; RSC-0019 records the secondary discrepancy. Sources:
 TMS34020 User's Guide printed pp.13-111 and 15-4; TMS34010 User's Guide
 printed pp.12-17 and 12-78.
 
+PUTST takes three machine states and copies the complete source register into
+ST. The same encoding, operation, and three-state summary appear in the
+TMS34010 guide; this compatibility evidence does not establish general timing
+equivalence between the processors. Sources: TMS34020 User's Guide printed
+pp.13-216 and 15-7; TMS34010 User's Guide printed p.12-229 and its instruction
+summary.
+
 BLMOVE is labeled only `complex instruction` on its instruction page and in
 the chapter-15 table. The guide states that B7 decrements as the move proceeds
 and that B0/B2 intermediate updates depend on S/D, making an instruction-level

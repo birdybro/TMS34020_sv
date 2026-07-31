@@ -3,16 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `72313381e546010ef00d21be8ebc5c532c7e2d3e`
-- Passing tests: foundation, reference/hash, delta, 23-case ISA sweep, 114 directed model
+- Latest verified baseline commit: `b7b0c66a9d27518923573ef10e8f514c5db5b12c`
+- Passing tests: foundation, reference/hash, delta, 24-case ISA sweep, 115 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 71 currently extracted encoding forms have bounded
-  successful semantics. EXGF covers both primary rows, both field banks/files,
+- Model status: 71 of 72 currently extracted encoding forms have bounded
+  successful semantics; PUTST remains atomic non-execution pending its
+  independent full-status handler. EXGF covers both primary rows, both field
+  banks/files,
   upper-register clearing, nonselected-ST preservation, shared SP, and the
   bank-dependent state count. Other implemented coverage includes complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
@@ -30,7 +32,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 71-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 72-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 48 one-word instructions, with externally gated one-edge
@@ -67,6 +69,8 @@
   clears the destination upper bits, preserves nonselected ST bits, and passes
   dependent two-bank scalar commits; its documented one-/two-state retirement
   split is not implemented.
+  Newly classified PUTST is blocked and noncommitting until its full-status
+  write semantics have independent model and RTL owners.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -83,8 +87,8 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,476 logic cells and 2,033 registers, while
-  the fetch, frontend, and scalar wrappers use 397, 771, and 5,062 logic cells;
+  warnings; the leaf wrapper uses 8,434 logic cells and 2,033 registers, while
+  the fetch, frontend, and scalar wrappers use 394, 762, and 5,060 logic cells;
   the scalar wrapper has 1,399 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

@@ -73,6 +73,9 @@
   write intents, A/B/shared-SP routing, upper-register clearing, dependent
   two-bank scalar commits, and a runtime atomicity assertion. Architectural
   one-/two-state retirement timing remains unimplemented.
+- Primary-page-verified PUTST encoding, full-width status-write contract,
+  A/B/shared-SP boundaries, three-state timing, adjacent POPST nonaliasing, and
+  explicit model/RTL rollback boundaries pending independent semantics.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -176,6 +179,12 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 72 entries covering 23,088 first
+  words. All four PUTST file/index boundaries roll back atomically in the model
+  and remain blocked without architectural writes in leaf/commit/scalar RTL.
+  All four decoder-bearing Cyclone V analyses pass with zero errors/warnings at
+  8,434 leaf, 394 fetch, 762 frontend, and 5,060 scalar diagnostic logic cells;
+  these are not fitted core-area or timing-closure results.
 - The 114-case independent model suite covers bounded semantics for all 71
   currently extracted forms, including EXGF's atomic two-owner exchange. This
   is not coverage of the unextracted ISA or RTL retirement timing.
