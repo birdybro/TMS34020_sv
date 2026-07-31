@@ -18,7 +18,7 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGF, EXGPC, GETPC, GETST,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGF, EXGPC, GETPC, GETST, JUMP,
   POPST, PUSHST, PUTST,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
@@ -31,8 +31,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 74 of the 75 currently extracted database forms. JUMP is
-an atomic non-execution boundary pending an independent handler. This is
+These handlers cover all 75 currently extracted database forms. This is
 coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
@@ -119,6 +118,14 @@ The handlers use the instruction-boundary PC established by `step()`, not an
 instruction-cache fetch cursor, and report the documented one- and two-state
 counts. Source: TI *TMS34020 User's Guide*, August 1990, printed pp.13-112 and
 13-130; PC alignment and increment rules in §4.2, printed p.4-4.
+
+JUMP captures the selected A/B register or shared SP, loads PC from that value
+with bits `[3:0]` cleared, and preserves the source and complete ST. Directed
+tests reproduce all three published targets and cover both register files,
+ordinary boundary indices, and the shared-SP alias. The handler reports the
+documented two machine states. Sources: TMS34020 User's Guide printed p.13-141
+and §4.2 p.4-4; compatibility cross-check: TMS34010 User's Guide printed
+p.12-98 and its instruction summary.
 
 CMPK implements the encoded-zero-means-32 constant and nondestructive
 subtraction flags. EXGPS and GETPS use the internal PSIZE register; EXGPS
@@ -343,6 +350,8 @@ CLRC/SETC preservation, DINT/EINT IE changes, GETPC/EXGPC primary rows,
 A/B/shared-SP selection, sequential-PC exchange, redirect alignment and status
 preservation, complete GETST and PUTST transfers, POPST/PUSHST aligned and
 unaligned ordering, bit-address wrap, traces, hidden writes, and round trip,
+all published JUMP targets, A/B/shared-SP selection, source/status
+preservation, redirect alignment and timing,
 all TI ADDK and INC-alias example rows,
 all SUBK and DEC-alias example rows,
 every SUBK constant, every MOVK constant, encoded-zero/B/SP cases for all three

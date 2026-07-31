@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -2017,16 +2016,50 @@ class ExecutionTests(unittest.TestCase):
         )
         self.assertIn("fault, retry", event.notes[-1])
 
-    def test_jump_decode_checkpoint_rolls_back_before_redirect(self) -> None:
-        model = Tms34020Model()
-        model.load_program([0x0160], bit_address=0x80)
-        model.state.write_reg("A", 0, 0x1234_567F)
-        before = model.snapshot()
+    def test_jump_primary_examples_align_register_target(self) -> None:
+        for source, expected_pc in (
+            (0x0000_1EE0, 0x0000_1EE0),
+            (0x0000_1EE5, 0x0000_1EE0),
+            (0xFFFF_FFFF, 0xFFFF_FFF0),
+        ):
+            with self.subTest(source=f"{source:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x0161], bit_address=0x0055_5550)
+                model.state.write_reg("A", 1, source)
+                model.state.st = 0xA5C3_5A3C
 
-        with self.assertRaises(UnsupportedInstruction):
-            model.step()
+                event = model.step()
 
-        self.assertEqual(model.snapshot(), before)
+                self.assertEqual(model.state.pc, expected_pc)
+                self.assertEqual(model.state.read_reg("A", 1), source)
+                self.assertEqual(model.state.st, 0xA5C3_5A3C)
+                self.assertEqual(event.next_pc, expected_pc)
+                self.assertEqual(event.machine_states, 2)
+                self.assertEqual(event.register_writes, [])
+
+    def test_jump_all_files_and_shared_sp_preserve_source(self) -> None:
+        for register_file, file_bit in (("A", 0), ("B", 1)):
+            for source_index in (0, 14, 15):
+                with self.subTest(
+                    register_file=register_file,
+                    source_index=source_index,
+                ):
+                    opcode = 0x0160 | (file_bit << 4) | source_index
+                    model = Tms34020Model()
+                    model.load_program([opcode], bit_address=0x80)
+                    model.state.write_reg(
+                        register_file, source_index, 0x1234_567F
+                    )
+
+                    event = model.step()
+
+                    self.assertEqual(model.state.pc, 0x1234_5670)
+                    self.assertEqual(
+                        model.state.read_reg(register_file, source_index),
+                        0x1234_567F,
+                    )
+                    self.assertEqual(event.machine_states, 2)
+                    self.assertEqual(event.register_writes, [])
 
     def test_popst_unaligned_read_crosses_address_wrap(self) -> None:
         model = Tms34020Model()

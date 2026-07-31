@@ -83,20 +83,22 @@ address following `EXGPC`, while the PC receives the old register value with
 bits `[3:0]` cleared. Status is unchanged and the instruction consumes two
 machine states. Source: User's Guide `EXGPC`, printed p.13-112.
 
-`JUMP Rs` has first-word form `0000_0001_011R_SSSS` (`0160h` base, mask
-`FFE0h`). It captures the selected A/B register or shared SP, loads PC from
-that value with bits `[3:0]` cleared, leaves status and the source unchanged,
-and takes two machine states. Sources: User's Guide `JUMP`, printed p.13-141,
-and §4.2, printed p.4-4; compatibility cross-check: TMS34010 User's Guide
-printed p.12-98 and its instruction summary.
-
-These instructions require the execution boundary to carry both:
+GETPC and EXGPC require the execution boundary to carry both:
 
 - the instruction's sequential next address, for the register result; and
 - a possible aligned redirect address, for the architectural PC.
 
 Using a free-running speculative fetch address as the `GETPC` value would be
 incorrect if it had advanced beyond this instruction.
+
+`JUMP Rs` has first-word form `0000_0001_011R_SSSS` (`0160h` base, mask
+`FFE0h`). It captures the selected A/B register or shared SP, loads PC from
+that value with bits `[3:0]` cleared, leaves status and the source unchanged,
+and takes two machine states. Sources: User's Guide `JUMP`, printed p.13-141,
+and §4.2, printed p.4-4; compatibility cross-check: TMS34010 User's Guide
+printed p.12-98 and its instruction summary. The independent model implements
+this successful instruction boundary; RTL remains blocked pending a verified
+redirect owner.
 
 The bounded RTL implements this data-ordering boundary in
 `tms34020_pc_execute.sv`: the complete packet supplies its sequential address,

@@ -95,6 +95,7 @@ class Tms34020Model:
             "EXGPC": self._execute_exgpc,
             "GETPC": self._execute_getpc,
             "GETST": self._execute_getst,
+            "JUMP": self._execute_jump,
             "POPST": self._execute_popst,
             "PUSHST": self._execute_pushst,
             "PUTST": self._execute_putst,
@@ -496,6 +497,15 @@ class Tms34020Model:
         register_file, index = self._decode_destination(words[0])
         self.state.write_reg(register_file, index, self.state.st)
         return 1
+
+    def _execute_jump(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        target = self.state.read_reg(register_file, index)
+        self.state.pc = target & 0xFFFF_FFF0
+        return 2
 
     def _execute_putst(
         self, instruction: Instruction, words: list[int]

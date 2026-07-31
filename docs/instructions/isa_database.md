@@ -100,7 +100,8 @@ TMS34010 guide gives the same encoding and programmer-visible operation, so
 semantic compatibility is primary-verified without treating the TMS34010
 pipeline as reusable. Sources: TMS34020 User's Guide printed p.13-141 and
 §4.2 p.4-4; TMS34010 User's Guide printed p.12-98 and its instruction summary.
-The model and RTL remain nonexecuting at this extraction checkpoint.
+The independent model implements the successful redirect boundary; RTL remains
+nonexecuting pending verified redirect ownership.
 
 EXGF atomically exchanges the selected six-bit FS/FE status bank with the low
 six bits of an A/B/shared-SP destination and clears the register's upper

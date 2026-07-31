@@ -3,17 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `7f0f1bd2623746aa4f1cb3258e12492426445751`
-- Passing tests: foundation, reference/hash, delta, 26-case ISA sweep, 121 directed model
+- Latest verified baseline commit: `cf10df31e63403a527aae777712bb059f4022a0c`
+- Passing tests: foundation, reference/hash, delta, 26-case ISA sweep, 122 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 74 of 75 currently extracted encoding forms have bounded
-  successful semantics. JUMP rolls back atomically pending independent
-  execution. POPST/PUSHST cover full-width stack/status ordering,
+- Model status: all 75 currently extracted encoding forms have bounded
+  successful semantics. JUMP covers all published targets, A/B/shared-SP
+  sources, alignment, source/status preservation, and two states.
+  POPST/PUSHST cover full-width stack/status ordering,
   both alignment classes, hidden writes, wraparound, exact abstract
   transactions, and round trip; stack faults/retries and physical transfer
   decomposition remain absent. PUTST covers complete A/B/shared-SP source-to-ST
