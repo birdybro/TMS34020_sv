@@ -60,7 +60,7 @@
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
   warnings; the scalar wrapper uses 4,491 logic cells, 1,386 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
-- Documentation acquired: eight hash-verified TI documents plus an eleven-file
+- Documentation acquired: nine hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
 - Provisional behavior: the cache model represents architecturally
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill

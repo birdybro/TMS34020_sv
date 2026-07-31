@@ -34,6 +34,8 @@
   execution, generated decode, RTL semantic leaves, and directed tests.
 - A hash-pinned official SPVU015C TMS340 Interface guide and separate missing
   records for the SPVU004 and SPVU020 code-generation-tool guide editions.
+- A hash-pinned 1988 TMS34010 User's Guide for primary compatibility
+  cross-checks without treating it as a TMS34020 timing authority.
 - Primary-page-verified ABS, NEG, NEGB, and NOT ISA/model/RTL semantics with
   explicit partial status-write masks and every TI example row as a test.
 - Primary-page-verified ADD, ADDC, SUB, SUBB, and CMP decode/model/RTL
@@ -123,7 +125,7 @@
 - The requested TMS34010 baseline commit exists on its upstream `main` branch.
 - The baseline commit/tree metadata and MIT license are preserved; every
   upstream RTL and simulation-model module is named in the reuse audit.
-- Verified local SHA-256 values for seven TI documents and the pinned eleven-file
+- Verified local SHA-256 values for nine TI documents and the pinned eleven-file
   MAME TMS34020 source set.
 - Verified SPVS004D's bounded original-to-A delta: CONFIG.CSE clock stretching,
   reset disabled, with no unsupported ISA or subsystem differences asserted.

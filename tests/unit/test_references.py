@@ -21,6 +21,7 @@ class ReferenceManifestTests(unittest.TestCase):
         ids = {source["id"] for source in self.manifest["sources"]}
         self.assertTrue(
             {
+                "TI-TMS34010-UG-1988",
                 "TI-TMS34020-UG-1990",
                 "TI-TMS34020-DS-SPVS004D",
                 "TI-SM34020A-DS-SGUS057",
