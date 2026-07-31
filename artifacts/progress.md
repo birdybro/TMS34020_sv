@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `70beb4b3654b9e7d263d9c6f35e63132a3c6b16c`
+- Latest commit: `6175648e16468e77da8095dbfc1a5d22c3685222`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 58 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -21,9 +21,9 @@
   ordered-state tests; standalone native-completion cache lookup/refill RTL;
   an integrated serialized cache/instruction-packet frontend with explicit
   completion and abort/reload; and a bounded fetch-to-commit path for those 23
-  one-word operations plus complete two-word ADDI.W and three-word
-  ANDNI/ORI/XORI/ADDXYI/ADDI.L packets. All other unsupported packets block.
-  There is no architectural completion timing or complete executable
+  one-word operations plus complete two-word ADDI.W/SUBI.W and three-word
+  ANDNI/ORI/XORI/ADDXYI/ADDI.L/SUBI.L packets. All other unsupported packets
+  block. There is no architectural completion timing or complete executable
   processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
   current-cycle fault/retry contracts are covered by the model and bounded RTL;
@@ -39,7 +39,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 3,679 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 3,817 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
@@ -50,6 +50,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: qualify the extracted SUBI.W and SUBI.L forms through
-  complete-packet RTL execution while preserving complemented object-word
-  handling and the timing non-claim
+- Next task: extract the next primary-source scalar family and independent
+  fixtures before extending model or RTL behavior

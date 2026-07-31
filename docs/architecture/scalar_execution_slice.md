@@ -2,7 +2,7 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 29 register/status operations already verified against their
+execution path for 31 register/status operations already verified against their
 individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
@@ -11,7 +11,7 @@ individual TI instruction pages:
 - AND, ANDN, OR, XOR, CMPK, and RMO; plus
 - the three-word ANDNI, ORI, and XORI immediate-logical family; and
 - the three-word ADDXYI immediate XY operation; plus
-- the two-word ADDI.W and three-word ADDI.L forms.
+- the two-word ADDI.W/SUBI.W and three-word ADDI.L/SUBI.L forms.
 
 The canonical encodings, operands, status effects, and printed-page citations
 remain in `docs/generated/tms34020_isa.yaml`. The register-file and status
@@ -40,14 +40,16 @@ remain presented with `packet_blocked_o=1`. They are neither consumed nor
 treated as illegal instructions, because the architectural exception and other
 execution behavior are not yet implemented.
 
-For ANDNI/ORI/XORI, ADDXYI, and ADDI.L, the packet owner supplies extension
-word 1 as the low half and word 2 as the high half of the immediate. ADDI.W
-sign-extends extension word 1. No state write can occur until the frontend has
+For ANDNI/ORI/XORI, ADDXYI, ADDI.L, and SUBI.L, the packet owner supplies
+extension word 1 as the low half and word 2 as the high half of the immediate.
+ADDI.W sign-extends extension word 1. SUBI.W and SUBI.L first complement their
+documented one's-complement object word or words; the recovered SUBI.W operand
+is then sign-extended. No state write can occur until the frontend has
 collected the complete two- or three-word packet.
 ADDXYI adds its X and Y halves independently and replaces NCZV with the
-instruction-specific zero/sign meanings. ADDI.W and ADDI.L perform 32-bit
-addition and replace all four NCZV bits. This verifies atomic packet
-consumption, not the documented alignment-dependent two- versus
+instruction-specific zero/sign meanings. ADDI.W/L and SUBI.W/L perform 32-bit
+addition or subtraction and replace all four NCZV bits. This verifies atomic
+packet consumption, not the documented alignment-dependent two- versus
 three-machine-state cases.
 
 ## Directed verification
@@ -67,8 +69,8 @@ status write, or state change. A separate sequence commits ORI, a dependent
 XORI, and ANDNI from complete fetched packets; executes two dependent ADDXYI
 packets with independent half arithmetic and full NCZV replacement; executes
 dependent ADDI.W, ADDI.L, and sign-extending ADDI.W packets with full NCZV
-replacement; then proves complete decoded SUBI.W and unclassified packets
-remain blocked and state-stable.
+replacement; executes complemented SUBI.W and dependent SUBI.L packets; then
+proves an unclassified packet remains blocked and state-stable.
 
 A second pass enables the cache, checks the demand-word-last refill sequence,
 and executes the first eight dependent instructions with exactly four native
@@ -77,7 +79,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 3,679 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 3,817 logic cells,
 1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

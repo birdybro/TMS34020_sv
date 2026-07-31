@@ -82,9 +82,9 @@
 - A portable cache/fetch frontend with native memory and fault controls, plus
   integrated Verilator and Cyclone V synthesis qualification.
 - A bounded scalar composition that admits 23 verified one-word packets,
-  complete two-word ADDI.W, and complete three-word
-  ANDNI/ORI/XORI/ADDXYI/ADDI.L packets to A/B/SP and ST commit and exposes
-  every other packet as blocked.
+  complete two-word ADDI.W/SUBI.W, and complete three-word
+  ANDNI/ORI/XORI/ADDXYI/ADDI.L/SUBI.L packets to A/B/SP and ST commit and
+  exposes every other packet as blocked.
 - Self-checking scalar-composition and warning-enforcing Cyclone V synthesis
   commands.
 
@@ -216,10 +216,16 @@
   pp.13-243..13-244. The partial ISA now contains 42 records covering 6,736
   first words, and the independent model covers 36 forms with complemented
   object words, every arithmetic example row, short/long timing cases, borrow
-  and overflow, and SP aliasing. The scalar regression proves SUBI.W remains
-  decoded but noncommitting pending RTL execution work. Warning-free Quartus
-  requalification reports 5,859 leaf, 350 fetch, 723 frontend, and 3,679
+  and overflow, and SP aliasing. At that extraction checkpoint, the scalar
+  regression proved SUBI.W decoded but noncommitting. Warning-free Quartus
+  requalification reported 5,859 leaf, 350 fetch, 723 frontend, and 3,679
   scalar logic cells.
+- SUBI.W and SUBI.L now pass complete-packet gating, complemented object-word
+  recovery, word sign extension, 32-bit subtraction, borrow and overflow,
+  full NCZV replacement, A/B selection, shared-SP commit, incomplete-packet
+  rejection, and dependent fetched-packet tests. Requalified Quartus wrappers
+  report 6,015 leaf logic cells and 3,817 scalar logic cells with zero
+  errors/warnings.
 
 ### Documentation
 
@@ -268,7 +274,7 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
-- Documented the exact 29-operation scalar admission set, blocked-packet
+- Documented the exact 31-operation scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
 - Recorded RSC-0009 for the SUBI.L example row that prints `NCZV=0001` despite
@@ -283,7 +289,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 23 one-word, one two-word, and five
+  bounded scalar composition accepts only 23 one-word, two two-word, and six
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

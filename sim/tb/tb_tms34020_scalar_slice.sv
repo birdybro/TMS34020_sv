@@ -150,6 +150,9 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0250: memory_word = 16'hFFFF;
                 32'h0000_0260: memory_word = 16'h0BE0;
                 32'h0000_0270: memory_word = 16'hFFFE;
+                32'h0000_0280: memory_word = 16'h0D00;
+                32'h0000_0290: memory_word = 16'hFFFF;
+                32'h0000_02A0: memory_word = 16'h7FFF;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -176,7 +179,7 @@ module tb_tms34020_scalar_slice;
         end
     endtask
 
-    task automatic serve_addi_and_commit(
+    task automatic serve_immediate_arithmetic_and_commit(
         input logic [31:0] expected_pc,
         input tms34020_opcode_id_t expected_opcode,
         input logic [2:0] expected_length,
@@ -612,17 +615,17 @@ module tb_tms34020_scalar_slice;
             "five three-word packet commits"
         );
 
-        serve_addi_and_commit(
+        serve_immediate_arithmetic_and_commit(
             32'h1F0, TMS20_OP_ADDI_W, 3'd2,
             32'h0001_0000, 4'b0000, 32'h0000_0010,
             "scalar ADDI.W packet commit"
         );
-        serve_addi_and_commit(
+        serve_immediate_arithmetic_and_commit(
             32'h210, TMS20_OP_ADDI_L, 3'd3,
             32'h8000_0000, 4'b1001, 32'h9000_0010,
             "scalar ADDI.L observes ADDI.W"
         );
-        serve_addi_and_commit(
+        serve_immediate_arithmetic_and_commit(
             32'h240, TMS20_OP_ADDI_W, 3'd2,
             32'h7FFF_FFFF, 4'b0101, 32'h5000_0010,
             "scalar ADDI.W sign extension"
@@ -632,35 +635,22 @@ module tb_tms34020_scalar_slice;
             "eight multiword packet commits"
         );
 
-        serve_word(32'h260);
-        serve_word(32'h270);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_SUBI_W &&
-            packet_length_words == 3'd2 &&
-            packet_words[31:0] == 32'hFFFE_0BE0 &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "decoded SUBI.W packet remains blocked"
+        serve_immediate_arithmetic_and_commit(
+            32'h260, TMS20_OP_SUBI_W, 3'd2,
+            32'h7FFF_FFFE, 4'b0000, 32'h0000_0010,
+            "scalar SUBI.W complemented packet commit"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 8 &&
-                status == 32'h5000_0010 &&
-                sp == 32'd0,
-                "blocked SUBI.W packet cannot mutate state"
-            );
-        end
+        serve_immediate_arithmetic_and_commit(
+            32'h280, TMS20_OP_SUBI_L, 3'd3,
+            32'hFFFF_FFFE, 4'b1101, 32'hD000_0010,
+            "scalar SUBI.L observes SUBI.W"
+        );
+        check_condition(
+            commit_count == 10,
+            "ten multiword packet commits"
+        );
 
-        apply_reset();
-        load_pc(32'h280);
-        serve_word(32'h280);
+        serve_word(32'h2B0);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -677,8 +667,8 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 0 &&
-                status == 32'h0000_0010 &&
+                commit_count == 10 &&
+                status == 32'hD000_0010 &&
                 sp == 32'd0,
                 "blocked unclassified packet cannot mutate state"
             );

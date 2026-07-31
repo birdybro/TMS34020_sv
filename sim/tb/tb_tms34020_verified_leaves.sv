@@ -321,7 +321,7 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
-    task automatic check_addi_register_execute(
+    task automatic check_immediate_arithmetic_register_execute(
         input logic [15:0] first_word,
         input logic [2:0] packet_length,
         input logic [31:0] immediate,
@@ -444,7 +444,7 @@ module tb_tms34020_verified_leaves;
         #1;
     endtask
 
-    task automatic commit_addi_instruction(
+    task automatic commit_immediate_arithmetic_instruction(
         input logic [15:0] first_word,
         input logic [2:0] packet_length,
         input logic [31:0] immediate,
@@ -964,22 +964,22 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "incomplete ADDI.W cannot enter register execute"
         );
-        check_addi_register_execute(
+        check_immediate_arithmetic_register_execute(
             16'h0B00, 3'd2, 32'h0000_FFF0, 32'h0000_0020,
             32'h0000_0010, 4'b0100,
             "register execute ADDI.W sign extension"
         );
-        check_addi_register_execute(
+        check_immediate_arithmetic_register_execute(
             16'h0B10, 3'd2, 32'h0000_0001, 32'h7FFF_FFFF,
             32'h8000_0000, 4'b1001,
             "register execute ADDI.W B-file overflow"
         );
-        check_addi_register_execute(
+        check_immediate_arithmetic_register_execute(
             16'h0B20, 3'd3, 32'h0000_0001, 32'hFFFF_FFFF,
             32'd0, 4'b0110,
             "register execute ADDI.L carry and zero"
         );
-        check_addi_register_execute(
+        check_immediate_arithmetic_register_execute(
             16'h0B20, 3'd3, 32'h8000_0000, 32'hFFFF_FFFF,
             32'h7FFF_FFFF, 4'b0101,
             "register execute ADDI.L signed overflow"
@@ -993,6 +993,41 @@ module tb_tms34020_verified_leaves;
             !execute_register_write_enable &&
             !execute_status_write_enable,
             "incomplete ADDI.L cannot enter register execute"
+        );
+        check_register_execute(
+            16'h0BE0, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "incomplete SUBI.W cannot enter register execute"
+        );
+        check_immediate_arithmetic_register_execute(
+            16'h0BE0, 3'd2, 32'h0000_8000, 32'h0000_7FFE,
+            32'hFFFF_FFFF, 4'b1100,
+            "register execute SUBI.W complemented positive"
+        );
+        check_immediate_arithmetic_register_execute(
+            16'h0BF0, 3'd2, 32'h0000_7FFF, 32'h7FFF_8000,
+            32'h8000_0000, 4'b1101,
+            "register execute SUBI.W complemented negative"
+        );
+        check_immediate_arithmetic_register_execute(
+            16'h0D00, 3'd3, 32'hFFFF_7FFE, 32'h0000_8001,
+            32'd0, 4'b0010,
+            "register execute SUBI.L borrow-free zero"
+        );
+        check_immediate_arithmetic_register_execute(
+            16'h0D00, 3'd3, 32'h0000_8002, 32'h7FFF_7FFD,
+            32'h8000_0000, 4'b1101,
+            "register execute SUBI.L borrow and overflow"
+        );
+        execute_first_word = 16'h0D00;
+        execute_packet_length = 3'd2;
+        execute_immediate = 32'hFFFF_7FFE;
+        #1;
+        check_condition(
+            !execute_supported &&
+            !execute_register_write_enable &&
+            !execute_status_write_enable,
+            "incomplete SUBI.L cannot enter register execute"
         );
         check_register_execute(
             16'hFFFF, 32'd0, 32'd0, 32'd0,
@@ -1162,29 +1197,53 @@ module tb_tms34020_verified_leaves;
             32'hC000_0010, 32'hFFFF_0000,
             "register commit ADDXYI updates shared SP"
         );
-        commit_addi_instruction(
+        commit_immediate_arithmetic_instruction(
             16'h0B00, 3'd2, 32'h0000_0001,
             1'b0, 4'd0, 32'h0001_0000, 4'b0000,
             32'h0000_0010, 32'hFFFF_0000,
             "register commit ADDI.W packet"
         );
-        commit_addi_instruction(
+        commit_immediate_arithmetic_instruction(
             16'h0B00, 3'd2, 32'h0000_FFFF,
             1'b0, 4'd0, 32'h0000_FFFF, 4'b0100,
             32'h4000_0010, 32'hFFFF_0000,
             "register commit ADDI.W observes prior result"
         );
-        commit_addi_instruction(
+        commit_immediate_arithmetic_instruction(
             16'h0B20, 3'd3, 32'h7FFF_0001,
             1'b0, 4'd0, 32'h8000_0000, 4'b1001,
             32'h9000_0010, 32'hFFFF_0000,
             "register commit ADDI.L packet"
         );
-        commit_addi_instruction(
+        commit_immediate_arithmetic_instruction(
             16'h0B3F, 3'd3, 32'h0001_0000,
             1'b1, 4'd15, 32'd0, 4'b0110,
             32'h6000_0010, 32'd0,
             "register commit ADDI.L updates shared SP"
+        );
+        commit_immediate_arithmetic_instruction(
+            16'h0BE0, 3'd2, 32'h0000_FFFE,
+            1'b0, 4'd0, 32'h7FFF_FFFF, 4'b0001,
+            32'h1000_0010, 32'd0,
+            "register commit SUBI.W complemented packet"
+        );
+        commit_immediate_arithmetic_instruction(
+            16'h0BE0, 3'd2, 32'h0000_0000,
+            1'b0, 4'd0, 32'h8000_0000, 4'b1101,
+            32'hD000_0010, 32'd0,
+            "register commit SUBI.W observes prior result"
+        );
+        commit_immediate_arithmetic_instruction(
+            16'h0D00, 3'd3, 32'hFFFF_7FFE,
+            1'b0, 4'd0, 32'h7FFF_7FFF, 4'b0001,
+            32'h1000_0010, 32'd0,
+            "register commit SUBI.L complemented packet"
+        );
+        commit_immediate_arithmetic_instruction(
+            16'h0D1F, 3'd3, 32'h0000_0001,
+            1'b1, 4'd15, 32'd2, 4'b0100,
+            32'h4000_0010, 32'd2,
+            "register commit SUBI.L updates shared SP"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
