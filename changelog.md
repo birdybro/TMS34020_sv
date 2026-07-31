@@ -43,6 +43,8 @@
 - A decoder-controlled combinational register-execution router for twelve
   one-word instructions, with explicit operand selectors and register/ST write
   intents but no retirement or timing claim.
+- Primary-page-verified CLRC, DINT, EINT, GETST, INC, DEC, and SETC database,
+  model, generated-decode, and RTL write-intent paths.
 
 ### Changed
 
@@ -86,6 +88,12 @@
   CMPK, and RMO write intents, including partial status masks and unsupported
   decode rejection; Quartus synthesizes the expanded leaf slice to 2,414 logic
   cells with zero errors and zero warnings.
+- Expanded the collision-free ISA slice to 31 entries covering 4,464 first
+  words and the independent model to 25 instructions. All TI example rows for
+  CLRC, DINT, EINT, GETST, INC, DEC, and SETC are represented.
+- Verilator verifies the seven new register/status write-intent paths; Quartus
+  synthesizes the expanded leaf slice to 2,689 logic cells with zero errors and
+  zero warnings.
 
 ### Documentation
 
@@ -97,6 +105,9 @@
   first-silicon questions as unknown rather than assigning inferred behavior.
 - Recorded a pinned MAME disassembler discrepancy: TI's TRAPL consumes a signed
   extension word, but the secondary path does not advance over it.
+- Recorded a second pinned MAME disassembler discrepancy: its broad masks label
+  nonzero low-bit neighbors of fixed NOP/CLRC/DINT/EINT/SETC encodings, while
+  TI fixes bits 4–0 to zero.
 - Documented the first synthesizable RTL boundary and its explicit exclusions;
   deterministic FPGA register clearing is not represented as silicon behavior.
 - Recorded the SPVU004/SPVU020 tool-guide catalog evidence and lawful search

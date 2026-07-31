@@ -72,8 +72,9 @@ Synthesis.
 
 The following are not yet implemented:
 
-- PUTST, GETST, SETF, EXGF, SETC, CLRC, EINT, DINT, PUSHST, and POPST
-  instruction sequencing;
+- PUTST, SETF, EXGF, PUSHST, and POPST semantics or sequencing;
+- retirement/timing and interrupt-recognition ordering for the model and
+  write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;
 - status save/restore ordering;
 - single-step recognition;

@@ -492,6 +492,54 @@ module tb_tms34020_verified_leaves;
             "register execute RMO"
         );
         check_register_execute(
+            16'h0320, 32'd0, 32'd0, 32'hF000_0010,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'd0, 32'h4000_0000,
+            "register execute CLRC partial status write"
+        );
+        check_register_execute(
+            16'h0DE0, 32'd0, 32'd0, 32'd0,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'h4000_0000, 32'h4000_0000,
+            "register execute SETC partial status write"
+        );
+        check_register_execute(
+            16'h0360, 32'd0, 32'd0, 32'h0020_0010,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'd0, 32'h0020_0000,
+            "register execute DINT partial status write"
+        );
+        check_register_execute(
+            16'h0D60, 32'd0, 32'd0, 32'h0000_0010,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'h0020_0000, 32'h0020_0000,
+            "register execute EINT partial status write"
+        );
+        check_register_execute(
+            16'h0192, 32'd0, 32'd0, 32'hF020_0010,
+            1'b1, 1'b1, 32'hF020_0010, 1'b0,
+            32'd0, 32'd0,
+            "register execute GETST"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd2 &&
+            execute_destination_index == 4'd2,
+            "register execute GETST operand selector"
+        );
+        check_register_execute(
+            16'h1031, 32'd0, 32'hFFFF_FFFF, 32'd0,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h6000_0000, 32'hF000_0000,
+            "register execute INC carry and zero"
+        );
+        check_register_execute(
+            16'h1421, 32'd0, 32'd0, 32'd0,
+            1'b1, 1'b1, 32'hFFFF_FFFF, 1'b1,
+            32'hC000_0000, 32'hF000_0000,
+            "register execute DEC borrow and negative"
+        );
+        check_register_execute(
             16'h00F0, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "decoded but unsupported register execute instruction"
@@ -509,6 +557,20 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h03BF, TMS20_OP_NEG, 3'd1, "NEG masked decode");
         check_decode(16'h03DF, TMS20_OP_NEGB, 3'd1, "NEGB masked decode");
         check_decode(16'h03FF, TMS20_OP_NOT, 3'd1, "NOT masked decode");
+        check_decode(16'h0320, TMS20_OP_CLRC, 3'd1,
+                     "CLRC exact decode");
+        check_decode(16'h0360, TMS20_OP_DINT, 3'd1,
+                     "DINT exact decode");
+        check_decode(16'h0D60, TMS20_OP_EINT, 3'd1,
+                     "EINT exact decode");
+        check_decode(16'h0DE0, TMS20_OP_SETC, 3'd1,
+                     "SETC exact decode");
+        check_decode(16'h019F, TMS20_OP_GETST, 3'd1,
+                     "GETST masked decode");
+        check_decode(16'h103F, TMS20_OP_INC, 3'd1,
+                     "INC masked decode");
+        check_decode(16'h143F, TMS20_OP_DEC, 3'd1,
+                     "DEC masked decode");
         check_decode(16'h41FF, TMS20_OP_ADD, 3'd1, "ADD masked decode");
         check_decode(16'h43FF, TMS20_OP_ADDC, 3'd1,
                      "ADDC masked decode");

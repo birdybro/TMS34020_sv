@@ -12,6 +12,7 @@ N_BIT = 31
 C_BIT = 30
 Z_BIT = 29
 V_BIT = 28
+IE_BIT = 21
 
 
 class ModelError(RuntimeError):
@@ -75,6 +76,13 @@ class Tms34020Model:
             "NEG": self._execute_neg,
             "NEGB": self._execute_negb,
             "NOT": self._execute_not,
+            "CLRC": self._execute_clrc,
+            "DINT": self._execute_dint,
+            "EINT": self._execute_eint,
+            "GETST": self._execute_getst,
+            "INC": self._execute_inc,
+            "DEC": self._execute_dec,
+            "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
             "SUB": self._execute_sub,
@@ -293,6 +301,75 @@ class Tms34020Model:
         result = (~self.state.read_reg(register_file, index)) & MASK32
         self.state.write_reg(register_file, index, result)
         self._set_status_bit(Z_BIT, result == 0)
+        return 1
+
+    def _execute_clrc(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        self._set_status_bit(C_BIT, False)
+        return 1
+
+    def _execute_dint(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        self._set_status_bit(IE_BIT, False)
+        return 3
+
+    def _execute_eint(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        self._set_status_bit(IE_BIT, True)
+        return 3
+
+    def _execute_getst(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        self.state.write_reg(register_file, index, self.state.st)
+        return 1
+
+    def _execute_inc_or_dec(
+        self, words: list[int], increment: bool
+    ) -> int:
+        register_file, index = self._decode_destination(words[0])
+        value = self.state.read_reg(register_file, index)
+        if increment:
+            total = value + 1
+            result = total & MASK32
+            carry_or_borrow = total > MASK32
+            overflow = value == 0x7FFF_FFFF
+        else:
+            result = (value - 1) & MASK32
+            carry_or_borrow = value == 0
+            overflow = value == 0x8000_0000
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, carry_or_borrow)
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, overflow)
+        return 1
+
+    def _execute_inc(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_inc_or_dec(words, True)
+
+    def _execute_dec(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_inc_or_dec(words, False)
+
+    def _execute_setc(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        self._set_status_bit(C_BIT, True)
         return 1
 
     def _execute_binary_arithmetic(

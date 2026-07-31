@@ -154,6 +154,93 @@ class ExecutionTests(unittest.TestCase):
                 )
                 self.assertEqual(event.machine_states, 1)
 
+    def test_clrc_and_setc_primary_examples_preserve_other_status(self) -> None:
+        cases = (
+            (0x0320, 0xF0000000, 0xB0000000),
+            (0x0320, 0x40000010, 0x00000010),
+            (0x0320, 0xB000001F, 0xB000001F),
+            (0x0DE0, 0x00000000, 0x40000000),
+            (0x0DE0, 0xB0000010, 0xF0000010),
+            (0x0DE0, 0x4000001F, 0x4000001F),
+        )
+        for opcode, before, after in cases:
+            with self.subTest(opcode=f"{opcode:04X}", before=f"{before:08X}"):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.st = before
+                event = model.step()
+                self.assertEqual(model.state.st, after)
+                self.assertEqual(event.machine_states, 1)
+
+    def test_dint_and_eint_only_update_ie(self) -> None:
+        cases = (
+            (0x0360, 0x00000010, 0x00000010),
+            (0x0360, 0x00200010, 0x00000010),
+            (0x0D60, 0x00000010, 0x00200010),
+            (0x0D60, 0x00200010, 0x00200010),
+        )
+        for opcode, before, after in cases:
+            with self.subTest(opcode=f"{opcode:04X}", before=f"{before:08X}"):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.st = before
+                event = model.step()
+                self.assertEqual(model.state.st, after)
+                self.assertEqual(event.machine_states, 3)
+
+    def test_getst_copies_complete_status_to_selected_register(self) -> None:
+        cases = (
+            (0x0181, "A", 1, 0x20200010),
+            (0x0192, "B", 2, 0x00000010),
+        )
+        for opcode, register_file, index, status in cases:
+            with self.subTest(opcode=f"{opcode:04X}", status=f"{status:08X}"):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.st = status
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg(register_file, index), status
+                )
+                self.assertEqual(model.state.st, status)
+                self.assertEqual(event.machine_states, 1)
+
+    def test_inc_primary_examples(self) -> None:
+        cases = (
+            (0x00000000, 0x00000001, 0b0000),
+            (0x0000000F, 0x00000010, 0b0000),
+            (0xFFFFFFFF, 0x00000000, 0b0110),
+            (0xFFFFFFFE, 0xFFFFFFFF, 0b1000),
+            (0x7FFFFFFF, 0x80000000, 0b1001),
+        )
+        for value, result, nczv in cases:
+            with self.subTest(value=f"{value:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x1021])
+                model.state.write_reg("A", 1, value)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), result)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, 1)
+
+    def test_dec_primary_examples(self) -> None:
+        cases = (
+            (0x00000010, 0x0000000F, 0b0000),
+            (0x00000001, 0x00000000, 0b0010),
+            (0x00000000, 0xFFFFFFFF, 0b1100),
+            (0xFFFFFFFF, 0xFFFFFFFE, 0b1000),
+            (0x80000000, 0x7FFFFFFF, 0b0001),
+        )
+        for value, result, nczv in cases:
+            with self.subTest(value=f"{value:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x1431])
+                model.state.write_reg("B", 1, value)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("B", 1), result)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, 1)
+
     def test_add_primary_examples(self) -> None:
         cases = (
             (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0b1100),

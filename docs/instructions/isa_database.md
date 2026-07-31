@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains twenty-four page-verified instructions and covers 4,364 of 65,536
+slice contains thirty-one page-verified instructions and covers 4,464 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -18,6 +18,13 @@ first words without collisions:
 | NEG | `03A0h`, mask `FFE0h` | 1 | p.13-178 |
 | NEGB | `03C0h`, mask `FFE0h` | 1 | p.13-179 |
 | NOT | `03E0h`, mask `FFE0h` | 1 | p.13-181 |
+| CLRC | `0320h` | 1 | p.13-58 |
+| DINT | `0360h` | 1 | p.13-95 |
+| EINT | `0D60h` | 1 | p.13-109 |
+| GETST | `0180h`, mask `FFE0h` | 1 | p.13-132 |
+| INC | `1020h`, mask `FFE0h` | 1 | p.13-134 |
+| DEC | `1420h`, mask `FFE0h` | 1 | p.13-94 |
+| SETC | `0DE0h` | 1 | p.13-226 |
 | ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
 | SUB | `4400h`, mask `FE00h` | 1 | p.13-241 |
@@ -74,6 +81,12 @@ instruction while the pinned MAME disassembler path recognizes the opcode
 without consuming the signed extension word. The evidence and exact source
 lines are in `docs/research/source_conflicts.md` RSC-0004. The project follows
 the TI encoding.
+
+`ISA-DISC-0002-fixed-low-bits` records that the pinned MAME disassembler
+ignores bits 4–0 for several fixed no-operand instructions, while TI's
+instruction diagrams specify those bits as zero. The database follows the
+exact TI words and keeps the neighboring encodings unclassified. See
+`docs/research/source_conflicts.md` RSC-0005 for pinned lines and scope.
 
 ## Validation
 

@@ -6,30 +6,37 @@
 
 typedef enum logic [4:0] {
     TMS20_OP_UNCLASSIFIED = 5'd0,
-    TMS20_OP_IDLE = 5'd1,
-    TMS20_OP_MWAIT = 5'd2,
-    TMS20_OP_NOP = 5'd3,
-    TMS20_OP_SETCDP = 5'd4,
-    TMS20_OP_SETCMP = 5'd5,
-    TMS20_OP_SETCSP = 5'd6,
-    TMS20_OP_TRAPL = 5'd7,
-    TMS20_OP_VLCOL = 5'd8,
-    TMS20_OP_BLMOVE = 5'd9,
-    TMS20_OP_ABS = 5'd10,
-    TMS20_OP_ADDXYI = 5'd11,
-    TMS20_OP_EXGPS = 5'd12,
-    TMS20_OP_GETPS = 5'd13,
-    TMS20_OP_NEG = 5'd14,
-    TMS20_OP_NEGB = 5'd15,
-    TMS20_OP_NOT = 5'd16,
-    TMS20_OP_RPIX = 5'd17,
-    TMS20_OP_ADD = 5'd18,
-    TMS20_OP_ADDC = 5'd19,
-    TMS20_OP_CMP = 5'd20,
-    TMS20_OP_RMO = 5'd21,
-    TMS20_OP_SUB = 5'd22,
-    TMS20_OP_SUBB = 5'd23,
-    TMS20_OP_CMPK = 5'd24
+    TMS20_OP_CLRC = 5'd1,
+    TMS20_OP_DINT = 5'd2,
+    TMS20_OP_EINT = 5'd3,
+    TMS20_OP_IDLE = 5'd4,
+    TMS20_OP_MWAIT = 5'd5,
+    TMS20_OP_NOP = 5'd6,
+    TMS20_OP_SETC = 5'd7,
+    TMS20_OP_SETCDP = 5'd8,
+    TMS20_OP_SETCMP = 5'd9,
+    TMS20_OP_SETCSP = 5'd10,
+    TMS20_OP_TRAPL = 5'd11,
+    TMS20_OP_VLCOL = 5'd12,
+    TMS20_OP_BLMOVE = 5'd13,
+    TMS20_OP_ABS = 5'd14,
+    TMS20_OP_ADDXYI = 5'd15,
+    TMS20_OP_DEC = 5'd16,
+    TMS20_OP_EXGPS = 5'd17,
+    TMS20_OP_GETPS = 5'd18,
+    TMS20_OP_GETST = 5'd19,
+    TMS20_OP_INC = 5'd20,
+    TMS20_OP_NEG = 5'd21,
+    TMS20_OP_NEGB = 5'd22,
+    TMS20_OP_NOT = 5'd23,
+    TMS20_OP_RPIX = 5'd24,
+    TMS20_OP_ADD = 5'd25,
+    TMS20_OP_ADDC = 5'd26,
+    TMS20_OP_CMP = 5'd27,
+    TMS20_OP_RMO = 5'd28,
+    TMS20_OP_SUB = 5'd29,
+    TMS20_OP_SUBB = 5'd30,
+    TMS20_OP_CMPK = 5'd31
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -47,6 +54,18 @@ function automatic tms34020_decode_t tms34020_decode_word(
         decoded.opcode_id = TMS20_OP_UNCLASSIFIED;
         decoded.length_words = 3'd0;
         unique casez (first_word)
+            16'b0000001100100000: begin
+                decoded.opcode_id = TMS20_OP_CLRC;
+                decoded.length_words = 3'd1;
+            end
+            16'b0000001101100000: begin
+                decoded.opcode_id = TMS20_OP_DINT;
+                decoded.length_words = 3'd1;
+            end
+            16'b0000110101100000: begin
+                decoded.opcode_id = TMS20_OP_EINT;
+                decoded.length_words = 3'd1;
+            end
             16'b0000000001000000: begin
                 decoded.opcode_id = TMS20_OP_IDLE;
                 decoded.length_words = 3'd1;
@@ -57,6 +76,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b0000001100000000: begin
                 decoded.opcode_id = TMS20_OP_NOP;
+                decoded.length_words = 3'd1;
+            end
+            16'b0000110111100000: begin
+                decoded.opcode_id = TMS20_OP_SETC;
                 decoded.length_words = 3'd1;
             end
             16'b0000001001110011: begin
@@ -91,12 +114,24 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_ADDXYI;
                 decoded.length_words = 3'd3;
             end
+            16'b00010100001?????: begin
+                decoded.opcode_id = TMS20_OP_DEC;
+                decoded.length_words = 3'd1;
+            end
             16'b00000010101?????: begin
                 decoded.opcode_id = TMS20_OP_EXGPS;
                 decoded.length_words = 3'd1;
             end
             16'b00000010110?????: begin
                 decoded.opcode_id = TMS20_OP_GETPS;
+                decoded.length_words = 3'd1;
+            end
+            16'b00000001100?????: begin
+                decoded.opcode_id = TMS20_OP_GETST;
+                decoded.length_words = 3'd1;
+            end
+            16'b00010000001?????: begin
+                decoded.opcode_id = TMS20_OP_INC;
                 decoded.length_words = 3'd1;
             end
             16'b00000011101?????: begin

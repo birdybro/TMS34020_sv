@@ -80,6 +80,16 @@ class IsaTests(unittest.TestCase):
             0x03DF: ("NEGB", 1),
             0x03E0: ("NOT", 1),
             0x03FF: ("NOT", 1),
+            0x0320: ("CLRC", 1),
+            0x0360: ("DINT", 1),
+            0x0D60: ("EINT", 1),
+            0x0DE0: ("SETC", 1),
+            0x0180: ("GETST", 1),
+            0x019F: ("GETST", 1),
+            0x1020: ("INC", 1),
+            0x103F: ("INC", 1),
+            0x1420: ("DEC", 1),
+            0x143F: ("DEC", 1),
             0x4000: ("ADD", 1),
             0x41FF: ("ADD", 1),
             0x4200: ("ADDC", 1),
@@ -121,16 +131,18 @@ class IsaTests(unittest.TestCase):
                 )
 
     def test_nearby_reserved_or_other_words_do_not_alias_fixed_opcodes(self) -> None:
-        for word in (0x0041, 0x0081, 0x0250, 0x0252, 0x0272, 0x0274,
-                     0x02FA, 0x02FC, 0x0301, 0x080E, 0x081F, 0x0A01,
-                     0x33FF, 0x3800, 0x3FFF, 0x4A00, 0x79FF, 0x7C00):
+        for word in (0x0041, 0x0081, 0x017F, 0x01A0, 0x0250, 0x0252,
+                     0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
+                     0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
+                     0x101F, 0x1040, 0x141F, 0x1440, 0x33FF, 0x3800,
+                     0x3FFF, 0x4A00, 0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 4364)
-        self.assertEqual(unclassified, 65536 - 4364)
+        self.assertEqual(matched, 4464)
+        self.assertEqual(unclassified, 65536 - 4464)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -138,6 +150,15 @@ class IsaTests(unittest.TestCase):
         self.assertEqual(trapl.length_words, 2)
         self.assertIn(
             "ISA-DISC-0001-TRAPL-length",
+            self.raw["coverage"]["known_secondary_discrepancies"],
+        )
+
+    def test_fixed_low_bits_follow_ti_not_secondary_aliases(self) -> None:
+        for word in (0x0301, 0x0321, 0x0361, 0x0D61, 0x0DE1):
+            with self.subTest(word=f"{word:04X}"):
+                self.assertIsNone(self.database.decode(word))
+        self.assertIn(
+            "ISA-DISC-0002-fixed-low-bits",
             self.raw["coverage"]["known_secondary_discrepancies"],
         )
 

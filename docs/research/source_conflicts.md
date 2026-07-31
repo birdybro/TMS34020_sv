@@ -53,3 +53,25 @@
 - Decision: encode TRAPL as two words in the project ISA database. Do not change
   TI behavior to agree with MAME. Add a differential-disassembly fixture when
   the local disassembler is implemented. Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0005: fixed-opcode low bits in pinned MAME disassembler
+
+- Status: open secondary-reference overdecode; TI encodings verified
+- Primary evidence: TI *TMS34020 User's Guide* instruction-word diagrams for
+  NOP (p.13-180), CLRC (p.13-58), DINT (p.13-95), EINT (p.13-109), and SETC
+  (p.13-226) show fixed zeroes in bits 4–0. The image-only DINT page was
+  visually inspected in the acquired PDF.
+- Secondary evidence: MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010dsm.cpp`, lines 217–227 derives `subop` with
+  mask `01E0h` and dispatches the outer opcode with mask `FE00h`. The NOP,
+  CLRC, and DINT cases at lines 352–369 and EINT/SETC cases at lines 855–885
+  do not reject nonzero bits 4–0. The disassembler therefore labels nearby
+  words such as `0301h` and `0321h` as those fixed instructions.
+- Decision: use the exact TI first words and leave neighboring words
+  unclassified until the complete reserved-encoding audit. The ISA suite
+  guards these boundaries under `ISA-DISC-0002-fixed-low-bits`. This finding
+  is limited to the pinned disassembler path; it does not establish the
+  execution behavior of MAME or physical silicon for undocumented words.
+  Confidence: `VERIFIED_PRIMARY` for the legal encodings and `CORROBORATED`
+  for the secondary overdecode.

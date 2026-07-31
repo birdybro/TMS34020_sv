@@ -33,6 +33,10 @@ module tms34020_register_execute (
     logic [3:0] compare_nczv;
     logic [31:0] rmo_result;
     logic rmo_z;
+    tms34020_binary_op_t increment_decrement_operation;
+    logic [31:0] increment_decrement_result;
+    logic [3:0] increment_decrement_nczv;
+    logic increment_decrement_write_enable;
 
     tms34020_decode decode (
         .first_word_i(first_word_i),
@@ -77,6 +81,23 @@ module tms34020_register_execute (
     );
 
     always_comb begin
+        increment_decrement_operation = TMS34020_BINARY_ADD;
+        if (opcode_id == TMS20_OP_DEC) begin
+            increment_decrement_operation = TMS34020_BINARY_SUB;
+        end
+    end
+
+    tms34020_binary_arithmetic increment_decrement (
+        .operation_i(increment_decrement_operation),
+        .source_i(32'd1),
+        .destination_i(destination_i),
+        .carry_or_borrow_i(1'b0),
+        .result_o(increment_decrement_result),
+        .status_nczv_o(increment_decrement_nczv),
+        .register_write_enable_o(increment_decrement_write_enable)
+    );
+
+    always_comb begin
         supported_o = 1'b0;
         register_file_o = first_word_i[4];
         source_index_o = first_word_i[8:5];
@@ -91,6 +112,34 @@ module tms34020_register_execute (
             unique case (opcode_id)
                 TMS20_OP_NOP: begin
                     supported_o = 1'b1;
+                end
+
+                TMS20_OP_CLRC: begin
+                    supported_o = 1'b1;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = 32'd0;
+                    status_write_mask_o = 32'h4000_0000;
+                end
+
+                TMS20_OP_DINT: begin
+                    supported_o = 1'b1;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = 32'd0;
+                    status_write_mask_o = 32'h0020_0000;
+                end
+
+                TMS20_OP_EINT: begin
+                    supported_o = 1'b1;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = 32'h0020_0000;
+                    status_write_mask_o = 32'h0020_0000;
+                end
+
+                TMS20_OP_SETC: begin
+                    supported_o = 1'b1;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = 32'h4000_0000;
+                    status_write_mask_o = 32'h4000_0000;
                 end
 
                 TMS20_OP_ABS,
@@ -138,6 +187,26 @@ module tms34020_register_execute (
                     status_write_data_o =
                         {2'd0, rmo_z, 29'd0};
                     status_write_mask_o = 32'h2000_0000;
+                end
+
+                TMS20_OP_GETST: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = status_i;
+                end
+
+                TMS20_OP_INC,
+                TMS20_OP_DEC: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o =
+                        increment_decrement_write_enable;
+                    register_write_data_o = increment_decrement_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o =
+                        {increment_decrement_nczv, 28'd0};
+                    status_write_mask_o = 32'hF000_0000;
                 end
 
                 default: begin
