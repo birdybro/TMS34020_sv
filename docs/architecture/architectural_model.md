@@ -20,7 +20,7 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGPC, GETPC, GETST, ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
-  BTST.K, BTST.R,
+  BTST.K, BTST.R, SETF, SEXT, ZEXT,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
   ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
   CMPI.W, CMPI.L,
@@ -29,9 +29,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 67 of the 70 currently extracted database forms. SETF,
-SEXT, and ZEXT are deliberately decoded but rejected with exact state/cache
-rollback until their independent field-bank semantics are implemented. This is
+These handlers cover all 70 currently extracted database forms. This is
 coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
@@ -56,6 +54,19 @@ same-register, and source/destination shared-SP cases. One p.13-47 example
 prints the opposite Z digit from its own operands and bit definition; RSC-0018
 records the evidence and corrected expectation. Sources: TI *TMS34020 User's
 Guide*, August 1990, printed pp.13-46..13-47.
+
+SETF atomically replaces only the selected six-bit FS/FE bank in ST; an
+encoded FS value of zero represents 32 bits. SEXT and ZEXT select FS0 or FS1
+independently from their A/B/shared-SP destination, operate on the
+right-justified low field, and preserve every status bit except SEXT's N/Z or
+ZEXT's Z. Directed tests cover all 32 encoded sizes in both banks, every
+published result row, both register files, and the shared-SP alias. The model
+reports the TMS34020's one-state SETF, two-state SEXT, and one-state ZEXT
+counts; these differ from the compatible TMS34010 instruction timings.
+Sources: TI *TMS34020 User's Guide*, August 1990, printed pp.13-230..13-232
+and 13-268, status layout pp.4-2..4-3, and timing summary pp.13-17..13-18;
+compatibility timing cross-check: TI *TMS34010 User's Guide*, 1988, printed
+pp.12-237..12-238 and 12-257.
 
 RPIX implements every
 legal PSIZE and the page-13-225 state counts. MWAIT exposes an abstract

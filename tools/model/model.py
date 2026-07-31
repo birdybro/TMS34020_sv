@@ -106,6 +106,9 @@ class Tms34020Model:
             "RL.R": self._execute_rl_register,
             "BTST.K": self._execute_btst_constant,
             "BTST.R": self._execute_btst_register,
+            "SETF": self._execute_setf,
+            "SEXT": self._execute_sext,
+            "ZEXT": self._execute_zext,
             "SLA.K": self._execute_sla_constant,
             "SLA.R": self._execute_sla_register,
             "SLL.K": self._execute_sll_constant,
@@ -693,6 +696,61 @@ class Tms34020Model:
         value = self.state.read_reg(register_file, destination)
         self._set_status_bit(Z_BIT, not bool(value & (1 << bit_index)))
         return 1
+
+    def _selected_field_size(self, first_word: int) -> int:
+        field_bank = (first_word >> 9) & 1
+        encoded_size = (self.state.st >> (field_bank * 6)) & 0x1F
+        return encoded_size or 32
+
+    def _execute_setf(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        first_word = words[0]
+        field_bank = (first_word >> 9) & 1
+        field_parameters = first_word & 0x3F
+        shift = field_bank * 6
+        mask = 0x3F << shift
+        self.state.st = (
+            (self.state.st & ~mask) | (field_parameters << shift)
+        ) & MASK32
+        return 1
+
+    def _execute_field_extension(
+        self,
+        words: list[int],
+        *,
+        sign_extend: bool,
+    ) -> int:
+        first_word = words[0]
+        register_file, destination = self._decode_destination(first_word)
+        value = self.state.read_reg(register_file, destination)
+        width = self._selected_field_size(first_word)
+        mask = MASK32 if width == 32 else (1 << width) - 1
+        result = value & mask
+        if (
+            sign_extend
+            and width < 32
+            and result & (1 << (width - 1))
+        ):
+            result |= MASK32 ^ mask
+        self.state.write_reg(register_file, destination, result)
+        if sign_extend:
+            self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(Z_BIT, result == 0)
+        return 2 if sign_extend else 1
+
+    def _execute_sext(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_field_extension(words, sign_extend=True)
+
+    def _execute_zext(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_field_extension(words, sign_extend=False)
 
     def _execute_shift(
         self,

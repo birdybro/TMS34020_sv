@@ -3,15 +3,15 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `fe0f003824b30fa51e3d2514bf41b08ff1b9b089`
-- Passing tests: foundation, reference/hash, delta, 22-case ISA sweep, 109 directed model
+- Latest verified baseline commit: `625e8ff1df13532b18514ad1549d6e72f8c74283`
+- Passing tests: foundation, reference/hash, delta, 22-case ISA sweep, 112 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 67 of 70 currently extracted encoding forms have bounded
+- Model status: all 70 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
@@ -25,8 +25,8 @@
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain.
   BTST.K/R cover every primary input row with RSC-0018's one contradictory
   status digit corrected, plus A/B, same-register, and shared-SP cases.
-  Newly extracted SETF/SEXT/ZEXT decode but roll state and cache back exactly
-  while their independent semantic implementation is pending
+  SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
+  instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
 - RTL status: generated 70-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
@@ -86,5 +86,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: implement independent SETF/SEXT/ZEXT model semantics for both field
-  banks, all encoded field sizes, partial status updates, and published rows
+- Next task: implement SETF/SEXT/ZEXT field-bank semantics in the bounded RTL
+  register-commit and cache-fed scalar paths

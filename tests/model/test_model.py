@@ -15,9 +15,14 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
+
+
+def status_with_field_size(status: int, bank: int, width: int) -> int:
+    encoded_width = width & 0x1F
+    shift = bank * 6
+    return (status & ~(0x1F << shift)) | (encoded_width << shift)
 
 
 class StateTests(unittest.TestCase):
@@ -1918,17 +1923,162 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_extracted_field_parameter_forms_roll_back_until_implemented(
-        self,
-    ) -> None:
-        for opcode in (0x0540, 0x0500, 0x0520):
+    def test_setf_primary_rows_and_masked_status_banks(self) -> None:
+        cases = (
+            (0x0540, 0, 0x00),
+            (0x0560, 0, 0x20),
+            (0x057F, 0, 0x3F),
+            (0x0550, 0, 0x10),
+            (0x0740, 1, 0x00),
+            (0x0760, 1, 0x20),
+            (0x077F, 1, 0x3F),
+            (0x0750, 1, 0x10),
+        )
+        for opcode, bank, parameters in cases:
             with self.subTest(opcode=f"{opcode:04X}"):
-                model = Tms34020Model(ProcessorState.randomized(opcode))
-                model.load_program([opcode], bit_address=0x2000)
-                before = model.snapshot()
-                with self.assertRaises(UnsupportedInstruction):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
+                model = Tms34020Model()
+                model.load_program([opcode])
+                initial_st = 0xF123_4A55
+                model.state.st = initial_st
+                event = model.step()
+                shift = bank * 6
+                mask = 0x3F << shift
+                expected_st = (
+                    (initial_st & ~mask) | (parameters << shift)
+                )
+                self.assertEqual(model.state.st, expected_st)
+                self.assertEqual(event.mnemonic, "SETF")
+                self.assertEqual(event.machine_states, 1)
+                self.assertEqual(event.register_writes, [])
+
+    def test_sext_primary_rows_status_and_register_files(self) -> None:
+        cases = (
+            (17, 0x0000_8000, 0x0000_8000, 0, 0),
+            (16, 0x0000_8000, 0xFFFF_8000, 1, 0),
+            (15, 0x0000_8000, 0x0000_0000, 0, 1),
+        )
+        for bank in (0, 1):
+            for width, before, expected, expected_n, expected_z in cases:
+                with self.subTest(bank=bank, width=width):
+                    model = Tms34020Model()
+                    register_file = "B" if bank else "A"
+                    opcode = 0x0502 | (bank << 9) | (bank << 4)
+                    model.load_program([opcode])
+                    model.state.write_reg(register_file, 2, before)
+                    initial_st = status_with_field_size(
+                        0x7123_4A55, bank, width
+                    )
+                    model.state.st = initial_st
+                    event = model.step()
+                    expected_st = initial_st & ~0xA000_0000
+                    expected_st |= expected_n << 31
+                    expected_st |= expected_z << 29
+                    self.assertEqual(
+                        model.state.read_reg(register_file, 2), expected
+                    )
+                    self.assertEqual(model.state.st, expected_st)
+                    self.assertEqual(event.mnemonic, "SEXT")
+                    self.assertEqual(event.machine_states, 2)
+
+    def test_zext_primary_rows_status_and_register_files(self) -> None:
+        cases = (
+            (32, 0xFFFF_FFFF, 0xFFFF_FFFF, 0),
+            (31, 0xFFFF_FFFF, 0x7FFF_FFFF, 0),
+            (1, 0xFFFF_FFFF, 0x0000_0001, 0),
+            (16, 0xFFFF_0000, 0x0000_0000, 1),
+        )
+        for bank in (0, 1):
+            for width, before, expected, expected_z in cases:
+                with self.subTest(bank=bank, width=width):
+                    model = Tms34020Model()
+                    register_file = "B" if bank else "A"
+                    opcode = 0x0523 | (bank << 9) | (bank << 4)
+                    model.load_program([opcode])
+                    model.state.write_reg(register_file, 3, before)
+                    initial_st = status_with_field_size(
+                        0xD123_4A55, bank, width
+                    )
+                    model.state.st = initial_st
+                    event = model.step()
+                    expected_st = initial_st & ~0x2000_0000
+                    expected_st |= expected_z << 29
+                    self.assertEqual(
+                        model.state.read_reg(register_file, 3), expected
+                    )
+                    self.assertEqual(model.state.st, expected_st)
+                    self.assertEqual(event.mnemonic, "ZEXT")
+                    self.assertEqual(event.machine_states, 1)
+
+    def test_field_extensions_all_sizes_banks_and_shared_sp(self) -> None:
+        for bank in (0, 1):
+            for width in range(1, 33):
+                with self.subTest(bank=bank, width=width):
+                    mask = (
+                        0xFFFF_FFFF
+                        if width == 32
+                        else (1 << width) - 1
+                    )
+                    value = (0xA5A5_5A5A & mask) | (1 << (width - 1))
+                    expected_zero = value & mask
+                    expected_sign = expected_zero
+                    if width < 32:
+                        expected_sign |= 0xFFFF_FFFF ^ mask
+
+                    for base, expected, states in (
+                        (0x0500, expected_sign, 2),
+                        (0x0520, expected_zero, 1),
+                    ):
+                        model = Tms34020Model()
+                        opcode = base | (bank << 9) | 4
+                        model.load_program([opcode])
+                        model.state.write_reg("A", 4, value)
+                        initial_st = status_with_field_size(
+                            0x5123_4A55, bank, width
+                        )
+                        model.state.st = initial_st
+                        event = model.step()
+                        self.assertEqual(
+                            model.state.read_reg("A", 4), expected
+                        )
+                        expected_st = (
+                            initial_st | 0x8000_0000
+                            if base == 0x0500
+                            else initial_st
+                        )
+                        self.assertEqual(model.state.st, expected_st)
+                        self.assertEqual(event.machine_states, states)
+
+        sign_sp = Tms34020Model()
+        sign_sp.load_program([0x051F])
+        sign_sp.state.sp = 0x0000_0080
+        sign_sp.state.st = status_with_field_size(0x4000_0000, 0, 8)
+        sign_event = sign_sp.step()
+        self.assertEqual(sign_sp.state.sp, 0xFFFF_FF80)
+        self.assertEqual(
+            sign_event.register_writes[0],
+            {
+                "file": "SP",
+                "index": 15,
+                "old": 0x0000_0080,
+                "new": 0xFFFF_FF80,
+            },
+        )
+
+        zero_sp = Tms34020Model()
+        zero_sp.load_program([0x072F])
+        zero_sp.state.sp = 0xFFFF_FF80
+        zero_sp.state.st = status_with_field_size(0x8000_0000, 1, 8)
+        zero_event = zero_sp.step()
+        self.assertEqual(zero_sp.state.sp, 0x0000_0080)
+        self.assertEqual(
+            zero_event.register_writes[0],
+            {
+                "file": "SP",
+                "index": 15,
+                "old": 0xFFFF_FF80,
+                "new": 0x0000_0080,
+            },
+        )
 
     def test_btst_constant_primary_examples(self) -> None:
         cases = (

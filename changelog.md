@@ -55,6 +55,9 @@
   metadata, TMS34020 state counts, independent boundary fixtures, exact model
   rollback guards, and explicit RTL noncommit checks. A quantified delta
   records that the compatible TMS34010 instructions have different timing.
+- Independent SETF/SEXT/ZEXT model semantics with all 32 encoded sizes in both
+  field banks, the published result rows, exact instruction-owned ST updates,
+  A/B destinations, shared-SP aliasing, and TMS34020-specific state counts.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -158,6 +161,9 @@
 
 ### Verified
 
+- The 112-case independent model suite covers bounded semantics for all 70
+  currently extracted forms. SETF/SEXT/ZEXT are checked over every encoded
+  size and both field banks without claiming coverage of the unextracted ISA.
 - All 16 published ADDXY and nine published SUBXY result/flag rows now pass in
   both the independent model and directed RTL, with additional A/B,
   same-register, shared-SP, and dependent-commit checks. Warning-free Quartus
