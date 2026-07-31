@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1922,6 +1923,22 @@ class ExecutionTests(unittest.TestCase):
         with self.assertRaises(UnclassifiedEncoding):
             model.step()
         self.assertEqual(model.snapshot(), before)
+
+    def test_exgf_decode_checkpoint_rolls_back_atomically(self) -> None:
+        for opcode in (0xD500, 0xD51F, 0xD700, 0xD71F):
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=0x80)
+                model.state.st = 0xF000_0FFF
+                model.state.write_reg(
+                    "B" if opcode & 0x10 else "A",
+                    opcode & 0xF,
+                    0xFFFF_FFC0,
+                )
+                before = model.snapshot()
+                with self.assertRaises(UnsupportedInstruction):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
 
     def test_setf_primary_rows_and_masked_status_banks(self) -> None:
         cases = (

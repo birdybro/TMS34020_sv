@@ -3,16 +3,17 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `5822c9ff401993f704a9f5b87f1b784554b62fa6`
-- Passing tests: foundation, reference/hash, delta, 22-case ISA sweep, 112 directed model
+- Latest verified baseline commit: `aae3f05ded9b20885bad1dd61bd3ca0a0d1b45b9`
+- Passing tests: foundation, reference/hash, delta, 23-case ISA sweep, 113 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 70 currently extracted encoding forms have bounded
-  successful semantics, including complete
+- Model status: 70 of 71 currently extracted encoding forms have bounded
+  successful semantics; EXGF remains atomic non-execution pending its
+  independent handler. Implemented coverage includes complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
   BLMOVE, and successful TRAPL/VLCOL forms;
@@ -28,7 +29,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 70-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 71-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 47 one-word instructions, with externally gated one-edge
@@ -61,6 +62,8 @@
   SEXT/ZEXT consume the selected size through a dedicated all-width extension
   leaf, update only N/Z or Z, and pass A/B/shared-SP plus dependent scalar
   commit tests.
+  Newly classified EXGF is decoded but remains blocked and noncommitting until
+  its independent atomic register/status exchange is implemented.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -77,8 +80,8 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,383 logic cells and 2,021 registers, while
-  the fetch, frontend, and scalar wrappers use 392, 766, and 5,033 logic cells;
+  warnings; the leaf wrapper uses 8,427 logic cells and 2,021 registers, while
+  the fetch, frontend, and scalar wrappers use 397, 771, and 5,072 logic cells;
   the scalar wrapper has 1,387 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

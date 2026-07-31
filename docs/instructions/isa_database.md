@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 70 page-verified encoding records and covers 22,992 of 65,536
+slice contains 71 page-verified encoding records and covers 23,056 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -35,6 +35,7 @@ first words without collisions:
 | SETF | `0540h`, mask `FDC0h` | 1 | pp.13-230..13-231 |
 | SEXT | `0500h`, mask `FDE0h` | 1 | p.13-232 |
 | ZEXT | `0520h`, mask `FDE0h` | 1 | p.13-268 |
+| EXGF | `D500h`, mask `FDE0h` | 1 | p.13-111 |
 | SLA.K / SLA constant | `2000h`, mask `FC00h` | 1 | p.13-233 |
 | SLA.R / SLA register | `6000h`, mask `FE00h` | 1 | p.13-234 |
 | SLL.K / SLL constant | `2400h`, mask `FC00h` | 1 | p.13-235 |
@@ -87,6 +88,13 @@ also carries instruction length, operand layout, register selection, status
 reads/writes, memory transactions, graphics dependencies, cache/pipeline
 interaction, interrupt/restart/fault behavior, documented cycle cases,
 16/32-bit/page effects, compatibility, citations, and confidence.
+
+EXGF atomically exchanges the selected six-bit FS/FE status bank with the low
+six bits of an A/B/shared-SP destination and clears the register's upper
+26 bits. Its `D500h`/`FDE0h` pattern covers both field banks and both register
+files. TI specifies one TMS34020 state for field bank zero and two for field
+bank one; pinned MAME charges one for both, as recorded in RSC-0019. Source:
+TMS34020 User's Guide printed p.13-111 and timing table p.15-4.
 
 LMO uses a same-file register pair, returns the number of leading zero bits
 for a nonzero source, and returns zero for a zero source. It writes only Z and

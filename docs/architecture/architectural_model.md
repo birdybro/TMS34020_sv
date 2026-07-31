@@ -29,8 +29,10 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 70 currently extracted database forms. This is
-coverage of a current partial extraction, not instruction completeness.
+These handlers cover 70 of 71 currently extracted database forms. EXGF remains
+an atomic non-execution boundary until its independent handler is implemented.
+This is coverage of a current partial extraction, not instruction
+completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages

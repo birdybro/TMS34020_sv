@@ -2467,6 +2467,11 @@ module tb_tms34020_verified_leaves;
             "unclassified register execute instruction"
         );
         check_register_execute(
+            16'hD71F, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only EXGF cannot enter register execute"
+        );
+        check_register_execute(
             16'h0540, 32'd0, 32'd0, 32'hF020_001F,
             1'b1, 1'b0, 32'd0, 1'b1, 32'd0, 32'h0000_003F,
             "register execute SETF field zero size thirty-two"
@@ -2756,6 +2761,13 @@ module tb_tms34020_verified_leaves;
             1'b0, 32'd0, 32'd0,
             32'h0000_0010, 32'd1,
             "register commit rejects unsupported BLMOVE"
+        );
+        commit_register_instruction(
+            16'hD71F, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only EXGF"
         );
         commit_register_instruction(
             16'h0300, 1'b1,

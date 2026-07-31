@@ -60,6 +60,14 @@ alignment class. Sources: User's Guide TRAPL printed p.13-257 and timing table
 p.15-9. These counts assume successful memory cycles under the chapter-15
 conditions; stack/vector wait, retry, and fault timing is not implemented.
 
+EXGF takes one state when exchanging FS0/FE0 (`F=0`) and two states when
+exchanging FS1/FE1 (`F=1`). This is a TMS34020 timing distinction: the
+TMS34010 guide lists one cache-hit state for EXGF without a field-bank split,
+and pinned MAME charges one cycle for both banks. The ISA database follows the
+TMS34020 primary source; RSC-0019 records the secondary discrepancy. Sources:
+TMS34020 User's Guide printed pp.13-111 and 15-4; TMS34010 User's Guide
+printed pp.12-17 and 12-78.
+
 BLMOVE is labeled only `complex instruction` on its instruction page and in
 the chapter-15 table. The guide states that B7 decrements as the move proceeds
 and that B0/B2 intermediate updates depend on S/D, making an instruction-level

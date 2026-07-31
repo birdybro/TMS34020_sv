@@ -62,6 +62,9 @@
   intents, SEXT/ZEXT register and partial-status commit, both field banks,
   shared-SP coverage, a dependent scalar sequence, and two runtime safety
   assertions.
+- Primary-page-verified EXGF encoding, atomic field-bank/register exchange
+  contract, conditional `F=0`/`F=1` TMS34020 timing, independent decode
+  boundaries, and RSC-0019 for pinned MAME's field-one timing undercount.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -165,6 +168,14 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 71 entries covering 23,056 first
+  words. EXGF decodes across both field banks, A/B, and shared SP while
+  remaining blocked and noncommitting in model/RTL at this extraction
+  checkpoint; all four boundary encodings roll back model state/cache, and
+  leaf/commit/scalar RTL boundaries suppress every architectural write. All
+  four decoder-bearing Cyclone V analyses pass with zero errors/warnings at
+  8,427 leaf, 397 fetch, 771 frontend, and 5,072 scalar diagnostic logic
+  cells; these are not fitted core-area or timing-closure results.
 - SETF/SEXT/ZEXT pass the warning-free leaf and scalar Verilator regressions
   across all encoded sizes, both status banks, A/B/shared-SP routing, and
   ordered state dependencies. Affected Cyclone V Analysis & Synthesis passes

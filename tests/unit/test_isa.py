@@ -115,6 +115,14 @@ class IsaTests(unittest.TestCase):
             0x057F: ("SETF", 1),
             0x0740: ("SETF", 1),
             0x077F: ("SETF", 1),
+            0xD500: ("EXGF", 1),
+            0xD50F: ("EXGF", 1),
+            0xD510: ("EXGF", 1),
+            0xD51F: ("EXGF", 1),
+            0xD700: ("EXGF", 1),
+            0xD70F: ("EXGF", 1),
+            0xD710: ("EXGF", 1),
+            0xD71F: ("EXGF", 1),
             0x09C0: ("MOVI.W", 2),
             0x09DF: ("MOVI.W", 2),
             0x09E0: ("MOVI.L", 3),
@@ -227,14 +235,15 @@ class IsaTests(unittest.TestCase):
                      0x0FFF, 0x3800,
                      0x0AFF, 0x0C20, 0x3FFF,
                      0x5800,
-                     0x79FF, 0x7C00):
+                     0x79FF, 0x7C00,
+                     0xD4FF, 0xD520, 0xD6FF, 0xD720):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 22992)
-        self.assertEqual(unclassified, 65536 - 22992)
+        self.assertEqual(matched, 23056)
+        self.assertEqual(unclassified, 65536 - 23056)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -338,6 +347,36 @@ class IsaTests(unittest.TestCase):
                 self.assertTrue(
                     instruction.metadata["compatible_with_tms34010"]
                 )
+
+    def test_exgf_records_atomic_exchange_and_bank_dependent_timing(self) -> None:
+        field_zero = self.database.decode(0xD500)
+        field_one = self.database.decode(0xD700)
+
+        self.assertIs(field_zero, field_one)
+        self.assertEqual(field_zero.mnemonic, "EXGF")
+        self.assertEqual(
+            field_zero.metadata["source_registers"],
+            ["Rd old low 6 bits", "selected ST.FS/FE bank"],
+        )
+        self.assertEqual(
+            field_zero.metadata["destination_registers"],
+            ["Rd", "selected ST.FS/FE bank"],
+        )
+        self.assertEqual(
+            field_zero.metadata["documented_cycles"],
+            {
+                "kind": "cases",
+                "cases": [
+                    {"when": "F=0", "machine_states": 1},
+                    {"when": "F=1", "machine_states": 2},
+                ],
+            },
+        )
+        self.assertTrue(field_zero.metadata["compatible_with_tms34010"])
+        self.assertIn(
+            "ISA-DISC-0003-EXGF-F1-timing",
+            self.raw["coverage"]["known_secondary_discrepancies"],
+        )
 
     def test_shift_forms_record_direct_and_twos_complement_counts(self) -> None:
         direct_constant = self.database.decode(0x20E1)

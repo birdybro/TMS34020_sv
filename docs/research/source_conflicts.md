@@ -331,3 +331,24 @@
   documentation resolution, not physical-hardware evidence. Confidence:
   `VERIFIED_PRIMARY` for the bit relation and `CORROBORATED` for the secondary
   implementation.
+
+## RSC-0019: pinned MAME undercounts EXGF field-one timing
+
+- Status: resolved secondary-reference timing defect
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, EXGF, printed
+  p.13-111, and the chapter-15 table on printed p.15-4 specify one machine
+  state for `F=0` and two for `F=1`. The instruction diagram defines bit 9 as
+  the field-bank selector.
+- Compatibility evidence: TI *TMS34010 User's Guide*, 1988, EXGF printed
+  p.12-78 and the timing summary on p.12-17 specify the same object-code
+  operation but one cache-hit execution state for either field bank.
+- Secondary conflict: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 612–625 uses one shared macro
+  for both processors and both field banks; line 620 charges one cycle
+  unconditionally.
+- Decision: record the TMS34020's field-dependent one-/two-state timing in the
+  ISA database and treat MAME's `F=1` count as a differential-reference defect.
+  Semantics remain object-code compatible with the TMS34010. No current RTL
+  handshake is assigned either architectural count. Confidence:
+  `VERIFIED_PRIMARY`.
