@@ -9,8 +9,14 @@ module tb_tms34020_verified_leaves;
     logic reset;
     integer constant_index;
     integer rotate_index;
+    integer pitch_first_power;
+    integer pitch_second_power;
     logic [15:0] constant_opcode;
     logic [31:0] expected_rotate;
+    logic [31:0] pitch_value;
+    logic [15:0] pitch_conversion;
+    logic [2:0] pitch_visible_states;
+    logic [15:0] expected_pitch_conversion;
 
     logic [15:0] decode_word;
     logic decode_valid;
@@ -208,6 +214,12 @@ module tb_tms34020_verified_leaves;
         .register_result_o(pixel_size_register_result),
         .psize_write_enable_o(pixel_size_write_enable),
         .psize_write_data_o(pixel_size_write_data)
+    );
+
+    tms34020_pitch_conversion pitch_conversion_dut (
+        .pitch_i(pitch_value),
+        .conversion_o(pitch_conversion),
+        .visible_states_o(pitch_visible_states)
     );
 
     tms34020_regfile regfile_dut (
@@ -753,6 +765,21 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_pitch_conversion(
+        input logic [31:0] pitch,
+        input logic [15:0] expected_conversion,
+        input logic [2:0] expected_machine_states,
+        input string message
+    );
+        pitch_value = pitch;
+        #1;
+        check_condition(
+            pitch_conversion == expected_conversion &&
+            pitch_visible_states == expected_machine_states,
+            message
+        );
+    endtask
+
     task automatic write_status(
         input logic [31:0] write_data,
         input logic [31:0] write_mask
@@ -866,6 +893,7 @@ module tb_tms34020_verified_leaves;
         rmo_source = 32'd0;
         rotate_value = 32'd0;
         rotate_count = 5'd0;
+        pitch_value = 32'd0;
         unary_operation = TMS34020_UNARY_ABS;
         unary_destination = 32'd0;
         unary_borrow = 1'b0;
@@ -964,6 +992,61 @@ module tb_tms34020_verified_leaves;
                 1'b0,
                 "RL every five-bit count"
             );
+        end
+
+        check_pitch_conversion(
+            32'h0000_1000, 16'h0013, 3'd4,
+            "SETC pitch primary 4096 row"
+        );
+        check_pitch_conversion(
+            32'h0000_0400, 16'h0015, 3'd4,
+            "SETC pitch primary 1024 row"
+        );
+        check_pitch_conversion(
+            32'h0000_1400, 16'h1513, 3'd6,
+            "SETC pitch primary two-power row"
+        );
+        check_pitch_conversion(
+            32'h0000_0019, 16'h0000, 3'd3,
+            "SETC pitch primary arbitrary row"
+        );
+        check_pitch_conversion(
+            32'd0, 16'd0, 3'd3,
+            "SETC pitch zero uses arbitrary path"
+        );
+        for (pitch_first_power = 0;
+             pitch_first_power < 32;
+             pitch_first_power = pitch_first_power + 1) begin
+            expected_pitch_conversion =
+                (pitch_first_power == 31)
+                ? 16'd0
+                : {11'd0, (~pitch_first_power[4:0]) & 5'h1F};
+            check_pitch_conversion(
+                32'h0000_0001 << pitch_first_power,
+                expected_pitch_conversion,
+                (pitch_first_power == 31) ? 3'd3 : 3'd4,
+                "SETC pitch every single-power field"
+            );
+            for (pitch_second_power = pitch_first_power + 1;
+                 pitch_second_power < 32;
+                 pitch_second_power = pitch_second_power + 1) begin
+                expected_pitch_conversion =
+                    (pitch_second_power == 31)
+                    ? 16'd0
+                    : {
+                        3'd0,
+                        (~pitch_first_power[4:0]) & 5'h1F,
+                        3'd0,
+                        (~pitch_second_power[4:0]) & 5'h1F
+                    };
+                check_pitch_conversion(
+                    (32'h0000_0001 << pitch_first_power) |
+                    (32'h0000_0001 << pitch_second_power),
+                    expected_pitch_conversion,
+                    (pitch_second_power == 31) ? 3'd3 : 3'd6,
+                    "SETC pitch every two-power field pair"
+                );
+            end
         end
 
         write_status(32'hF000_0000, 32'hF000_0000);

@@ -26,6 +26,7 @@ SOURCES = [
     ROOT / "rtl/execute/tms34020_rotate_left.sv",
     ROOT / "rtl/execute/tms34020_unary.sv",
     ROOT / "rtl/execute/tms34020_register_execute.sv",
+    ROOT / "rtl/graphics/tms34020_pitch_conversion.sv",
     ROOT / "rtl/graphics/tms34020_pixel_size_ops.sv",
     ROOT / "rtl/graphics/tms34020_pixel_replicate.sv",
     ROOT / "sim/tb/tb_tms34020_verified_leaves.sv",

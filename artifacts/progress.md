@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `7e05067c5685114be9856180ed07300b6dd963f4`
+- Latest commit: `78a4c59b1de82bb6b50261a1202a3704d6d386e1`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 80 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -17,9 +17,10 @@
   transaction-level cache/retry state with traces, rollback and snapshot
   replay; full ISA/interfaces remain (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
-  unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX
-  semantic leaves, and decoder-controlled register/ST write intents for 29
-  one-word instructions, with externally gated one-edge state commit and
+  unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX and
+  SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
+  write intents for 29 one-word instructions, with externally gated one-edge
+  state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
   complete ST preservation, and RL.K/RL.R C/Z replacement with N/V

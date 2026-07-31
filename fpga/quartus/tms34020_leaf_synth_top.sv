@@ -38,6 +38,8 @@ module tms34020_leaf_synth_top (
     logic [31:0] pixel_size_result;
     logic pixel_size_write_enable;
     logic [15:0] pixel_size_write_data;
+    logic [15:0] pitch_conversion;
+    logic [2:0] pitch_conversion_visible_states;
     logic [31:0] register_data;
     logic [31:0] sp;
     logic register_read_file;
@@ -76,6 +78,8 @@ module tms34020_leaf_synth_top (
         rmo_result ^
         unary_result ^
         pixel_size_result ^
+        {16'd0, pitch_conversion} ^
+        {29'd0, pitch_conversion_visible_states} ^
         {15'd0, pixel_size_write_enable, pixel_size_write_data} ^
         register_data ^
         second_register_data ^
@@ -169,6 +173,12 @@ module tms34020_leaf_synth_top (
         .register_result_o(pixel_size_result),
         .psize_write_enable_o(pixel_size_write_enable),
         .psize_write_data_o(pixel_size_write_data)
+    );
+
+    tms34020_pitch_conversion pitch_conversion_operation (
+        .pitch_i(operand_i),
+        .conversion_o(pitch_conversion),
+        .visible_states_o(pitch_conversion_visible_states)
     );
 
     tms34020_regfile regfile (

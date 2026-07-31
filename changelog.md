@@ -330,6 +330,11 @@
   implied B-register/I/O-register mappings, one-/two-power and arbitrary
   pitch timing, status preservation, and the hidden write state. RSC-0014
   records that pinned MAME misencodes SETCDP and leaves SETCMP/SETCSP as stubs.
+- Added a synthesizable shared SETC-pitch conversion leaf with exhaustive
+  one-/two-power field-pair tests, all primary rows, arbitrary/sentinel cases,
+  and explicit 4/6/3 visible-state outputs. The scalar opcodes remain blocked
+  pending a verified hidden-I/O write owner. Warning-free Quartus
+  requalification reports 6,804 leaf logic cells and 2,021 registers.
 
 ### Documentation
 
