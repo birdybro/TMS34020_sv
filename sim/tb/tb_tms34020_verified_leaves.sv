@@ -1219,6 +1219,11 @@ module tb_tms34020_verified_leaves;
             "register execute MOVX shared-SP source selector"
         );
         check_register_execute(
+            16'h4E01, 32'h1234_5678, 32'hABCD_EF01, 32'hF020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decoded cross-file MOVE remains unsupported"
+        );
+        check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "incomplete ANDNI cannot enter register execute"
@@ -1686,6 +1691,10 @@ module tb_tms34020_verified_leaves;
                      "MOVI.L lower-bound decode");
         check_decode(16'h09FF, TMS20_OP_MOVI_L, 3'd3,
                      "MOVI.L upper-bound decode");
+        check_decode(16'h4C00, TMS20_OP_MOVE, 3'd1,
+                     "MOVE lower-bound decode");
+        check_decode(16'h4FFF, TMS20_OP_MOVE, 3'd1,
+                     "MOVE upper-bound decode");
         check_decode(16'hEC00, TMS20_OP_MOVX, 3'd1,
                      "MOVX lower-bound decode");
         check_decode(16'hEDFF, TMS20_OP_MOVX, 3'd1,

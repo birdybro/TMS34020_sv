@@ -296,6 +296,13 @@
   execution, and complete ST preservation. Warning-free Quartus
   requalification reports 6,071 leaf and 3,865 scalar logic cells; the
   generated decode, fetch, and frontend hardware are unchanged.
+- Extracted and modeled full-register MOVE from TI printed p.13-158. The
+  50-record database covers 11,920 first words; 74 model tests cover every
+  primary example row, same-file and both cross-file directions, shared SP,
+  same-register operation, N/Z/V replacement, and C preservation. The current
+  same-file RTL operand interface explicitly blocks MOVE at this extraction
+  checkpoint. Warning-free Quartus reports 6,048 leaf, 359 fetch, 732 frontend,
+  and 3,836 scalar logic cells.
 
 ### Documentation
 

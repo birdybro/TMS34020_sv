@@ -99,6 +99,8 @@ class IsaTests(unittest.TestCase):
             0x09DF: ("MOVI.W", 2),
             0x09E0: ("MOVI.L", 3),
             0x09FF: ("MOVI.L", 3),
+            0x4C00: ("MOVE", 1),
+            0x4FFF: ("MOVE", 1),
             0xEC00: ("MOVX", 1),
             0xEDFF: ("MOVX", 1),
             0xEE00: ("MOVY", 1),
@@ -175,15 +177,15 @@ class IsaTests(unittest.TestCase):
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x0FFF, 0x1C00, 0x33FF, 0x3800,
                      0x0AFF, 0x0C20, 0x3FFF, 0x4A00,
-                     0x4FFF, 0x5800,
+                     0x5800,
                      0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 10896)
-        self.assertEqual(unclassified, 65536 - 10896)
+        self.assertEqual(matched, 11920)
+        self.assertEqual(unclassified, 65536 - 11920)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -323,6 +325,22 @@ class IsaTests(unittest.TestCase):
                 instruction.metadata["documented_cycles"]["machine_states"],
                 1,
             )
+
+    def test_move_records_cross_file_and_implicit_compare(self) -> None:
+        same_file = self.database.decode(0x4C01)
+        cross_file = self.database.decode(0x4E01)
+        self.assertEqual(same_file.mnemonic, "MOVE")
+        self.assertEqual(cross_file.mnemonic, "MOVE")
+        self.assertIn("destination is R when M=0",
+                      same_file.metadata["register_file"])
+        self.assertEqual(
+            same_file.metadata["status_bits_written"],
+            ["N", "Z", "V"],
+        )
+        self.assertEqual(
+            same_file.metadata["documented_cycles"]["machine_states"],
+            1,
+        )
 
 
 if __name__ == "__main__":

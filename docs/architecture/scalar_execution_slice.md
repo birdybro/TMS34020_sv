@@ -85,7 +85,9 @@ destination; executes ADDK with encoded K=0 and then SUBK with encoded K=0
 against shared SP; commits MOVK with encoded K=0 while preserving live ST; then,
 after reset, commits a zero MOVI.W and a dependent MOVI.L to shared SP, followed
 by MOVX and MOVY packets that read shared SP and observe the prior half-register
-commit; after a final reset, a separate unclassified packet remains blocked. The
+commit; after another reset, a decoded cross-file MOVE packet remains blocked
+because the current executor has no independent destination-file selector;
+after a final reset, a separate unclassified packet remains blocked. The
 earlier INC and DEC spellings exercise the canonical
 ADDK K=1 and SUBK K=1 object codes.
 
@@ -96,7 +98,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 3,865 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 3,836 logic cells,
 1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

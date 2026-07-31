@@ -576,6 +576,58 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(same.mnemonic, "MOVX")
         self.assertEqual(model.state.read_reg("B", 5), 0xCAFE_BABE)
 
+    def test_move_primary_rows_same_and_cross_file(self) -> None:
+        cases = (
+            (0x0000_FFFF, 0b0100),
+            (0x0000_0000, 0b0110),
+            (0xFFFF_FFFF, 0b1100),
+        )
+        for opcode, destination_file in ((0x4C01, "A"), (0x4E01, "B")):
+            for source, expected_nczv in cases:
+                with self.subTest(
+                    opcode=f"{opcode:04X}", source=f"{source:08X}"
+                ):
+                    model = Tms34020Model()
+                    model.load_program([opcode])
+                    model.state.write_reg("A", 0, source)
+                    model.state.write_reg(destination_file, 1, 0xA5A5_5A5A)
+                    model.state.st = 0x5020_0010
+                    event = model.step()
+                    self.assertEqual(event.mnemonic, "MOVE")
+                    self.assertEqual(
+                        model.state.read_reg(destination_file, 1), source
+                    )
+                    self.assertEqual(
+                        (model.state.st >> 28) & 0xF, expected_nczv
+                    )
+                    self.assertEqual(
+                        model.state.st & 0x0FFF_FFFF, 0x0020_0010
+                    )
+                    self.assertEqual(event.machine_states, 1)
+
+    def test_move_b_to_a_shared_sp_and_same_register(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x4E51, 0x4DE2, 0x4C63])
+        model.state.write_reg("B", 2, 0x1234_5678)
+        model.state.sp = 0xCAFE_BABE
+        model.state.write_reg("A", 3, 0x8000_0000)
+        model.state.st = 0xF020_001F
+
+        cross = model.step()
+        self.assertEqual(cross.mnemonic, "MOVE")
+        self.assertEqual(model.state.read_reg("A", 1), 0x1234_5678)
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b0100)
+
+        shared_sp = model.step()
+        self.assertEqual(shared_sp.mnemonic, "MOVE")
+        self.assertEqual(model.state.read_reg("A", 2), 0xCAFE_BABE)
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b1100)
+
+        same = model.step()
+        self.assertEqual(same.mnemonic, "MOVE")
+        self.assertEqual(model.state.read_reg("A", 3), 0x8000_0000)
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b1100)
+
     def test_add_primary_examples(self) -> None:
         cases = (
             (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0b1100),

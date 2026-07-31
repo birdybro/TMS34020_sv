@@ -94,6 +94,7 @@ class Tms34020Model:
             "MOVK": self._execute_movk,
             "MOVI.W": self._execute_movi_word,
             "MOVI.L": self._execute_movi_long,
+            "MOVE": self._execute_move,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
             "SETC": self._execute_setc,
@@ -560,6 +561,27 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_register_half_move(words, True)
+
+    def _execute_move(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        first_word = words[0]
+        source_file = "B" if first_word & 0x10 else "A"
+        cross_file = bool(first_word & 0x0200)
+        destination_file = (
+            ("A" if source_file == "B" else "B")
+            if cross_file
+            else source_file
+        )
+        source_index = (first_word >> 5) & 0xF
+        destination_index = first_word & 0xF
+        result = self.state.read_reg(source_file, source_index)
+        self.state.write_reg(destination_file, destination_index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, False)
+        return 1
 
     def _execute_setc(
         self, instruction: Instruction, words: list[int]

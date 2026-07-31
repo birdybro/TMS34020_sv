@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 49 page-verified encoding records and covers 10,896 of 65,536
+slice contains 50 page-verified encoding records and covers 11,920 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -27,6 +27,7 @@ first words without collisions:
 | MOVK | `1800h`, mask `FC00h` | 1 | p.13-169 |
 | MOVI.W / MOVI | `09C0h`, mask `FFE0h` | 2 | p.13-167 |
 | MOVI.L / MOVI | `09E0h`, mask `FFE0h` | 3 | p.13-168 |
+| MOVE | `4C00h`, mask `FC00h` | 1 | p.13-158 |
 | MOVX | `EC00h`, mask `FE00h` | 1 | p.13-170 |
 | MOVY | `EE00h`, mask `FE00h` | 1 | p.13-171 |
 | SETC | `0DE0h` | 1 | p.13-226 |
@@ -109,6 +110,12 @@ MOVX and MOVY are same-register-file half merges. MOVX replaces the
 destination's 16 LSBs and preserves its 16 MSBs; MOVY replaces the 16 MSBs and
 preserves the 16 LSBs. Both leave ST unaffected and take one state. Sources:
 printed pp.13-170..13-171 and timing table p.15-6.
+
+Full-register `MOVE` uses M in bit 9 and R in bit 4. R selects the source file;
+M=0 keeps the destination in that file, while M=1 selects the opposite file.
+It is the sole MOVE form that crosses A/B files, copies all 32 bits, derives N/Z
+from that value, preserves C, clears V, and takes one state. Source: printed
+p.13-158.
 
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database
