@@ -75,7 +75,7 @@
   one-/two-state retirement timing remains unimplemented.
 - Primary-page-verified PUTST encoding, full-width status-write contract,
   A/B/shared-SP boundaries, three-state timing, adjacent POPST nonaliasing, and
-  explicit model/RTL rollback boundaries pending independent semantics.
+  explicit preimplementation model/RTL rollback boundaries.
 - Independent PUTST model semantics with complete A/B/shared-SP source-to-ST
   transfer, source preservation, all-zero/all-one/mixed patterns, and the
   primary-documented three-state count.
@@ -85,8 +85,13 @@
   three-state architectural retirement remains unimplemented.
 - Primary-page-verified POPST/PUSHST exact encodings, full-width stack/ST
   ordering, aligned/nonaligned visible and hidden state counts, explicit
-  TMS34010 semantic compatibility/timing differences, and atomic model/RTL
+  TMS34010 semantic compatibility/timing differences, and explicit RTL
   nonexecution boundaries pending stack-memory ownership.
+- Independent POPST/PUSHST model semantics with full-width status transfers,
+  old/new-SP ordering, aligned and unaligned timing, hidden PUSHST write
+  accounting, bit-address wraparound, exact abstract data transactions, and
+  round-trip coverage. Fault/retry and physical transfer decomposition remain
+  unimplemented.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -190,9 +195,15 @@
 
 ### Verified
 
+- The 120-case independent model suite covers bounded successful semantics for
+  all 74 currently extracted forms. POPST/PUSHST tests cover both alignment
+  classes, full-width status values, SP ordering, abstract data traces,
+  wraparound, and hidden-write overlap; this is not full-ISA, fault/retry, or
+  pin-bus coverage.
 - Expanded the collision-free ISA slice to 74 entries covering 23,090 first
-  words. POPST/PUSHST exact and adjacent boundaries pass independently; model,
-  execution, commit, and scalar tests preserve state while handlers are absent.
+  words. POPST/PUSHST exact and adjacent boundaries pass independently;
+  execution, commit, and scalar RTL tests preserve state while handlers are
+  absent.
   All four affected Cyclone V analyses pass with zero errors/warnings at 8,504
   leaf, 402 fetch, 775 frontend, and 5,133 scalar diagnostic logic cells; these
   are not fitted core-area or timing-closure results.

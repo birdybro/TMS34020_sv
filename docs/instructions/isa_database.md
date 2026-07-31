@@ -118,6 +118,8 @@ semantic/object compatibility but document materially different timing.
 Fault/retry and external transfer ordering remain unclassified rather than
 inferred. Sources: TMS34020 User's Guide printed pp.13-214..13-215 and
 pp.4-2..4-3; TMS34010 User's Guide printed pp.12-227..12-228.
+The independent model implements only the successful atomic transaction
+boundary; both forms remain blocked in RTL pending data-memory ownership.
 
 LMO uses a same-file register pair, returns the number of leading zero bits
 for a nonzero source, and returns zero for a zero source. It writes only Z and

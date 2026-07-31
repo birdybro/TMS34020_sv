@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1978,20 +1977,119 @@ class ExecutionTests(unittest.TestCase):
                                 value,
                             )
 
-    def test_stack_status_decode_checkpoint_rolls_back_atomically(self) -> None:
-        for opcode in (0x01C0, 0x01E0):
-            with self.subTest(opcode=f"{opcode:04X}"):
-                model = Tms34020Model()
-                model.load_program([opcode], bit_address=0x80)
-                model.state.st = 0xA5C3_5A3C
-                model.state.sp = 0x400
-                model.state.memory.write_bits(
-                    model.state.sp, 32, 0xC000_0010
-                )
-                before = model.snapshot()
-                with self.assertRaises(UnsupportedInstruction):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
+    def test_popst_aligned_read_replaces_status_then_increments_sp(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x01C0], bit_address=0x80)
+        model.state.st = 0xA5C3_5A3C
+        model.state.sp = 0x0000_0400
+        model.state.memory.write_bits(0x0000_0400, 32, 0xC000_0010)
+
+        event = model.step()
+
+        self.assertEqual(model.state.st, 0xC000_0010)
+        self.assertEqual(model.state.sp, 0x0000_0420)
+        self.assertEqual(
+            model.state.memory.read_bits(0x0000_0400, 32),
+            0xC000_0010,
+        )
+        self.assertEqual(event.machine_states, 6)
+        self.assertEqual(event.status_before, 0xA5C3_5A3C)
+        self.assertEqual(event.status_after, 0xC000_0010)
+        self.assertEqual(
+            event.transactions[-1],
+            {
+                "class": "data_read",
+                "purpose": "pop_status",
+                "bit_address": 0x0000_0400,
+                "width": 32,
+                "value": 0xC000_0010,
+            },
+        )
+        self.assertEqual(
+            event.register_writes,
+            [{
+                "file": "SP",
+                "index": 15,
+                "old": 0x0000_0400,
+                "new": 0x0000_0420,
+            }],
+        )
+        self.assertIn("fault, retry", event.notes[-1])
+
+    def test_popst_unaligned_read_crosses_address_wrap(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x01C0], bit_address=0x80)
+        model.state.st = 0xFFFF_FFFF
+        model.state.sp = 0xFFFF_FFF7
+        model.state.memory.write_bits(0xFFFF_FFF7, 32, 0x1234_5678)
+
+        event = model.step()
+
+        self.assertEqual(model.state.st, 0x1234_5678)
+        self.assertEqual(model.state.sp, 0x0000_0017)
+        self.assertEqual(event.machine_states, 7)
+        self.assertEqual(event.transactions[-1]["bit_address"], 0xFFFF_FFF7)
+        self.assertEqual(model.state.pending_write_states, 0)
+
+    def test_pushst_aligned_predecrements_and_tracks_hidden_write(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x01E0], bit_address=0x80)
+        model.state.st = 0xA5C3_5A3C
+        model.state.sp = 0x0000_0420
+
+        event = model.step()
+
+        self.assertEqual(model.state.st, 0xA5C3_5A3C)
+        self.assertEqual(model.state.sp, 0x0000_0400)
+        self.assertEqual(
+            model.state.memory.read_bits(0x0000_0400, 32),
+            0xA5C3_5A3C,
+        )
+        self.assertEqual(event.machine_states, 2)
+        self.assertEqual(model.state.pending_write_states, 1)
+        self.assertEqual(
+            event.transactions[-1],
+            {
+                "class": "data_write",
+                "purpose": "push_status",
+                "bit_address": 0x0000_0400,
+                "width": 32,
+                "value": 0xA5C3_5A3C,
+            },
+        )
+        self.assertEqual(
+            event.register_writes,
+            [{
+                "file": "SP",
+                "index": 15,
+                "old": 0x0000_0420,
+                "new": 0x0000_0400,
+            }],
+        )
+        self.assertIn("fault, retry", event.notes[-1])
+
+    def test_pushst_popst_unaligned_round_trip_and_hidden_overlap(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x01E0, 0x01C0], bit_address=0x80)
+        model.state.st = 0xFFFF_FFFF
+        model.state.sp = 0x0000_0010
+
+        pushed = model.step()
+        self.assertEqual(model.state.sp, 0xFFFF_FFF0)
+        self.assertEqual(
+            model.state.memory.read_bits(0xFFFF_FFF0, 32),
+            0xFFFF_FFFF,
+        )
+        self.assertEqual(pushed.machine_states, 2)
+        self.assertEqual(model.state.pending_write_states, 2)
+
+        model.state.st = 0x0000_0010
+        popped = model.step()
+
+        self.assertEqual(model.state.st, 0xFFFF_FFFF)
+        self.assertEqual(model.state.sp, 0x0000_0010)
+        self.assertEqual(popped.machine_states, 7)
+        self.assertEqual(model.state.pending_write_states, 0)
 
     def test_exgf_primary_examples(self) -> None:
         for field_bank, opcode, expected_status in (

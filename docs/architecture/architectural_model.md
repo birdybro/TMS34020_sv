@@ -18,7 +18,8 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGF, EXGPC, GETPC, GETST, PUTST,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGF, EXGPC, GETPC, GETST,
+  POPST, PUSHST, PUTST,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -30,10 +31,8 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 72 of the 74 currently extracted database forms. POPST
-and PUSHST are atomic non-execution boundaries pending independent stack-memory
-handlers. This is coverage of a current partial extraction, not instruction
-completeness.
+These handlers cover all 74 currently extracted database forms. This is
+coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -90,6 +89,20 @@ semantics, not evidence for silicon-revision-specific reserved-bit readback.
 Sources: TMS34020 User's Guide printed pp.4-2..4-3, 13-216, and 15-7;
 compatibility cross-check: TMS34010 User's Guide printed p.12-229 and its
 instruction summary.
+
+POPST reads the complete 32-bit value at the old SP, replaces all of ST, and
+then advances SP by 32 bit addresses. It reports six states for an aligned old
+SP and seven otherwise. PUSHST captures the complete old ST, predecrements SP
+by 32, and writes the captured value at that new address without changing ST.
+It reports two visible states and schedules one aligned or two unaligned hidden
+write states. Directed tests cover aligned and unaligned addresses, a
+bit-address-space wrap, exact data transaction traces, full-width values, SP
+ordering, status preservation/replacement, and a PUSHST-to-POPST round trip.
+These are successful atomic transaction abstractions: dynamic 16-bit
+decomposition, page mode, waits, faults, retries, and partial-write safety are
+not modeled. Sources: TMS34020 User's Guide printed pp.13-214..13-215 and
+15-7; compatibility cross-check: TMS34010 User's Guide printed
+pp.12-227..12-228 and its instruction summary.
 
 RPIX implements every
 legal PSIZE and the page-13-225 state counts. MWAIT exposes an abstract
@@ -327,7 +340,9 @@ all TI register/immediate logical example rows, ANDI encoded-complement
 behavior, aligned and unaligned immediate timing,
 CLRC/SETC preservation, DINT/EINT IE changes, GETPC/EXGPC primary rows,
 A/B/shared-SP selection, sequential-PC exchange, redirect alignment and status
-preservation, complete GETST transfer, all TI ADDK and INC-alias example rows,
+preservation, complete GETST and PUTST transfers, POPST/PUSHST aligned and
+unaligned ordering, bit-address wrap, traces, hidden writes, and round trip,
+all TI ADDK and INC-alias example rows,
 all SUBK and DEC-alias example rows,
 every SUBK constant, every MOVK constant, encoded-zero/B/SP cases for all three
 constant families, complete MOVK status preservation, all published MOVI

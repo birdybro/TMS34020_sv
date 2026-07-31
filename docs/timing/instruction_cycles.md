@@ -83,7 +83,9 @@ unaligned SP. The compatible TMS34010 forms have different published timings,
 so no timing is reused from that core. Sources: TMS34020 User's Guide printed
 pp.13-214..13-215; TMS34010 User's Guide printed pp.12-227..12-228 and its
 instruction summary. Fault, retry, dynamic-width, and page-mode timing remain
-pending.
+pending. The independent model reports the visible 6/7 and 2-state cases and
+carries PUSHST's 1/2 parenthesized states as abstract pending writes; this is not
+a local-bus schedule.
 
 BLMOVE is labeled only `complex instruction` on its instruction page and in
 the chapter-15 table. The guide states that B7 decrements as the move proceeds

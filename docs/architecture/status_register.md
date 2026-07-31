@@ -94,14 +94,21 @@ are tested at the architectural-model and RTL write-intent boundaries; this is
 not silicon readback evidence. The model reports the documented three-state
 count, while the serialized RTL commit edge is not architectural timing.
 
+The independent model also verifies successful POPST and PUSHST transaction
+boundaries. POPST replaces the complete ST value read at old SP before advancing
+SP. PUSHST preserves ST while predecrementing SP and writing the complete value.
+The model covers both alignment classes and the documented visible/hidden state
+counts. It does not model stack faults, retries, waits, dynamic bus sizing, page
+mode, or partial external writes.
+
 ## Incomplete behavior
 
 The following are not yet implemented:
 
 - PUTST's three-state RTL retirement is not implemented; PUSHST and POPST
-  primary semantics/timing are classified but remain atomic non-execution
-  boundaries in the model and RTL; EXGF architectural retirement timing also
-  remains;
+  remain atomic non-execution boundaries in RTL, and their successful model
+  transactions do not implement fault/retry or external-bus scheduling; EXGF
+  architectural retirement timing also remains;
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;

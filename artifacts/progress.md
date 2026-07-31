@@ -4,16 +4,18 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest verified baseline commit: `19e5b6ee07b994b4c74a65df4571dd3306ba4b18`
-- Passing tests: foundation, reference/hash, delta, 25-case ISA sweep, 117 directed model
+- Passing tests: foundation, reference/hash, delta, 25-case ISA sweep, 120 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 72 of 74 currently extracted encoding forms have bounded
-  successful semantics. POPST/PUSHST roll back atomically pending independent
-  stack-memory handlers. PUTST covers complete A/B/shared-SP source-to-ST
+- Model status: all 74 currently extracted encoding forms have bounded
+  successful semantics. POPST/PUSHST cover full-width stack/status ordering,
+  both alignment classes, hidden writes, wraparound, exact abstract
+  transactions, and round trip; stack faults/retries and physical transfer
+  decomposition remain absent. PUTST covers complete A/B/shared-SP source-to-ST
   transfer and the primary three-state count. EXGF covers both primary rows,
   both field
   banks/files,

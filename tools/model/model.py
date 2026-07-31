@@ -95,6 +95,8 @@ class Tms34020Model:
             "EXGPC": self._execute_exgpc,
             "GETPC": self._execute_getpc,
             "GETST": self._execute_getst,
+            "POPST": self._execute_popst,
+            "PUSHST": self._execute_pushst,
             "PUTST": self._execute_putst,
             "ADDK": self._execute_addk,
             "SUBK": self._execute_subk,
@@ -502,6 +504,56 @@ class Tms34020Model:
         register_file, index = self._decode_destination(words[0])
         self.state.st = self.state.read_reg(register_file, index)
         return 3
+
+    def _execute_popst(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        old_sp = self.state.sp
+        value = self.state.memory.read_bits(old_sp, 32)
+        self.state.st = value
+        self.state.sp = (old_sp + 32) & MASK32
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "data_read",
+                "purpose": "pop_status",
+                "bit_address": old_sp,
+                "width": 32,
+                "value": value,
+            }
+        )
+        self._active_trace.notes.append(
+            "successful atomic POPST abstraction; stack-read fault, retry, "
+            "dynamic-width, and page-mode behavior pending"
+        )
+        return 6 if old_sp & 0x1F == 0 else 7
+
+    def _execute_pushst(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        old_sp = self.state.sp
+        new_sp = (old_sp - 32) & MASK32
+        value = self.state.st
+        self.state.sp = new_sp
+        self.state.memory.write_bits(new_sp, 32, value)
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "data_write",
+                "purpose": "push_status",
+                "bit_address": new_sp,
+                "width": 32,
+                "value": value,
+            }
+        )
+        self._new_hidden_write_states = 1 if old_sp & 0x1F == 0 else 2
+        self._active_trace.notes.append(
+            "successful atomic PUSHST abstraction; stack-write fault, retry, "
+            "dynamic-width, and page-mode behavior pending"
+        )
+        return 2
 
     def _execute_addk(
         self, instruction: Instruction, words: list[int]
