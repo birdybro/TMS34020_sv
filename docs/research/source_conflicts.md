@@ -90,3 +90,31 @@
 - Decision: encode ORI as two states with an aligned first extension word and
   three otherwise. Cite both the instruction page and timing table so the
   correction remains auditable. Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0007: cache address-field bit ranges
+
+- Status: resolved from the same page's figure and structural dimensions
+- Conflicting primary text: TI *TMS34020 User's Guide*, August 1990, §5.1,
+  printed p.5-3, says address bits 6–8 select one of eight subsegments and
+  bits 4, 5, and 6 select one of eight instruction words. Those ranges overlap
+  at bit 6.
+- Resolving primary evidence: Figure 5-2 on the same page shows a
+  22-bit/3-bit/3-bit/4-zero partition. The documented segment size is 64
+  instruction words and the subsegment size is eight instruction words.
+  Together these establish SSA `[31:10]`, subsegment `[9:7]`, word `[6:4]`,
+  and alignment zeroes `[3:0]` for a 32-bit bit address.
+- Decision: use the figure-backed nonoverlapping partition. Preserve this
+  conflict in tests and documentation rather than copying the prose typo into
+  RTL. Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0008: number of present flags cleared by cache flush
+
+- Status: resolved from cache organization and the dedicated flush section
+- Conflicting primary text: the `HSTCTLH.CF` description on printed p.4-61
+  says all four cache `P` flags are forced to zero.
+- Resolving primary evidence: §5.1 defines four segments with eight
+  subsegments each; §5.2 says each segment has eight `P` flags; and §5.3.5,
+  printed p.5-8, explicitly says all 32 `P` flags are cleared by a flush.
+- Decision: `CF=1` clears/forces clear all 32 subsegment-present flags. Treat
+  "all 4" on p.4-61 as a typographical error, not a four-flag cache variant.
+  Confidence: `VERIFIED_PRIMARY`.

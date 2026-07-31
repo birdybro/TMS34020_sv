@@ -11,7 +11,7 @@
 | ISA | PROVISIONAL | 38 primary-page-verified entries/6,608 first words; complete extraction pending |
 | Architectural model slice | PROVISIONAL | 32 page-verified instructions and deterministic state/replay; cache/full ISA absent |
 | Synthesizable RTL slice | PROVISIONAL | Generated 38-entry partial decoder, A/B/SP and masked ST storage, common unary/binary/logical arithmetic, six TMS34020-specific semantic leaves, and externally gated commit for 23 one-word instructions pass directed Verilator and Cyclone V synthesis; three-word immediate logical operations stop at decode; no fetch, PC sequencing, architectural retirement timing, or executable core |
-| Cache organization | VERIFIED_PRIMARY | August 1990 guide Chapter 5 |
+| Cache organization | VERIFIED_PRIMARY | August 1990 guide Chapter 5 and reset §6.12.2; implementation/fault timing absent |
 | Pipeline timing | UNKNOWN | Detailed timing-case extraction pending |
 | Memory/bus timing | PROVISIONAL | A clock-stretch cases identified; complete phase extraction pending |
 | Host/multiprocessor/coprocessor | UNKNOWN | Primary audit pending |

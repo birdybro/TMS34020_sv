@@ -19,7 +19,7 @@ follow-up may record the completing hash.
 | TMS20-0009 | Common TMS34010-compatible instructions | IMPLEMENTING / P0 | 0004,0006,0007 | SPVU019 compatibility text, SPVU001 | Model/RTL implement every documented common opcode with status, memory, timing, fault and interrupt tests | `rtl/core`, `rtl/execute` | `instruction-common`, `compat-boundary`, `rtl-leaf-tests` | PROVISIONAL | NOP, unary, logical, CLRC/DINT/EINT/GETST/INC/DEC/SETC, and ADD/ADDC/SUB/SUBB/CMP model/write-intent and externally gated commit paths exist; no fetch/PC/timed retirement sequencer or compatibility boundary test exists | — |
 | TMS20-0010 | TMS34020-specific instructions | IMPLEMENTING / P0 | 0006,0007,0009 | SPVU019 | Every 34020-only legal opcode is in model/RTL/tools and directed/timing tested | decoder/sequencer/engines | `instruction-34020`, `opcode-space-sweep`, `rtl-leaf-tests` | PROVISIONAL | ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX semantic leaves exist and CMPK/RMO are routed to write intents; complete ISA and an execution sequencer remain | — |
 | TMS20-0011 | Status and register behavior | IMPLEMENTING / P0 | 0005,0006 | programmer model/status chapters | A/B files, SP alias, ST fields, reset/undefined behavior, hazards, interrupt save/restore are verified | regfile/status | `regfile-alias`, `status-exhaustive`, `rtl-leaf-tests` | PROVISIONAL | A/B/SP, masked ST state, and externally gated one-edge register/ST commit exist for 23 operations; timed retirement, interrupt ordering, hazards, save/restore and reserved-bit behavior remain | — |
-| TMS20-0012 | Instruction cache | NOT STARTED / P0 | 0002,0005,0007 | cache chapters/data sheet | Organization, replacement, refill, coherence, reset, fault/retry, hit/miss and all listed cache scenarios pass | `rtl/cache` | `cache-directed`, `cache-random`, `cache-fault` | UNKNOWN | Host/DMA coherence rules? | — |
+| TMS20-0012 | Instruction cache | RESEARCHING / P0 | 0002,0005,0007 | SPVU019 chapter 5, reset §6.12.2, local-bus §8.5 | Organization, replacement, refill, coherence, reset, fault/retry, hit/miss and all listed cache scenarios pass | `docs/cache`, `rtl/cache` | `cache-directed`, `cache-random`, `cache-fault` | PROVISIONAL | Organization/refill/reset/CD/CF contract extracted from primary evidence; fault/retry, interrupt checkpoint, `SIZE16`, page-mode phases and reset-time SSA matching unresolved | — |
 | TMS20-0013 | Pipeline model | NOT STARTED / P0 | 0005,0009,0012 | pipeline/timing chapters | Stages, overlap, hazards, branch/interrupt/fault checkpoints and cycle trace match documented cases | sequencer/pipeline | `pipeline-hazards`, `pipeline-cycles` | UNKNOWN | Internal stage visibility/evidence? | — |
 | TMS20-0014 | 16-bit and 32-bit memory access | NOT STARTED / P0 | 0005,0007 | memory/local-bus chapters | 1–32-bit aligned/unaligned/crossing accesses and every request class work on both target widths with exact traces | `rtl/memory`, `rtl/bus` | `memory-fields`, `memory-widths` | UNKNOWN | Partial transfer ordering? | — |
 | TMS20-0015 | Dynamic bus sizing | NOT STARTED / P0 | 0014 | SIZE16 timing sections | SIZE16 sampling, beat ordering, CAS/byte enables, waits and width transitions are waveform tested | memory controller/local bus | `size16-directed`, `size16-random-waits` | UNKNOWN | Per-page versus per-cycle sizing? | — |
@@ -53,9 +53,9 @@ follow-up may record the completing hash.
 
 ## Immediate work queue
 
-1. Expand primary-source ISA extraction and independent fixtures.
-2. Extract the documented PC/fetch/cache/pipeline completion contract before
+1. Resolve cache refill fault/retry, interrupt, `SIZE16`, page-mode and
+   local-bus phase rules before implementing the cache controller.
+2. Extract the documented PC/fetch/pipeline completion contract before
    connecting the bounded register commit composition to a sequencer.
-3. Map compatible upstream tests to TMS34020 instruction pages.
-4. Continue errata, exact-game-marking, and device-timing research in parallel
-   with independently bounded leaf implementation.
+3. Expand primary-source ISA extraction and independent fixtures.
+4. Map compatible upstream tests to TMS34020 instruction pages.

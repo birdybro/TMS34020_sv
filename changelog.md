@@ -128,6 +128,13 @@
   rules, completion claims, and current architectural risks.
 - Distinguished TMS34020, TMS34020A, SMJ34020, SMJ34020A, and SM34020A without
   substituting later high-reliability data sheets for the original user guide.
+- Extracted the primary-source instruction-cache organization, bit-address
+  mapping, LRU replacement, demand-longword-last refill order, reset state,
+  `CD` preservation, `CF` flush, coherence limits, bounded timing facts, RTL
+  boundary, verification matrix, and unresolved fault/pipeline interactions.
+- Recorded and resolved the guide's overlapping cache address-bit ranges and
+  erroneous four-present-flag cache-flush wording from same-guide figures and
+  organization text.
 - Documented unresolved opcode/status/timing, CONTROL2, errata, and
   first-silicon questions as unknown rather than assigning inferred behavior.
 - Recorded a pinned MAME disassembler discrepancy: TI's TRAPL consumes a signed
