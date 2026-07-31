@@ -203,7 +203,8 @@ module tms34020_scalar_slice (
                             packet_opcode_id_o == TMS20_OP_ADDI_L ||
                             packet_opcode_id_o == TMS20_OP_CMPI_L ||
                             packet_opcode_id_o == TMS20_OP_SUBI_L ||
-                            packet_opcode_id_o == TMS20_OP_MOVI_L
+                            packet_opcode_id_o == TMS20_OP_MOVI_L ||
+                            packet_opcode_id_o == TMS20_OP_JACC
                         )
                     )
                 );
@@ -229,6 +230,7 @@ module tms34020_scalar_slice (
                 (
                     packet_opcode_id_o == TMS20_OP_EXGPC ||
                     packet_opcode_id_o == TMS20_OP_JUMP ||
+                    packet_opcode_id_o == TMS20_OP_JACC ||
                     packet_opcode_id_o == TMS20_OP_JR_L ||
                     packet_opcode_id_o == TMS20_OP_DSJ ||
                     packet_opcode_id_o == TMS20_OP_DSJEQ ||
@@ -265,6 +267,35 @@ module tms34020_scalar_slice (
                         packet_words_o[11:8],
                         status_o
                     )
+                );
+    endproperty
+
+    property p_jacc_commit_has_only_conditioned_redirect;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            packet_opcode_id_o == TMS20_OP_JACC
+            |-> !register_write_enable_o &&
+                !status_write_enable_o &&
+                (
+                    commit_pc_redirect_enable ==
+                    tms34020_condition_true(
+                        packet_words_o[11:8],
+                        status_o
+                    )
+                );
+    endproperty
+
+    property p_jacc_redirect_uses_aligned_absolute_target;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            commit_pc_redirect_enable &&
+            packet_opcode_id_o == TMS20_OP_JACC
+            |-> commit_pc_redirect_bit_address ==
+                (
+                    {
+                        packet_words_o[47:32],
+                        packet_words_o[31:16]
+                    } & 32'hFFFF_FFF0
                 );
     endproperty
 
@@ -492,6 +523,12 @@ module tms34020_scalar_slice (
     );
     assert property (
         p_jr_long_redirect_uses_signed_word_displacement
+    );
+    assert property (
+        p_jacc_commit_has_only_conditioned_redirect
+    );
+    assert property (
+        p_jacc_redirect_uses_aligned_absolute_target
     );
     assert property (
         p_dsj_commit_has_conditioned_decrement_and_redirect

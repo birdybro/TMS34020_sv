@@ -123,6 +123,11 @@
   possible false outcome, low-word/high-word absolute-target assembly, forced
   PC alignment, false-path PC wrap, exact instruction/next-PC traces, complete
   ST/register preservation, and documented three-/four-state cases.
+- Synthesizable JAcc direct-PC ownership using both extension words, all 16
+  NCZV predicates, forced target alignment, register/ST-neutral commit, held
+  cache-fed taken/fallthrough completion, an exhaustive 256-cell condition
+  matrix, and two runtime safety assertions. Architectural three-/four-state
+  retirement remains unimplemented.
 - Primary-page-verified long JRcc encoding with all 16 condition predicates,
   signed 16-bit word displacement, two-/three-state timing, TMS34010 semantic
   compatibility and distinct timing, exact `C?00h` decode, independent
@@ -260,6 +265,11 @@
 
 ### Verified
 
+- JAcc RTL passes warning-free direct, commit, cache-fed scalar, and Cyclone V
+  Analysis & Synthesis checks. Leaf/scalar diagnostic tops use 8,767/5,262
+  logic cells with 2,048/1,414 registers; fetch and frontend remain at 411/785
+  logic cells, and frontend/scalar retain 4,096 inferred RAM bits. These are
+  wrapper-heavy synthesis regressions, not fit, TimeQuest, or cycle evidence.
 - The 133-case independent model suite now has bounded successful semantics for
   all 81 currently extracted forms. JAcc tests independently cover every
   condition outcome, target-word ordering/alignment, false-path PC wrap, exact

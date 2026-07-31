@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `e6973603c63d47aba498451dafb36cc8461a94a4`
+- Latest verified baseline commit: `db0bb13ec3a3b7bcd31af2a1142bfa8c1a36e811`
 - Passing tests: foundation, reference/hash, delta, 30-case ISA sweep, 133 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -60,11 +60,11 @@
   preservation, plus all eight SLA/SLL/SRA/SRL forms with direct or
   two's-complement count recovery and instruction-specific status masks;
   standalone native-completion cache lookup/refill RTL;
-  a dedicated GETPC/EXGPC/JUMP/JR.L direct-PC leaf, an integrated serialized
+  a dedicated GETPC/EXGPC/JUMP/JACC/JR.L direct-PC leaf, an integrated serialized
   cache/instruction-packet frontend with explicit completion and abort/reload;
   and a bounded fetch-to-commit path for those 51
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
-  three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
+  three-word JACC/ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
   GETPC consumes the packet sequential PC, while EXGPC atomically writes that
   address and redirects to the aligned old destination. JUMP reads an
   A/B/shared-SP target, clears bits `[3:0]`, and redirects through the held
@@ -91,8 +91,12 @@
   PUTST replaces all 32 ST bits from an A/B/shared-SP source without register
   writeback and passes a cache-fed dependency; its three-state architectural
   retirement is not implemented.
-  Complete JACC packets are decoded/fetched but remain blocked without writes
-  or redirects at this extraction checkpoint. Long JRcc evaluates all 16 NCZV predicates through a shared combinational
+  Complete JACC packets consume both extension words, evaluate all 16 NCZV
+  predicates, preserve registers and ST, and hold either an aligned absolute
+  redirect or sequential fallthrough through completion. Direct tests exhaust
+  all 256 condition/status cells and cache-fed taken/false paths. The documented
+  three-/four-state retirement is not implemented. Long JRcc evaluates all 16
+  NCZV predicates through a shared combinational
   condition function, preserves registers and ST, and holds a signed
   extension-word redirect when true or completes sequentially when false.
   Direct tests exhaust all 256 condition/status combinations and signed/PC-wrap
@@ -119,13 +123,13 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, twenty scalar, and two commit-owner
+- Formal status: four cache, four fetch, twenty-two scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,659 logic cells and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 411, 785, and 5,268 logic cells;
+  warnings; the leaf wrapper uses 8,767 logic cells and 2,048 registers, while
+  the fetch, frontend, and scalar wrappers use 411, 785, and 5,262 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

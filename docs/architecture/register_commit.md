@@ -9,15 +9,15 @@ fetch/cache/pipeline sequencer is introduced.
 
 The module decodes the packet first word continuously. `supported_o` is
 asserted only when its declared length matches one of the 51 one-word, eight
-two-word, or eight three-word operations supported by the regular register
+two-word, or nine three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
 reported as `commit_accepted_o`.
 
 Register and status event outputs expose the exact write that is presented to
 the state owners on that edge. Unsupported instructions assert neither event
-and cannot change architectural state. EXGPC, JUMP, and JR.L redirect outputs
-are likewise gated by the accepted commit. NOP is supported and accepted but
+and cannot change architectural state. EXGPC, JUMP, JACC, and JR.L redirect
+outputs are likewise gated by the accepted commit. NOP is supported and accepted but
 produces no register, status, or redirect event.
 
 Supported operations are:
@@ -32,7 +32,8 @@ Supported operations are:
 - GETPC, EXGPC, JUMP, and DSJS;
 - two-word JR.L, DSJ, DSJEQ, and DSJNE;
 - two-word ADDI.W, CMPI.W, MOVI.W, and SUBI.W; and
-- three-word ADDI.L, ADDXYI, ANDNI, CMPI.L, MOVI.L, ORI, SUBI.L, and XORI.
+- three-word JACC, ADDI.L, ADDXYI, ANDNI, CMPI.L, MOVI.L, ORI, SUBI.L, and
+  XORI.
 
 The instruction definitions and primary citations are maintained in
 `docs/generated/tms34020_isa.yaml`. Register-file and status layout are defined
@@ -49,14 +50,17 @@ emits the old value with bits `[3:0]` cleared as a redirect event. This module
 does not store PC; the execution composition owns application of that event.
 JUMP emits the selected old register or shared-SP value with bits `[3:0]`
 cleared, without a register or status write.
+JACC reads its condition from N/C/Z/V without modifying them, assembles the
+absolute target from the low then high extension words, clears target bits
+`[3:0]`, and emits a redirect only when true.
 JR.L reads its condition from N/C/Z/V without modifying them, emits a signed
 16-bit word-relative target only when true, and otherwise emits no redirect.
 
 `commit_i` is an integration contract, not a reconstructed TMS34020 pipeline
 signal. A future sequencer must assert it at the documented architectural
 completion boundary and must suppress it for stalls, faults, retries, and
-interrupt checkpoints. This component does not fetch instructions, consume
-extension words, count machine states, model cache behavior, access memory, or
+interrupt checkpoints. This component does not fetch instructions, count
+machine states, model cache behavior, access memory, or
 implement hidden internal-I/O cycles.
 
 The current register-file synchronous clear provides deterministic FPGA,

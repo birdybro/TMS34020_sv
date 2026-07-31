@@ -132,9 +132,11 @@ That establishes semantic/object compatibility without making its timing
 sequencer reusable. The generated decoder now classifies all 16 exact
 `C?80h` first words and assembles their three-word packets. The independent
 model executes all conditions with exact target assembly, alignment, state
-preservation, and three-/four-state instruction-boundary counts. The direct-PC
-owner, commit path, and scalar slice deliberately reject the complete packet
-until RTL functional execution is implemented.
+preservation, and three-/four-state instruction-boundary counts. The bounded
+RTL direct-PC owner and commit path consume the full 32-bit extension, preserve
+registers/ST, and hold either the aligned absolute redirect or sequential
+fallthrough through scalar completion. This functional path does not implement
+the documented three-/four-state retirement.
 
 ## Conditional relative jumps
 

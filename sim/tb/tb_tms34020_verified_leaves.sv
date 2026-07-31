@@ -37,7 +37,7 @@ module tb_tms34020_verified_leaves;
 
     logic [15:0] pc_execute_first_word;
     logic [2:0] pc_execute_packet_length;
-    logic [15:0] pc_execute_immediate;
+    logic [31:0] pc_execute_immediate;
     logic [31:0] pc_execute_sequential_next_pc;
     logic [31:0] pc_execute_destination;
     logic [31:0] pc_execute_status;
@@ -196,7 +196,7 @@ module tb_tms34020_verified_leaves;
     tms34020_pc_execute pc_execute_dut (
         .first_word_i(pc_execute_first_word),
         .packet_length_words_i(pc_execute_packet_length),
-        .immediate_word_i(pc_execute_immediate),
+        .immediate_i(pc_execute_immediate),
         .sequential_next_pc_i(pc_execute_sequential_next_pc),
         .destination_i(pc_execute_destination),
         .status_i(pc_execute_status),
@@ -664,6 +664,40 @@ module tb_tms34020_verified_leaves;
         input logic [15:0] first_word,
         input logic [2:0] packet_length,
         input logic [15:0] immediate,
+        input logic [31:0] sequential_next_pc,
+        input logic [31:0] destination,
+        input logic [31:0] status,
+        input logic expected_supported,
+        input logic expected_register_write,
+        input logic [31:0] expected_register_data,
+        input logic expected_redirect,
+        input logic [31:0] expected_redirect_address,
+        input string message
+    );
+        pc_execute_first_word = first_word;
+        pc_execute_packet_length = packet_length;
+        pc_execute_immediate = {16'd0, immediate};
+        pc_execute_sequential_next_pc = sequential_next_pc;
+        pc_execute_destination = destination;
+        pc_execute_status = status;
+        #1;
+        check_condition(
+            pc_execute_supported == expected_supported &&
+            pc_execute_register_write_enable ==
+                expected_register_write &&
+            pc_execute_register_write_data ==
+                expected_register_data &&
+            pc_execute_redirect_enable == expected_redirect &&
+            pc_execute_redirect_bit_address ==
+                expected_redirect_address,
+            message
+        );
+    endtask
+
+    task automatic check_pc_execute_absolute(
+        input logic [15:0] first_word,
+        input logic [2:0] packet_length,
+        input logic [31:0] immediate,
         input logic [31:0] sequential_next_pc,
         input logic [31:0] destination,
         input logic [31:0] status,
@@ -1235,6 +1269,42 @@ module tb_tms34020_verified_leaves;
         #1;
     endtask
 
+    task automatic commit_jacc_instruction(
+        input logic [15:0] first_word,
+        input logic [31:0] absolute_target,
+        input logic [31:0] sequential_next_pc,
+        input logic expected_redirect,
+        input logic [31:0] expected_redirect_address,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {absolute_target, first_word};
+        commit_packet_length = 3'd3;
+        commit_sequential_next_pc = sequential_next_pc;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            !commit_register_write_enable &&
+            !commit_status_write_enable &&
+            commit_pc_redirect_enable == expected_redirect &&
+            commit_pc_redirect_bit_address ==
+                expected_redirect_address,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
     task automatic commit_jr_long_instruction(
         input logic [15:0] first_word,
         input logic [15:0] displacement,
@@ -1358,7 +1428,7 @@ module tb_tms34020_verified_leaves;
         decode_word = 16'd0;
         pc_execute_first_word = 16'd0;
         pc_execute_packet_length = 3'd1;
-        pc_execute_immediate = 16'd0;
+        pc_execute_immediate = 32'd0;
         pc_execute_sequential_next_pc = 32'd0;
         pc_execute_destination = 32'd0;
         pc_execute_status = 32'd0;
@@ -1471,6 +1541,43 @@ module tb_tms34020_verified_leaves;
                         condition_status_index[3:0]
                     ),
                     "all condition-code/status truth-table cells"
+                );
+                pc_execute_first_word = {
+                    4'hC,
+                    condition_code_index[3:0],
+                    8'h80
+                };
+                pc_execute_packet_length = 3'd3;
+                pc_execute_immediate = 32'h1234_567F;
+                pc_execute_sequential_next_pc = 32'h0000_10B0;
+                pc_execute_destination = 32'hDEAD_BEEF;
+                pc_execute_status = {
+                    condition_status_index[3:0],
+                    28'd0
+                };
+                #1;
+                check_condition(
+                    pc_execute_supported &&
+                    !pc_execute_register_write_enable &&
+                    (
+                        pc_execute_redirect_enable ==
+                        reference_condition_true(
+                            condition_code_index[3:0],
+                            condition_status_index[3:0]
+                        )
+                    ) &&
+                    (
+                        pc_execute_redirect_bit_address ==
+                        (
+                            reference_condition_true(
+                                condition_code_index[3:0],
+                                condition_status_index[3:0]
+                            )
+                            ? 32'h1234_5670
+                            : 32'd0
+                        )
+                    ),
+                    "all JACC condition-code/status execute cells"
                 );
             end
         end
@@ -2208,12 +2315,26 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'hFFFF_FF20,
             "PC execute JR.L minimum negative displacement wraps"
         );
-        check_pc_execute(
-            16'hC080, 3'd3, 16'h5678, 32'h0000_20B0,
+        check_pc_execute_absolute(
+            16'hC080, 3'd3, 32'h1234_567F, 32'h0000_20B0,
             32'hDEAD_BEEF, 32'hA000_0010,
-            1'b0, 1'b0, 32'd0,
+            1'b1, 1'b0, 32'd0,
+            1'b1, 32'h1234_5670,
+            "PC execute unconditional JACC assembles aligned target"
+        );
+        check_pc_execute_absolute(
+            16'hC880, 3'd3, 32'hFFFF_FFFF, 32'h0000_20B0,
+            32'hDEAD_BEEF, 32'h0000_0010,
+            1'b1, 1'b0, 32'd0,
             1'b0, 32'd0,
-            "decoded JACC cannot enter PC execute before implementation"
+            "PC execute JA.C false condition falls through"
+        );
+        check_pc_execute_absolute(
+            16'hC880, 3'd3, 32'hFFFF_FFFF, 32'h0000_20B0,
+            32'hDEAD_BEEF, 32'h4000_0010,
+            1'b1, 1'b0, 32'd0,
+            1'b1, 32'hFFFF_FFF0,
+            "PC execute JA.C true condition redirects"
         );
         check_pc_execute(
             16'h0121, 3'd2, 16'd0, 32'h0000_2090,
@@ -3075,28 +3196,18 @@ module tb_tms34020_verified_leaves;
             "register commit false JR.C preserves state"
         );
 
-        commit_packet_words = {16'h1234, 16'h5678, 16'hC080};
-        commit_packet_length = 3'd3;
-        commit_sequential_next_pc = 32'h0000_1030;
-        commit_valid = 1'b1;
-        #1;
-        check_condition(
-            !commit_supported &&
-            !commit_accepted &&
-            !commit_register_write_enable &&
-            !commit_status_write_enable &&
-            !commit_pc_redirect_enable,
-            "decoded JACC packet cannot commit before implementation"
+        commit_jacc_instruction(
+            16'hC080, 32'h1234_567F, 32'h0000_1030,
+            1'b1, 32'h1234_5670,
+            TMS34020_ST_RESET, 32'd0,
+            "register commit unconditional JACC redirect"
         );
-        @(posedge clk);
-        #1;
-        check_condition(
-            commit_status == TMS34020_ST_RESET &&
-            commit_sp == 32'd0,
-            "blocked JACC packet cannot mutate architectural state"
+        commit_jacc_instruction(
+            16'hC880, 32'hFFFF_FFFF, 32'h0000_1030,
+            1'b0, 32'd0,
+            TMS34020_ST_RESET, 32'd0,
+            "register commit false JA.C preserves state"
         );
-        commit_valid = 1'b0;
-        #1;
 
         commit_register_instruction(
             16'h0D60, 1'b1,

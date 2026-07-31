@@ -118,9 +118,9 @@ words. It reads N/C/Z/V, changes no status or register, and takes three/four
 machine states for false/taken cases. Sources: TMS34020 User's Guide,
 `JAcondition`, printed pp.13-135..13-136 and timing table p.15-5. The TMS34010
 guide printed pp.12-92..12-93 establishes semantic/object compatibility but
-has different timing. At this extraction checkpoint the decoder and packet
-fetch classify JACC. The model executes all condition outcomes, while RTL
-execution owners still reject it atomically.
+has different timing. The model and bounded RTL execute all condition outcomes;
+RTL uses both extension words and forces target bits `[3:0]` low. This does not
+establish documented RTL retirement timing.
 
 The extracted long `JRcc` form has first word
 `1100_CCCC_0000_0000` and a signed 16-bit word displacement in its second

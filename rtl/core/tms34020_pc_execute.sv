@@ -4,7 +4,7 @@
 module tms34020_pc_execute (
     input  logic [15:0] first_word_i,
     input  logic [2:0]  packet_length_words_i,
-    input  logic [15:0] immediate_word_i,
+    input  logic [31:0] immediate_i,
     input  logic [31:0] sequential_next_pc_i,
     input  logic [31:0] destination_i,
     input  logic [31:0] status_i,
@@ -37,8 +37,8 @@ module tms34020_pc_execute (
     always_comb begin
         decrement_result = destination_i - 32'd1;
         signed_displacement_bits = {
-            {12{immediate_word_i[15]}},
-            immediate_word_i,
+            {12{immediate_i[15]}},
+            immediate_i[15:0],
             4'd0
         };
         dsjs_magnitude_bits = {
@@ -89,6 +89,15 @@ module tms34020_pc_execute (
                     redirect_enable_o = 1'b1;
                     redirect_bit_address_o =
                         destination_i & 32'hFFFF_FFF0;
+                end
+
+                TMS20_OP_JACC: begin
+                    supported_o = 1'b1;
+                    if (jr_condition) begin
+                        redirect_enable_o = 1'b1;
+                        redirect_bit_address_o =
+                            immediate_i & 32'hFFFF_FFF0;
+                    end
                 end
 
                 TMS20_OP_JR_L: begin

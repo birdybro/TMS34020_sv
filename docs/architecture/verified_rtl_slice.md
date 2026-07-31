@@ -11,10 +11,10 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 81 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
-| `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent, EXGPC sequential-PC write plus aligned old-register redirect intent, status/register-neutral JUMP aligned redirect intent, JR.L all-condition fallthrough or signed 16-bit word redirect intent, DSJ/DSJEQ/DSJNE Z-conditioned decrement plus signed 16-bit word redirect intent, and DSJS unconditional decrement plus encoded unsigned-magnitude/direction redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, EXGPC printed p.13-112, GETPC printed p.13-130, and JUMP printed p.13-141 |
+| `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent, EXGPC sequential-PC write plus aligned old-register redirect intent, status/register-neutral JUMP aligned redirect intent, JACC all-condition fallthrough or aligned low-word/high-word absolute redirect intent, JR.L all-condition fallthrough or signed 16-bit word redirect intent, DSJ/DSJEQ/DSJNE Z-conditioned decrement plus signed 16-bit word redirect intent, and DSJS unconditional decrement plus encoded unsigned-magnitude/direction redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, EXGPC printed p.13-112, GETPC printed p.13-130, and JUMP printed p.13-141 |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
-| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit and direct-PC redirect event for 51 one-word operations including DSJS, eight two-word operations including JR.L/DSJ/DSJEQ/DSJNE, and complete three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets; JR.L is register/status neutral and redirects only when its condition is true; DSJ-family decrement is condition-controlled while DSJS always decrements; both are status-neutral and redirect only for a nonzero result; PUTST replaces all 32 ST bits without register writeback; EXGF atomically writes its destination and selected status bank; GETPC/EXGPC consume the packet's sequential PC; EXGPC captures the old destination before writeback; JUMP redirects through the aligned old source without state writeback; unsupported or length-mismatched packets cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, PUTST printed p.13-216, EXGF printed p.13-111, EXGPC printed p.13-112, GETPC printed p.13-130, JUMP printed p.13-141, and the individual instruction pages cited for `tms34020_register_execute` |
-| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for 67 verified scalar/control-flow operations, including JR.L, DSJ/DSJEQ/DSJNE/DSJS, PUTST, SETF/EXGF/SEXT/ZEXT, ADDXY/SUBXY, BTST.K/R, LMO, all eight scalar shift forms, and held control-flow completion redirects; other unsupported or unclassified packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for the execution leaves |
+| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit and direct-PC redirect event for 51 one-word operations including DSJS, eight two-word operations including JR.L/DSJ/DSJEQ/DSJNE, and nine complete three-word operations including JACC and ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L; JACC and JR.L are register/status neutral and redirect only when their selected condition is true; DSJ-family decrement is condition-controlled while DSJS always decrements; both are status-neutral and redirect only for a nonzero result; PUTST replaces all 32 ST bits without register writeback; EXGF atomically writes its destination and selected status bank; GETPC/EXGPC consume the packet's sequential PC; EXGPC captures the old destination before writeback; JUMP redirects through the aligned old source without state writeback; unsupported or length-mismatched packets cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, PUTST printed p.13-216, EXGF printed p.13-111, EXGPC printed p.13-112, GETPC printed p.13-130, JUMP printed p.13-141, and the individual instruction pages cited for `tms34020_register_execute` |
+| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for 68 verified scalar/control-flow operations, including JACC, JR.L, DSJ/DSJEQ/DSJNE/DSJS, PUTST, SETF/EXGF/SEXT/ZEXT, ADDXY/SUBXY, BTST.K/R, LMO, all eight scalar shift forms, and held control-flow completion redirects; other unsupported or unclassified packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for the execution leaves |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
@@ -55,8 +55,9 @@ Verilator. It checks:
 - every currently extracted decoder entry, including masked register/mode
   encodings and instruction-word count;
 - exact JACC `C?80h` condition boundaries, three-word packet assembly,
-  adjacent short-JR nonaliasing, and direct/register/commit/cache-fed
-  nonexecution guards pending an execution owner;
+  adjacent short-JR nonaliasing, every one of the 256 condition-code/NCZV
+  execute cells, aligned low-word/high-word targets, direct and commit
+  taken/false paths, and cache-fed redirect/fallthrough;
 - PUTST A/B/shared-SP decode, source-routing, full-status data/mask, and
   no-register-writeback boundaries;
 - complete SETF/EXGF/SEXT/ZEXT field-bank, register-file, field-size, exchange,
@@ -209,8 +210,9 @@ enabled cache across the bypass sequence.
 
 `make scalar-slice-tests` composes cache, packet fetch, register execution, and
 atomic state commit. It checks twelve bypass-fetched dependent
-field/XY/bit-test/PUTST commits, stable noncommit for one-word BLMOVE,
-three-word JACC, and the POPST/PUSHST forms, plus unclassified packets, complete
+field/XY/bit-test/PUTST commits, stable noncommit for one-word BLMOVE and the
+POPST/PUSHST forms, plus unclassified packets, complete JACC taken/false paths,
+complete
 ORI/XORI/ANDNI packet commits,
 two dependent ADDXYI packet commits, dependent ADDXY/SUBXY one-word commits,
 dependent ADDI.W/ADDI.L/ADDI.W and
@@ -226,17 +228,19 @@ all eight SLA/SLL/SRA/SRL forms in a dependent sequence with preserved versus
 replaced status fields,
 EXGPC atomic register exchange and aligned nonsequential completion redirect,
 a GETPC at that redirect target, JUMP through the sequential address that
-EXGPC stored in A0, an unconditional JR.L taken target and a false JR.C
-sequential fallthrough, unclassified-word noncommit at each target, a
+EXGPC stored in A0, an unconditional JACC aligned absolute target and false
+JA.C sequential fallthrough, an unconditional JR.L taken target and a false
+JR.C sequential fallthrough, unclassified-word noncommit at each target, a
 backward maximum-magnitude DSJS shared-SP decrement and wrapping redirect, and
 a cache-enabled pass that feeds eight dependent commits, including LMO after
-GETST, from exactly four refill long-word reads. Twenty-two runtime assertions
+GETST, from exactly four refill long-word reads. Twenty-four runtime assertions
 across the scalar and commit
 owners constrain acceptance, blocked writes, single-pulse commit, mutually
 exclusive execution ownership, atomic LMO/shift/XY/field-extension/EXGF writes,
 Z-only BTST writes, selected-bank-only SETF writes, aligned
-committed/pending redirects, JUMP redirect-only ownership, JR.L predicate and
-signed-target ownership, and PUTST full-width status-only writes, plus DSJS decrement/redirect conditioning and exact
+committed/pending redirects, JUMP redirect-only ownership, JACC predicate and
+aligned absolute-target ownership, JR.L predicate and signed-target ownership,
+and PUTST full-width status-only writes, plus DSJS decrement/redirect conditioning and exact
 unsigned-magnitude targeting. These
 FPGA handshakes are not architectural cycle evidence.
 
@@ -247,7 +251,7 @@ data paths, unary, binary, and logical arithmetic, LMO, RMO, and RPIX timing out
 observable. It also keeps every output of the register-execution router
 observable and instantiates the commit composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 8,659 logic-cell/2,048-register resource count is not a core-area
+so its 8,767 logic-cell/2,048-register resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -269,13 +273,13 @@ bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,268 logic cells, 1,414 registers,
+composition with zero errors/warnings to 5,262 logic cells, 1,414 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 
 ## Explicitly absent
 
-There is a bounded serialized opcode-to-register execution path for only 67
+There is a bounded serialized opcode-to-register execution path for only 68
 register/status/control-flow operations. There is no timing sequencer,
 processor-derived retirement boundary, interrupt logic, complete memory
 access, page mode,

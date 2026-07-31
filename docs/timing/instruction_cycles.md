@@ -81,8 +81,8 @@ registers. The compatible TMS34010 form has alignment-dependent published
 timing, so its state machine is not reusable. Sources: TMS34020 User's Guide
 printed pp.13-135..13-136 and timing table p.15-5; TMS34010 User's Guide
 printed pp.12-92..12-93. The independent model reports these instruction-
-boundary counts; current RTL execution owners still reject JAcc, so no RTL
-retirement-timing claim is made.
+boundary counts. The bounded RTL implements functional taken/fallthrough
+ordering but not three-/four-state retirement, so no RTL timing claim is made.
 
 Long `JRcc` takes two machine states when its condition is false and three when
 the signed 16-bit relative redirect is taken. The condition reads N/C/Z/V and

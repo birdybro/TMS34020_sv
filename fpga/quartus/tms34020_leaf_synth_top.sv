@@ -141,7 +141,7 @@ module tms34020_leaf_synth_top (
     tms34020_pc_execute pc_execute (
         .first_word_i(first_word_i),
         .packet_length_words_i(decode_length),
-        .immediate_word_i(immediate_i[15:0]),
+        .immediate_i(immediate_i),
         .sequential_next_pc_i(immediate_i),
         .destination_i(operand_i),
         .status_i(status_value),

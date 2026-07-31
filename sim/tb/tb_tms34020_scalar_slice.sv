@@ -136,8 +136,11 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0D00: memory_word = 16'hC800;
                 32'h0000_0D10: memory_word = 16'h0002;
                 32'h0000_0E00: memory_word = 16'hC080;
-                32'h0000_0E10: memory_word = 16'h5678;
+                32'h0000_0E10: memory_word = 16'h567F;
                 32'h0000_0E20: memory_word = 16'h1234;
+                32'h0000_0F00: memory_word = 16'hC880;
+                32'h0000_0F10: memory_word = 16'hFFFF;
+                32'h0000_0F20: memory_word = 16'hFFFF;
                 32'h0000_0100: memory_word = 16'h0BA0;
                 32'h0000_0110: memory_word = 16'h5678;
                 32'h0000_0120: memory_word = 16'h1234;
@@ -939,29 +942,72 @@ module tb_tms34020_scalar_slice;
         serve_word(32'hE00);
         serve_word(32'hE10);
         serve_word(32'hE20);
-        wait (packet_blocked);
+        wait (commit_accepted);
         check_condition(
             packet_valid &&
-            !packet_supported &&
+            packet_supported &&
+            !packet_blocked &&
             packet_opcode_id == TMS20_OP_JACC &&
             packet_length_words == 3'd3 &&
             packet_words[47:0] ==
-                {16'h1234, 16'h5678, 16'hC080} &&
+                {16'h1234, 16'h567F, 16'hC080} &&
             !register_write_enable &&
             !status_write_enable,
-            "complete JACC packet is blocked before implementation"
+            "complete unconditional JACC packet commits without state write"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0,
-                "blocked JACC packet cannot mutate scalar state"
-            );
-        end
+        @(posedge clk);
+        #1;
+        check_condition(
+            !commit_accepted &&
+            commit_count == 1 &&
+            status == TMS34020_ST_RESET &&
+            sp == 32'd0,
+            "JACC taken commit preserves scalar architectural state"
+        );
+        serve_word(32'h1234_5670);
+        wait (packet_blocked);
+        check_condition(
+            packet_opcode_id == TMS20_OP_UNCLASSIFIED &&
+            packet_start_pc == 32'h1234_5670 &&
+            commit_count == 1,
+            "JACC taken path reaches aligned low/high absolute target"
+        );
+
+        apply_reset();
+        load_pc(32'hF00);
+        serve_word(32'hF00);
+        serve_word(32'hF10);
+        serve_word(32'hF20);
+        wait (commit_accepted);
+        check_condition(
+            packet_valid &&
+            packet_supported &&
+            !packet_blocked &&
+            packet_opcode_id == TMS20_OP_JACC &&
+            packet_length_words == 3'd3 &&
+            packet_words[47:0] ==
+                {16'hFFFF, 16'hFFFF, 16'hC880} &&
+            !register_write_enable &&
+            !status_write_enable,
+            "JA.C false packet commits without state write"
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            !commit_accepted &&
+            commit_count == 1 &&
+            status == TMS34020_ST_RESET &&
+            sp == 32'd0,
+            "JA.C false commit preserves scalar architectural state"
+        );
+        serve_word(32'hF30);
+        wait (packet_blocked);
+        check_condition(
+            packet_opcode_id == TMS20_OP_UNCLASSIFIED &&
+            packet_start_pc == 32'hF30 &&
+            commit_count == 1,
+            "JA.C false path falls through after all three words"
+        );
 
         apply_reset();
         load_pc(32'h100);
