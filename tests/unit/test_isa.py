@@ -90,6 +90,10 @@ class IsaTests(unittest.TestCase):
             0x0DC0: ("DSJNE", 2),
             0x0DDF: ("DSJNE", 2),
             0x0DE0: ("SETC", 1),
+            0x3800: ("DSJS", 1),
+            0x3BFF: ("DSJS", 1),
+            0x3C00: ("DSJS", 1),
+            0x3FFF: ("DSJS", 1),
             0x0120: ("EXGPC", 1),
             0x013F: ("EXGPC", 1),
             0x0140: ("GETPC", 1),
@@ -246,8 +250,8 @@ class IsaTests(unittest.TestCase):
         for word in (0x0041, 0x0081, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
-                     0x0FFF, 0x3800,
-                     0x0AFF, 0x0C20, 0x3FFF,
+                     0x0FFF,
+                     0x0AFF, 0x0C20,
                      0x5800,
                      0x79FF, 0x7C00,
                      0xD4FF, 0xD520, 0xD6FF, 0xD720):
@@ -256,8 +260,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 23218)
-        self.assertEqual(unclassified, 65536 - 23218)
+        self.assertEqual(matched, 25266)
+        self.assertEqual(unclassified, 65536 - 25266)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -471,6 +475,47 @@ class IsaTests(unittest.TestCase):
                 )
         self.assertIsNone(self.database.decode(0x0D7F))
         self.assertEqual(self.database.decode(0x0DE0).mnemonic, "SETC")
+
+    def test_dsjs_records_embedded_direction_magnitude_and_timing(self) -> None:
+        forward_zero = self.database.decode(0x3800)
+        forward_max = self.database.decode(0x3BFF)
+        backward_zero = self.database.decode(0x3C00)
+        backward_max = self.database.decode(0x3FFF)
+
+        self.assertIs(forward_zero, forward_max)
+        self.assertIs(forward_zero, backward_zero)
+        self.assertIs(forward_zero, backward_max)
+        self.assertEqual(forward_zero.mnemonic, "DSJS")
+        self.assertEqual(forward_zero.length_words, 1)
+        self.assertEqual(forward_zero.opcode_mask, 0xF800)
+        self.assertEqual(forward_zero.metadata["status_bits_read"], [])
+        self.assertEqual(forward_zero.metadata["status_bits_written"], [])
+        self.assertEqual(
+            forward_zero.metadata["documented_cycles"],
+            {
+                "kind": "cases",
+                "cases": [
+                    {"when": "no jump", "machine_states": 2},
+                    {"when": "jump", "machine_states": 3},
+                ],
+            },
+        )
+        offset = forward_zero.metadata["immediate_fields"][0]
+        self.assertEqual(offset["word"], 0)
+        self.assertEqual(offset["lsb"], 5)
+        self.assertEqual(offset["width"], 5)
+        self.assertFalse(offset["signed"])
+        self.assertEqual(offset["direction_bit"], 10)
+        self.assertEqual(offset["scale_bit_addresses"], 16)
+        self.assertEqual(
+            offset["range_from_instruction_address_words"],
+            "-30..+32",
+        )
+        self.assertTrue(
+            forward_zero.metadata["compatible_with_tms34010"]
+        )
+        self.assertEqual(self.database.decode(0x37FF).mnemonic, "CMPK")
+        self.assertEqual(self.database.decode(0x4000).mnemonic, "ADD")
 
     def test_stack_status_forms_record_ordering_and_alignment_timing(self) -> None:
         popst = self.database.decode(0x01C0)

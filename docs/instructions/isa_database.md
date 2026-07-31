@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 78 page-verified encoding records and covers 23,218 of 65,536
+slice contains 79 page-verified encoding records and covers 25,266 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -54,6 +54,7 @@ first words without collisions:
 | DSJ | `0D80h`, mask `FFE0h` | 2 | p.13-103 |
 | DSJEQ | `0DA0h`, mask `FFE0h` | 2 | pp.13-104..13-105 |
 | DSJNE | `0DC0h`, mask `FFE0h` | 2 | pp.13-106..13-107 |
+| DSJS | `3800h`, mask `F800h` | 1 | p.13-108 |
 | ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
 | ADDXY | `E000h`, mask `FE00h` | 1 | p.13-38 |
@@ -122,6 +123,21 @@ reports the documented two-/three-state cases. The bounded RTL conditions the
 atomic decrement on Z, preserves ST, and holds any signed relative redirect
 through frontend completion. Its serialized handshake is not the documented
 machine-state schedule.
+
+DSJS is the one-word short form. Its `3800h`/`F800h` pattern embeds direction
+`D` in bit 10, a five-bit unsigned word magnitude in bits `[9:5]`, register
+file in bit 4, and destination in bits `[3:0]`. After decrementing the selected
+A/B/shared-SP register modulo `2^32`, a nonzero result redirects from the
+sequential one-word `PC'` by adding the magnitude times 16 when `D=0` or
+subtracting it when `D=1`; zero falls through. The offset field is not a
+two's-complement value. The guide's range of −30 through +32 words is measured
+from the DSJS instruction address because `PC'` is already one word ahead.
+ST remains unchanged, and the no-jump/jump cases take two/three states.
+Sources: TMS34020 User's Guide printed pp.13-12, 13-108, and 15-4; TMS34010
+User's Guide printed pp.12-74..12-75. At this extraction checkpoint the
+independent model raises `UnsupportedInstruction` and rolls back the complete
+checkpoint, while the RTL blocks complete DSJS packets without architectural
+mutation.
 
 EXGF atomically exchanges the selected six-bit FS/FE status bank with the low
 six bits of an A/B/shared-SP destination and clears the register's upper

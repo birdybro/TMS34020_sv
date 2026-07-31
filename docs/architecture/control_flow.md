@@ -138,6 +138,18 @@ suppression, signed displacement extremes, register-file/shared-SP selection,
 and PC wrap. The bounded RTL performs the same functional ordering and holds a
 taken target through frontend completion. Two runtime assertions require the
 conditioned decrement/redirect relationship and exact signed-word target.
+
+`DSJS` occupies the complete `3800h`–`3FFFh` range (`F800h` mask). It embeds
+direction `D` in bit 10 and a five-bit unsigned magnitude in bits `[9:5]`;
+bits 4 and `[3:0]` select the A/B file and destination/shared-SP alias. It
+always decrements the destination modulo `2^32`. A nonzero result redirects to
+`PC_after_instruction + magnitude×16` for `D=0`, or
+`PC_after_instruction - magnitude×16` for `D=1`; zero falls through and ST is
+unaffected. The primary guide's −30..+32-word range is relative to the
+instruction address, not the already-advanced `PC'`. Sources: TMS34020 User's
+Guide printed pp.13-12 and 13-108; TMS34010 User's Guide printed
+pp.12-74..12-75. Decode is implemented, but model and RTL execution are
+deliberately blocked at this extraction checkpoint.
 The RTL still lacks the documented two-/three-state scheduling.
 
 ## Reset entry

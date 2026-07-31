@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1924,6 +1925,19 @@ class ExecutionTests(unittest.TestCase):
         with self.assertRaises(UnclassifiedEncoding):
             model.step()
         self.assertEqual(model.snapshot(), before)
+
+    def test_dsjs_is_atomic_until_semantics_are_implemented(self) -> None:
+        for opcode in (0x3800, 0x3BFF, 0x3C00, 0x3FFF):
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=0x80)
+                model.state.write_reg("A", 0, 0x1234_5678)
+                model.state.sp = 0x89AB_CDEF
+                model.state.st = 0xA000_0010
+                before = model.snapshot()
+                with self.assertRaises(UnsupportedInstruction):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
 
     def test_dsj_all_primary_register_rows_status_and_cycles(self) -> None:
         for before, after, jump_taken in (

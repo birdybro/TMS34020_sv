@@ -3,7 +3,7 @@
   "format_note": "JSON subset of YAML 1.2. This is an incomplete primary-source extraction, not an instruction-completeness claim.",
   "coverage": {
     "status": "INCOMPLETE_PRIMARY_EXTRACTION",
-    "entry_count": 78,
+    "entry_count": 79,
     "first_word_space": 65536,
     "unmatched_first_words_are_reserved": false,
     "next_source_range": "TI-TMS34020-UG-1990 chapter 13 summary and alphabetical reference",
@@ -2880,6 +2880,46 @@
       "bus_32_effects": "instruction refill timing only",
       "page_mode_effects": "instruction refill timing only",
       "source_citations": ["TI-TMS34020-UG-1990 DSJNE, printed pp.13-106..13-107", "TI-TMS34010-UG-1988 DSJNE, printed pp.12-72..12-74"],
+      "compatible_with_tms34010": true,
+      "confidence": "VERIFIED_PRIMARY"
+    },
+    {
+      "mnemonic": "DSJS",
+      "aliases": [],
+      "instruction_length_words": 1,
+      "opcode_mask": "0xF800",
+      "opcode_value": "0x3800",
+      "operand_fields": [
+        {"name": "direction", "word": 0, "lsb": 10, "width": 1, "encoding": "0=add magnitude to PC after this instruction, 1=subtract magnitude"},
+        {"name": "offset_magnitude", "word": 0, "lsb": 5, "width": 5, "encoding": "unsigned word magnitude 0..31, scaled by 16 bit addresses"},
+        {"name": "register_file", "word": 0, "lsb": 4, "width": 1, "encoding": "0=A,1=B"},
+        {"name": "destination", "word": 0, "lsb": 0, "width": 4, "encoding": "Rd; 15=SP alias"}
+      ],
+      "register_file": "destination selected by first-word bit 4",
+      "immediate_fields": [
+        {"name": "short_offset", "word": 0, "lsb": 5, "width": 5, "signed": false, "direction_bit": 10, "direction_encoding": "0=positive,1=negative", "scale_bit_addresses": 16, "base": "PC after the one-word instruction", "range_from_instruction_address_words": "-30..+32"}
+      ],
+      "condition_fields": [],
+      "addressing_modes": ["register_direct", "pc_relative_short"],
+      "source_registers": ["Rd old value", "PC after the one-word instruction"],
+      "destination_registers": ["Rd", "PC if decremented Rd is nonzero"],
+      "status_bits_read": [],
+      "status_bits_written": [],
+      "undefined_status_bits": [],
+      "memory_transactions": [],
+      "graphics_register_dependencies": [],
+      "cache_interactions": ["the single instruction word is fetched through the instruction cache"],
+      "pipeline_interactions": ["decrement Rd modulo 2^32; if nonzero, redirect from sequential PC by adding or subtracting the embedded unsigned magnitude times 16 according to D"],
+      "interruptibility": "at the instruction boundary after the decrement and optional redirect",
+      "restartability": "not_applicable",
+      "bus_fault_behavior": "instruction/refill fault before execute; no data access",
+      "documented_cycles": {"kind": "cases", "cases": [{"when": "no jump", "machine_states": 2}, {"when": "jump", "machine_states": 3}]},
+      "cache_hit_cycles": "2 machine states when no jump, 3 when jump",
+      "cache_miss_cycles": "instruction refill latency plus the documented taken/not-taken case",
+      "bus_16_effects": "instruction refill timing only",
+      "bus_32_effects": "instruction refill timing only",
+      "page_mode_effects": "instruction refill timing only",
+      "source_citations": ["TI-TMS34020-UG-1990 DSJS, printed p.13-108", "TI-TMS34020-UG-1990 instruction summary, printed p.13-12 and timing table p.15-4", "TI-TMS34010-UG-1988 DSJS, printed pp.12-74..12-75"],
       "compatible_with_tms34010": true,
       "confidence": "VERIFIED_PRIMARY"
     }

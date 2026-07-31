@@ -83,7 +83,8 @@ typedef enum logic [6:0] {
     TMS20_OP_SLL_K = 7'd75,
     TMS20_OP_SRA_K = 7'd76,
     TMS20_OP_SRL_K = 7'd77,
-    TMS20_OP_SUBK = 7'd78
+    TMS20_OP_SUBK = 7'd78,
+    TMS20_OP_DSJS = 7'd79
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -411,6 +412,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b000101??????????: begin
                 decoded.opcode_id = TMS20_OP_SUBK;
+                decoded.length_words = 3'd1;
+            end
+            16'b00111???????????: begin
+                decoded.opcode_id = TMS20_OP_DSJS;
                 decoded.length_words = 3'd1;
             end
             default: begin

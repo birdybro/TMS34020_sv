@@ -2004,6 +2004,13 @@ module tb_tms34020_verified_leaves;
             "PC execute DSJNE suppressed"
         );
         check_pc_execute(
+            16'h3FFF, 3'd1, 16'd0, 32'h0000_20A0,
+            32'h0000_0002, 32'hA000_0010,
+            1'b0, 1'b0, 32'd0,
+            1'b0, 32'd0,
+            "PC execute blocks decoded DSJS before implementation"
+        );
+        check_pc_execute(
             16'h0121, 3'd2, 16'd0, 32'h0000_2090,
             32'h1234_567F, 32'hA000_0010,
             1'b0, 1'b0, 32'd0,
@@ -2658,6 +2665,11 @@ module tb_tms34020_verified_leaves;
             "complete DSJ cannot enter register execute"
         );
         check_register_execute(
+            16'h3FFF, 32'd0, 32'h1234_5678, 32'hA000_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only DSJS cannot enter register execute"
+        );
+        check_register_execute(
             16'hD505, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
             1'b1, 1'b1, 32'h0000_003F, 1'b1,
             32'd0, 32'h0000_003F,
@@ -2991,6 +3003,13 @@ module tb_tms34020_verified_leaves;
             1'b0, 32'd0, 32'd0,
             32'h0000_0010, 32'd1,
             "register commit rejects decode-only PUSHST"
+        );
+        commit_register_instruction(
+            16'h3FFF, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only DSJS"
         );
         commit_dsj_instruction(
             16'h0D9F, 16'h0002, 32'h0000_1000,
@@ -3394,6 +3413,14 @@ module tb_tms34020_verified_leaves;
                      "DSJNE B-file shared-SP decode");
         check_decode(16'h0DE0, TMS20_OP_SETC, 3'd1,
                      "SETC exact decode");
+        check_decode(16'h3800, TMS20_OP_DSJS, 3'd1,
+                     "DSJS forward-zero A-file lower-bound decode");
+        check_decode(16'h3BFF, TMS20_OP_DSJS, 3'd1,
+                     "DSJS forward-max B-file shared-SP decode");
+        check_decode(16'h3C00, TMS20_OP_DSJS, 3'd1,
+                     "DSJS backward-zero A-file lower-bound decode");
+        check_decode(16'h3FFF, TMS20_OP_DSJS, 3'd1,
+                     "DSJS backward-max B-file shared-SP decode");
         check_decode(16'h019F, TMS20_OP_GETST, 3'd1,
                      "GETST masked decode");
         check_decode(16'h01A0, TMS20_OP_PUTST, 3'd1,

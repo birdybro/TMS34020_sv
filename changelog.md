@@ -108,6 +108,11 @@
   semantics, two-/three-state cases, TMS34010 semantic compatibility, generated
   decode, complete range-boundary fixtures, atomic model rollback guards, and
   explicit RTL packet noncommit checks.
+- Primary-page-verified DSJS single-word encoding with independent direction,
+  unsigned five-bit magnitude, A/B/shared-SP selection, instruction-relative
+  range interpretation, two-/three-state timing, TMS34010 semantic
+  compatibility, complete boundary fixtures, atomic model rollback guards, and
+  explicit RTL packet noncommit checks.
 - Independent DSJ/DSJEQ/DSJNE model execution covering all published rows,
   enabled and suppressed conditions, zero/wrapping decrements, signed
   displacement extremes, PC wrap, A/B/shared-SP selection, exact write traces,
@@ -220,6 +225,15 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 79 entries covering 25,266 first
+  words. DSJS forward/backward, zero/max-magnitude, A/B/shared-SP, and adjacent
+  CMPK/ADD boundaries pass independent fixtures and the 65,536-word sweep. The
+  127-case model suite proves complete attempts roll back atomically; leaf and
+  scalar tests prove decoded packets cannot write registers/status or redirect
+  before an execution owner exists. All four decoder-bearing Cyclone V
+  analyses pass with zero errors/warnings at 8,612 leaf, 416 fetch, 790
+  frontend, and 5,211 scalar diagnostic logic cells; these are not fitted
+  core-area or timing-closure results.
 - Expanded the collision-free ISA slice to 78 entries covering 23,218 first
   words. All DSJ/DSJEQ/DSJNE range boundaries and the adjacent SETC boundary
   pass the independent fixtures and 65,536-word sweep. The 126-case model suite
@@ -227,8 +241,8 @@
   verify conditional decrement, status preservation, signed redirect targets,
   decrement-to-zero suppression, wrap, and PC wrap. All four decoder-bearing
   Cyclone V analyses pass with zero errors/warnings at 8,604 leaf, 407 fetch,
-  772 frontend, and 5,170 scalar diagnostic logic cells; these are not fitted core-area or
-  timing-closure results.
+  772 frontend, and 5,170 scalar diagnostic logic cells; these are not fitted
+  core-area or timing-closure results.
 - The 122-case independent model suite covers bounded successful semantics for
   all 75 currently extracted forms. JUMP tests cover all primary target rows,
   A/B/shared-SP selection, alignment, preservation, and timing; this is not a

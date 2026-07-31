@@ -70,6 +70,12 @@ remain presented with `packet_blocked_o=1`. They are neither consumed nor
 treated as illegal instructions, because the architectural exception and other
 execution behavior are not yet implemented.
 
+DSJS is currently one of those decoded blocked packets. Directed simulation
+fetches its backward/max-magnitude/shared-SP boundary word and holds it for
+three FPGA clocks without a commit, register write, status write, redirect, or
+state change. This guard is removed only when a direct-PC execution owner is
+implemented.
+
 DSJ always decrements its selected destination. DSJEQ does so only for Z=1,
 and DSJNE only for Z=0. An enabled modulo-`2^32` decrement writes the A/B/shared
 SP destination; a nonzero result redirects from the packet's sequential PC by
@@ -200,7 +206,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 5,157 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 5,211 logic cells,
 1,414 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,
