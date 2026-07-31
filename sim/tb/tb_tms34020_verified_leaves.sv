@@ -1278,6 +1278,10 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h53FF, TMS20_OP_ANDN, 3'd1, "ANDN masked decode");
         check_decode(16'h55FF, TMS20_OP_OR, 3'd1, "OR masked decode");
         check_decode(16'h57FF, TMS20_OP_XOR, 3'd1, "XOR masked decode");
+        check_decode(16'h0B40, TMS20_OP_CMPI_W, 3'd2,
+                     "CMPI.W exact decode");
+        check_decode(16'h0B7F, TMS20_OP_CMPI_L, 3'd3,
+                     "CMPI.L masked decode");
         check_decode(16'h0B9F, TMS20_OP_ANDNI, 3'd3,
                      "ANDNI masked three-word decode");
         check_decode(16'h0BBF, TMS20_OP_ORI, 3'd3,

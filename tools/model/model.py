@@ -98,6 +98,8 @@ class Tms34020Model:
             "ADDI.L": self._execute_addi_long,
             "SUBI.W": self._execute_subi_word,
             "SUBI.L": self._execute_subi_long,
+            "CMPI.W": self._execute_cmpi_word,
+            "CMPI.L": self._execute_cmpi_long,
             "SUB": self._execute_sub,
             "SUBB": self._execute_subb,
             "CMP": self._execute_cmp,
@@ -587,7 +589,10 @@ class Tms34020Model:
         return self._execute_immediate_add(words, True)
 
     def _execute_immediate_subtract(
-        self, words: list[int], long_form: bool
+        self,
+        words: list[int],
+        long_form: bool,
+        write_result: bool = True,
     ) -> int:
         register_file, index = self._decode_destination(words[0])
         destination = self.state.read_reg(register_file, index)
@@ -607,7 +612,8 @@ class Tms34020Model:
             & 0x8000_0000
         )
 
-        self.state.write_reg(register_file, index, result)
+        if write_result:
+            self.state.write_reg(register_file, index, result)
         self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
         self._set_status_bit(C_BIT, borrow)
         self._set_status_bit(Z_BIT, result == 0)
@@ -629,6 +635,22 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_immediate_subtract(words, True)
+
+    def _execute_cmpi_word(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_subtract(
+            words, False, write_result=False
+        )
+
+    def _execute_cmpi_long(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_subtract(
+            words, True, write_result=False
+        )
 
     def _execute_sub(
         self, instruction: Instruction, words: list[int]

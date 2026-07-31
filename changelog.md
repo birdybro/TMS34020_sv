@@ -226,6 +226,14 @@
   rejection, and dependent fetched-packet tests. Requalified Quartus wrappers
   report 6,015 leaf logic cells and 3,817 scalar logic cells with zero
   errors/warnings.
+- Extracted collision-free CMPI.W and CMPI.L records from TI printed
+  pp.13-81..13-82. The partial ISA now contains 44 records covering 6,800
+  first words, and the independent model covers 38 forms with complemented
+  object words, all twenty primary example rows, A/B and shared-SP reads,
+  nondestructive state traces, full NCZV replacement, and short/long alignment
+  cases. The scalar regression proves a complete decoded CMPI.W packet remains
+  noncommitting. Warning-free decoder requalification reports 6,028 leaf, 348
+  fetch, 735 frontend, and 3,792 scalar logic cells.
 
 ### Documentation
 

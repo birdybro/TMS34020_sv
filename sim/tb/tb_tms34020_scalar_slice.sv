@@ -153,6 +153,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0280: memory_word = 16'h0D00;
                 32'h0000_0290: memory_word = 16'hFFFF;
                 32'h0000_02A0: memory_word = 16'h7FFF;
+                32'h0000_02B0: memory_word = 16'h0B40;
+                32'h0000_02C0: memory_word = 16'hFFFE;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -651,6 +653,34 @@ module tb_tms34020_scalar_slice;
         );
 
         serve_word(32'h2B0);
+        serve_word(32'h2C0);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_CMPI_W &&
+            packet_length_words == 3'd2 &&
+            packet_words[31:0] == 32'hFFFE_0B40 &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "decoded CMPI.W packet remains blocked"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 10 &&
+                status == 32'hD000_0010 &&
+                sp == 32'd0,
+                "blocked CMPI.W packet cannot mutate state"
+            );
+        end
+
+        apply_reset();
+        load_pc(32'h2D0);
+        serve_word(32'h2D0);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -667,8 +697,8 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 10 &&
-                status == 32'hD000_0010 &&
+                commit_count == 0 &&
+                status == 32'h0000_0010 &&
                 sp == 32'd0,
                 "blocked unclassified packet cannot mutate state"
             );

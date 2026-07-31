@@ -3,15 +3,15 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `6175648e16468e77da8095dbfc1a5d22c3685222`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 58 directed model
+- Latest commit: `ff954d8f6e6c5f9e03e811417609b7561c09bcbf`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 61 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 36 of 42 extracted encoding forms fetch opcodes/extensions
+- Model status: 38 of 44 extracted encoding forms fetch opcodes/extensions
   through transaction-level cache/retry state with traces, rollback and
   snapshot replay; full ISA/interfaces remain (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
@@ -39,7 +39,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 3,817 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 3,792 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
@@ -50,5 +50,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: extract the next primary-source scalar family and independent
-  fixtures before extending model or RTL behavior
+- Next task: qualify CMPI.W/L nondestructive packet execution in the bounded
+  RTL while retaining the timing non-claim

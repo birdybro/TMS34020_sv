@@ -19,9 +19,9 @@ Implemented:
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, INC, DEC, SETC, ADD,
-  ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, AND, ANDN, OR, XOR,
-  ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry, MWAIT, ADDXYI, CMPK,
-  EXGPS, GETPS, RMO, and RPIX.
+  ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L, AND,
+  ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry, MWAIT,
+  ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -65,6 +65,12 @@ split as ADDI.L. `SUBI.W` and `SUBI.L` are database form names; TI uses `SUBI`
 for both. Source: the same guide, printed pp.13-243..13-244. The inconsistent
 first long-form example flag is resolved explicitly in
 `docs/research/source_conflicts.md` RSC-0009.
+
+CMPI.W and CMPI.L use the same complemented immediate recovery, subtraction
+flags, and short/long alignment cases as SUBI, but do not write Rd. The model
+traces therefore contain no register write for either form, including shared
+SP. `CMPI.W` and `CMPI.L` are database form names; TI uses `CMPI` for both.
+Source: the same guide, printed pp.13-81..13-82 and timing-table p.15-4.
 
 The register and immediate logical families implement AND/ANDN/OR/XOR and
 ANDNI/ORI/XORI while changing only Z. ANDI is the documented assembler alias
@@ -152,6 +158,8 @@ all TI ADDI example rows, signed-word extension, long-immediate alignment
 timing, A/B selection, and SP aliasing; all TI SUBI arithmetic rows,
 one's-complement object words, borrow/overflow boundaries, alignment timing,
 and SP aliasing, with the RSC-0009 status-table correction kept explicit;
+all TI CMPI rows, complemented object words, nondestructive A/B/SP behavior,
+lower-ST preservation, and short/long alignment timing;
 all TI register/immediate logical example rows, ANDI encoded-complement
 behavior, aligned and unaligned immediate timing,
 CLRC/SETC preservation, DINT/EINT IE changes, complete GETST transfer, all TI

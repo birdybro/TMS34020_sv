@@ -70,7 +70,8 @@ XORI, and ANDNI from complete fetched packets; executes two dependent ADDXYI
 packets with independent half arithmetic and full NCZV replacement; executes
 dependent ADDI.W, ADDI.L, and sign-extending ADDI.W packets with full NCZV
 replacement; executes complemented SUBI.W and dependent SUBI.L packets; then
-proves an unclassified packet remains blocked and state-stable.
+proves a complete decoded CMPI.W packet and a separate unclassified packet
+remain blocked and state-stable.
 
 A second pass enables the cache, checks the demand-word-last refill sequence,
 and executes the first eight dependent instructions with exactly four native
@@ -79,7 +80,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 3,817 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 3,792 logic cells,
 1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 42 page-verified encoding records and covers 6,736 of 65,536
+slice contains 44 page-verified encoding records and covers 6,800 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -29,6 +29,8 @@ first words without collisions:
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
 | ADDI.W / ADDI | `0B00h`, mask `FFE0h` | 2 | p.13-35 |
 | ADDI.L / ADDI | `0B20h`, mask `FFE0h` | 3 | p.13-36 |
+| CMPI.W / CMPI | `0B40h`, mask `FFE0h` | 2 | p.13-81 |
+| CMPI.L / CMPI | `0B60h`, mask `FFE0h` | 3 | p.13-82 |
 | SUBI.W / SUBI | `0BE0h`, mask `FFE0h` | 2 | p.13-243 |
 | SUBI.L / SUBI | `0D00h`, mask `FFE0h` | 3 | p.13-244 |
 | SUB | `4400h`, mask `FE00h` | 1 | p.13-241 |
@@ -62,12 +64,13 @@ reads/writes, memory transactions, graphics dependencies, cache/pipeline
 interaction, interrupt/restart/fault behavior, documented cycle cases,
 16/32-bit/page effects, compatibility, citations, and confidence.
 
-The `.W` and `.L` suffixes on the ADDI and SUBI record pairs are canonical
-database encoding-form names. TI's source mnemonics remain `ADDI` and `SUBI`
-in the respective aliases. The form names keep different first words, lengths,
-immediate widths, object encodings, and timing cases unambiguous without
-inventing source-level opcode distinctions. SUBI stores the one's complement
-of its source immediate in each extension word as shown on pp.13-243..13-244.
+The `.W` and `.L` suffixes on the ADDI, CMPI, and SUBI record pairs are
+canonical database encoding-form names. TI's source mnemonics remain `ADDI`,
+`CMPI`, and `SUBI` in the respective aliases. The form names keep different
+first words, lengths, immediate widths, object encodings, and timing cases
+unambiguous without inventing source-level opcode distinctions. CMPI and SUBI
+store the one's complement of their source immediate in each extension word,
+as shown on pp.13-81..13-82 and 13-243..13-244.
 
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database

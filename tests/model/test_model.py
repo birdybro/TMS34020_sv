@@ -646,6 +646,100 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(model.state.sp, 0xFFFF_FFFF)
         self.assertEqual(model.state.read_reg("A", 15), 0xFFFF_FFFF)
 
+    def test_cmpi_word_primary_rows_are_nondestructive(self) -> None:
+        cases = (
+            (1, 0x0000_0002, 0b0000),
+            (1, 0x0000_0001, 0b0010),
+            (1, 0x0000_0000, 0b1100),
+            (1, 0xFFFF_FFFF, 0b1000),
+            (1, 0x8000_0000, 0b0001),
+            (-2, 0x0000_0000, 0b0100),
+            (-2, 0xFFFF_FFFF, 0b0000),
+            (-2, 0xFFFF_FFFE, 0b0010),
+            (-2, 0xFFFF_FFFD, 0b1100),
+            (-1, 0x7FFF_FFFF, 0b1101),
+        )
+        for case_index, (immediate, destination, nczv) in enumerate(cases):
+            register_file = "B" if case_index & 1 else "A"
+            file_bit = 0x10 if register_file == "B" else 0
+            encoded = (~immediate) & 0xFFFF
+            with self.subTest(
+                immediate=immediate,
+                destination=f"{destination:08X}",
+                register_file=register_file,
+            ):
+                model = Tms34020Model()
+                model.load_program([0x0B40 | file_bit, encoded])
+                model.state.write_reg(register_file, 0, destination)
+                status_low = model.state.st & 0x0FFF_FFFF
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg(register_file, 0), destination
+                )
+                self.assertEqual(event.register_writes, [])
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(model.state.st & 0x0FFF_FFFF, status_low)
+                self.assertEqual(event.mnemonic, "CMPI.W")
+                self.assertEqual(event.instruction_words[1], encoded)
+                self.assertEqual(event.machine_states, 2)
+
+    def test_cmpi_long_primary_rows_and_alignment_are_nondestructive(
+        self,
+    ) -> None:
+        cases = (
+            (0x0000_8000, 0x0000_8001, 0b0000),
+            (0x0000_8000, 0x0000_8000, 0b0010),
+            (0x0000_8000, 0x0000_7FFF, 0b1100),
+            (0x0000_8000, 0xFFFF_FFFF, 0b1000),
+            (0x0000_8000, 0x8000_7FFF, 0b0001),
+            (0xFFFF_7FFF, 0x0000_0000, 0b0100),
+            (0xFFFF_7FFE, 0xFFFF_7FFF, 0b0000),
+            (0xFFFF_7FFE, 0xFFFF_7FFE, 0b0010),
+            (0xFFFF_7FFE, 0xFFFF_7FFD, 0b1100),
+            (0xFFFF_7FFF, 0x7FFF_7FFF, 0b1101),
+        )
+        for case_index, (immediate, destination, nczv) in enumerate(cases):
+            encoded = (~immediate) & 0xFFFF_FFFF
+            start_address = 0x10 if case_index & 1 else 0
+            with self.subTest(
+                immediate=f"{immediate:08X}",
+                destination=f"{destination:08X}",
+                start_address=f"{start_address:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program(
+                    [0x0B60, encoded & 0xFFFF, encoded >> 16],
+                    bit_address=start_address,
+                )
+                model.state.write_reg("A", 0, destination)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), destination)
+                self.assertEqual(event.register_writes, [])
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.mnemonic, "CMPI.L")
+                self.assertEqual(
+                    event.instruction_words[1:],
+                    [encoded & 0xFFFF, encoded >> 16],
+                )
+                self.assertEqual(
+                    event.machine_states,
+                    2 if start_address == 0x10 else 3,
+                )
+
+    def test_cmpi_long_reads_shared_sp_without_modifying_it(self) -> None:
+        immediate = 2
+        encoded = (~immediate) & 0xFFFF_FFFF
+        model = Tms34020Model()
+        model.load_program(
+            [0x0B7F, encoded & 0xFFFF, encoded >> 16],
+            bit_address=0x10,
+        )
+        model.state.sp = 1
+        event = model.step()
+        self.assertEqual(model.state.sp, 1)
+        self.assertEqual(event.register_writes, [])
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b1100)
+
     def test_logical_primary_examples_and_only_z_changes(self) -> None:
         cases = (
             (0x5000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF),
