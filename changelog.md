@@ -278,6 +278,12 @@
   MOVI packets remain blocked at this extraction-only RTL checkpoint.
   Warning-free Quartus reports 5,926 leaf, 363 fetch, 734 frontend, and 3,751
   scalar logic cells.
+- Routed complete MOVI.W/L packets through atomic A/B/shared-SP commit.
+  Directed RTL covers short sign extension, long-word assembly, primary
+  example values, incomplete-packet rejection, and masked N/Z/V replacement
+  with C preservation. The scalar composition fetches and commits both forms.
+  Warning-free Quartus requalification reports 6,025 leaf and 3,810 scalar
+  logic cells; fetch/frontend logic is unchanged.
 
 ### Documentation
 
@@ -344,7 +350,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 24 one-word, three two-word, and seven
+  bounded scalar composition accepts only 24 one-word, four two-word, and eight
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

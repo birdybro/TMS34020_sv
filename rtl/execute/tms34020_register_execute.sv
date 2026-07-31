@@ -50,6 +50,9 @@ module tms34020_register_execute (
     logic [31:0] immediate_subtract_result;
     logic [3:0] immediate_subtract_nczv;
     logic immediate_subtract_write_enable;
+    logic [31:0] immediate_move_result;
+    logic immediate_move_n;
+    logic immediate_move_z;
     logic [31:0] constant_value;
     logic [31:0] addk_result;
     logic [3:0] addk_nczv;
@@ -175,6 +178,18 @@ module tms34020_register_execute (
         .status_nczv_o(immediate_subtract_nczv),
         .register_write_enable_o(immediate_subtract_write_enable)
     );
+
+    always_comb begin
+        immediate_move_result = immediate_i;
+        if (opcode_id == TMS20_OP_MOVI_W) begin
+            immediate_move_result = {
+                {16{immediate_i[15]}},
+                immediate_i[15:0]
+            };
+        end
+        immediate_move_n = immediate_move_result[31];
+        immediate_move_z = immediate_move_result == 32'd0;
+    end
 
     always_comb begin
         constant_value = {27'd0, first_word_i[9:5]};
@@ -360,6 +375,23 @@ module tms34020_register_execute (
                     status_write_data_o =
                         {immediate_subtract_nczv, 28'd0};
                     status_write_mask_o = 32'hF000_0000;
+                end
+
+                TMS20_OP_MOVI_W,
+                TMS20_OP_MOVI_L: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = immediate_move_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = {
+                        immediate_move_n,
+                        1'b0,
+                        immediate_move_z,
+                        1'b0,
+                        28'd0
+                    };
+                    status_write_mask_o = 32'hB000_0000;
                 end
 
                 TMS20_OP_RMO: begin

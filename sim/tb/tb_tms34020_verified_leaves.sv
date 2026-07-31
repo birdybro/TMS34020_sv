@@ -353,6 +353,37 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_immediate_move_register_execute(
+        input logic [15:0] first_word,
+        input logic [2:0] packet_length,
+        input logic [31:0] immediate,
+        input logic [31:0] expected_register_data,
+        input logic expected_n,
+        input logic expected_z,
+        input string message
+    );
+        execute_first_word = first_word;
+        execute_packet_length = packet_length;
+        execute_immediate = immediate;
+        execute_source = 32'hDEAD_BEEF;
+        execute_destination = 32'hCAFE_BABE;
+        execute_status = 32'h5FFF_FFFF;
+        #1;
+        check_condition(
+            execute_supported &&
+            execute_register_file == first_word[4] &&
+            execute_source_index == first_word[3:0] &&
+            execute_destination_index == first_word[3:0] &&
+            execute_register_write_enable &&
+            execute_register_write_data == expected_register_data &&
+            execute_status_write_enable &&
+            execute_status_write_data ==
+                {expected_n, 1'b0, expected_z, 1'b0, 28'd0} &&
+            execute_status_write_mask == 32'hB000_0000,
+            message
+        );
+    endtask
+
     task automatic check_immediate_compare_register_execute(
         input logic [15:0] first_word,
         input logic [2:0] packet_length,
@@ -500,6 +531,47 @@ module tb_tms34020_verified_leaves;
             commit_status_write_enable &&
             commit_status_write_data == {expected_nczv, 28'd0} &&
             commit_status_write_mask == 32'hF000_0000,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
+    task automatic commit_immediate_move_instruction(
+        input logic [15:0] first_word,
+        input logic [2:0] packet_length,
+        input logic [31:0] immediate,
+        input logic expected_register_file,
+        input logic [3:0] expected_register_index,
+        input logic [31:0] expected_register_data,
+        input logic expected_n,
+        input logic expected_z,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {immediate, first_word};
+        commit_packet_length = packet_length;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            commit_register_write_enable &&
+            commit_register_write_file == expected_register_file &&
+            commit_register_write_index == expected_register_index &&
+            commit_register_write_data == expected_register_data &&
+            commit_status_write_enable &&
+            commit_status_write_data ==
+                {expected_n, 1'b0, expected_z, 1'b0, 28'd0} &&
+            commit_status_write_mask == 32'hB000_0000,
             message
         );
         @(posedge clk);
@@ -1039,25 +1111,70 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "decoded but unsupported register execute instruction"
         );
-        execute_first_word = 16'h09C0;
-        execute_packet_length = 3'd2;
-        execute_immediate = 32'h0000_8000;
-        #1;
-        check_condition(
-            !execute_supported &&
-            !execute_register_write_enable &&
-            !execute_status_write_enable,
-            "complete MOVI.W remains unsupported at extraction checkpoint"
+        check_register_execute(
+            16'h09C0, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "incomplete MOVI.W cannot enter register execute"
         );
-        execute_first_word = 16'h09E0;
-        execute_packet_length = 3'd3;
-        execute_immediate = 32'h8000_0000;
-        #1;
-        check_condition(
-            !execute_supported &&
-            !execute_register_write_enable &&
-            !execute_status_write_enable,
-            "complete MOVI.L remains unsupported at extraction checkpoint"
+        check_register_execute(
+            16'h09E0, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "incomplete MOVI.L cannot enter register execute"
+        );
+        check_immediate_move_register_execute(
+            16'h09C0, 3'd2, 32'hF00D_7FFF,
+            32'h0000_7FFF, 1'b0, 1'b0,
+            "register execute MOVI.W maximum positive"
+        );
+        check_immediate_move_register_execute(
+            16'h09C0, 3'd2, 32'hF00D_0001,
+            32'h0000_0001, 1'b0, 1'b0,
+            "register execute MOVI.W positive one"
+        );
+        check_immediate_move_register_execute(
+            16'h09C0, 3'd2, 32'hF00D_0000,
+            32'h0000_0000, 1'b0, 1'b1,
+            "register execute MOVI.W zero"
+        );
+        check_immediate_move_register_execute(
+            16'h09D2, 3'd2, 32'hF00D_FFFF,
+            32'hFFFF_FFFF, 1'b1, 1'b0,
+            "register execute MOVI.W B-file negative one"
+        );
+        check_immediate_move_register_execute(
+            16'h09DF, 3'd2, 32'hF00D_8000,
+            32'hFFFF_8000, 1'b1, 1'b0,
+            "register execute MOVI.W shared-SP sign extension"
+        );
+        check_immediate_move_register_execute(
+            16'h09E0, 3'd3, 32'h7FFF_FFFF,
+            32'h7FFF_FFFF, 1'b0, 1'b0,
+            "register execute MOVI.L maximum positive"
+        );
+        check_immediate_move_register_execute(
+            16'h09E0, 3'd3, 32'h0000_8000,
+            32'h0000_8000, 1'b0, 1'b0,
+            "register execute MOVI.L low-word sign is not extended"
+        );
+        check_immediate_move_register_execute(
+            16'h09E0, 3'd3, 32'hFFFF_7FFF,
+            32'hFFFF_7FFF, 1'b1, 1'b0,
+            "register execute MOVI.L high word controls sign"
+        );
+        check_immediate_move_register_execute(
+            16'h09E0, 3'd3, 32'h8000_0000,
+            32'h8000_0000, 1'b1, 1'b0,
+            "register execute MOVI.L minimum negative"
+        );
+        check_immediate_move_register_execute(
+            16'h09FF, 3'd3, 32'hFFFF_FFFF,
+            32'hFFFF_FFFF, 1'b1, 1'b0,
+            "register execute MOVI.L shared-SP negative one"
+        );
+        check_immediate_move_register_execute(
+            16'h09F2, 3'd3, 32'h0000_0000,
+            32'h0000_0000, 1'b0, 1'b1,
+            "register execute MOVI.L B-file zero"
         );
         check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
@@ -1261,6 +1378,18 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'hC000_0000, 32'hF000_0000,
             32'hC000_0010, 32'd0,
             "register commit SUBK/DEC A0"
+        );
+        commit_immediate_move_instruction(
+            16'h09D3, 3'd2, 32'hF00D_8000,
+            1'b1, 4'd3, 32'hFFFF_8000,
+            1'b1, 1'b0, 32'hC000_0010, 32'd0,
+            "register commit MOVI.W preserves carry"
+        );
+        commit_immediate_move_instruction(
+            16'h09FF, 3'd3, 32'd0,
+            1'b1, 4'd15, 32'd0,
+            1'b0, 1'b1, 32'h6000_0010, 32'd0,
+            "register commit MOVI.L updates shared SP and preserves carry"
         );
         commit_register_instruction(
             16'h0380, 1'b1,

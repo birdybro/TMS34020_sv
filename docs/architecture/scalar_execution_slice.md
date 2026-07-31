@@ -2,7 +2,7 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 34 register/status operations already verified against their
+execution path for 36 register/status operations already verified against their
 individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
@@ -12,7 +12,8 @@ individual TI instruction pages:
 - the three-word ANDNI, ORI, and XORI immediate-logical family; and
 - the three-word ADDXYI immediate XY operation; plus
 - the two-word ADDI.W/CMPI.W/SUBI.W and three-word
-  ADDI.L/CMPI.L/SUBI.L forms.
+  ADDI.L/CMPI.L/SUBI.L forms; and
+- the two-word MOVI.W and three-word MOVI.L forms.
 
 The canonical encodings, operands, status effects, and printed-page citations
 remain in `docs/generated/tms34020_isa.yaml`. The register-file and status
@@ -47,6 +48,9 @@ ADDI.W sign-extends extension word 1. CMPI.W/L and SUBI.W/L first complement
 their documented one's-complement object word or words; recovered word
 operands are then sign-extended. No state write can occur until the frontend
 has collected the complete two- or three-word packet.
+MOVI.W sign-extends extension word 1, while MOVI.L consumes extension word 1
+as the low half and extension word 2 as the high half. Both replace N/Z/V,
+preserve C, and write the selected A/B destination, including shared SP.
 ADDXYI adds its X and Y halves independently and replaces NCZV with the
 instruction-specific zero/sign meanings. ADDI.W/L, CMPI.W/L, and SUBI.W/L
 perform 32-bit addition or subtraction and replace all four NCZV bits. CMPI
@@ -75,10 +79,9 @@ replacement; executes complemented SUBI.W and dependent SUBI.L packets; then
 executes nondestructive CMPI.W followed by CMPI.L against the preserved
 destination; executes ADDK with encoded K=0 and then SUBK with encoded K=0
 against shared SP; commits MOVK with encoded K=0 while preserving live ST; then,
-after reset, proves a complete decoded MOVI.W packet remains blocked and
-state-stable at the extraction checkpoint; after another reset, a separate
-unclassified packet also remains blocked. The earlier INC and DEC spellings
-exercise the canonical
+after reset, commits a zero MOVI.W and a dependent MOVI.L to shared SP; after
+another reset, a separate unclassified packet remains blocked. The earlier
+INC and DEC spellings exercise the canonical
 ADDK K=1 and SUBK K=1 object codes.
 
 A second pass enables the cache, checks the demand-word-last refill sequence,
@@ -88,7 +91,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 3,751 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 3,810 logic cells,
 1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

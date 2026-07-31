@@ -163,6 +163,9 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0320: memory_word = 16'h1800;
                 32'h0000_0330: memory_word = 16'h09C0;
                 32'h0000_0340: memory_word = 16'h0000;
+                32'h0000_0350: memory_word = 16'h09FF;
+                32'h0000_0360: memory_word = 16'h5678;
+                32'h0000_0370: memory_word = 16'h1234;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -284,6 +287,63 @@ module tb_tms34020_scalar_slice;
                 !commit_accepted &&
                 status == expected_status &&
                 sp == 32'd0,
+                message
+            );
+        end
+    endtask
+
+    task automatic serve_immediate_move_and_commit(
+        input logic [31:0] expected_pc,
+        input tms34020_opcode_id_t expected_opcode,
+        input logic [2:0] expected_length,
+        input logic expected_register_file,
+        input logic [3:0] expected_register_index,
+        input logic [31:0] expected_register_data,
+        input logic expected_n,
+        input logic expected_z,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        begin
+            serve_word(expected_pc);
+            serve_word(expected_pc + 32'd16);
+            if (expected_length == 3'd3) begin
+                serve_word(expected_pc + 32'd32);
+            end
+            wait (commit_accepted);
+            check_condition(
+                packet_valid &&
+                packet_supported &&
+                !packet_blocked &&
+                packet_opcode_id == expected_opcode &&
+                packet_length_words == expected_length &&
+                packet_start_pc == expected_pc &&
+                packet_words[15:0] == memory_word(expected_pc) &&
+                packet_words[31:16] ==
+                    memory_word(expected_pc + 32'd16) &&
+                (
+                    expected_length == 3'd2 ||
+                    packet_words[47:32] ==
+                        memory_word(expected_pc + 32'd32)
+                ) &&
+                packet_words[79:48] == 32'd0 &&
+                register_write_enable &&
+                register_write_file == expected_register_file &&
+                register_write_index == expected_register_index &&
+                register_write_data == expected_register_data &&
+                status_write_enable &&
+                status_write_data ==
+                    {expected_n, 1'b0, expected_z, 1'b0, 28'd0} &&
+                status_write_mask == 32'hB000_0000,
+                message
+            );
+            @(posedge clk);
+            #1;
+            check_condition(
+                !commit_accepted &&
+                status == expected_status &&
+                sp == expected_sp,
                 message
             );
         end
@@ -761,34 +821,26 @@ module tb_tms34020_scalar_slice;
 
         apply_reset();
         load_pc(32'h330);
-        serve_word(32'h330);
-        serve_word(32'h340);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_MOVI_W &&
-            packet_length_words == 3'd2 &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "complete MOVI.W packet remains blocked"
+        serve_immediate_move_and_commit(
+            32'h330, TMS20_OP_MOVI_W, 3'd2,
+            1'b0, 4'd0, 32'd0, 1'b0, 1'b1,
+            32'h2000_0010, 32'd0,
+            "scalar MOVI.W zero packet commit"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0,
-                "blocked MOVI.W packet cannot mutate state"
-            );
-        end
+        serve_immediate_move_and_commit(
+            32'h350, TMS20_OP_MOVI_L, 3'd3,
+            1'b1, 4'd15, 32'h1234_5678, 1'b0, 1'b0,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar MOVI.L updates shared SP"
+        );
+        check_condition(
+            commit_count == 2,
+            "two immediate-move packet commits"
+        );
 
         apply_reset();
-        load_pc(32'h350);
-        serve_word(32'h350);
+        load_pc(32'h380);
+        serve_word(32'h380);
         wait (packet_blocked);
         check_condition(
             packet_valid &&

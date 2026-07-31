@@ -157,7 +157,8 @@ module tms34020_scalar_slice (
                         (
                             packet_opcode_id_o == TMS20_OP_ADDI_W ||
                             packet_opcode_id_o == TMS20_OP_CMPI_W ||
-                            packet_opcode_id_o == TMS20_OP_SUBI_W
+                            packet_opcode_id_o == TMS20_OP_SUBI_W ||
+                            packet_opcode_id_o == TMS20_OP_MOVI_W
                         )
                     ) ||
                     (
@@ -169,7 +170,8 @@ module tms34020_scalar_slice (
                             packet_opcode_id_o == TMS20_OP_ADDXYI ||
                             packet_opcode_id_o == TMS20_OP_ADDI_L ||
                             packet_opcode_id_o == TMS20_OP_CMPI_L ||
-                            packet_opcode_id_o == TMS20_OP_SUBI_L
+                            packet_opcode_id_o == TMS20_OP_SUBI_L ||
+                            packet_opcode_id_o == TMS20_OP_MOVI_L
                         )
                     )
                 );

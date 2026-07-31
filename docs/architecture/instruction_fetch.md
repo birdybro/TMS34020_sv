@@ -139,9 +139,9 @@ area estimate nor fit/TimeQuest timing evidence.
 ## Explicit exclusions
 
 - Cache and fetch are composed in `tms34020_frontend`. The downstream bounded
-  `tms34020_scalar_slice` connects 23 verified one-word operations and the
-  two-word ADDI.W/CMPI.W/SUBI.W and three-word
-  ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/SUBI.L operations to register/ST commit;
+  `tms34020_scalar_slice` connects 24 verified one-word operations and the
+  two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and three-word
+  ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L operations to register/ST commit;
   every other packet remains blocked.
 - No reset-vector memory transaction or host-halt controller exists.
 - No branch instruction, interrupt, illegal-opcode trap, or bus-fault
