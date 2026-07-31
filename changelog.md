@@ -71,6 +71,9 @@
   abort, and abort signals cancellation without exposing partial refill data.
 - Signal-level documentation for the bounded cache lookup, native read,
   completion, fault-control, reset, and cache-control interfaces.
+- A deterministic randomized cache-native testbench and three-seed runner with
+  address-derived data checking, randomized backpressure/latency/completions,
+  explicit coverage counters, replayable plusargs, and ignored failure logs.
 
 ### Changed
 
@@ -156,6 +159,9 @@
   fault quiescence without being represented as formal proof. Quartus retains
   the 4,096-bit inferred RAM and synthesizes the expanded controller to 375
   logic cells and 200 registers with zero errors/warnings.
+- Three deterministic randomized seeds pass 396 fetches and 1,226 accepted
+  native requests, including 36 retries, 83 faults, and 43 aborts, without
+  weakening the warning or assertion gates.
 
 ### Documentation
 

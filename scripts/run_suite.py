@@ -182,11 +182,13 @@ def rtl_leaf() -> None:
 
 def cache() -> None:
     run([sys.executable, "scripts/run_cache_rtl_tests.py"])
+    run([sys.executable, "scripts/run_cache_random_tests.py"])
     print("PASS: bounded cache RTL regression slice")
 
 
 def fault() -> None:
     run([sys.executable, "scripts/run_cache_rtl_tests.py"])
+    run([sys.executable, "scripts/run_cache_random_tests.py"])
     print("PASS: bounded cache retry/fault RTL regression slice")
 
 

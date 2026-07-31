@@ -3,10 +3,11 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `8d21b2b2cff7b7d30e521f921acae47899c7467c`
+- Latest commit: `f727012d39880a127c4d5b28f02fabef7e24ec6f`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 52 directed model
-  cases, warning-free Verilator lint, verified RTL leaf/cache simulation, and
-  warning-free Quartus Cyclone V leaf/cache Analysis & Synthesis
+  cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
+  deterministic randomized cache seeds, and warning-free Quartus Cyclone V
+  leaf/cache Analysis & Synthesis
 - Failing tests: none observed
 - Model status: 32 of 38 extracted instructions fetch opcodes/extensions
   through transaction-level cache/retry state with traces, rollback and
@@ -22,7 +23,7 @@
 - Cache status: primary organization/refill/reset/disable/flush and
   current-cycle fault/retry contracts are covered by the model and bounded RTL;
   RTL covers lookup/refill/LRU, CD/idle-CF, delayed P commit, backpressure,
-  retry, and fault resume/abort. Randomized/all-phase/reset-mid-refill tests,
+  retry, fault resume/abort, refill-state reset, and three randomized seeds.
   CPU fault/interrupt state, bus-width/page scheduling and pin timing remain
   (`TMS20-0012`, `TMS20-0017`)
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
@@ -42,5 +43,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: add deterministic randomized cache/native backpressure and
-  completion sequences without claiming a complete CPU fault path
+- Next task: extract the documented PC/pipeline completion contract before
+  integrating cache fetch into executable RTL

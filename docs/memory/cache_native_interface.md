@@ -130,7 +130,18 @@ native-request stability under stall, instruction-response stability under
 stall, no present-bit commit after retry/fault, and quiescent ports while
 faulted. Passing simulation is not a formal proof of these properties.
 
-The suite does not yet cover every abort/control combination, randomized waits,
-reset in faulted/hit/word-response states, active-refill flush, interrupt
-entry/return, page mode, `SIZE16`, pin waveforms, or exact cycles. It is not
-complete `TMS20-0012` or `TMS20-0017` verification.
+The same command runs deterministic randomized stress with seeds `34020001`,
+`b7a17ead`, and `5eedc0de`. Each seed performs 132 fetches against an
+independent address-derived memory function while varying lookup delay, native
+request backpressure, response latency, response backpressure, retry, fault
+hold/resume/abort, `CD`, and idle `CF`. The initial qualification run covered
+396 fetches, 1,226 accepted native requests, 36 retries, 83 faults, and 43
+aborts. A seed can be replayed as a Verilator plusarg; the runner appends any
+simulation failure and its seed to ignored
+`build/cache_random_failures.txt`. The supported replay command is
+`python3 scripts/run_cache_random_tests.py --seed b7a17ead`.
+
+The suite does not yet cover every reset/active-flush/control combination,
+larger seed campaigns, interrupt entry/return, page mode, `SIZE16`, pin
+waveforms, or exact cycles. It is not complete `TMS20-0012` or
+`TMS20-0017` verification.

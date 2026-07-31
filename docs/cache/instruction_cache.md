@@ -282,6 +282,12 @@ present-bit commit. `make quartus-cache-smoke` checks warning-free Cyclone V
 Analysis & Synthesis and block-memory inference. These tests do not cover the
 remaining required cache matrix below.
 
+The cache command also runs three deterministic randomized native-interface
+seeds. The initial run covered 396 fetches, 1,226 accepted native requests,
+36 retries, 83 faults, and 43 aborts with address-derived data checking.
+Failures record the replay seed under ignored `build/`; see
+`docs/memory/cache_native_interface.md` for the exact protocol scope.
+
 The completion enum is an internal transaction protocol, not a pin encoding.
 Retry reissues only the current native request. Fault freezes that request
 until an external controller resumes it or aborts it; abort emits a

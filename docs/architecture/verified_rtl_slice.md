@@ -89,6 +89,13 @@ they are not formal proofs. Other abort/control combinations, the CPU fault
 controller/interrupt, `SIZE16`, page mode, reset in other cache states, flush
 during refill, and cycle timing remain unverified.
 
+The cache command also runs three deterministic randomized seeds. The initial
+run covered 396 fetches and 1,226 accepted native reads with randomized
+backpressure/latency, 36 retries, 83 faults, and 43 aborts. It checks every
+returned word against an independent address-derived memory function and
+records a failing seed under ignored `build/` for replay. This is protocol
+stress, not differential silicon evidence or architectural cycle validation.
+
 `make quartus-leaf-smoke` runs warning-free Quartus Analysis & Synthesis for
 the leaf qualification wrapper on Cyclone V device `5CSEBA6U23I7`. The wrapper
 keeps both register-file read ports, arithmetic flags, decoder outputs, PSIZE
@@ -111,8 +118,8 @@ result.
 
 There is no RTL PC owner, opcode-to-execution fetch composition, execution
 sequencer, retirement boundary derived from processor state, interrupt logic,
-complete memory access, page mode, complete bus-fault/retry subsystem, host interface,
-multiprocessor interface, coprocessor interface, display subsystem,
+complete memory access, page mode, complete bus-fault/retry subsystem, host
+interface, multiprocessor interface, coprocessor interface, display subsystem,
 original-pin bus, or game wrapper. The standalone cache leaf has transaction
 completion outcomes, but no pin-level decoder, fault registers, interrupt
 entry/return, or dynamic-width/page-mode memory controller.
