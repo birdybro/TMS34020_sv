@@ -38,6 +38,13 @@ module tb_tms34020_verified_leaves;
     logic [31:0] rmo_result;
     logic rmo_z;
 
+    tms34020_unary_op_t unary_operation;
+    logic [31:0] unary_destination;
+    logic unary_borrow;
+    logic [31:0] unary_result;
+    logic [3:0] unary_nczv;
+    logic [3:0] unary_status_write_mask;
+
     logic [15:0] pixel_size_register;
     logic [15:0] pixel_size_value;
     logic pixel_size_exchange;
@@ -96,6 +103,15 @@ module tb_tms34020_verified_leaves;
         .source_i(rmo_source),
         .result_o(rmo_result),
         .status_z_o(rmo_z)
+    );
+
+    tms34020_unary unary_dut (
+        .operation_i(unary_operation),
+        .destination_i(unary_destination),
+        .borrow_i(unary_borrow),
+        .result_o(unary_result),
+        .status_nczv_o(unary_nczv),
+        .status_write_mask_o(unary_status_write_mask)
     );
 
     tms34020_pixel_size_ops pixel_size_ops_dut (
@@ -164,6 +180,27 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_unary(
+        input tms34020_unary_op_t operation,
+        input logic [31:0] destination,
+        input logic borrow,
+        input logic [31:0] expected_result,
+        input logic [3:0] expected_nczv,
+        input logic [3:0] expected_write_mask,
+        input string message
+    );
+        unary_operation = operation;
+        unary_destination = destination;
+        unary_borrow = borrow;
+        #1;
+        check_condition(
+            unary_result == expected_result &&
+            unary_nczv == expected_nczv &&
+            unary_status_write_mask == expected_write_mask,
+            message
+        );
+    endtask
+
     task automatic write_register(
         input logic register_file,
         input logic [3:0] register_index_value,
@@ -188,6 +225,9 @@ module tb_tms34020_verified_leaves;
         pixel_size = 6'd0;
         compare_constant = 5'd0;
         rmo_source = 32'd0;
+        unary_operation = TMS34020_UNARY_ABS;
+        unary_destination = 32'd0;
+        unary_borrow = 1'b0;
         pixel_size_register = 16'd0;
         pixel_size_value = 16'd0;
         pixel_size_exchange = 1'b0;
@@ -219,6 +259,10 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
         check_decode(16'h0080, TMS20_OP_MWAIT, 3'd1, "MWAIT exact decode");
         check_decode(16'h0300, TMS20_OP_NOP, 3'd1, "NOP exact decode");
+        check_decode(16'h039F, TMS20_OP_ABS, 3'd1, "ABS masked decode");
+        check_decode(16'h03BF, TMS20_OP_NEG, 3'd1, "NEG masked decode");
+        check_decode(16'h03DF, TMS20_OP_NEGB, 3'd1, "NEGB masked decode");
+        check_decode(16'h03FF, TMS20_OP_NOT, 3'd1, "NOT masked decode");
         check_decode(16'h0273, TMS20_OP_SETCDP, 3'd1,
                      "SETCDP exact decode");
         check_decode(16'h02FB, TMS20_OP_SETCMP, 3'd1,
@@ -287,6 +331,97 @@ module tb_tms34020_verified_leaves;
         rmo_source = 32'h0800_0010;
         #1;
         check_condition(!rmo_z && rmo_result == 32'd4, "RMO rightmost bit");
+
+        check_unary(TMS34020_UNARY_ABS, 32'h7FFF_FFFF, 1'b0,
+                    32'h7FFF_FFFF, 4'b1000, 4'b1011,
+                    "ABS maximum positive");
+        check_unary(TMS34020_UNARY_ABS, 32'hFFFF_FFFF, 1'b0,
+                    32'h0000_0001, 4'b0000, 4'b1011,
+                    "ABS negative one");
+        check_unary(TMS34020_UNARY_ABS, 32'h8000_0000, 1'b0,
+                    32'h8000_0000, 4'b1001, 4'b1011,
+                    "ABS minimum negative overflow");
+        check_unary(TMS34020_UNARY_ABS, 32'h8000_0001, 1'b0,
+                    32'h7FFF_FFFF, 4'b0000, 4'b1011,
+                    "ABS minimum negative plus one");
+        check_unary(TMS34020_UNARY_ABS, 32'h0000_0001, 1'b0,
+                    32'h0000_0001, 4'b1000, 4'b1011,
+                    "ABS positive one");
+        check_unary(TMS34020_UNARY_ABS, 32'h0000_0000, 1'b0,
+                    32'h0000_0000, 4'b0010, 4'b1011,
+                    "ABS zero");
+        check_unary(TMS34020_UNARY_ABS, 32'hFFFA_0011, 1'b0,
+                    32'h0005_FFEF, 4'b0000, 4'b1011,
+                    "ABS TI nontrivial negative example");
+
+        check_unary(TMS34020_UNARY_NEG, 32'h0000_0000, 1'b0,
+                    32'h0000_0000, 4'b0010, 4'b1111,
+                    "NEG zero");
+        check_unary(TMS34020_UNARY_NEG, 32'h5555_5555, 1'b0,
+                    32'hAAAA_AAAB, 4'b1100, 4'b1111,
+                    "NEG alternating bits");
+        check_unary(TMS34020_UNARY_NEG, 32'h7FFF_FFFF, 1'b0,
+                    32'h8000_0001, 4'b1100, 4'b1111,
+                    "NEG maximum positive");
+        check_unary(TMS34020_UNARY_NEG, 32'h8000_0000, 1'b0,
+                    32'h8000_0000, 4'b1101, 4'b1111,
+                    "NEG minimum negative overflow");
+        check_unary(TMS34020_UNARY_NEG, 32'h8000_0001, 1'b0,
+                    32'h7FFF_FFFF, 4'b0100, 4'b1111,
+                    "NEG minimum negative plus one");
+        check_unary(TMS34020_UNARY_NEG, 32'hFFFF_FFFF, 1'b0,
+                    32'h0000_0001, 4'b0100, 4'b1111,
+                    "NEG negative one");
+
+        check_unary(TMS34020_UNARY_NEGB, 32'h0000_0000, 1'b0,
+                    32'h0000_0000, 4'b0010, 4'b1111,
+                    "NEGB zero without borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h0000_0000, 1'b1,
+                    32'hFFFF_FFFF, 4'b1100, 4'b1111,
+                    "NEGB zero with borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h5555_5555, 1'b0,
+                    32'hAAAA_AAAB, 4'b1100, 4'b1111,
+                    "NEGB alternating without borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h5555_5555, 1'b1,
+                    32'hAAAA_AAAA, 4'b1100, 4'b1111,
+                    "NEGB alternating with borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h7FFF_FFFF, 1'b0,
+                    32'h8000_0001, 4'b1100, 4'b1111,
+                    "NEGB maximum positive without borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h7FFF_FFFF, 1'b1,
+                    32'h8000_0000, 4'b1100, 4'b1111,
+                    "NEGB maximum positive with borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h8000_0000, 1'b0,
+                    32'h8000_0000, 4'b1101, 4'b1111,
+                    "NEGB minimum negative without borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h8000_0000, 1'b1,
+                    32'h7FFF_FFFF, 4'b0100, 4'b1111,
+                    "NEGB minimum negative with borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h8000_0001, 1'b0,
+                    32'h7FFF_FFFF, 4'b0100, 4'b1111,
+                    "NEGB negative near minimum without borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'h8000_0001, 1'b1,
+                    32'h7FFF_FFFE, 4'b0100, 4'b1111,
+                    "NEGB negative near minimum with borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'hFFFF_FFFF, 1'b0,
+                    32'h0000_0001, 4'b0100, 4'b1111,
+                    "NEGB negative one without borrow");
+        check_unary(TMS34020_UNARY_NEGB, 32'hFFFF_FFFF, 1'b1,
+                    32'h0000_0000, 4'b0110, 4'b1111,
+                    "NEGB negative one with borrow");
+
+        check_unary(TMS34020_UNARY_NOT, 32'h0000_0000, 1'b0,
+                    32'hFFFF_FFFF, 4'b0000, 4'b0010,
+                    "NOT zero");
+        check_unary(TMS34020_UNARY_NOT, 32'h5555_5555, 1'b0,
+                    32'hAAAA_AAAA, 4'b0000, 4'b0010,
+                    "NOT alternating bits");
+        check_unary(TMS34020_UNARY_NOT, 32'hFFFF_FFFF, 1'b0,
+                    32'h0000_0000, 4'b0010, 4'b0010,
+                    "NOT all ones");
+        check_unary(TMS34020_UNARY_NOT, 32'h8000_0000, 1'b0,
+                    32'h7FFF_FFFF, 4'b0000, 4'b0010,
+                    "NOT minimum negative");
 
         pixel_size_register = 16'h0001;
         pixel_size_value = 16'd8;

@@ -72,6 +72,14 @@ class IsaTests(unittest.TestCase):
     def test_independent_hand_checked_first_words(self) -> None:
         fixtures = {
             0x0300: ("NOP", 1),
+            0x0380: ("ABS", 1),
+            0x039F: ("ABS", 1),
+            0x03A0: ("NEG", 1),
+            0x03BF: ("NEG", 1),
+            0x03C0: ("NEGB", 1),
+            0x03DF: ("NEGB", 1),
+            0x03E0: ("NOT", 1),
+            0x03FF: ("NOT", 1),
             0x0040: ("IDLE", 1),
             0x0080: ("MWAIT", 1),
             0x0C00: ("ADDXYI", 3),
@@ -111,8 +119,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 1676)
-        self.assertEqual(unclassified, 65536 - 1676)
+        self.assertEqual(matched, 1804)
+        self.assertEqual(unclassified, 65536 - 1804)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:

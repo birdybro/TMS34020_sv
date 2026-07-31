@@ -10,6 +10,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_regfil
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_addxyi.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_cmpk.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_rmo.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_unary.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_pixel_size_ops.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_pixel_replicate.sv
 set_global_assignment -name SYSTEMVERILOG_FILE tms34020_leaf_synth_top.sv

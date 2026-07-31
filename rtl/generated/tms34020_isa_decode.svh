@@ -4,23 +4,27 @@
 `ifndef TMS34020_ISA_DECODE_SVH
 `define TMS34020_ISA_DECODE_SVH
 
-typedef enum logic [3:0] {
-    TMS20_OP_UNCLASSIFIED = 4'd0,
-    TMS20_OP_IDLE = 4'd1,
-    TMS20_OP_MWAIT = 4'd2,
-    TMS20_OP_NOP = 4'd3,
-    TMS20_OP_SETCDP = 4'd4,
-    TMS20_OP_SETCMP = 4'd5,
-    TMS20_OP_SETCSP = 4'd6,
-    TMS20_OP_TRAPL = 4'd7,
-    TMS20_OP_VLCOL = 4'd8,
-    TMS20_OP_BLMOVE = 4'd9,
-    TMS20_OP_ADDXYI = 4'd10,
-    TMS20_OP_EXGPS = 4'd11,
-    TMS20_OP_GETPS = 4'd12,
-    TMS20_OP_RPIX = 4'd13,
-    TMS20_OP_RMO = 4'd14,
-    TMS20_OP_CMPK = 4'd15
+typedef enum logic [4:0] {
+    TMS20_OP_UNCLASSIFIED = 5'd0,
+    TMS20_OP_IDLE = 5'd1,
+    TMS20_OP_MWAIT = 5'd2,
+    TMS20_OP_NOP = 5'd3,
+    TMS20_OP_SETCDP = 5'd4,
+    TMS20_OP_SETCMP = 5'd5,
+    TMS20_OP_SETCSP = 5'd6,
+    TMS20_OP_TRAPL = 5'd7,
+    TMS20_OP_VLCOL = 5'd8,
+    TMS20_OP_BLMOVE = 5'd9,
+    TMS20_OP_ABS = 5'd10,
+    TMS20_OP_ADDXYI = 5'd11,
+    TMS20_OP_EXGPS = 5'd12,
+    TMS20_OP_GETPS = 5'd13,
+    TMS20_OP_NEG = 5'd14,
+    TMS20_OP_NEGB = 5'd15,
+    TMS20_OP_NOT = 5'd16,
+    TMS20_OP_RPIX = 5'd17,
+    TMS20_OP_RMO = 5'd18,
+    TMS20_OP_CMPK = 5'd19
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -74,6 +78,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_BLMOVE;
                 decoded.length_words = 3'd1;
             end
+            16'b00000011100?????: begin
+                decoded.opcode_id = TMS20_OP_ABS;
+                decoded.length_words = 3'd1;
+            end
             16'b00001100000?????: begin
                 decoded.opcode_id = TMS20_OP_ADDXYI;
                 decoded.length_words = 3'd3;
@@ -84,6 +92,18 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b00000010110?????: begin
                 decoded.opcode_id = TMS20_OP_GETPS;
+                decoded.length_words = 3'd1;
+            end
+            16'b00000011101?????: begin
+                decoded.opcode_id = TMS20_OP_NEG;
+                decoded.length_words = 3'd1;
+            end
+            16'b00000011110?????: begin
+                decoded.opcode_id = TMS20_OP_NEGB;
+                decoded.length_words = 3'd1;
+            end
+            16'b00000011111?????: begin
+                decoded.opcode_id = TMS20_OP_NOT;
                 decoded.length_words = 3'd1;
             end
             16'b00000010100?????: begin

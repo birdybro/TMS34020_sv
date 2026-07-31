@@ -19,6 +19,7 @@ SOURCES = [
     ROOT / "rtl/execute/tms34020_addxyi.sv",
     ROOT / "rtl/execute/tms34020_cmpk.sv",
     ROOT / "rtl/execute/tms34020_rmo.sv",
+    ROOT / "rtl/execute/tms34020_unary.sv",
     ROOT / "rtl/graphics/tms34020_pixel_size_ops.sv",
     ROOT / "rtl/graphics/tms34020_pixel_replicate.sv",
     ROOT / "sim/tb/tb_tms34020_verified_leaves.sv",

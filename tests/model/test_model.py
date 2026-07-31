@@ -52,6 +52,108 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(event.machine_states, 1)
         self.assertEqual(event.register_writes, [])
 
+    def test_abs_primary_examples_and_unaffected_carry(self) -> None:
+        cases = (
+            (0x7FFFFFFF, 0x7FFFFFFF, 0b1100),
+            (0xFFFFFFFF, 0x00000001, 0b0100),
+            (0x80000000, 0x80000000, 0b1101),
+            (0x80000001, 0x7FFFFFFF, 0b0100),
+            (0x00000001, 0x00000001, 0b1100),
+            (0x00000000, 0x00000000, 0b0110),
+            (0xFFFA0011, 0x0005FFEF, 0b0100),
+        )
+        for value, expected_result, expected_nczv in cases:
+            with self.subTest(value=f"{value:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x0392])
+                model.state.write_reg("B", 2, value)
+                model.state.st = 1 << 30
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("B", 2), expected_result
+                )
+                nczv = (model.state.st >> 28) & 0xF
+                self.assertEqual(nczv, expected_nczv)
+                self.assertEqual(event.machine_states, 1)
+
+    def test_neg_primary_examples(self) -> None:
+        cases = (
+            (0x00000000, 0x00000000, 0b0010),
+            (0x55555555, 0xAAAAAAAB, 0b1100),
+            (0x7FFFFFFF, 0x80000001, 0b1100),
+            (0x80000000, 0x80000000, 0b1101),
+            (0x80000001, 0x7FFFFFFF, 0b0100),
+            (0xFFFFFFFF, 0x00000001, 0b0100),
+        )
+        for value, expected_result, expected_nczv in cases:
+            with self.subTest(value=f"{value:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x03A0])
+                model.state.write_reg("A", 0, value)
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_negb_primary_examples(self) -> None:
+        cases = (
+            (0x00000000, 0, 0x00000000, 0b0010),
+            (0x00000000, 1, 0xFFFFFFFF, 0b1100),
+            (0x55555555, 0, 0xAAAAAAAB, 0b1100),
+            (0x55555555, 1, 0xAAAAAAAA, 0b1100),
+            (0x7FFFFFFF, 0, 0x80000001, 0b1100),
+            (0x7FFFFFFF, 1, 0x80000000, 0b1100),
+            (0x80000000, 0, 0x80000000, 0b1101),
+            (0x80000000, 1, 0x7FFFFFFF, 0b0100),
+            (0x80000001, 0, 0x7FFFFFFF, 0b0100),
+            (0x80000001, 1, 0x7FFFFFFE, 0b0100),
+            (0xFFFFFFFF, 0, 0x00000001, 0b0100),
+            (0xFFFFFFFF, 1, 0x00000000, 0b0110),
+        )
+        for value, borrow, expected_result, expected_nczv in cases:
+            with self.subTest(value=f"{value:08X}", borrow=borrow):
+                model = Tms34020Model()
+                model.load_program([0x03C0])
+                model.state.write_reg("A", 0, value)
+                model.state.st = borrow << 30
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_not_primary_examples_and_unaffected_flags(self) -> None:
+        cases = (
+            (0x00000000, 0xFFFFFFFF, 0),
+            (0x55555555, 0xAAAAAAAA, 0),
+            (0xFFFFFFFF, 0x00000000, 1),
+            (0x80000000, 0x7FFFFFFF, 0),
+        )
+        for value, expected_result, expected_z in cases:
+            with self.subTest(value=f"{value:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x03E0])
+                model.state.write_reg("A", 0, value)
+                model.state.st = 0xD0000010
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    model.state.st & 0xD0000000, 0xD0000000
+                )
+                self.assertEqual(
+                    (model.state.st >> 29) & 1, expected_z
+                )
+                self.assertEqual(event.machine_states, 1)
+
     def test_addxyi_adds_halves_without_cross_carry_and_sets_nczv(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0C00, 0xFFFF, 0xFFFF], bit_address=0x10)

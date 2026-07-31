@@ -34,6 +34,8 @@
   execution, generated decode, RTL semantic leaves, and directed tests.
 - A hash-pinned official SPVU015C TMS340 Interface guide and separate missing
   records for the SPVU004 and SPVU020 code-generation-tool guide editions.
+- Primary-page-verified ABS, NEG, NEGB, and NOT ISA/model/RTL semantics with
+  explicit partial status-write masks and every TI example row as a test.
 
 ### Changed
 
@@ -66,6 +68,8 @@
   RPIX replication sizes/state counts, and A/B/SP aliasing with Verilator.
 - Expanded the collision-free ISA slice to 15 entries covering 1,676 first
   words and verified all current generated decoder entries in RTL.
+- Expanded the collision-free ISA slice to 19 entries covering 1,804 first
+  words and the independent model to 13 instructions.
 - Quartus Prime Lite 17.0.2 Cyclone V Analysis & Synthesis passes for the
   implemented leaf slice with zero errors and zero warnings. This is not a
   fitter or timing-closure result.

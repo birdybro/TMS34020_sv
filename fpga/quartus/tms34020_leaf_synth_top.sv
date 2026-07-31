@@ -29,6 +29,9 @@ module tms34020_leaf_synth_top (
     logic [3:0] compare_nczv;
     logic [31:0] rmo_result;
     logic rmo_z;
+    logic [31:0] unary_result;
+    logic [3:0] unary_nczv;
+    logic [3:0] unary_status_write_mask;
     logic [31:0] pixel_size_result;
     logic pixel_size_write_enable;
     logic [15:0] pixel_size_write_data;
@@ -45,12 +48,14 @@ module tms34020_leaf_synth_top (
         pixel_result ^
         compare_result ^
         rmo_result ^
+        unary_result ^
         pixel_size_result ^
         {15'd0, pixel_size_write_enable, pixel_size_write_data} ^
         register_data ^
         second_register_data ^
         sp ^
-        {10'd0, add_nczv, compare_nczv, rmo_z, decode_valid, decoded_id,
+        {1'd0, unary_nczv, unary_status_write_mask,
+         add_nczv, compare_nczv, rmo_z, decode_valid, decoded_id,
          decode_length, pixel_valid, pixel_states};
 
     tms34020_decode decode (
@@ -92,6 +97,15 @@ module tms34020_leaf_synth_top (
         .source_i(operand_i),
         .result_o(rmo_result),
         .status_z_o(rmo_z)
+    );
+
+    tms34020_unary unary_operation (
+        .operation_i(tms34020_unary_op_t'(first_word_i[6:5])),
+        .destination_i(operand_i),
+        .borrow_i(immediate_i[TMS34020_ST_C_BIT]),
+        .result_o(unary_result),
+        .status_nczv_o(unary_nczv),
+        .status_write_mask_o(unary_status_write_mask)
     );
 
     tms34020_pixel_size_ops pixel_size_ops (

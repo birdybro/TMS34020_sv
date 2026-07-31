@@ -71,6 +71,10 @@ class Tms34020Model:
         self.trace: list[StepTrace] = []
         self._handlers: dict[str, Callable[[Instruction, list[int]], int | None]] = {
             "NOP": self._execute_nop,
+            "ABS": self._execute_abs,
+            "NEG": self._execute_neg,
+            "NEGB": self._execute_negb,
+            "NOT": self._execute_not,
             "IDLE": self._execute_idle,
             "MWAIT": self._execute_mwait,
             "ADDXYI": self._execute_addxyi,
@@ -222,6 +226,62 @@ class Tms34020Model:
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction, words
+        return 1
+
+    def _execute_abs(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        value = self.state.read_reg(register_file, index)
+        negated = (-value) & MASK32
+        result = negated if value & 0x8000_0000 else value
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(negated & 0x8000_0000))
+        self._set_status_bit(Z_BIT, value == 0)
+        self._set_status_bit(V_BIT, value == 0x8000_0000)
+        return 1
+
+    def _execute_neg(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        value = self.state.read_reg(register_file, index)
+        result = (-value) & MASK32
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, value != 0)
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, value == 0x8000_0000)
+        return 1
+
+    def _execute_negb(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        value = self.state.read_reg(register_file, index)
+        borrow_in = (self.state.st >> C_BIT) & 1
+        result = (-value - borrow_in) & MASK32
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, value != 0 or borrow_in != 0)
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(
+            V_BIT,
+            bool(value & result & 0x8000_0000),
+        )
+        return 1
+
+    def _execute_not(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        result = (~self.state.read_reg(register_file, index)) & MASK32
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(Z_BIT, result == 0)
         return 1
 
     def _execute_idle(
