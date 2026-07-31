@@ -25,6 +25,11 @@
 - An independent bit-addressed architectural-model slice with A/B/SP aliasing,
   reset-vector handling, deterministic randomized state and replay, traces, and
   verified NOP/IDLE/MWAIT/ADDXYI/RPIX execution.
+- A generated partial SystemVerilog decoder, dual-read A/B/SP register file,
+  ADDXYI arithmetic leaf, RPIX replication/timing leaf, and a self-checking
+  Verilator testbench with an explicit pass marker.
+- A Cyclone V leaf-only Quartus project and warning-enforcing Analysis &
+  Synthesis runner.
 
 ### Changed
 
@@ -35,6 +40,8 @@
 
 - Model instruction errors roll back PC and all other state instead of leaving a
   partially committed checkpoint.
+- The Quartus qualification digest now keeps ADDXYI flags and both register-file
+  read ports observable through synthesis.
 
 ### Verified
 
@@ -49,6 +56,12 @@
   reset disabled, with no unsupported ISA or subsystem differences asserted.
 - Verified the documented commercial 32 MHz options and the A-only commercial
   40 MHz option; exact production-game top markings remain explicitly unknown.
+- Verified all 11 currently extracted decoder entries, ADDXYI leaf semantics,
+  all legal RPIX replication sizes/state counts, and A/B/SP aliasing with
+  Verilator.
+- Quartus Prime Lite 17.0.2 Cyclone V Analysis & Synthesis passes for the
+  implemented leaf slice with zero errors and zero warnings. This is not a
+  fitter or timing-closure result.
 
 ### Documentation
 
@@ -60,6 +73,8 @@
   first-silicon questions as unknown rather than assigning inferred behavior.
 - Recorded a pinned MAME disassembler discrepancy: TI's TRAPL consumes a signed
   extension word, but the secondary path does not advance over it.
+- Documented the first synthesizable RTL boundary and its explicit exclusions;
+  deterministic FPGA register clearing is not represented as silicon behavior.
 
 ### Integration
 
@@ -67,7 +82,8 @@
 
 ### Known Issues
 
-- The architectural model and RTL are not implemented.
+- The architectural model and RTL cover only a small verified slice; there is
+  no executable RTL core, cache, pipeline, memory bus, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

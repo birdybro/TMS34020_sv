@@ -212,5 +212,6 @@ following prevent `TMS20-0005` from being complete:
 - CONTROL2 identity/applicability is unresolved;
 - display-sequencing and interrupt deltas are not yet field/cycle complete;
 - complete silicon errata and first-silicon records are unavailable;
-- no RTL, architectural model, waveform suite, or physical measurement yet
-  verifies the requirements.
+- the independent model and RTL cover only bounded instruction/leaf slices;
+  no cache, bus, subsystem waveform suite, or physical measurement yet
+  verifies the remaining requirements.

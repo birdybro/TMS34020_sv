@@ -20,6 +20,7 @@ SUITES = {
     "delta": ("IMPLEMENTED", "TMS20-0005"),
     "isa": ("IMPLEMENTED", "TMS20-0006"),
     "model": ("IMPLEMENTED", "TMS20-0007"),
+    "rtl-leaf": ("IMPLEMENTED", "TMS20-0009/TMS20-0010"),
     "decode": ("NOT_IMPLEMENTED", "TMS20-0006"),
     "instruction": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0010"),
     "compatibility": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0031"),
@@ -36,6 +37,7 @@ SUITES = {
     "formal": ("NOT_IMPLEMENTED", "TMS20-0032"),
     "synth-yosys": ("NOT_IMPLEMENTED", "TMS20-0033"),
     "synth-quartus": ("NOT_IMPLEMENTED", "TMS20-0034"),
+    "quartus-leaf-smoke": ("IMPLEMENTED", "TMS20-0034"),
     "battletoads": ("NOT_IMPLEMENTED", "TMS20-0037"),
     "revx": ("NOT_IMPLEMENTED", "TMS20-0040"),
 }
@@ -69,17 +71,36 @@ def lint() -> None:
         ROOT / "scripts", quiet=1, rx=re.compile(r".*/reference_cache/.*")
     ):
         raise SystemExit("FAIL: Python compilation")
-    rtl_files = sorted((ROOT / "rtl").rglob("*.sv"))
+    package_files = sorted((ROOT / "rtl").glob("*_pkg.sv"))
+    package_set = set(package_files)
+    rtl_files = package_files + [
+        path
+        for path in sorted((ROOT / "rtl").rglob("*.sv"))
+        if path not in package_set
+    ]
     verilator = shutil.which("verilator")
     if rtl_files and verilator:
+        verified_leaf_tb = ROOT / "sim/tb/tb_tms34020_verified_leaves.sv"
+        lint_command = [
+            verilator,
+            "--lint-only",
+            "--Wall",
+            "--Wno-fatal",
+            f"-I{ROOT / 'rtl'}",
+        ]
+        if verified_leaf_tb.is_file():
+            lint_command.extend(
+                [
+                    "--timing",
+                    "--top-module",
+                    "tb_tms34020_verified_leaves",
+                ]
+            )
+        lint_command.extend(str(path) for path in rtl_files)
+        if verified_leaf_tb.is_file():
+            lint_command.append(str(verified_leaf_tb))
         run(
-            [
-                verilator,
-                "--lint-only",
-                "--Wall",
-                "--Wno-fatal",
-                *[str(path) for path in rtl_files],
-            ]
+            lint_command
         )
     elif rtl_files:
         print("SKIP: Verilator unavailable; RTL lint not executed")
@@ -153,6 +174,15 @@ def model() -> None:
     print("PASS: independent architectural-model verified slice")
 
 
+def rtl_leaf() -> None:
+    run([sys.executable, "scripts/run_rtl_leaf_tests.py"])
+    print("PASS: synthesizable verified leaf RTL slice")
+
+
+def quartus_leaf_smoke() -> None:
+    run([sys.executable, "scripts/run_quartus_leaf_smoke.py"])
+
+
 def doctor() -> None:
     required = ("git", "make", "python3")
     optional = (
@@ -194,7 +224,7 @@ def list_suites() -> None:
     print("  make doctor             report required and optional tools")
     for name, (status, task) in SUITES.items():
         target = f"{name}-tests" if name in {
-            "delta", "isa", "model", "decode", "instruction", "compatibility", "cache",
+            "delta", "isa", "model", "rtl-leaf", "decode", "instruction", "compatibility", "cache",
             "memory", "graphics", "video", "host", "fault", "coprocessor",
         } else name
         print(f"  make {target:18} {status:15} {task}")
@@ -234,6 +264,10 @@ def main() -> None:
         isa()
     elif args.suite == "model":
         model()
+    elif args.suite == "rtl-leaf":
+        rtl_leaf()
+    elif args.suite == "quartus-leaf-smoke":
+        quartus_leaf_smoke()
 
 
 if __name__ == "__main__":

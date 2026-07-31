@@ -13,6 +13,8 @@ obj_dir/
 *.pof
 *.smsg
 *.summary
+/fpga/quartus/db/
+/fpga/quartus/incremental_db/
 
 # Local reference cache: manuals, tools, ROMs, emulator builds
 /reference_cache/*

@@ -1,19 +1,23 @@
 # Progress
 
-- Current milestone: device/delta research and architecture extraction
+- Current milestone: primary ISA extraction and independently verified
+  model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `2400f4019fae4b61272bafbb16cb5914bd52eecb`
-- Passing tests: foundation, reference-manifest/hash, reuse-audit, and
-  device-scope/delta schema and required-feature coverage checks
+- Latest commit: `0a6b55c677a81f175d669120d85b1a304041b4b1`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 14 directed model
+  cases, warning-free Verilator lint, verified RTL leaf simulation, and
+  warning-free Quartus Cyclone V leaf Analysis & Synthesis
 - Failing tests: none observed
 - Model status: independent state/replay plus 5 of 11 extracted instructions;
   full ISA/cache/interfaces not implemented (`TMS20-0007`)
-- RTL status: not implemented (`TMS20-0009`, `TMS20-0010`)
+- RTL status: generated partial decode, A/B/SP register file, ADDXYI and RPIX
+  semantic leaves; no executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: not implemented (`TMS20-0012`)
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: not implemented (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
 - Formal status: not implemented; SymbiYosys unavailable locally
-- Synthesis status: RTL absent; Yosys unavailable; Quartus 17.0 available
+- Synthesis status: leaf-only Quartus 17.0.2 Analysis & Synthesis passes with
+  0 errors/0 warnings; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: seven hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
 - Provisional behavior: none implemented
@@ -21,5 +25,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: expand primary ISA extraction and implement the independent
-  architectural-model state/first verified instruction slice
+- Next task: expand primary ISA extraction, then add status/writeback and the
+  smallest page-verified execution path without asserting pipeline accuracy

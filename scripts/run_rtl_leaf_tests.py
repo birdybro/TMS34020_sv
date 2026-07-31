@@ -1,0 +1,64 @@
+#!/usr/bin/env python3
+"""Build and run the self-checking verified-leaf Verilator testbench."""
+
+from __future__ import annotations
+
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+BUILD = ROOT / "build/verilator_verified_leaves"
+PASS_MARKER = "PASS: tms34020 verified leaf RTL"
+
+SOURCES = [
+    ROOT / "rtl/tms34020_pkg.sv",
+    ROOT / "rtl/core/tms34020_decode.sv",
+    ROOT / "rtl/core/tms34020_regfile.sv",
+    ROOT / "rtl/execute/tms34020_addxyi.sv",
+    ROOT / "rtl/graphics/tms34020_pixel_replicate.sv",
+    ROOT / "sim/tb/tb_tms34020_verified_leaves.sv",
+]
+
+
+def main() -> None:
+    verilator = shutil.which("verilator")
+    if verilator is None:
+        raise SystemExit("FAIL: Verilator is required for verified leaf tests")
+    subprocess.run(
+        [sys.executable, "tools/generators/generate_isa_rtl.py", "--check"],
+        cwd=ROOT,
+        check=True,
+    )
+    command = [
+        verilator,
+        "--binary",
+        "--timing",
+        "--Wall",
+        "--Wno-fatal",
+        f"-I{ROOT / 'rtl'}",
+        "--top-module",
+        "tb_tms34020_verified_leaves",
+        "--Mdir",
+        str(BUILD),
+        *[str(source) for source in SOURCES],
+    ]
+    subprocess.run(command, cwd=ROOT, check=True)
+    completed = subprocess.run(
+        [str(BUILD / "Vtb_tms34020_verified_leaves")],
+        cwd=ROOT,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    print(completed.stdout, end="")
+    if completed.returncode:
+        raise SystemExit(completed.returncode)
+    if PASS_MARKER not in completed.stdout:
+        raise SystemExit("FAIL: RTL testbench omitted explicit pass marker")
+
+
+if __name__ == "__main__":
+    main()
