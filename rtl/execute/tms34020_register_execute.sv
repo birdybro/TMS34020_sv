@@ -33,6 +33,8 @@ module tms34020_register_execute (
     logic [3:0] compare_nczv;
     logic [31:0] rmo_result;
     logic rmo_z;
+    logic [31:0] logical_result;
+    logic logical_z;
     tms34020_binary_op_t increment_decrement_operation;
     logic [31:0] increment_decrement_result;
     logic [3:0] increment_decrement_nczv;
@@ -78,6 +80,14 @@ module tms34020_register_execute (
         .source_i(source_i),
         .result_o(rmo_result),
         .status_z_o(rmo_z)
+    );
+
+    tms34020_logical logical (
+        .operation_i(tms34020_logical_op_t'(first_word_i[10:9])),
+        .source_i(source_i),
+        .destination_i(destination_i),
+        .result_o(logical_result),
+        .status_z_o(logical_z)
     );
 
     always_comb begin
@@ -177,6 +187,19 @@ module tms34020_register_execute (
                     status_write_enable_o = 1'b1;
                     status_write_data_o = {compare_nczv, 28'd0};
                     status_write_mask_o = 32'hF000_0000;
+                end
+
+                TMS20_OP_AND,
+                TMS20_OP_ANDN,
+                TMS20_OP_OR,
+                TMS20_OP_XOR: begin
+                    supported_o = 1'b1;
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = logical_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o =
+                        {2'd0, logical_z, 29'd0};
+                    status_write_mask_o = 32'h2000_0000;
                 end
 
                 TMS20_OP_RMO: begin

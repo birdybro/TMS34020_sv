@@ -389,6 +389,61 @@ class ExecutionTests(unittest.TestCase):
         model.step()
         self.assertEqual(model.state.read_reg("B", 2), 0x00000007)
 
+    def test_logical_primary_examples_and_only_z_changes(self) -> None:
+        cases = (
+            (0x5000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF),
+            (0x5000, 0xFFFFFFFF, 0x00000000, 0x00000000),
+            (0x5000, 0x00000000, 0x00000000, 0x00000000),
+            (0x5000, 0xAAAAAAAA, 0x55555555, 0x00000000),
+            (0x5000, 0xAAAAAAAA, 0xAAAAAAAA, 0xAAAAAAAA),
+            (0x5000, 0x55555555, 0x55555555, 0x55555555),
+            (0x5000, 0x55555555, 0xAAAAAAAA, 0x00000000),
+            (0x5200, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000),
+            (0x5200, 0xFFFFFFFF, 0x00000000, 0x00000000),
+            (0x5200, 0x00000000, 0x00000000, 0x00000000),
+            (0x5200, 0xAAAAAAAA, 0x55555555, 0x55555555),
+            (0x5200, 0xAAAAAAAA, 0xAAAAAAAA, 0x00000000),
+            (0x5200, 0x55555555, 0x55555555, 0x00000000),
+            (0x5200, 0x55555555, 0xAAAAAAAA, 0xAAAAAAAA),
+            (0x5400, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF),
+            (0x5400, 0x00000000, 0xFFFFFFFF, 0xFFFFFFFF),
+            (0x5400, 0x55555555, 0xAAAAAAAA, 0xFFFFFFFF),
+            (0x5400, 0x00000000, 0x00000000, 0x00000000),
+            (0x5600, 0xFFFFFFFF, 0x00000000, 0xFFFFFFFF),
+            (0x5600, 0xFFFFFFFF, 0xAAAAAAAA, 0x55555555),
+            (0x5600, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000),
+        )
+        for case_index, (
+            opcode_base,
+            source,
+            destination,
+            expected,
+        ) in enumerate(cases):
+            register_file = "B" if case_index & 1 else "A"
+            file_bit = 0x10 if register_file == "B" else 0
+            opcode = opcode_base | 0x20 | file_bit
+            with self.subTest(
+                opcode=f"{opcode:04X}",
+                source=f"{source:08X}",
+                destination=f"{destination:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.write_reg(register_file, 1, source)
+                model.state.write_reg(register_file, 0, destination)
+                model.state.st = 0xD000_0010
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg(register_file, 0), expected
+                )
+                self.assertEqual(
+                    (model.state.st >> 29) & 1, int(expected == 0)
+                )
+                self.assertEqual(
+                    model.state.st & 0xD000_0000, 0xD000_0000
+                )
+                self.assertEqual(event.machine_states, 1)
+
     def test_addxyi_adds_halves_without_cross_carry_and_sets_nczv(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0C00, 0xFFFF, 0xFFFF], bit_address=0x10)

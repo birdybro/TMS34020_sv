@@ -33,6 +33,13 @@ package tms34020_pkg;
         TMS34020_BINARY_CMP  = 3'd4
     } tms34020_binary_op_t;
 
+    typedef enum logic [1:0] {
+        TMS34020_LOGICAL_AND  = 2'd0,
+        TMS34020_LOGICAL_ANDN = 2'd1,
+        TMS34020_LOGICAL_OR   = 2'd2,
+        TMS34020_LOGICAL_XOR  = 2'd3
+    } tms34020_logical_op_t;
+
 `include "generated/tms34020_isa_decode.svh"
 
 endpackage

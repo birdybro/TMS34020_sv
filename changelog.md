@@ -48,6 +48,8 @@
 - An externally gated register/ST commit composition for the nineteen verified
   one-word register operations, with explicit write-event observability and no
   pipeline or timing claim.
+- Primary-page-verified AND, ANDN, OR, and XOR database, model, generated
+  decode, Z-only RTL logical leaf, register-execution routing, and state commit.
 
 ### Changed
 
@@ -62,6 +64,9 @@
   read ports observable through synthesis.
 - The model now carries EXGPS's documented hidden PSIZE write state and
   overlaps it with subsequent execution states.
+- Removed a stale one-bit padding field from the Quartus observability digest
+  after the generated opcode enum grew to six bits; the warning-enforcing first
+  synthesis run caught the resulting 33-to-32-bit truncation.
 
 ### Verified
 
@@ -103,6 +108,11 @@
   Quartus synthesizes the expanded diagnostic wrapper to 5,298 logic cells and
   2,021 registers with zero errors and zero warnings; duplicate raw and
   integrated state instances make this unsuitable as a core-area estimate.
+- Expanded the collision-free ISA slice to 35 entries covering 6,512 first
+  words and the independent model to 29 instructions. All 21 TI
+  register-logical example rows pass in the model; Verilator checks the four
+  leaf/router/commit paths. Quartus synthesizes the diagnostic wrapper to 5,481
+  logic cells and 2,021 registers with zero errors and zero warnings.
 
 ### Documentation
 

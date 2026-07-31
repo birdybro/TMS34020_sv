@@ -8,14 +8,15 @@ core, sequencer, pipeline, cache, memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 31 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 35 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
-| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit for the 19 one-word instructions supported by `tms34020_register_execute`; unsupported words cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for `tms34020_register_execute` |
+| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit for the 23 one-word instructions supported by `tms34020_register_execute`; unsupported words cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for `tms34020_register_execute` |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
 | `rtl/execute/tms34020_cmpk.sv` | Encoded-zero-means-32 subtraction and N/C/Z/V compare results without register modification | TI *TMS34020 User's Guide*, August 1990, CMPK, printed p.13-83 |
-| `rtl/execute/tms34020_register_execute.sv` | Decoder-controlled operand selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, INC, DEC, SETC, ADD, ADDC, SUB, SUBB, CMP, CMPK, and RMO | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-34, 13-58, 13-80, 13-83, 13-94..13-95, 13-109, 13-132, 13-134, 13-178..13-181, 13-224, 13-226, and 13-241..13-242 |
+| `rtl/execute/tms34020_logical.sv` | AND, ANDN, OR, and XOR register results plus Z; N/C/V remain outside the write mask | TI *TMS34020 User's Guide*, August 1990, printed pp.13-40, 13-42, 13-182, and 13-266 |
+| `rtl/execute/tms34020_register_execute.sv` | Decoder-controlled operand selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, INC, DEC, SETC, ADD, ADDC, SUB, SUBB, CMP, CMPK, RMO, AND, ANDN, OR, and XOR | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-34, 13-40, 13-42, 13-58, 13-80, 13-83, 13-94..13-95, 13-109, 13-132, 13-134, 13-178..13-182, 13-224, 13-226, 13-241..13-242, and 13-266 |
 | `rtl/execute/tms34020_rmo.sv` | Least-significant set-bit index and Z result | TI *TMS34020 User's Guide*, August 1990, RMO, printed p.13-224 |
 | `rtl/execute/tms34020_unary.sv` | ABS, NEG, NEGB, and NOT results plus instruction-specific N/C/Z/V values and write masks | TI *TMS34020 User's Guide*, August 1990, printed pp.13-32 and 13-178..13-181 |
 | `rtl/graphics/tms34020_pixel_size_ops.sv` | GETPS zero-extension and EXGPS register/16-bit PSIZE-write data paths; no I/O timing or write-queue implementation | TI *TMS34020 User's Guide*, August 1990, EXGPS, printed p.13-113; GETPS, printed p.13-131 |
@@ -56,16 +57,16 @@ Verilator. It checks:
 - ST reset/priority, documented bit layout and reserved mask, full flag
   replacement, partial flag preservation, isolated IE set, and isolated C
   clear.
-- decoder-controlled NOP, unary, binary-arithmetic, CMPK, RMO, CLRC/SETC,
-  DINT/EINT, GETST, and INC/DEC write intents, including A/B register-file
-  selection, source/destination indices, CMP write inhibition, partial status
-  masks, carry/borrow edges, and rejection of decoded-but-unsupported and
-  unclassified words.
-- thirteen ordered commit checks covering EINT, SETC, GETST, INC, DINT, DEC,
+- decoder-controlled NOP, unary, binary-arithmetic, logical, CMPK, RMO,
+  CLRC/SETC, DINT/EINT, GETST, and INC/DEC write intents, including A/B
+  register-file selection, source/destination indices, CMP write inhibition,
+  partial status masks, carry/borrow edges, Z-only logical updates, and
+  rejection of decoded-but-unsupported and unclassified words.
+- seventeen ordered commit checks covering EINT, SETC, GETST, INC, DINT, DEC,
   ABS, shared-SP write/read, ADD, nondestructive CMP, RMO, unsupported BLMOVE
-  rejection, and state-neutral NOP. These checks prove that a later operation
-  observes the preceding committed register/ST state; they do not assign an
-  architectural cycle count to the commit edge.
+  rejection, state-neutral NOP, AND, OR, XOR, and ANDN. These checks prove that
+  a later operation observes the preceding committed register/ST state; they do
+  not assign an architectural cycle count to the commit edge.
 
 The testbench must emit `PASS: tms34020 verified leaf RTL`; simulator exit
 status alone is not accepted.
@@ -73,7 +74,7 @@ status alone is not accepted.
 `make quartus-leaf-smoke` runs warning-free Quartus Analysis & Synthesis for
 the leaf qualification wrapper on Cyclone V device `5CSEBA6U23I7`. The wrapper
 keeps both register-file read ports, arithmetic flags, decoder outputs, PSIZE
-data paths, unary and binary arithmetic, RMO, and RPIX timing outputs
+data paths, unary, binary, and logical arithmetic, RMO, and RPIX timing outputs
 observable. It also keeps every output of the register-execution router
 observable and instantiates the commit composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,

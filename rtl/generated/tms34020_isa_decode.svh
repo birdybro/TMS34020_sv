@@ -4,39 +4,43 @@
 `ifndef TMS34020_ISA_DECODE_SVH
 `define TMS34020_ISA_DECODE_SVH
 
-typedef enum logic [4:0] {
-    TMS20_OP_UNCLASSIFIED = 5'd0,
-    TMS20_OP_CLRC = 5'd1,
-    TMS20_OP_DINT = 5'd2,
-    TMS20_OP_EINT = 5'd3,
-    TMS20_OP_IDLE = 5'd4,
-    TMS20_OP_MWAIT = 5'd5,
-    TMS20_OP_NOP = 5'd6,
-    TMS20_OP_SETC = 5'd7,
-    TMS20_OP_SETCDP = 5'd8,
-    TMS20_OP_SETCMP = 5'd9,
-    TMS20_OP_SETCSP = 5'd10,
-    TMS20_OP_TRAPL = 5'd11,
-    TMS20_OP_VLCOL = 5'd12,
-    TMS20_OP_BLMOVE = 5'd13,
-    TMS20_OP_ABS = 5'd14,
-    TMS20_OP_ADDXYI = 5'd15,
-    TMS20_OP_DEC = 5'd16,
-    TMS20_OP_EXGPS = 5'd17,
-    TMS20_OP_GETPS = 5'd18,
-    TMS20_OP_GETST = 5'd19,
-    TMS20_OP_INC = 5'd20,
-    TMS20_OP_NEG = 5'd21,
-    TMS20_OP_NEGB = 5'd22,
-    TMS20_OP_NOT = 5'd23,
-    TMS20_OP_RPIX = 5'd24,
-    TMS20_OP_ADD = 5'd25,
-    TMS20_OP_ADDC = 5'd26,
-    TMS20_OP_CMP = 5'd27,
-    TMS20_OP_RMO = 5'd28,
-    TMS20_OP_SUB = 5'd29,
-    TMS20_OP_SUBB = 5'd30,
-    TMS20_OP_CMPK = 5'd31
+typedef enum logic [5:0] {
+    TMS20_OP_UNCLASSIFIED = 6'd0,
+    TMS20_OP_CLRC = 6'd1,
+    TMS20_OP_DINT = 6'd2,
+    TMS20_OP_EINT = 6'd3,
+    TMS20_OP_IDLE = 6'd4,
+    TMS20_OP_MWAIT = 6'd5,
+    TMS20_OP_NOP = 6'd6,
+    TMS20_OP_SETC = 6'd7,
+    TMS20_OP_SETCDP = 6'd8,
+    TMS20_OP_SETCMP = 6'd9,
+    TMS20_OP_SETCSP = 6'd10,
+    TMS20_OP_TRAPL = 6'd11,
+    TMS20_OP_VLCOL = 6'd12,
+    TMS20_OP_BLMOVE = 6'd13,
+    TMS20_OP_ABS = 6'd14,
+    TMS20_OP_ADDXYI = 6'd15,
+    TMS20_OP_DEC = 6'd16,
+    TMS20_OP_EXGPS = 6'd17,
+    TMS20_OP_GETPS = 6'd18,
+    TMS20_OP_GETST = 6'd19,
+    TMS20_OP_INC = 6'd20,
+    TMS20_OP_NEG = 6'd21,
+    TMS20_OP_NEGB = 6'd22,
+    TMS20_OP_NOT = 6'd23,
+    TMS20_OP_RPIX = 6'd24,
+    TMS20_OP_ADD = 6'd25,
+    TMS20_OP_ADDC = 6'd26,
+    TMS20_OP_AND = 6'd27,
+    TMS20_OP_ANDN = 6'd28,
+    TMS20_OP_CMP = 6'd29,
+    TMS20_OP_OR = 6'd30,
+    TMS20_OP_RMO = 6'd31,
+    TMS20_OP_SUB = 6'd32,
+    TMS20_OP_SUBB = 6'd33,
+    TMS20_OP_XOR = 6'd34,
+    TMS20_OP_CMPK = 6'd35
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -158,8 +162,20 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_ADDC;
                 decoded.length_words = 3'd1;
             end
+            16'b0101000?????????: begin
+                decoded.opcode_id = TMS20_OP_AND;
+                decoded.length_words = 3'd1;
+            end
+            16'b0101001?????????: begin
+                decoded.opcode_id = TMS20_OP_ANDN;
+                decoded.length_words = 3'd1;
+            end
             16'b0100100?????????: begin
                 decoded.opcode_id = TMS20_OP_CMP;
+                decoded.length_words = 3'd1;
+            end
+            16'b0101010?????????: begin
+                decoded.opcode_id = TMS20_OP_OR;
                 decoded.length_words = 3'd1;
             end
             16'b0111101?????????: begin
@@ -172,6 +188,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b0100011?????????: begin
                 decoded.opcode_id = TMS20_OP_SUBB;
+                decoded.length_words = 3'd1;
+            end
+            16'b0101011?????????: begin
+                decoded.opcode_id = TMS20_OP_XOR;
                 decoded.length_words = 3'd1;
             end
             16'b001101??????????: begin

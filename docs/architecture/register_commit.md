@@ -7,7 +7,7 @@ fetch/cache/pipeline sequencer is introduced.
 
 ## Contract
 
-The module decodes `first_word_i` continuously. When the word is one of the 19
+The module decodes `first_word_i` continuously. When the word is one of the 23
 one-word operations supported by `tms34020_register_execute`,
 `supported_o` is asserted. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -22,7 +22,8 @@ Supported operations are:
 
 - NOP, ABS, NEG, NEGB, NOT;
 - CLRC, DINT, EINT, GETST, INC, DEC, SETC;
-- ADD, ADDC, SUB, SUBB, CMP, CMPK, and RMO.
+- ADD, ADDC, SUB, SUBB, CMP, CMPK, and RMO;
+- AND, ANDN, OR, and XOR.
 
 The instruction definitions and primary citations are maintained in
 `docs/generated/tms34020_isa.yaml`. Register-file and status layout are defined
@@ -46,12 +47,12 @@ the general registers on reset; TI leaves them uninitialized. Source: TI
 
 ## Verification
 
-`make rtl-leaf-tests` executes thirteen ordered state-commit sequences. The
+`make rtl-leaf-tests` executes seventeen ordered state-commit sequences. The
 sequences verify prior-state dependency, A/B selection, shared A15/B15 SP
 aliasing, partial ST masks, register-plus-status updates on one edge,
-nondestructive CMP, state-neutral NOP, and rejection of an otherwise decoded
-but unsupported BLMOVE word. The testbench requires the explicit marker
-`PASS: tms34020 verified leaf RTL`.
+nondestructive CMP, Z-only logical flags, state-neutral NOP, and rejection of
+an otherwise decoded but unsupported BLMOVE word. The testbench requires the
+explicit marker `PASS: tms34020 verified leaf RTL`.
 
 `make quartus-leaf-smoke` includes the component in warning-enforcing Cyclone V
 Analysis & Synthesis. The qualification top retains separate raw state leaves

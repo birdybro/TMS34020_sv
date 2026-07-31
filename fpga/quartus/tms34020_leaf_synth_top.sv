@@ -96,7 +96,7 @@ module tms34020_leaf_synth_top (
          execute_source_index, execute_destination_index,
          execute_register_write_enable, execute_status_write_enable} ^
         {27'd0, binary_nczv, binary_register_write_enable} ^
-        {1'd0, unary_nczv, unary_status_write_mask,
+        {unary_nczv, unary_status_write_mask,
          add_nczv, compare_nczv, rmo_z, decode_valid, decoded_id,
          decode_length, pixel_valid, pixel_states};
 

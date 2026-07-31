@@ -88,6 +88,10 @@ class Tms34020Model:
             "SUB": self._execute_sub,
             "SUBB": self._execute_subb,
             "CMP": self._execute_cmp,
+            "AND": self._execute_and,
+            "ANDN": self._execute_andn,
+            "OR": self._execute_or,
+            "XOR": self._execute_xor,
             "IDLE": self._execute_idle,
             "MWAIT": self._execute_mwait,
             "ADDXYI": self._execute_addxyi,
@@ -453,6 +457,53 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_binary_arithmetic(words, "CMP")
+
+    def _execute_logical(
+        self,
+        words: list[int],
+        operation: str,
+    ) -> int:
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        source = self.state.read_reg(register_file, source_index)
+        destination = self.state.read_reg(register_file, destination_index)
+        if operation == "AND":
+            result = source & destination
+        elif operation == "ANDN":
+            result = (~source & MASK32) & destination
+        elif operation == "OR":
+            result = source | destination
+        else:
+            assert operation == "XOR"
+            result = source ^ destination
+        self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(Z_BIT, result == 0)
+        return 1
+
+    def _execute_and(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_logical(words, "AND")
+
+    def _execute_andn(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_logical(words, "ANDN")
+
+    def _execute_or(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_logical(words, "OR")
+
+    def _execute_xor(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_logical(words, "XOR")
 
     def _execute_idle(
         self, instruction: Instruction, words: list[int]

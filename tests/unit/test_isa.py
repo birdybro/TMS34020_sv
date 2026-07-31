@@ -100,6 +100,14 @@ class IsaTests(unittest.TestCase):
             0x47FF: ("SUBB", 1),
             0x4800: ("CMP", 1),
             0x49FF: ("CMP", 1),
+            0x5000: ("AND", 1),
+            0x51FF: ("AND", 1),
+            0x5200: ("ANDN", 1),
+            0x53FF: ("ANDN", 1),
+            0x5400: ("OR", 1),
+            0x55FF: ("OR", 1),
+            0x5600: ("XOR", 1),
+            0x57FF: ("XOR", 1),
             0x0040: ("IDLE", 1),
             0x0080: ("MWAIT", 1),
             0x0C00: ("ADDXYI", 3),
@@ -135,14 +143,14 @@ class IsaTests(unittest.TestCase):
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x101F, 0x1040, 0x141F, 0x1440, 0x33FF, 0x3800,
-                     0x3FFF, 0x4A00, 0x79FF, 0x7C00):
+                     0x3FFF, 0x4A00, 0x4FFF, 0x5800, 0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 4464)
-        self.assertEqual(unclassified, 65536 - 4464)
+        self.assertEqual(matched, 6512)
+        self.assertEqual(unclassified, 65536 - 6512)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:

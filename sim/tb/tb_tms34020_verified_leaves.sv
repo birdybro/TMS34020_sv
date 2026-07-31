@@ -29,6 +29,12 @@ module tb_tms34020_verified_leaves;
     logic [3:0] binary_nczv;
     logic binary_register_write_enable;
 
+    tms34020_logical_op_t logical_operation;
+    logic [31:0] logical_source;
+    logic [31:0] logical_destination;
+    logic [31:0] logical_result;
+    logic logical_z;
+
     logic [31:0] pixel;
     logic [5:0] pixel_size;
     logic [31:0] pixel_result;
@@ -130,6 +136,14 @@ module tb_tms34020_verified_leaves;
         .result_o(binary_result),
         .status_nczv_o(binary_nczv),
         .register_write_enable_o(binary_register_write_enable)
+    );
+
+    tms34020_logical logical_dut (
+        .operation_i(logical_operation),
+        .source_i(logical_source),
+        .destination_i(logical_destination),
+        .result_o(logical_result),
+        .status_z_o(logical_z)
     );
 
     tms34020_pixel_replicate pixel_dut (
@@ -319,6 +333,25 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_logical(
+        input tms34020_logical_op_t operation,
+        input logic [31:0] source,
+        input logic [31:0] destination,
+        input logic [31:0] expected_result,
+        input logic expected_z,
+        input string message
+    );
+        logical_operation = operation;
+        logical_source = source;
+        logical_destination = destination;
+        #1;
+        check_condition(
+            logical_result == expected_result &&
+            logical_z == expected_z,
+            message
+        );
+    endtask
+
     task automatic write_register(
         input logic register_file,
         input logic [3:0] register_index_value,
@@ -434,6 +467,9 @@ module tb_tms34020_verified_leaves;
         binary_source = 32'd0;
         binary_destination = 32'd0;
         binary_carry_or_borrow = 1'b0;
+        logical_operation = TMS34020_LOGICAL_AND;
+        logical_source = 32'd0;
+        logical_destination = 32'd0;
         pixel = 32'd0;
         pixel_size = 6'd0;
         compare_constant = 5'd0;
@@ -562,6 +598,34 @@ module tb_tms34020_verified_leaves;
             1'b1, 1'b0, 32'd0, 1'b1,
             32'h2000_0000, 32'hF000_0000,
             "register execute nondestructive CMP"
+        );
+        check_register_execute(
+            16'h5020, 32'hAAAA_AAAA, 32'h5555_5555,
+            32'hD000_0010,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h2000_0000, 32'h2000_0000,
+            "register execute AND only writes zero"
+        );
+        check_register_execute(
+            16'h5220, 32'hAAAA_AAAA, 32'h5555_5555,
+            32'hF000_0010,
+            1'b1, 1'b1, 32'h5555_5555, 1'b1,
+            32'd0, 32'h2000_0000,
+            "register execute ANDN only clears zero"
+        );
+        check_register_execute(
+            16'h5420, 32'hAAAA_AAAA, 32'h5555_5555,
+            32'hF000_0010,
+            1'b1, 1'b1, 32'hFFFF_FFFF, 1'b1,
+            32'd0, 32'h2000_0000,
+            "register execute OR only clears zero"
+        );
+        check_register_execute(
+            16'h5620, 32'hFFFF_FFFF, 32'hFFFF_FFFF,
+            32'hD000_0010,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h2000_0000, 32'h2000_0000,
+            "register execute XOR only writes zero"
         );
         check_register_execute(
             16'h3400, 32'd0, 32'd32, 32'd0,
@@ -725,6 +789,34 @@ module tb_tms34020_verified_leaves;
             32'h0000_0010, 32'd1,
             "register commit accepts NOP without state write"
         );
+        commit_register_instruction(
+            16'h5020, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h2000_0000, 32'h2000_0000,
+            32'h2000_0010, 32'd1,
+            "register commit AND reads A1 and A0"
+        );
+        commit_register_instruction(
+            16'h5420, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'd1,
+            1'b1, 32'd0, 32'h2000_0000,
+            32'h0000_0010, 32'd1,
+            "register commit OR observes preceding AND"
+        );
+        commit_register_instruction(
+            16'h5620, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h2000_0000, 32'h2000_0000,
+            32'h2000_0010, 32'd1,
+            "register commit XOR observes preceding OR"
+        );
+        commit_register_instruction(
+            16'h5220, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h2000_0000, 32'h2000_0000,
+            32'h2000_0010, 32'd1,
+            "register commit ANDN preserves zero result"
+        );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
         check_decode(16'h0080, TMS20_OP_MWAIT, 3'd1, "MWAIT exact decode");
@@ -754,6 +846,10 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h47FF, TMS20_OP_SUBB, 3'd1,
                      "SUBB masked decode");
         check_decode(16'h49FF, TMS20_OP_CMP, 3'd1, "CMP masked decode");
+        check_decode(16'h51FF, TMS20_OP_AND, 3'd1, "AND masked decode");
+        check_decode(16'h53FF, TMS20_OP_ANDN, 3'd1, "ANDN masked decode");
+        check_decode(16'h55FF, TMS20_OP_OR, 3'd1, "OR masked decode");
+        check_decode(16'h57FF, TMS20_OP_XOR, 3'd1, "XOR masked decode");
         check_decode(16'h0273, TMS20_OP_SETCDP, 3'd1,
                      "SETCDP exact decode");
         check_decode(16'h02FB, TMS20_OP_SETCMP, 3'd1,
@@ -854,6 +950,31 @@ module tb_tms34020_verified_leaves;
             TMS34020_BINARY_CMP, 32'h0000_0001, 32'h0000_0001, 1'b1,
             32'h0000_0000, 4'b0010, 1'b0,
             "CMP nondestructive result indication"
+        );
+
+        check_logical(
+            TMS34020_LOGICAL_AND,
+            32'hAAAA_AAAA, 32'h5555_5555,
+            32'd0, 1'b1,
+            "AND logical leaf"
+        );
+        check_logical(
+            TMS34020_LOGICAL_ANDN,
+            32'hAAAA_AAAA, 32'h5555_5555,
+            32'h5555_5555, 1'b0,
+            "ANDN logical leaf"
+        );
+        check_logical(
+            TMS34020_LOGICAL_OR,
+            32'hAAAA_AAAA, 32'h5555_5555,
+            32'hFFFF_FFFF, 1'b0,
+            "OR logical leaf"
+        );
+        check_logical(
+            TMS34020_LOGICAL_XOR,
+            32'hFFFF_FFFF, 32'hFFFF_FFFF,
+            32'd0, 1'b1,
+            "XOR logical leaf"
         );
 
         add_destination = 32'd0;
