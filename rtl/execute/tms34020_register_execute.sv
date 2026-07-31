@@ -50,10 +50,13 @@ module tms34020_register_execute (
     logic [31:0] immediate_subtract_result;
     logic [3:0] immediate_subtract_nczv;
     logic immediate_subtract_write_enable;
-    tms34020_binary_op_t increment_decrement_operation;
-    logic [31:0] increment_decrement_result;
-    logic [3:0] increment_decrement_nczv;
-    logic increment_decrement_write_enable;
+    logic [31:0] addk_source;
+    logic [31:0] addk_result;
+    logic [3:0] addk_nczv;
+    logic addk_write_enable;
+    logic [31:0] decrement_result;
+    logic [3:0] decrement_nczv;
+    logic decrement_write_enable;
 
     tms34020_decode decode (
         .first_word_i(first_word_i),
@@ -174,20 +177,30 @@ module tms34020_register_execute (
     );
 
     always_comb begin
-        increment_decrement_operation = TMS34020_BINARY_ADD;
-        if (opcode_id == TMS20_OP_DEC) begin
-            increment_decrement_operation = TMS34020_BINARY_SUB;
+        addk_source = {27'd0, first_word_i[9:5]};
+        if (first_word_i[9:5] == 5'd0) begin
+            addk_source = 32'd32;
         end
     end
 
-    tms34020_binary_arithmetic increment_decrement (
-        .operation_i(increment_decrement_operation),
+    tms34020_binary_arithmetic addk (
+        .operation_i(TMS34020_BINARY_ADD),
+        .source_i(addk_source),
+        .destination_i(destination_i),
+        .carry_or_borrow_i(1'b0),
+        .result_o(addk_result),
+        .status_nczv_o(addk_nczv),
+        .register_write_enable_o(addk_write_enable)
+    );
+
+    tms34020_binary_arithmetic decrement (
+        .operation_i(TMS34020_BINARY_SUB),
         .source_i(32'd1),
         .destination_i(destination_i),
         .carry_or_borrow_i(1'b0),
-        .result_o(increment_decrement_result),
-        .status_nczv_o(increment_decrement_nczv),
-        .register_write_enable_o(increment_decrement_write_enable)
+        .result_o(decrement_result),
+        .status_nczv_o(decrement_nczv),
+        .register_write_enable_o(decrement_write_enable)
     );
 
     always_comb begin
@@ -366,16 +379,27 @@ module tms34020_register_execute (
                     register_write_data_o = status_i;
                 end
 
-                TMS20_OP_INC,
+                TMS20_OP_ADDK: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o =
+                        addk_write_enable;
+                    register_write_data_o = addk_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o =
+                        {addk_nczv, 28'd0};
+                    status_write_mask_o = 32'hF000_0000;
+                end
+
                 TMS20_OP_DEC: begin
                     supported_o = 1'b1;
                     source_index_o = first_word_i[3:0];
                     register_write_enable_o =
-                        increment_decrement_write_enable;
-                    register_write_data_o = increment_decrement_result;
+                        decrement_write_enable;
+                    register_write_data_o = decrement_result;
                     status_write_enable_o = 1'b1;
                     status_write_data_o =
-                        {increment_decrement_nczv, 28'd0};
+                        {decrement_nczv, 28'd0};
                     status_write_mask_o = 32'hF000_0000;
                 end
 

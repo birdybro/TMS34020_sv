@@ -89,7 +89,7 @@ class Tms34020Model:
             "DINT": self._execute_dint,
             "EINT": self._execute_eint,
             "GETST": self._execute_getst,
-            "INC": self._execute_inc,
+            "ADDK": self._execute_addk,
             "DEC": self._execute_dec,
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
@@ -439,38 +439,43 @@ class Tms34020Model:
         self.state.write_reg(register_file, index, self.state.st)
         return 1
 
-    def _execute_inc_or_dec(
-        self, words: list[int], increment: bool
-    ) -> int:
+    def _execute_decrement(self, words: list[int]) -> int:
         register_file, index = self._decode_destination(words[0])
         value = self.state.read_reg(register_file, index)
-        if increment:
-            total = value + 1
-            result = total & MASK32
-            carry_or_borrow = total > MASK32
-            overflow = value == 0x7FFF_FFFF
-        else:
-            result = (value - 1) & MASK32
-            carry_or_borrow = value == 0
-            overflow = value == 0x8000_0000
+        result = (value - 1) & MASK32
         self.state.write_reg(register_file, index, result)
         self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
-        self._set_status_bit(C_BIT, carry_or_borrow)
+        self._set_status_bit(C_BIT, value == 0)
         self._set_status_bit(Z_BIT, result == 0)
-        self._set_status_bit(V_BIT, overflow)
+        self._set_status_bit(V_BIT, value == 0x8000_0000)
         return 1
 
-    def _execute_inc(
+    def _execute_addk(
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_inc_or_dec(words, True)
+        register_file, index = self._decode_destination(words[0])
+        destination = self.state.read_reg(register_file, index)
+        encoded_constant = (words[0] >> 5) & 0x1F
+        constant = encoded_constant or 32
+        total = destination + constant
+        result = total & MASK32
+        carry_out = (total >> 32) & 1
+        low_total = (destination & 0x7FFF_FFFF) + constant
+        carry_into_sign = (low_total >> 31) & 1
+        overflow = carry_into_sign ^ carry_out
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, bool(carry_out))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, bool(overflow))
+        return 1
 
     def _execute_dec(
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_inc_or_dec(words, False)
+        return self._execute_decrement(words)
 
     def _execute_setc(
         self, instruction: Instruction, words: list[int]

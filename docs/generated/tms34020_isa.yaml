@@ -1459,19 +1459,22 @@
       "confidence": "VERIFIED_PRIMARY"
     },
     {
-      "mnemonic": "INC",
-      "aliases": ["ADDK 1,Rd"],
+      "mnemonic": "ADDK",
+      "aliases": ["INC when K=1"],
       "instruction_length_words": 1,
-      "opcode_mask": "0xFFE0",
-      "opcode_value": "0x1020",
+      "opcode_mask": "0xFC00",
+      "opcode_value": "0x1000",
       "operand_fields": [
+        {"name": "constant", "word": 0, "lsb": 5, "width": 5, "encoding": "1..31; encoded 0 means 32"},
         {"name": "register_file", "word": 0, "lsb": 4, "width": 1, "encoding": "0=A,1=B"},
         {"name": "destination", "word": 0, "lsb": 0, "width": 4, "encoding": "Rd; 15=SP alias"}
       ],
       "register_file": "selected by first-word bit 4",
-      "immediate_fields": [],
+      "immediate_fields": [
+        {"name": "K", "width": 5, "signed": false, "word_order": ["first_word_bits_9_5"], "zero_encoding": 32}
+      ],
       "condition_fields": [],
-      "addressing_modes": ["register_direct"],
+      "addressing_modes": ["constant", "register_direct"],
       "source_registers": ["Rd old value"],
       "destination_registers": ["Rd"],
       "status_bits_read": [],
@@ -1480,7 +1483,7 @@
       "memory_transactions": [],
       "graphics_register_dependencies": [],
       "cache_interactions": ["normal instruction fetch"],
-      "pipeline_interactions": ["single-state register increment/write"],
+      "pipeline_interactions": ["single-state constant add/write"],
       "interruptibility": "at instruction boundary",
       "restartability": "not_applicable",
       "bus_fault_behavior": "instruction/refill fault only",
@@ -1490,7 +1493,7 @@
       "bus_16_effects": "instruction refill timing only",
       "bus_32_effects": "instruction refill timing only",
       "page_mode_effects": "instruction refill timing only",
-      "source_citations": ["TI-TMS34020-UG-1990 INC, printed p.13-134"],
+      "source_citations": ["TI-TMS34020-UG-1990 ADDK, printed p.13-37", "TI-TMS34020-UG-1990 INC alias, printed p.13-134", "TI-TMS34020-UG-1990 timing table, printed p.15-2"],
       "compatible_with_tms34010": true,
       "confidence": "VERIFIED_PRIMARY"
     },

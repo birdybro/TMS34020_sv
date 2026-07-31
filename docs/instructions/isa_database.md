@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 44 page-verified encoding records and covers 6,800 of 65,536
+slice contains 44 page-verified encoding records and covers 7,792 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -22,7 +22,7 @@ first words without collisions:
 | DINT | `0360h` | 1 | p.13-95 |
 | EINT | `0D60h` | 1 | p.13-109 |
 | GETST | `0180h`, mask `FFE0h` | 1 | p.13-132 |
-| INC | `1020h`, mask `FFE0h` | 1 | p.13-134 |
+| ADDK / INC alias when K=1 | `1000h`, mask `FC00h` | 1 | pp.13-37, 13-134 |
 | DEC | `1420h`, mask `FFE0h` | 1 | p.13-94 |
 | SETC | `0DE0h` | 1 | p.13-226 |
 | ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
@@ -71,6 +71,14 @@ first words, lengths, immediate widths, object encodings, and timing cases
 unambiguous without inventing source-level opcode distinctions. CMPI and SUBI
 store the one's complement of their source immediate in each extension word,
 as shown on pp.13-81..13-82 and 13-243..13-244.
+
+ADDK is the canonical record for the complete `000100 KKKKK R DDDD`
+encoding. Its embedded unsigned K field represents 1–31 directly and uses
+encoded zero for 32. TI explicitly defines INC as an alternate mnemonic for
+ADDK 1,Rd, so `1020h`–`103Fh` decode as ADDK with the conditional INC alias
+rather than as an overlapping instruction record. Sources: printed pp.13-37
+and 13-134. The decision is recorded in
+`docs/research/source_conflicts.md` RSC-0010.
 
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database

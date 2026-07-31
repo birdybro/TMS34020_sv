@@ -959,7 +959,19 @@ module tb_tms34020_verified_leaves;
             16'h1031, 32'd0, 32'hFFFF_FFFF, 32'd0,
             1'b1, 1'b1, 32'd0, 1'b1,
             32'h6000_0000, 32'hF000_0000,
-            "register execute INC carry and zero"
+            "register execute ADDK/INC carry and zero"
+        );
+        check_register_execute(
+            16'h1000, 32'd0, 32'h7FFF_FFE0, 32'd0,
+            1'b1, 1'b1, 32'h8000_0000, 1'b1,
+            32'h9000_0000, 32'hF000_0000,
+            "register execute ADDK encoded zero means 32"
+        );
+        check_register_execute(
+            16'h13F2, 32'd0, 32'hFFFF_FFE1, 32'd0,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h6000_0000, 32'hF000_0000,
+            "register execute ADDK 31 B-file carry and zero"
         );
         check_register_execute(
             16'h1421, 32'd0, 32'd0, 32'd0,
@@ -1159,7 +1171,7 @@ module tb_tms34020_verified_leaves;
             1'b1, 1'b1, 4'd2, 32'h4020_0011,
             1'b1, 32'd0, 32'hF000_0000,
             32'h0020_0010, 32'd0,
-            "register commit INC reads prior B2"
+            "register commit ADDK/INC reads prior B2"
         );
         commit_register_instruction(
             16'h0360, 1'b1,
@@ -1187,7 +1199,7 @@ module tb_tms34020_verified_leaves;
             1'b1, 1'b0, 4'd15, 32'd1,
             1'b1, 32'd0, 32'hF000_0000,
             32'h0000_0010, 32'd1,
-            "register commit INC shared SP"
+            "register commit ADDK/INC shared SP"
         );
         commit_register_instruction(
             16'h41E0, 1'b1,
@@ -1358,6 +1370,13 @@ module tb_tms34020_verified_leaves;
             4'b0010, 32'h2000_0010, 32'd2,
             "register commit CMPI.W preserves shared SP"
         );
+        commit_register_instruction(
+            16'h101F, 1'b1,
+            1'b1, 1'b1, 4'd15, 32'd34,
+            1'b1, 32'd0, 32'hF000_0000,
+            32'h0000_0010, 32'd34,
+            "register commit ADDK encoded-zero shared SP"
+        );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
         check_decode(16'h0080, TMS20_OP_MWAIT, 3'd1, "MWAIT exact decode");
@@ -1376,8 +1395,12 @@ module tb_tms34020_verified_leaves;
                      "SETC exact decode");
         check_decode(16'h019F, TMS20_OP_GETST, 3'd1,
                      "GETST masked decode");
-        check_decode(16'h103F, TMS20_OP_INC, 3'd1,
-                     "INC masked decode");
+        check_decode(16'h1000, TMS20_OP_ADDK, 3'd1,
+                     "ADDK encoded-zero decode");
+        check_decode(16'h103F, TMS20_OP_ADDK, 3'd1,
+                     "ADDK/INC alias decode");
+        check_decode(16'h13FF, TMS20_OP_ADDK, 3'd1,
+                     "ADDK upper-bound decode");
         check_decode(16'h143F, TMS20_OP_DEC, 3'd1,
                      "DEC masked decode");
         check_decode(16'h41FF, TMS20_OP_ADD, 3'd1, "ADD masked decode");

@@ -158,6 +158,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_02D0: memory_word = 16'h0B60;
                 32'h0000_02E0: memory_word = 16'h0001;
                 32'h0000_02F0: memory_word = 16'h0000;
+                32'h0000_0300: memory_word = 16'h101F;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -564,11 +565,11 @@ module tb_tms34020_scalar_slice;
             "scalar GETST commit"
         );
         serve_and_commit(
-            32'h30, TMS20_OP_INC,
+            32'h30, TMS20_OP_ADDK,
             1'b1, 1'b1, 4'd2, 32'h4020_0011,
             1'b1, 32'd0, 32'hF000_0000,
             32'h0020_0010, 32'd0,
-            "scalar INC observes prior B2"
+            "scalar ADDK/INC observes prior B2"
         );
         serve_and_commit(
             32'h40, TMS20_OP_DINT,
@@ -585,11 +586,11 @@ module tb_tms34020_scalar_slice;
             "scalar DEC A0 commit"
         );
         serve_and_commit(
-            32'h60, TMS20_OP_INC,
+            32'h60, TMS20_OP_ADDK,
             1'b1, 1'b0, 4'd15, 32'd1,
             1'b1, 32'd0, 32'hF000_0000,
             32'h0000_0010, 32'd1,
-            "scalar INC shared SP"
+            "scalar ADDK/INC shared SP"
         );
         serve_and_commit(
             32'h70, TMS20_OP_ADD,
@@ -718,7 +719,19 @@ module tb_tms34020_scalar_slice;
             "twelve multiword packet commits"
         );
 
-        serve_word(32'h300);
+        serve_and_commit(
+            32'h300, TMS20_OP_ADDK,
+            1'b1, 1'b1, 4'd15, 32'd32,
+            1'b1, 32'd0, 32'hF000_0000,
+            32'h0000_0010, 32'd32,
+            "scalar ADDK encoded-zero shared SP"
+        );
+        check_condition(
+            commit_count == 13,
+            "thirteen multiword and constant packet commits"
+        );
+
+        serve_word(32'h310);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -735,9 +748,9 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 12 &&
-                status == 32'h2000_0010 &&
-                sp == 32'd0,
+                commit_count == 13 &&
+                status == 32'h0000_0010 &&
+                sp == 32'd32,
                 "blocked unclassified packet cannot mutate state"
             );
         end

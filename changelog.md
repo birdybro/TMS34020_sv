@@ -109,6 +109,9 @@
 - Refactored the cache data-array access into an inference-friendly synchronous
   RAM path after synthesis review showed the initial form was implemented in
   logic; Quartus now maps the 128×32 array to 4,096 block-memory bits.
+- Replaced the earlier narrow INC-only canonical decode with its full ADDK
+  family after the primary INC page proved it is an alternate mnemonic for
+  `ADDK 1,Rd`; no overlapping decode or expectation weakening was introduced.
 
 ### Verified
 
@@ -239,6 +242,12 @@
   replacement, incomplete-packet rejection, and dependent fetched-packet
   tests. Requalified Quartus wrappers report 6,040 leaf logic cells and 3,814
   scalar logic cells with zero errors/warnings.
+- Canonicalized the complete ADDK range from TI printed p.13-37 while retaining
+  INC as the documented K=1 alias from p.13-134. The 44-record database now
+  covers 7,792 first words; 63 model tests cover all ADDK and INC example rows,
+  A/B/SP selection, K=31, and encoded-zero K=32. RTL and fetched-packet tests
+  cover the alias plus encoded-zero shared SP. Warning-free Quartus reports
+  6,034 leaf, 344 fetch, 725 frontend, and 3,805 scalar logic cells.
 
 ### Documentation
 

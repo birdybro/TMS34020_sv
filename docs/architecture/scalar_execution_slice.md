@@ -7,7 +7,7 @@ individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
 - ABS, NEG, NEGB, and NOT;
-- ADD, ADDC, SUB, SUBB, CMP, INC, and DEC; and
+- ADD, ADDC, SUB, SUBB, CMP, ADDK/INC, and DEC; and
 - AND, ANDN, OR, XOR, CMPK, and RMO; plus
 - the three-word ANDNI, ORI, and XORI immediate-logical family; and
 - the three-word ADDXYI immediate XY operation; plus
@@ -73,8 +73,9 @@ packets with independent half arithmetic and full NCZV replacement; executes
 dependent ADDI.W, ADDI.L, and sign-extending ADDI.W packets with full NCZV
 replacement; executes complemented SUBI.W and dependent SUBI.L packets; then
 executes nondestructive CMPI.W followed by CMPI.L against the preserved
-destination; then proves a separate unclassified packet remains blocked and
-state-stable.
+destination; executes ADDK with encoded K=0 against shared SP; then proves a
+separate unclassified packet remains blocked and state-stable. The earlier
+INC spellings exercise the same canonical ADDK K=1 object code.
 
 A second pass enables the cache, checks the demand-word-last refill sequence,
 and executes the first eight dependent instructions with exactly four native
@@ -83,7 +84,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 3,814 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 3,805 logic cells,
 1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

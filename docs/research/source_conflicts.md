@@ -134,3 +134,22 @@
   value here as a source conflict. The model test names this resolution
   explicitly; the table value is not silently copied or silently corrected.
   Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0010: ADDK and INC share one encoding
+
+- Status: resolved primary-source alias identity
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, ADDK printed
+  p.13-37 defines `000100 KKKKK R DDDD`, including K=1. INC printed p.13-134
+  shows the identical K=1 bit pattern and explicitly calls INC an alternate
+  mnemonic for `ADDK 1,Rd`.
+- Corroboration: the pinned TMS34010 baseline decodes the full top-six-bit
+  family as ADDK in `rtl/core/tms34010_decode.sv` lines 64–70 and 591–603 at
+  commit `94a258e80a07ceb4303ce0b99818df832e96007f`. Pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e` executes the family with
+  `addk_a/addk_b` in `src/devices/cpu/tms34010/34010ops.hxx` lines 391–403 and
+  only chooses the INC spelling for K=1 in
+  `src/devices/cpu/tms34010/34010dsm.cpp` lines 947–963.
+- Decision: keep one canonical ADDK database record with mask `FC00h`, record
+  INC as the conditional K=1 alias, and decode `1020h`–`103Fh` as ADDK. This
+  replaces the earlier narrow INC-only extraction without changing its
+  semantics. Confidence: `VERIFIED_PRIMARY`.

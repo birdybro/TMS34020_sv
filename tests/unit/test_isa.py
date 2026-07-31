@@ -86,8 +86,9 @@ class IsaTests(unittest.TestCase):
             0x0DE0: ("SETC", 1),
             0x0180: ("GETST", 1),
             0x019F: ("GETST", 1),
-            0x1020: ("INC", 1),
-            0x103F: ("INC", 1),
+            0x1000: ("ADDK", 1),
+            0x1020: ("ADDK", 1),
+            0x13FF: ("ADDK", 1),
             0x1420: ("DEC", 1),
             0x143F: ("DEC", 1),
             0x4000: ("ADD", 1),
@@ -160,7 +161,7 @@ class IsaTests(unittest.TestCase):
         for word in (0x0041, 0x0081, 0x017F, 0x01A0, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
-                     0x101F, 0x1040, 0x141F, 0x1440, 0x33FF, 0x3800,
+                     0x0FFF, 0x1400, 0x141F, 0x1440, 0x33FF, 0x3800,
                      0x0AFF, 0x0C20, 0x3FFF, 0x4A00,
                      0x4FFF, 0x5800,
                      0x79FF, 0x7C00):
@@ -169,8 +170,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 6800)
-        self.assertEqual(unclassified, 65536 - 6800)
+        self.assertEqual(matched, 7792)
+        self.assertEqual(unclassified, 65536 - 7792)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -241,6 +242,17 @@ class IsaTests(unittest.TestCase):
                 ],
                 "ones_complement_of_source_immediate",
             )
+
+    def test_addk_canonicalizes_inc_alias_and_encoded_zero(self) -> None:
+        addk_32 = self.database.decode(0x1000)
+        inc_alias = self.database.decode(0x1020)
+        self.assertEqual(addk_32.mnemonic, "ADDK")
+        self.assertIs(addk_32, inc_alias)
+        self.assertEqual(addk_32.metadata["aliases"], ["INC when K=1"])
+        immediate = addk_32.metadata["immediate_fields"][0]
+        self.assertEqual(immediate["width"], 5)
+        self.assertFalse(immediate["signed"])
+        self.assertEqual(immediate["zero_encoding"], 32)
 
 
 if __name__ == "__main__":

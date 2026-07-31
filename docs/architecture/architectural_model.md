@@ -18,7 +18,7 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, INC, DEC, SETC, ADD,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, DEC, SETC, ADD,
   ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L, AND,
   ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry, MWAIT,
   ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
@@ -49,6 +49,13 @@ writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 The binary register family implements ADD/ADDC carry and SUB/SUBB/CMP borrow,
 including carry/borrow inputs and one-state timing. Sources: the same guide,
 printed pp.13-33..13-34, 13-80, and 13-241..13-242.
+
+ADDK adds the unsigned embedded constant 1–32 in one state and replaces NCZV;
+an all-zero five-bit K field represents 32. INC is the documented assembler
+alias for the K=1 encoding, not a separate object-code family. The model
+executes the canonical ADDK record while preserving every published INC
+example. Sources: the same guide, printed pp.13-37 and 13-134 and timing-table
+p.15-2.
 
 The two ADDI encoding forms add either a sign-extended 16-bit word or a full
 32-bit immediate and replace NCZV. The short form takes two documented states;
@@ -83,13 +90,13 @@ The ORI page's duplicated “aligned” wording is resolved in
 `docs/research/source_conflicts.md` RSC-0006.
 
 CLRC/SETC and DINT/EINT update only C and IE respectively. GETST copies the
-complete ST value without modifying it. INC and DEC implement the documented
-one-state result and N/C/Z/V behavior, including carry, borrow, and signed
-overflow edges. Sources: TI *TMS34020 User's Guide*, August 1990, §4.1 printed
-pp.4-2..4-3 and instruction pages 13-58, 13-94, 13-109, 13-132, 13-134, and
-13-226. DINT is on printed p.13-95; that scanned page is image-only in the
-acquired PDF and was visually inspected rather than inferred from failed OCR.
-Interrupt recognition around DINT/EINT remains outside this
+complete ST value without modifying it. ADDK/INC and DEC implement the
+documented one-state result and N/C/Z/V behavior, including carry, borrow, and
+signed overflow edges. Sources: TI *TMS34020 User's Guide*, August 1990, §4.1
+printed pp.4-2..4-3 and instruction pages 13-37, 13-58, 13-94, 13-109, 13-132,
+13-134, and 13-226. DINT is on printed p.13-95; that scanned page is image-only
+in the acquired PDF and was visually inspected rather than inferred from
+failed OCR. Interrupt recognition around DINT/EINT remains outside this
 instruction-boundary model slice.
 
 Where TI says PSIZE is assumed to be one of 1, 2, 4, 8, 16, or 32, the model
@@ -163,7 +170,8 @@ lower-ST preservation, and short/long alignment timing;
 all TI register/immediate logical example rows, ANDI encoded-complement
 behavior, aligned and unaligned immediate timing,
 CLRC/SETC preservation, DINT/EINT IE changes, complete GETST transfer, all TI
-INC/DEC example rows, CMPK constants/flags, PSIZE get/exchange, RMO
+ADDK and INC-alias example rows, encoded-zero/B/SP cases, all DEC example
+rows, CMPK constants/flags, PSIZE get/exchange, RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
 pending states, IDLE claim boundaries, no mutation on unsupported
 instructions, and snapshot/replay equivalence.

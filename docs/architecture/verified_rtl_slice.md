@@ -19,7 +19,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
 | `rtl/execute/tms34020_cmpk.sv` | Encoded-zero-means-32 subtraction and N/C/Z/V compare results without register modification | TI *TMS34020 User's Guide*, August 1990, CMPK, printed p.13-83 |
 | `rtl/execute/tms34020_logical.sv` | AND, ANDN, OR, and XOR register results plus Z; N/C/V remain outside the write mask | TI *TMS34020 User's Guide*, August 1990, printed pp.13-40, 13-42, 13-182, and 13-266 |
-| `rtl/execute/tms34020_register_execute.sv` | Packet-length-checked operand selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, INC, DEC, SETC, ADD, ADDC, SUB, SUBB, CMP, CMPI.W/L, CMPK, RMO, AND, ANDN, OR, XOR, ANDNI, ORI, XORI, ADDXYI, ADDI.W/L, and SUBI.W/L | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-36, 13-39..13-43, 13-58, 13-80..13-83, 13-94..13-95, 13-109, 13-132, 13-134, 13-178..13-183, 13-224, 13-226, 13-241..13-244, and 13-266..13-267 |
+| `rtl/execute/tms34020_register_execute.sv` | Packet-length-checked operand selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, DEC, SETC, ADD, ADDC, SUB, SUBB, CMP, CMPI.W/L, CMPK, RMO, AND, ANDN, OR, XOR, ANDNI, ORI, XORI, ADDXYI, ADDI.W/L, and SUBI.W/L | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-37, 13-39..13-43, 13-58, 13-80..13-83, 13-94..13-95, 13-109, 13-132, 13-134, 13-178..13-183, 13-224, 13-226, 13-241..13-244, and 13-266..13-267 |
 | `rtl/execute/tms34020_rmo.sv` | Least-significant set-bit index and Z result | TI *TMS34020 User's Guide*, August 1990, RMO, printed p.13-224 |
 | `rtl/execute/tms34020_unary.sv` | ABS, NEG, NEGB, and NOT results plus instruction-specific N/C/Z/V values and write masks | TI *TMS34020 User's Guide*, August 1990, printed pp.13-32 and 13-178..13-181 |
 | `rtl/graphics/tms34020_pixel_size_ops.sv` | GETPS zero-extension and EXGPS register/16-bit PSIZE-write data paths; no I/O timing or write-queue implementation | TI *TMS34020 User's Guide*, August 1990, EXGPS, printed p.13-113; GETPS, printed p.13-131 |
@@ -77,11 +77,12 @@ Verilator. It checks:
   replacement, partial flag preservation, isolated IE set, and isolated C
   clear.
 - decoder-controlled NOP, unary, binary-arithmetic, logical, CMPK, RMO,
-  CLRC/SETC, DINT/EINT, GETST, and INC/DEC write intents, including A/B
+  CLRC/SETC, DINT/EINT, GETST, ADDK/INC, and DEC write intents, including A/B
   register-file selection, source/destination indices, CMP write inhibition,
-  partial status masks, carry/borrow edges, Z-only logical updates, and
-  rejection of decoded-but-unsupported and unclassified words.
-- thirty-five ordered commit checks covering EINT, SETC, GETST, INC, DINT, DEC,
+  encoded-zero ADDK, carry/borrow edges, partial status masks, Z-only logical
+  updates, and rejection of decoded-but-unsupported and unclassified words.
+- thirty-six ordered commit checks covering EINT, SETC, GETST, ADDK/INC, DINT,
+  DEC,
   ABS, shared-SP write/read, ADD, nondestructive CMP, RMO, unsupported BLMOVE
   rejection, state-neutral NOP, AND, OR, XOR, ANDN, incomplete-ANDNI rejection,
   complete ORI/XORI/ANDNI packets, two dependent ADDXYI packets, ADDXYI
@@ -91,7 +92,8 @@ Verilator. It checks:
   comparisons and CMPI.W through the shared SP alias. These checks prove that
   compare suppresses register writes and that a later operation observes the
   preceding committed register/ST state; they do not assign an architectural
-  cycle count to the commit edge.
+  cycle count to the commit edge. A final encoded-zero ADDK check proves that
+  K=0 adds 32 through the shared SP alias.
 
 The testbench must emit `PASS: tms34020 verified leaf RTL`; simulator exit
 status alone is not accepted.
@@ -136,9 +138,10 @@ enabled cache across the bypass sequence.
 atomic state commit. It checks nine bypass-fetched dependent commits, stable
 noncommit for one-word BLMOVE, complete ORI/XORI/ANDNI packet commits,
 two dependent ADDXYI packet commits, dependent ADDI.W/ADDI.L/ADDI.W and
-SUBI.W/SUBI.L packet commits, nondestructive CMPI.W/CMPI.L packet commits,
-unclassified-word noncommit, and a cache-enabled pass that feeds eight
-dependent commits from exactly four refill long-word reads. Three runtime
+SUBI.W/SUBI.L packet commits, nondestructive CMPI.W/CMPI.L packet commits, an
+encoded-zero ADDK shared-SP commit, unclassified-word noncommit, and a
+cache-enabled pass that feeds eight dependent commits from exactly four refill
+long-word reads. Three runtime
 assertions constrain acceptance, blocked writes, and single-pulse commit. These
 FPGA handshakes are not architectural cycle evidence.
 
@@ -149,7 +152,7 @@ data paths, unary, binary, and logical arithmetic, RMO, and RPIX timing outputs
 observable. It also keeps every output of the register-execution router
 observable and instantiates the commit composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 6,040 logic-cell/2,021-register resource count is not a core-area
+so its 6,034 logic-cell/2,021-register resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -161,17 +164,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 348
+packet assembler and generated decoder. Its observability wrapper uses 344
 logic cells and 174 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 735 logic cells, 372 registers, and 4,096 block-memory
+zero errors/warnings to 725 logic cells, 372 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 3,814 logic cells, 1,357 registers,
+composition with zero errors/warnings to 3,805 logic cells, 1,357 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

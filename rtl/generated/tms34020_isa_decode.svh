@@ -30,25 +30,25 @@ typedef enum logic [5:0] {
     TMS20_OP_EXGPS = 6'd22,
     TMS20_OP_GETPS = 6'd23,
     TMS20_OP_GETST = 6'd24,
-    TMS20_OP_INC = 6'd25,
-    TMS20_OP_NEG = 6'd26,
-    TMS20_OP_NEGB = 6'd27,
-    TMS20_OP_NOT = 6'd28,
-    TMS20_OP_ORI = 6'd29,
-    TMS20_OP_RPIX = 6'd30,
-    TMS20_OP_SUBI_L = 6'd31,
-    TMS20_OP_SUBI_W = 6'd32,
-    TMS20_OP_XORI = 6'd33,
-    TMS20_OP_ADD = 6'd34,
-    TMS20_OP_ADDC = 6'd35,
-    TMS20_OP_AND = 6'd36,
-    TMS20_OP_ANDN = 6'd37,
-    TMS20_OP_CMP = 6'd38,
-    TMS20_OP_OR = 6'd39,
-    TMS20_OP_RMO = 6'd40,
-    TMS20_OP_SUB = 6'd41,
-    TMS20_OP_SUBB = 6'd42,
-    TMS20_OP_XOR = 6'd43,
+    TMS20_OP_NEG = 6'd25,
+    TMS20_OP_NEGB = 6'd26,
+    TMS20_OP_NOT = 6'd27,
+    TMS20_OP_ORI = 6'd28,
+    TMS20_OP_RPIX = 6'd29,
+    TMS20_OP_SUBI_L = 6'd30,
+    TMS20_OP_SUBI_W = 6'd31,
+    TMS20_OP_XORI = 6'd32,
+    TMS20_OP_ADD = 6'd33,
+    TMS20_OP_ADDC = 6'd34,
+    TMS20_OP_AND = 6'd35,
+    TMS20_OP_ANDN = 6'd36,
+    TMS20_OP_CMP = 6'd37,
+    TMS20_OP_OR = 6'd38,
+    TMS20_OP_RMO = 6'd39,
+    TMS20_OP_SUB = 6'd40,
+    TMS20_OP_SUBB = 6'd41,
+    TMS20_OP_XOR = 6'd42,
+    TMS20_OP_ADDK = 6'd43,
     TMS20_OP_CMPK = 6'd44
 } tms34020_opcode_id_t;
 
@@ -163,10 +163,6 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_GETST;
                 decoded.length_words = 3'd1;
             end
-            16'b00010000001?????: begin
-                decoded.opcode_id = TMS20_OP_INC;
-                decoded.length_words = 3'd1;
-            end
             16'b00000011101?????: begin
                 decoded.opcode_id = TMS20_OP_NEG;
                 decoded.length_words = 3'd1;
@@ -237,6 +233,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b0101011?????????: begin
                 decoded.opcode_id = TMS20_OP_XOR;
+                decoded.length_words = 3'd1;
+            end
+            16'b000100??????????: begin
+                decoded.opcode_id = TMS20_OP_ADDK;
                 decoded.length_words = 3'd1;
             end
             16'b001101??????????: begin
