@@ -23,6 +23,7 @@ SUITES = {
     "rtl-leaf": ("IMPLEMENTED", "TMS20-0009/TMS20-0010"),
     "fetch": ("IMPLEMENTED", "TMS20-0013 bounded packet slice"),
     "frontend": ("IMPLEMENTED", "TMS20-0012/TMS20-0013 integration"),
+    "scalar-slice": ("IMPLEMENTED", "TMS20-0009/TMS20-0011/TMS20-0013"),
     "decode": ("NOT_IMPLEMENTED", "TMS20-0006"),
     "instruction": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0010"),
     "compatibility": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0031"),
@@ -43,6 +44,7 @@ SUITES = {
     "quartus-cache-smoke": ("IMPLEMENTED", "TMS20-0012/TMS20-0034"),
     "quartus-fetch-smoke": ("IMPLEMENTED", "TMS20-0013/TMS20-0034"),
     "quartus-frontend-smoke": ("IMPLEMENTED", "TMS20-0012/TMS20-0013/TMS20-0034"),
+    "quartus-scalar-smoke": ("IMPLEMENTED", "TMS20-0009/TMS20-0011/TMS20-0034"),
     "battletoads": ("NOT_IMPLEMENTED", "TMS20-0037"),
     "revx": ("NOT_IMPLEMENTED", "TMS20-0040"),
 }
@@ -194,6 +196,11 @@ def frontend() -> None:
     print("PASS: bounded cache/fetch frontend integration")
 
 
+def scalar_slice() -> None:
+    run([sys.executable, "scripts/run_scalar_slice_tests.py"])
+    print("PASS: bounded cache/fetch/register scalar slice")
+
+
 def cache() -> None:
     run([sys.executable, "scripts/run_cache_rtl_tests.py"])
     run([sys.executable, "scripts/run_cache_random_tests.py"])
@@ -220,6 +227,10 @@ def quartus_fetch_smoke() -> None:
 
 def quartus_frontend_smoke() -> None:
     run([sys.executable, "scripts/run_quartus_frontend_smoke.py"])
+
+
+def quartus_scalar_smoke() -> None:
+    run([sys.executable, "scripts/run_quartus_scalar_smoke.py"])
 
 
 def doctor() -> None:
@@ -263,7 +274,7 @@ def list_suites() -> None:
     print("  make doctor             report required and optional tools")
     for name, (status, task) in SUITES.items():
         target = f"{name}-tests" if name in {
-            "delta", "isa", "model", "rtl-leaf", "fetch", "frontend", "decode", "instruction", "compatibility", "cache",
+            "delta", "isa", "model", "rtl-leaf", "fetch", "frontend", "scalar-slice", "decode", "instruction", "compatibility", "cache",
             "memory", "graphics", "video", "host", "fault", "coprocessor",
         } else name
         print(f"  make {target:18} {status:15} {task}")
@@ -309,6 +320,8 @@ def main() -> None:
         fetch()
     elif args.suite == "frontend":
         frontend()
+    elif args.suite == "scalar-slice":
+        scalar_slice()
     elif args.suite == "cache":
         cache()
     elif args.suite == "fault":
@@ -321,6 +334,8 @@ def main() -> None:
         quartus_fetch_smoke()
     elif args.suite == "quartus-frontend-smoke":
         quartus_frontend_smoke()
+    elif args.suite == "quartus-scalar-smoke":
+        quartus_scalar_smoke()
 
 
 if __name__ == "__main__":

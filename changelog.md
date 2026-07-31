@@ -81,6 +81,10 @@
   for the bounded instruction-fetch slice.
 - A portable cache/fetch frontend with native memory and fault controls, plus
   integrated Verilator and Cyclone V synthesis qualification.
+- A bounded scalar composition that admits only 23 verified one-word packets
+  to A/B/SP and ST commit and exposes every other packet as blocked.
+- Self-checking scalar-composition and warning-enforcing Cyclone V synthesis
+  commands.
 
 ### Changed
 
@@ -177,6 +181,11 @@
   retry, fault-abort, PC-reload, and cache-preservation tests; Quartus retains
   4,096 block-memory bits and reports 709 logic cells/372 registers with zero
   errors/warnings.
+- The scalar composition passes nine dependent bypass commits, stable
+  noncommit for BLMOVE and three-word ORI, and eight cache-fed commits after
+  four refill reads. Three runtime assertions enforce admission/noncommit
+  safety; Quartus reports 3,444 logic cells, 1,357 registers, and 4,096
+  block-memory bits with zero errors/warnings.
 
 ### Documentation
 
@@ -225,6 +234,9 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
+- Documented the exact 23-operation scalar admission set, blocked-packet
+  contract, directed state dependencies, synthesis evidence, and timing
+  non-claims.
 
 ### Integration
 
@@ -234,10 +246,10 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  serialized RTL cache/fetch frontend is not connected to externally gated
-  state commit, and no composition forms an executable core. There is no timed
-  retirement, pin-level completion decoder, CPU fault controller, overlapped
-  pipeline, or subsystem integration.
+  bounded scalar composition accepts only 23 one-word operations, and every
+  other packet blocks. There is no complete executable core, timed retirement,
+  pin-level completion decoder, CPU fault controller, overlapped pipeline, or
+  subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

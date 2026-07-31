@@ -13,6 +13,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
 | `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit for the 23 one-word instructions supported by `tms34020_register_execute`; unsupported words cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for `tms34020_register_execute` |
+| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for the 23 verified one-word scalar operations; decoded unsupported and multiword packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for `tms34020_register_execute` |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
@@ -112,6 +113,13 @@ cold demand-word-last refill, a NOP packet, cache-hit ORI opcode/extensions,
 disabled-cache retry, bypass fault abort, PC reload, and preservation of the
 enabled cache across the bypass sequence.
 
+`make scalar-slice-tests` composes cache, packet fetch, register execution, and
+atomic state commit. It checks nine bypass-fetched dependent commits, stable
+noncommit for one-word BLMOVE and three-word ORI, and a cache-enabled pass that
+feeds eight dependent commits from exactly four refill long-word reads. Three
+runtime assertions constrain acceptance, blocked writes, and single-pulse
+commit. These FPGA handshakes are not architectural cycle evidence.
+
 `make quartus-leaf-smoke` runs warning-free Quartus Analysis & Synthesis for
 the leaf qualification wrapper on Cyclone V device `5CSEBA6U23I7`. The wrapper
 keeps both register-file read ports, arithmetic flags, decoder outputs, PSIZE
@@ -140,20 +148,22 @@ zero errors/warnings to 709 logic cells, 372 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
+`make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
+composition with zero errors/warnings to 3,444 logic cells, 1,357 registers,
+and 4,096 block-memory bits. The observability wrapper is not a core-area
+estimate, and no fit or TimeQuest result exists.
+
 ## Explicitly absent
 
-There is an integrated serialized cache/fetch frontend, but no
-opcode-to-execution composition, timing sequencer,
-retirement boundary derived from processor state, interrupt logic, complete
-memory access, page mode, complete bus-fault/retry subsystem, host interface,
-multiprocessor interface, coprocessor interface, display subsystem,
-original-pin bus, or game wrapper. The standalone cache leaf has transaction
-completion outcomes, but no pin-level decoder, fault registers, interrupt
-entry/return, or dynamic-width/page-mode memory controller.
-The register-execution module emits combinational write *intents*. The bounded
-commit composition can apply those intents to its private register/ST state,
-but only when an external controller asserts `commit_i`; it does not fetch,
-advance PC, schedule, overlap, stall, retry, interrupt, or supply architectural
-timing. Its presence therefore does not constitute an executable processor
-core. In particular, the EXGPS leaf does not implement the documented hidden
-internal-I/O write cycle and is not routed through this composition.
+There is a bounded serialized opcode-to-register execution path for only 23
+one-word operations, but no timing sequencer, processor-derived retirement
+boundary, interrupt logic, complete memory access, page mode, complete
+bus-fault/retry subsystem, host interface, multiprocessor interface,
+coprocessor interface, display subsystem, original-pin bus, or game wrapper.
+The cache has transaction completion outcomes but no pin-level decoder, fault
+registers, interrupt entry/return, or dynamic-width/page-mode memory
+controller. The scalar slice advances only after its conservative internal
+handshake and supplies no architectural timing, so it is not a complete
+executable processor core. In particular, EXGPS does not implement its
+documented hidden internal-I/O write cycle and is not routed through this
+composition.

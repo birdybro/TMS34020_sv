@@ -1,8 +1,8 @@
 # Synthesis status
 
 - Portable RTL: verified execution/register leaves, serialized instruction
-  packet fetch, and bounded native-completion instruction-cache leaf; no
-  processor top exists
+  packet fetch, bounded native-completion cache, and a limited scalar
+  fetch-to-commit composition; no complete processor top exists
 - Yosys: not installed in the local environment
 - Quartus: Prime Lite 17.0.2 Build 602 at
   `/home/aberu/intelFPGA_lite/17.0/quartus/bin/quartus_sh`
@@ -73,3 +73,17 @@
 - Fit/placement/routing and TimeQuest: not run; no timing-closure claim
 - Qualification claim: warning-free Analysis & Synthesis for only the serialized
   cache/fetch composition
+
+## Bounded scalar composition smoke
+
+- Command: `make quartus-scalar-smoke`
+- Result: Analysis & Synthesis successful, 0 errors, 0 warnings
+- Analysis resources: 3,444 logic cells, 1,357 registers, 82 pins, 4,096
+  block-memory bits, 0 DSP blocks, and 0 PLLs
+- Memory inference: the integrated cache retains one portable 128×32 dual-port
+  RAM mapped to `altsyncram`
+- Scope: cache/fetch frontend, 23-operation register executor, A/B/SP and ST
+  state, bounded acceptance/completion, and observability wrapper
+- Fit/placement/routing and TimeQuest: not run; no timing-closure claim
+- Qualification claim: warning-free Analysis & Synthesis for only the bounded
+  scalar composition

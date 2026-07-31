@@ -52,9 +52,10 @@ clock and explicit clock enables:
 - interrupt and bus-fault entry use the correct ordinary or continuation PC,
   not an arbitrarily advanced fetch cursor.
 
-The existing `tms34020_register_commit` block verifies atomic A/B/SP and ST
-write intent only. `tms34020_frontend` now verifies cache-to-packet ordering,
-including retry and abort, but no packet is connected to execution or commit.
+The bounded `tms34020_scalar_slice` connects the serialized frontend to
+`tms34020_register_commit` for 23 verified one-word operations and blocks
+everything else. This verifies a conservative fetch-to-commit ordering, but
+does not implement or measure documented pipeline overlap.
 
 ## Portable implementation decomposition
 
@@ -88,7 +89,8 @@ serializes one instruction packet and waits for explicit completion, so it does
 not implement the zero-overhead cache-hit overlap. Later timing work may add
 buffering or overlap only when tests preserve the same packet, redirect, fault,
 and commit invariants. Its signal contract is documented in
-`instruction_fetch.md`; its cache composition is documented in `frontend.md`.
+`instruction_fetch.md`; its cache composition is documented in `frontend.md`,
+and the bounded downstream path in `scalar_execution_slice.md`.
 
 ## Initial instruction-packet contract
 

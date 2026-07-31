@@ -25,9 +25,11 @@ fault resume/abort, packet metadata, and cache debug state. Cache abort is
 connected directly to the packet assembler: an abandoned native instruction
 request discards any partial packet and requires an explicit PC reload.
 
-This remains a serialized functional frontend. It does not include execution,
-architectural register commit, interrupt entry, reset-vector fetch, page-mode
-or dynamic-width scheduling, pin timing, or machine-state timing.
+This module remains a serialized functional frontend. The separate
+`tms34020_scalar_slice` composes it with a bounded register/ST executor, but the
+frontend itself does not include execution, interrupt entry, reset-vector
+fetch, page-mode or dynamic-width scheduling, pin timing, or machine-state
+timing.
 
 ## Verification
 
@@ -53,10 +55,9 @@ Synthesis. The diagnostic wrapper uses 709 logic cells, 372 registers, and
 128×32 dual-port `altsyncram`. This is Analysis & Synthesis only, not fit,
 TimeQuest, cycle accuracy, or a complete-core area result.
 
-## Next composition boundary
+## Downstream composition
 
-The next safe step is to accept only page-verified, one-word packets in an
-execution controller, present their write intents to the existing register/ST
-commit owner, and return sequential completion. Unsupported, multiword,
-control-flow, faulted, and interrupting operations must remain noncommitting
-until their individual ordering is implemented and tested.
+`scalar_execution_slice.md` documents the bounded consumer that now accepts
+only the 23 page-verified one-word register/status operations. Unsupported,
+multiword, control-flow, faulted, and interrupting operations remain
+noncommitting until their individual ordering is implemented and tested.

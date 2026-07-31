@@ -1,0 +1,482 @@
+`timescale 1ns/1ps
+`default_nettype none
+
+module tb_tms34020_scalar_slice;
+
+    import tms34020_pkg::*;
+
+    logic clk;
+    logic reset;
+    logic pc_load_valid;
+    logic pc_load_ready;
+    logic [31:0] pc_load_bit_address;
+    logic cache_disable;
+    logic cache_flush;
+    logic packet_valid;
+    logic packet_supported;
+    logic packet_blocked;
+    tms34020_opcode_id_t packet_opcode_id;
+    logic [2:0] packet_length_words;
+    logic [79:0] packet_words;
+    logic [31:0] packet_start_pc;
+    logic commit_accepted;
+    logic register_write_enable;
+    logic register_write_file;
+    logic [3:0] register_write_index;
+    logic [31:0] register_write_data;
+    logic status_write_enable;
+    logic [31:0] status_write_data;
+    logic [31:0] status_write_mask;
+    logic [31:0] status;
+    logic [31:0] sp;
+    logic memory_request_valid;
+    logic memory_request_ready;
+    logic [31:0] memory_request_bit_address;
+    logic memory_request_width_32;
+    logic memory_request_cache_fill;
+    logic [1:0] memory_request_sequence_index;
+    logic memory_response_valid;
+    logic memory_response_ready;
+    logic [31:0] memory_response_data;
+    tms34020_memory_completion_t memory_response_completion;
+    logic faulted;
+    logic fault_resume;
+    logic fault_abort;
+    logic fetch_aborted;
+    logic [31:0] cache_present_debug;
+    logic [7:0] cache_lru_debug;
+    logic [3:0] cache_tag_valid_debug;
+    integer commit_count;
+    integer native_request_count;
+
+    tms34020_scalar_slice dut (
+        .clk_i(clk),
+        .reset_i(reset),
+        .pc_load_valid_i(pc_load_valid),
+        .pc_load_ready_o(pc_load_ready),
+        .pc_load_bit_address_i(pc_load_bit_address),
+        .cache_disable_i(cache_disable),
+        .cache_flush_i(cache_flush),
+        .packet_valid_o(packet_valid),
+        .packet_supported_o(packet_supported),
+        .packet_blocked_o(packet_blocked),
+        .packet_opcode_id_o(packet_opcode_id),
+        .packet_length_words_o(packet_length_words),
+        .packet_words_o(packet_words),
+        .packet_start_pc_o(packet_start_pc),
+        .commit_accepted_o(commit_accepted),
+        .register_write_enable_o(register_write_enable),
+        .register_write_file_o(register_write_file),
+        .register_write_index_o(register_write_index),
+        .register_write_data_o(register_write_data),
+        .status_write_enable_o(status_write_enable),
+        .status_write_data_o(status_write_data),
+        .status_write_mask_o(status_write_mask),
+        .status_o(status),
+        .sp_o(sp),
+        .memory_request_valid_o(memory_request_valid),
+        .memory_request_ready_i(memory_request_ready),
+        .memory_request_bit_address_o(memory_request_bit_address),
+        .memory_request_width_32_o(memory_request_width_32),
+        .memory_request_cache_fill_o(memory_request_cache_fill),
+        .memory_request_sequence_index_o(
+            memory_request_sequence_index
+        ),
+        .memory_response_valid_i(memory_response_valid),
+        .memory_response_ready_o(memory_response_ready),
+        .memory_response_data_i(memory_response_data),
+        .memory_response_completion_i(memory_response_completion),
+        .faulted_o(faulted),
+        .fault_resume_i(fault_resume),
+        .fault_abort_i(fault_abort),
+        .fetch_aborted_o(fetch_aborted),
+        .cache_present_debug_o(cache_present_debug),
+        .cache_lru_debug_o(cache_lru_debug),
+        .cache_tag_valid_debug_o(cache_tag_valid_debug)
+    );
+
+    always #5 clk = ~clk;
+
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            commit_count <= 0;
+            native_request_count <= 0;
+        end else if (commit_accepted) begin
+            commit_count <= commit_count + 1;
+        end
+        if (!reset &&
+            memory_request_valid &&
+            memory_request_ready) begin
+            native_request_count <= native_request_count + 1;
+        end
+    end
+
+    function automatic logic [15:0] memory_word(
+        input logic [31:0] bit_address
+    );
+        begin
+            unique case (bit_address)
+                32'h0000_0000: memory_word = 16'h0D60;
+                32'h0000_0010: memory_word = 16'h0DE0;
+                32'h0000_0020: memory_word = 16'h0192;
+                32'h0000_0030: memory_word = 16'h1032;
+                32'h0000_0040: memory_word = 16'h0360;
+                32'h0000_0050: memory_word = 16'h1420;
+                32'h0000_0060: memory_word = 16'h102F;
+                32'h0000_0070: memory_word = 16'h41E0;
+                32'h0000_0080: memory_word = 16'h0300;
+                32'h0000_0090: memory_word = 16'h00F0;
+                32'h0000_0100: memory_word = 16'h0BA0;
+                32'h0000_0110: memory_word = 16'h5678;
+                32'h0000_0120: memory_word = 16'h1234;
+                default: memory_word = 16'hFFFF;
+            endcase
+        end
+    endfunction
+
+    function automatic logic [31:0] memory_long_word(
+        input logic [31:0] bit_address
+    );
+        begin
+            memory_long_word = {
+                memory_word(bit_address + 32'd16),
+                memory_word(bit_address)
+            };
+        end
+    endfunction
+
+    task automatic check_condition(
+        input logic condition,
+        input string message
+    );
+        if (!condition) begin
+            $display("FAIL: %s", message);
+            $fatal(1);
+        end
+    endtask
+
+    task automatic apply_reset;
+        begin
+            @(negedge clk);
+            reset = 1'b1;
+            repeat (2) @(posedge clk);
+            @(negedge clk);
+            reset = 1'b0;
+            #1;
+            check_condition(
+                pc_load_ready &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0 &&
+                commit_count == 0 &&
+                native_request_count == 0,
+                "scalar slice reset state"
+            );
+        end
+    endtask
+
+    task automatic serve_long_word(
+        input logic [31:0] expected_address,
+        input logic [1:0] expected_sequence
+    );
+        begin
+            while (!memory_request_valid) begin
+                @(posedge clk);
+                #1;
+            end
+            check_condition(
+                memory_request_bit_address == expected_address &&
+                memory_request_width_32 &&
+                memory_request_cache_fill &&
+                memory_request_sequence_index == expected_sequence,
+                "scalar slice cache-refill request"
+            );
+            @(posedge clk);
+            #1;
+            while (!memory_response_ready) begin
+                @(posedge clk);
+                #1;
+            end
+            @(negedge clk);
+            memory_response_data = memory_long_word(expected_address);
+            memory_response_completion = TMS34020_MEMORY_SUCCESS;
+            memory_response_valid = 1'b1;
+            @(posedge clk);
+            #1;
+            memory_response_valid = 1'b0;
+        end
+    endtask
+
+    task automatic load_pc(input logic [31:0] bit_address);
+        begin
+            @(negedge clk);
+            check_condition(pc_load_ready, "scalar slice PC load ready");
+            pc_load_bit_address = bit_address;
+            pc_load_valid = 1'b1;
+            @(posedge clk);
+            #1;
+            pc_load_valid = 1'b0;
+        end
+    endtask
+
+    task automatic serve_word(input logic [31:0] expected_address);
+        begin
+            while (!memory_request_valid) begin
+                @(posedge clk);
+                #1;
+            end
+            check_condition(
+                memory_request_bit_address == expected_address &&
+                !memory_request_width_32 &&
+                !memory_request_cache_fill &&
+                memory_request_sequence_index == 2'd0,
+                "scalar slice bypass request"
+            );
+            @(posedge clk);
+            #1;
+            while (!memory_response_ready) begin
+                @(posedge clk);
+                #1;
+            end
+            @(negedge clk);
+            memory_response_data = {
+                16'd0,
+                memory_word(expected_address)
+            };
+            memory_response_completion = TMS34020_MEMORY_SUCCESS;
+            memory_response_valid = 1'b1;
+            @(posedge clk);
+            #1;
+            memory_response_valid = 1'b0;
+        end
+    endtask
+
+    task automatic serve_and_commit(
+        input logic [31:0] expected_pc,
+        input tms34020_opcode_id_t expected_opcode,
+        input logic expected_register_write,
+        input logic expected_register_file,
+        input logic [3:0] expected_register_index,
+        input logic [31:0] expected_register_data,
+        input logic expected_status_write,
+        input logic [31:0] expected_status_data,
+        input logic [31:0] expected_status_mask,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        begin
+            serve_word(expected_pc);
+            wait (commit_accepted);
+            check_condition(
+                packet_valid &&
+                packet_supported &&
+                !packet_blocked &&
+                packet_opcode_id == expected_opcode &&
+                packet_length_words == 3'd1 &&
+                packet_start_pc == expected_pc &&
+                packet_words[15:0] == memory_word(expected_pc) &&
+                register_write_enable == expected_register_write &&
+                status_write_enable == expected_status_write,
+                message
+            );
+            if (expected_register_write) begin
+                check_condition(
+                    register_write_file == expected_register_file &&
+                    register_write_index == expected_register_index &&
+                    register_write_data == expected_register_data,
+                    message
+                );
+            end
+            if (expected_status_write) begin
+                check_condition(
+                    status_write_data == expected_status_data &&
+                    status_write_mask == expected_status_mask,
+                    message
+                );
+            end
+            @(posedge clk);
+            #1;
+            check_condition(
+                !commit_accepted &&
+                status == expected_status &&
+                sp == expected_sp,
+                message
+            );
+        end
+    endtask
+
+    initial begin
+        clk = 1'b0;
+        reset = 1'b1;
+        pc_load_valid = 1'b0;
+        pc_load_bit_address = 32'd0;
+        cache_disable = 1'b1;
+        cache_flush = 1'b0;
+        memory_request_ready = 1'b1;
+        memory_response_valid = 1'b0;
+        memory_response_data = 32'd0;
+        memory_response_completion = TMS34020_MEMORY_SUCCESS;
+        fault_resume = 1'b0;
+        fault_abort = 1'b0;
+
+        apply_reset();
+        load_pc(32'd0);
+
+        serve_and_commit(
+            32'h00, TMS20_OP_EINT,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h0020_0000, 32'h0020_0000,
+            32'h0020_0010, 32'd0,
+            "scalar EINT commit"
+        );
+        serve_and_commit(
+            32'h10, TMS20_OP_SETC,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h4000_0000, 32'h4000_0000,
+            32'h4020_0010, 32'd0,
+            "scalar SETC commit"
+        );
+        serve_and_commit(
+            32'h20, TMS20_OP_GETST,
+            1'b1, 1'b1, 4'd2, 32'h4020_0010,
+            1'b0, 32'd0, 32'd0,
+            32'h4020_0010, 32'd0,
+            "scalar GETST commit"
+        );
+        serve_and_commit(
+            32'h30, TMS20_OP_INC,
+            1'b1, 1'b1, 4'd2, 32'h4020_0011,
+            1'b1, 32'd0, 32'hF000_0000,
+            32'h0020_0010, 32'd0,
+            "scalar INC observes prior B2"
+        );
+        serve_and_commit(
+            32'h40, TMS20_OP_DINT,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'd0, 32'h0020_0000,
+            32'h0000_0010, 32'd0,
+            "scalar DINT commit"
+        );
+        serve_and_commit(
+            32'h50, TMS20_OP_DEC,
+            1'b1, 1'b0, 4'd0, 32'hFFFF_FFFF,
+            1'b1, 32'hC000_0000, 32'hF000_0000,
+            32'hC000_0010, 32'd0,
+            "scalar DEC A0 commit"
+        );
+        serve_and_commit(
+            32'h60, TMS20_OP_INC,
+            1'b1, 1'b0, 4'd15, 32'd1,
+            1'b1, 32'd0, 32'hF000_0000,
+            32'h0000_0010, 32'd1,
+            "scalar INC shared SP"
+        );
+        serve_and_commit(
+            32'h70, TMS20_OP_ADD,
+            1'b1, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h6000_0000, 32'hF000_0000,
+            32'h6000_0010, 32'd1,
+            "scalar ADD observes A0 and SP"
+        );
+        serve_and_commit(
+            32'h80, TMS20_OP_NOP,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h6000_0010, 32'd1,
+            "scalar NOP commit"
+        );
+        check_condition(commit_count == 9, "nine scalar commits");
+
+        serve_word(32'h90);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_BLMOVE &&
+            packet_length_words == 3'd1 &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "unsupported one-word packet is blocked"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 9 &&
+                status == 32'h6000_0010 &&
+                sp == 32'd1,
+                "blocked one-word packet cannot mutate state"
+            );
+        end
+
+        apply_reset();
+        load_pc(32'h100);
+        serve_word(32'h100);
+        serve_word(32'h110);
+        serve_word(32'h120);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_ORI &&
+            packet_length_words == 3'd3 &&
+            packet_words[47:0] ==
+                {16'h1234, 16'h5678, 16'h0BA0} &&
+            packet_words[79:48] == 32'd0 &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "multiword packet is blocked"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 0 &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0,
+                "blocked multiword packet cannot mutate state"
+            );
+        end
+
+        check_condition(
+            !faulted &&
+            !fetch_aborted &&
+            cache_present_debug == 32'd0 &&
+            cache_lru_debug == 8'b00_01_10_11 &&
+            cache_tag_valid_debug == 4'd0,
+            "bypass scalar slice leaves cache invalid"
+        );
+
+        apply_reset();
+        cache_disable = 1'b0;
+        load_pc(32'd0);
+        serve_long_word(32'h20, 2'd0);
+        serve_long_word(32'h40, 2'd1);
+        serve_long_word(32'h60, 2'd2);
+        serve_long_word(32'h00, 2'd3);
+        while (commit_count != 8) begin
+            @(posedge clk);
+            #1;
+        end
+        check_condition(
+            status == 32'h6000_0010 &&
+            sp == 32'd1 &&
+            native_request_count == 4 &&
+            cache_present_debug != 32'd0 &&
+            cache_tag_valid_debug != 4'd0 &&
+            !memory_request_valid &&
+            !packet_blocked,
+            "cache refill feeds eight dependent scalar commits"
+        );
+
+        $display("PASS: tms34020 bounded scalar slice");
+        $finish;
+    end
+
+endmodule
+
+`default_nettype wire

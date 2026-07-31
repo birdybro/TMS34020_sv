@@ -3,12 +3,13 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `537ace5e41b22a6e31241d77f74fb962482a6f26`
+- Latest commit: `d242af9bc0e5ad9aaafd8b6dfb1d17440ab7ff3e`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 52 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
-  integrated cache/fetch frontend tests, and warning-free Quartus Cyclone V
-  leaf/cache/fetch/frontend Analysis & Synthesis
+  integrated cache/fetch frontend and bounded scalar-composition tests, and
+  warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
+  Synthesis
 - Failing tests: none observed
 - Model status: 32 of 38 extracted instructions fetch opcodes/extensions
   through transaction-level cache/retry state with traces, rollback and
@@ -18,9 +19,10 @@
   semantic leaves, and decoder-controlled register/ST write intents for 23
   one-word instructions, with externally gated one-edge state commit and
   ordered-state tests; standalone native-completion cache lookup/refill RTL;
-  plus an integrated serialized cache/instruction-packet frontend with explicit
-  completion and abort/reload. Execution and commit remain separate, with no
-  architectural completion timing or executable processor core
+  an integrated serialized cache/instruction-packet frontend with explicit
+  completion and abort/reload; and a bounded fetch-to-commit path for those 23
+  operations that blocks all other packets. There is no architectural
+  completion timing or complete executable processor core
   (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
   current-cycle fault/retry contracts are covered by the model and bounded RTL;
@@ -31,12 +33,12 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache and four fetch SVAs run in simulation only;
+- Formal status: four cache, four fetch, and three scalar acceptance/noncommit
+  SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
-- Synthesis status: leaf, bounded-cache/fetch, and composed frontend Quartus 17.0.2
-  Analysis & Synthesis pass with 0 errors/0 warnings; cache uses 375 logic
-  cells, 200 registers and 4,096 block-memory bits; fetch uses 343 logic cells
-  and 174 registers; the frontend uses 709 logic cells, 372 registers, and
+- Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
+  composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
+  warnings; the scalar wrapper uses 3,444 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
@@ -47,5 +49,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: connect verified one-word packets to execution/commit while
-  keeping unsupported and multiword packets noncommitting
+- Next task: implement the page-verified three-word immediate-logical family
+  through packet commit while preserving the explicit blocked-packet boundary
