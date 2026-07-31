@@ -99,8 +99,9 @@ count, while the serialized RTL commit edge is not architectural timing.
 The following are not yet implemented:
 
 - PUTST's three-state RTL retirement is not implemented; PUSHST and POPST
-  semantics/sequencing also remain, as does EXGF architectural retirement
-  timing;
+  primary semantics/timing are classified but remain atomic non-execution
+  boundaries in the model and RTL; EXGF architectural retirement timing also
+  remains;
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;

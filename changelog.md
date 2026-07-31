@@ -83,6 +83,10 @@
   with ordinary A/shared-SP ordered dependencies, cache-fed execution, and a
   runtime assertion requiring status-only, nonredirecting ownership. The
   three-state architectural retirement remains unimplemented.
+- Primary-page-verified POPST/PUSHST exact encodings, full-width stack/ST
+  ordering, aligned/nonaligned visible and hidden state counts, explicit
+  TMS34010 semantic compatibility/timing differences, and atomic model/RTL
+  nonexecution boundaries pending stack-memory ownership.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -186,6 +190,12 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 74 entries covering 23,090 first
+  words. POPST/PUSHST exact and adjacent boundaries pass independently; model,
+  execution, commit, and scalar tests preserve state while handlers are absent.
+  All four affected Cyclone V analyses pass with zero errors/warnings at 8,504
+  leaf, 402 fetch, 775 frontend, and 5,133 scalar diagnostic logic cells; these
+  are not fitted core-area or timing-closure results.
 - PUTST passes direct leaf, ordered commit, and cache/fetch-to-commit tests with
   exact full-width data/mask and no register writeback. The scalar runtime SVA
   set grows to thirteen. Affected warning-free Cyclone V analyses use 8,491

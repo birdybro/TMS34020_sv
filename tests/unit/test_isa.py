@@ -94,6 +94,8 @@ class IsaTests(unittest.TestCase):
             0x01AF: ("PUTST", 1),
             0x01B0: ("PUTST", 1),
             0x01BF: ("PUTST", 1),
+            0x01C0: ("POPST", 1),
+            0x01E0: ("PUSHST", 1),
             0x1000: ("ADDK", 1),
             0x1020: ("ADDK", 1),
             0x13FF: ("ADDK", 1),
@@ -246,8 +248,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 23088)
-        self.assertEqual(unclassified, 65536 - 23088)
+        self.assertEqual(matched, 23090)
+        self.assertEqual(unclassified, 65536 - 23090)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -398,8 +400,59 @@ class IsaTests(unittest.TestCase):
             {"kind": "fixed", "machine_states": 3},
         )
         self.assertTrue(putst_a.metadata["compatible_with_tms34010"])
-        self.assertIsNone(self.database.decode(0x01C0))
         self.assertIsNone(self.database.decode(0x01C1))
+
+    def test_stack_status_forms_record_ordering_and_alignment_timing(self) -> None:
+        popst = self.database.decode(0x01C0)
+        pushst = self.database.decode(0x01E0)
+
+        self.assertEqual(popst.mnemonic, "POPST")
+        self.assertEqual(
+            popst.metadata["memory_transactions"],
+            ["32-bit data read at old SP"],
+        )
+        self.assertEqual(
+            popst.metadata["documented_cycles"],
+            {
+                "kind": "cases",
+                "cases": [
+                    {
+                        "when": "SP 32-bit aligned",
+                        "machine_states": 6,
+                    },
+                    {
+                        "when": "SP not 32-bit aligned",
+                        "machine_states": 7,
+                    },
+                ],
+            },
+        )
+        self.assertEqual(pushst.mnemonic, "PUSHST")
+        self.assertEqual(
+            pushst.metadata["memory_transactions"],
+            ["32-bit data write at SP minus 32"],
+        )
+        self.assertEqual(
+            pushst.metadata["documented_cycles"]["cases"][0],
+            {
+                "when": "SP 32-bit aligned",
+                "machine_states": 2,
+                "hidden_write_states": 1,
+            },
+        )
+        self.assertEqual(
+            pushst.metadata["documented_cycles"]["cases"][1],
+            {
+                "when": "SP not 32-bit aligned",
+                "machine_states": 2,
+                "hidden_write_states": 2,
+            },
+        )
+        self.assertTrue(popst.metadata["compatible_with_tms34010"])
+        self.assertTrue(pushst.metadata["compatible_with_tms34010"])
+        self.assertIsNone(self.database.decode(0x01C1))
+        self.assertIsNone(self.database.decode(0x01DF))
+        self.assertIsNone(self.database.decode(0x01E1))
 
     def test_shift_forms_record_direct_and_twos_complement_counts(self) -> None:
         direct_constant = self.database.decode(0x20E1)

@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 72 page-verified encoding records and covers 23,088 of 65,536
+slice contains 74 page-verified encoding records and covers 23,090 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -23,6 +23,8 @@ first words without collisions:
 | EINT | `0D60h` | 1 | p.13-109 |
 | GETST | `0180h`, mask `FFE0h` | 1 | p.13-132 |
 | PUTST | `01A0h`, mask `FFE0h` | 1 | p.13-216 |
+| POPST | `01C0h` | 1 | p.13-214 |
+| PUSHST | `01E0h` | 1 | p.13-215 |
 | ADDK / INC alias when K=1 | `1000h`, mask `FC00h` | 1 | pp.13-37, 13-134 |
 | SUBK / DEC alias when K=1 | `1400h`, mask `FC00h` | 1 | pp.13-94, 13-245 |
 | MOVK | `1800h`, mask `FC00h` | 1 | p.13-169 |
@@ -99,12 +101,23 @@ TMS34020 User's Guide printed p.13-111 and timing table p.15-4.
 
 PUTST copies all 32 source-register bits into ST and takes three machine
 states. Its `01A0h`/`FFE0h` range covers A/B and the shared-SP alias. The
-adjacent `01C0h` POPST encoding is not classified by this record. The same
-encoding and full-register copy appear in the TMS34010 guide, establishing
+adjacent `01C0h` POPST encoding is a separate exact record. The same encoding
+and full-register copy appear in the TMS34010 guide, establishing
 semantic compatibility without inferring broader status or pipeline
 equivalence. Sources: TMS34020 User's Guide printed pp.4-2..4-3 and 13-216,
 timing table p.15-7; TMS34010 User's Guide printed p.12-229 and its instruction
 summary.
+
+POPST reads the complete 32-bit value at the old SP into ST, then increments
+SP by 32 bit addresses. It takes six states when SP is 32-bit aligned and
+seven otherwise. PUSHST decrements SP by 32, writes the complete old ST at the
+new address, and leaves ST unchanged. It takes two visible states with one
+parenthesized write state when the original SP is aligned, or two
+parenthesized write states otherwise. The corresponding TMS34010 pages confirm
+semantic/object compatibility but document materially different timing.
+Fault/retry and external transfer ordering remain unclassified rather than
+inferred. Sources: TMS34020 User's Guide printed pp.13-214..13-215 and
+pp.4-2..4-3; TMS34010 User's Guide printed pp.12-227..12-228.
 
 LMO uses a same-file register pair, returns the number of leading zero bits
 for a nonzero source, and returns zero for a zero source. It writes only Z and

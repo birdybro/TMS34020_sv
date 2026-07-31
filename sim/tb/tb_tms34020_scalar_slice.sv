@@ -126,6 +126,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0070: memory_word = 16'h41E0;
                 32'h0000_0080: memory_word = 16'h0300;
                 32'h0000_0090: memory_word = 16'h00F0;
+                32'h0000_00A0: memory_word = 16'h01C0;
+                32'h0000_00B0: memory_word = 16'h01E0;
                 32'h0000_0100: memory_word = 16'h0BA0;
                 32'h0000_0110: memory_word = 16'h5678;
                 32'h0000_0120: memory_word = 16'h1234;
@@ -723,6 +725,56 @@ module tb_tms34020_scalar_slice;
                 status == 32'h6000_0010 &&
                 sp == 32'd1,
                 "blocked one-word packet cannot mutate state"
+            );
+        end
+
+        apply_reset();
+        load_pc(32'hA0);
+        serve_word(32'hA0);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_POPST &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "decode-only POPST packet is blocked"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 0 &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0,
+                "blocked POPST packet cannot mutate state"
+            );
+        end
+
+        apply_reset();
+        load_pc(32'hB0);
+        serve_word(32'hB0);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_PUSHST &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "decode-only PUSHST packet is blocked"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 0 &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0,
+                "blocked PUSHST packet cannot mutate state"
             );
         end
 

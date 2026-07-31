@@ -8,7 +8,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 72 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 74 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent and EXGPC sequential-PC write plus aligned old-register redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, EXGPC printed p.13-112 and GETPC printed p.13-130 |
@@ -203,7 +203,7 @@ enabled cache across the bypass sequence.
 `make scalar-slice-tests` composes cache, packet fetch, register execution, and
 atomic state commit. It checks twelve bypass-fetched dependent
 field/XY/bit-test/PUTST commits, stable noncommit for one-word BLMOVE and
-unclassified packets, complete
+the newly classified POPST/PUSHST forms, plus unclassified packets, complete
 ORI/XORI/ANDNI packet commits,
 two dependent ADDXYI packet commits, dependent ADDXY/SUBXY one-word commits,
 dependent ADDI.W/ADDI.L/ADDI.W and
@@ -235,7 +235,7 @@ data paths, unary, binary, and logical arithmetic, LMO, RMO, and RPIX timing out
 observable. It also keeps every output of the register-execution router
 observable and instantiates the commit composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 8,491 logic-cell/2,048-register resource count is not a core-area
+so its 8,504 logic-cell/2,048-register resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -247,17 +247,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 394
+packet assembler and generated decoder. Its observability wrapper uses 402
 logic cells and 175 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 762 logic cells, 373 registers, and 4,096 block-memory
+zero errors/warnings to 775 logic cells, 373 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,131 logic cells, 1,414 registers,
+composition with zero errors/warnings to 5,133 logic cells, 1,414 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

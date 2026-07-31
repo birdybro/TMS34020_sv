@@ -2489,6 +2489,16 @@ module tb_tms34020_verified_leaves;
             "register execute PUTST B-file shared-SP source selector"
         );
         check_register_execute(
+            16'h01C0, 32'd0, 32'd0, 32'hA5C3_5A3C,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only POPST cannot enter register execute"
+        );
+        check_register_execute(
+            16'h01E0, 32'd0, 32'd0, 32'hA5C3_5A3C,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only PUSHST cannot enter register execute"
+        );
+        check_register_execute(
             16'hD505, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
             1'b1, 1'b1, 32'h0000_003F, 1'b1,
             32'd0, 32'h0000_003F,
@@ -2808,6 +2818,20 @@ module tb_tms34020_verified_leaves;
             1'b0, 32'd0, 32'd0,
             32'h0000_0010, 32'd1,
             "register commit rejects unsupported BLMOVE"
+        );
+        commit_register_instruction(
+            16'h01C0, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only POPST"
+        );
+        commit_register_instruction(
+            16'h01E0, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only PUSHST"
         );
         commit_register_instruction(
             16'h0300, 1'b1,
@@ -3138,6 +3162,10 @@ module tb_tms34020_verified_leaves;
                      "PUTST A-file lower-bound decode");
         check_decode(16'h01BF, TMS20_OP_PUTST, 3'd1,
                      "PUTST B-file shared-SP decode");
+        check_decode(16'h01C0, TMS20_OP_POPST, 3'd1,
+                     "POPST exact decode");
+        check_decode(16'h01E0, TMS20_OP_PUSHST, 3'd1,
+                     "PUSHST exact decode");
         check_decode(16'h0120, TMS20_OP_EXGPC, 3'd1,
                      "EXGPC masked decode");
         check_decode(16'h015F, TMS20_OP_GETPC, 3'd1,

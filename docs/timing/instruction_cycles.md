@@ -76,6 +76,15 @@ pp.13-216 and 15-7; TMS34010 User's Guide printed p.12-229 and its instruction
 summary. The independent model reports three states. The bounded RTL implements
 the full-width state update but not this retirement schedule.
 
+POPST takes six machine states when SP is 32-bit aligned and seven when it is
+not. PUSHST takes two visible states plus one parenthesized write state for an
+aligned SP, or two visible plus two parenthesized write states for an
+unaligned SP. The compatible TMS34010 forms have different published timings,
+so no timing is reused from that core. Sources: TMS34020 User's Guide printed
+pp.13-214..13-215; TMS34010 User's Guide printed pp.12-227..12-228 and its
+instruction summary. Fault, retry, dynamic-width, and page-mode timing remain
+pending.
+
 BLMOVE is labeled only `complex instruction` on its instruction page and in
 the chapter-15 table. The guide states that B7 decrements as the move proceeds
 and that B0/B2 intermediate updates depend on S/D, making an instruction-level
