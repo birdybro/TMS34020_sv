@@ -4,9 +4,10 @@
 
 This document records the architectural cache contract established directly
 from the August 1990 *TMS34020 User's Guide* (`SPVU019 /
-2564006-9721`). A transaction-level independent model now implements the
-bounded contract in `tools/model/cache.py`; this is not evidence that cache
-RTL, pipeline timing, or local-bus timing is complete.
+2564006-9721`). A transaction-level independent model implements the bounded
+contract in `tools/model/cache.py` and now supplies instruction words to the
+architectural model; this is not evidence that cache RTL, pipeline timing, or
+local-bus timing is complete.
 
 The organization, address partition, replacement policy, ordinary hit/miss
 behavior, reset state, refill order, cache disable, and cache flush behavior
@@ -244,8 +245,9 @@ general cycle-accuracy claim.
 `tools/model/cache.py` implements the cycle-independent request/response
 boundary below. It supports resumable current-beat retry and bus fault,
 `BSFLTST=FFFFh`-style abort, and deterministic pending-refill snapshots. It
-does not yet drive `Tms34020Model.step()`, decompose native long words into
-pin-level 16-bit cycles, or assign machine-state timing.
+drives opcode and extension-word reads in `Tms34020Model.step()` and records
+lookup/refill/direct-fetch traces. It does not decompose native long words into
+pin-level 16-bit cycles or assign cache-miss machine-state timing.
 
 The portable cache must separate instruction lookup from the native
 transaction interface. Its eventual contract must make these events explicit:

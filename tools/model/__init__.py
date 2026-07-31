@@ -13,16 +13,27 @@ from .model import (
     UnclassifiedEncoding,
     UnsupportedInstruction,
 )
-from .state import BitMemory, ProcessorState
+from .state import (
+    BitMemory,
+    CONFIG_ADDRESS,
+    CONTROL_ADDRESS,
+    HSTCTLH_ADDRESS,
+    PSIZE_ADDRESS,
+    ProcessorState,
+)
 
 __all__ = [
     "BitMemory",
+    "CONFIG_ADDRESS",
     "CacheModelError",
     "CacheWordResult",
     "InstructionCache",
+    "CONTROL_ADDRESS",
+    "HSTCTLH_ADDRESS",
     "MemoryReadRequest",
     "ModelError",
     "ProcessorState",
+    "PSIZE_ADDRESS",
     "StepTrace",
     "Tms34020Model",
     "UnclassifiedEncoding",

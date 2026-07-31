@@ -6,6 +6,8 @@ import json
 import unittest
 
 from tools.model import (
+    CONTROL_ADDRESS,
+    HSTCTLH_ADDRESS,
     ModelError,
     ProcessorState,
     Tms34020Model,
@@ -51,6 +53,110 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(model.state.pc, 0x20010)
         self.assertEqual(event.machine_states, 1)
         self.assertEqual(event.register_writes, [])
+
+    def test_cold_fetch_records_demand_longword_last_refill(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0300])
+        event = model.step()
+        lookups = [
+            transaction
+            for transaction in event.transactions
+            if transaction["class"] == "instruction_cache_lookup"
+        ]
+        fills = [
+            transaction
+            for transaction in event.transactions
+            if transaction["class"] == "cache_fill"
+        ]
+        self.assertEqual(lookups[0]["result"], "segment_miss")
+        self.assertEqual(
+            [transaction["bit_address"] for transaction in fills],
+            [0x20, 0x40, 0x60, 0x00],
+        )
+        self.assertFalse(model.state.timing_complete)
+        self.assertIn("excludes cache miss", event.notes[0])
+
+    def test_following_instruction_hits_loaded_subsegment(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0300, 0x0300])
+        first = model.step()
+        second = model.step()
+        self.assertEqual(first.mnemonic, "NOP")
+        self.assertEqual(second.mnemonic, "NOP")
+        self.assertEqual(
+            [
+                transaction["result"]
+                for transaction in second.transactions
+                if transaction["class"] == "instruction_cache_lookup"
+            ],
+            ["hit"],
+        )
+        self.assertFalse(
+            any(
+                transaction["class"] == "cache_fill"
+                for transaction in second.transactions
+            )
+        )
+
+    def test_extension_crossing_subsegment_records_second_refill(self) -> None:
+        model = Tms34020Model()
+        model.load_program(
+            [0x0B80, 0xFFFF, 0xFFFF],
+            bit_address=0x70,
+        )
+        model.state.write_reg("A", 0, 0x12345678)
+        event = model.step()
+        self.assertEqual(
+            [
+                transaction["result"]
+                for transaction in event.transactions
+                if transaction["class"] == "instruction_cache_lookup"
+            ],
+            ["segment_miss", "subsegment_miss", "hit"],
+        )
+        self.assertEqual(
+            sum(
+                transaction["class"] == "cache_fill"
+                for transaction in event.transactions
+            ),
+            8,
+        )
+
+    def test_cache_disable_fetches_each_instruction_word_directly(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0BA0, 0x5678, 0x1234])
+        model.state.write_io(CONTROL_ADDRESS, 1 << 15)
+        event = model.step()
+        direct = [
+            transaction
+            for transaction in event.transactions
+            if transaction["class"] == "instruction_fetch"
+        ]
+        self.assertEqual(len(direct), 3)
+        self.assertTrue(all(item["width"] == 16 for item in direct))
+        self.assertEqual(model.cache.present, [0, 0, 0, 0])
+        self.assertFalse(model.state.timing_complete)
+
+    def test_cache_flush_exposes_modified_instruction(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0300])
+        self.assertEqual(model.step().mnemonic, "NOP")
+        model.state.memory.write_bits(0, 16, 0x0320)
+        model.state.pc = 0
+        self.assertEqual(model.step().mnemonic, "NOP")
+
+        model.state.pc = 0
+        model.state.write_io(HSTCTLH_ADDRESS, 1 << 14)
+        flushed = model.step()
+        self.assertEqual(flushed.mnemonic, "CLRC")
+        self.assertEqual(
+            [
+                transaction["result"]
+                for transaction in flushed.transactions
+                if transaction["class"] == "instruction_cache_lookup"
+            ],
+            ["flush_bypass"],
+        )
 
     def test_abs_primary_examples_and_unaffected_carry(self) -> None:
         cases = (
@@ -601,7 +707,11 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(event.machine_states, 2)
         self.assertEqual(model.state.pending_write_states, 1)
         self.assertEqual(
-            event.transactions,
+            [
+                transaction
+                for transaction in event.transactions
+                if transaction["class"] == "internal_io_write"
+            ],
             [{
                 "class": "internal_io_write",
                 "bit_address": PSIZE_ADDRESS,

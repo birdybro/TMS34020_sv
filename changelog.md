@@ -56,6 +56,10 @@
   address partitioning, all refill rotations, segment/subsegment misses,
   move-to-front LRU, `CD` preservation, `CF` flush, noncoherence, current-cycle
   retry, bus-fault pause/resume, abort, and deterministic pending replay.
+- Architectural-model opcode and extension fetch through the cache model, with
+  per-step lookup/native-read traces, I/O-controlled disable/flush, cache-aware
+  snapshot replay, full rollback on failed steps, and explicit incomplete
+  timing on a miss or bypass.
 
 ### Changed
 
@@ -164,11 +168,11 @@
 
 ### Known Issues
 
-- The architectural model and RTL cover only a small verified slice; the
-  standalone cache transaction model is not wired to instruction execution,
+- The architectural model and RTL cover only a small verified slice; modeled
+  instruction fetch uses an untimed native cache transaction boundary,
   externally gated state commit does not form an executable RTL core, and
-  there is no fetch/PC/timed retirement sequencer, cache RTL, pipeline, memory
-  bus, or subsystem integration.
+  there is no RTL fetch/PC/timed retirement sequencer, cache RTL, pipeline,
+  memory bus, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

@@ -6,7 +6,14 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 from tools.isa.isa_db import IsaDatabase, Instruction
-from .state import MASK32, PSIZE_ADDRESS, ProcessorState
+from .cache import InstructionCache
+from .state import (
+    CONTROL_ADDRESS,
+    HSTCTLH_ADDRESS,
+    MASK32,
+    PSIZE_ADDRESS,
+    ProcessorState,
+)
 
 N_BIT = 31
 C_BIT = 30
@@ -66,9 +73,11 @@ class Tms34020Model:
         self,
         state: ProcessorState | None = None,
         isa: IsaDatabase | None = None,
+        cache: InstructionCache | None = None,
     ) -> None:
         self.state = state or ProcessorState()
         self.isa = isa or IsaDatabase.load()
+        self.cache = cache or InstructionCache()
         self.trace: list[StepTrace] = []
         self._handlers: dict[str, Callable[[Instruction, list[int]], int | None]] = {
             "NOP": self._execute_nop,
@@ -112,25 +121,45 @@ class Tms34020Model:
         return tuple(sorted(self._handlers))
 
     def load_program(
-        self, words: list[int], bit_address: int = 0, set_pc: bool = True
+        self,
+        words: list[int],
+        bit_address: int = 0,
+        set_pc: bool = True,
+        flush_cache: bool = True,
     ) -> None:
         self.state.memory.load_words(bit_address, words)
+        if flush_cache:
+            self.cache.flush()
         if set_pc:
             self.state.pc = bit_address & MASK32
 
+    def reset_from_vector(self, vector: int) -> None:
+        self.state.reset_from_vector(vector)
+        self.cache.reset()
+
     def snapshot(self) -> dict[str, Any]:
         return {
-            "model_schema_version": 1,
+            "model_schema_version": 2,
             "state": self.state.snapshot(),
+            "cache": self.cache.snapshot(),
             "trace": [event.snapshot() for event in self.trace],
             "supported_mnemonics": list(self.supported_mnemonics),
         }
 
     @classmethod
     def from_snapshot(cls, snapshot: dict[str, Any]) -> "Tms34020Model":
-        if snapshot.get("model_schema_version") != 1:
+        version = snapshot.get("model_schema_version")
+        if version not in (1, 2):
             raise ValueError("unsupported model snapshot")
-        model = cls(ProcessorState.from_snapshot(snapshot["state"]))
+        cache = (
+            InstructionCache()
+            if version == 1
+            else InstructionCache.from_snapshot(snapshot["cache"])
+        )
+        model = cls(
+            ProcessorState.from_snapshot(snapshot["state"]),
+            cache=cache,
+        )
         for raw in snapshot["trace"]:
             model.trace.append(StepTrace(**raw))
         if list(model.supported_mnemonics) != snapshot["supported_mnemonics"]:
@@ -141,45 +170,63 @@ class Tms34020Model:
         if self.state.halted:
             raise ModelError("processor is halted in IDLE")
         state_checkpoint = self.state.snapshot()
+        cache_checkpoint = self.cache.snapshot()
         start_pc = self.state.pc
-        first_word = self.state.memory.read_bits(start_pc, 16)
-        instruction = self.isa.decode(first_word)
-        if instruction is None:
-            raise UnclassifiedEncoding(
-                f"unclassified first word {first_word:04X} at {start_pc:08X}"
-            )
-        handler = self._handlers.get(instruction.mnemonic)
-        if handler is None:
-            raise UnsupportedInstruction(
-                f"{instruction.mnemonic} is decoded but not modeled"
-            )
-        words = [
-            self.state.memory.read_bits((start_pc + index * 16) & MASK32, 16)
-            for index in range(instruction.length_words)
-        ]
-        before_registers = self._register_snapshot()
-        status_before = self.state.st
-        pending_write_states_before = self.state.pending_write_states
-        default_next_pc = (
-            start_pc + instruction.length_words * 16
-        ) & MASK32
-        self.state.pc = default_next_pc
-        event = StepTrace(
-            start_pc=start_pc,
-            next_pc=default_next_pc,
-            first_word=first_word,
-            mnemonic=instruction.mnemonic,
-            instruction_words=words,
-            machine_states=None,
-            status_before=status_before,
-            status_after=status_before,
-        )
-        self._active_trace = event
-        self._new_hidden_write_states = 0
         try:
+            fetch_transactions: list[dict[str, int | str]] = []
+            first_word, first_fetch_complete = self._fetch_instruction_word(
+                start_pc, fetch_transactions
+            )
+            instruction = self.isa.decode(first_word)
+            if instruction is None:
+                raise UnclassifiedEncoding(
+                    f"unclassified first word {first_word:04X} "
+                    f"at {start_pc:08X}"
+                )
+            handler = self._handlers.get(instruction.mnemonic)
+            if handler is None:
+                raise UnsupportedInstruction(
+                    f"{instruction.mnemonic} is decoded but not modeled"
+                )
+            words = [first_word]
+            fetch_timing_complete = first_fetch_complete
+            for index in range(1, instruction.length_words):
+                word, timing_complete = self._fetch_instruction_word(
+                    (start_pc + index * 16) & MASK32,
+                    fetch_transactions,
+                )
+                words.append(word)
+                fetch_timing_complete &= timing_complete
+
+            before_registers = self._register_snapshot()
+            status_before = self.state.st
+            pending_write_states_before = self.state.pending_write_states
+            default_next_pc = (
+                start_pc + instruction.length_words * 16
+            ) & MASK32
+            self.state.pc = default_next_pc
+            event = StepTrace(
+                start_pc=start_pc,
+                next_pc=default_next_pc,
+                first_word=first_word,
+                mnemonic=instruction.mnemonic,
+                instruction_words=words,
+                machine_states=None,
+                status_before=status_before,
+                status_after=status_before,
+                transactions=fetch_transactions,
+            )
+            if not fetch_timing_complete:
+                event.notes.append(
+                    "machine_states excludes cache miss or bypass-fetch timing"
+                )
+                self.state.timing_complete = False
+            self._active_trace = event
+            self._new_hidden_write_states = 0
             event.machine_states = handler(instruction, words)
         except Exception:
             self.state = ProcessorState.from_snapshot(state_checkpoint)
+            self.cache = InstructionCache.from_snapshot(cache_checkpoint)
             raise
         finally:
             self._active_trace = None
@@ -200,6 +247,53 @@ class Tms34020Model:
             self.state.machine_states += event.machine_states
         self.trace.append(event)
         return event
+
+    def _fetch_instruction_word(
+        self,
+        bit_address: int,
+        transactions: list[dict[str, int | str]],
+    ) -> tuple[int, bool]:
+        cache_disable = bool(
+            self.state.read_io(CONTROL_ADDRESS) & (1 << 15)
+        )
+        cache_flush = bool(
+            self.state.read_io(HSTCTLH_ADDRESS) & (1 << 14)
+        )
+        result = self.cache.request_word(
+            bit_address,
+            cache_disable=cache_disable,
+            cache_flush=cache_flush,
+        )
+        transactions.append(
+            {
+                "class": "instruction_cache_lookup",
+                "bit_address": bit_address,
+                "width": 16,
+                "result": result.classification,
+                "segment": -1 if result.segment is None else result.segment,
+                "subsegment": result.subsegment,
+            }
+        )
+        timing_complete = result.classification == "hit"
+        while not result.complete:
+            request = result.request
+            assert request is not None
+            data = self.state.memory.read_bits(
+                request.bit_address, request.width_bits
+            )
+            transactions.append(
+                {
+                    "class": request.kind,
+                    "bit_address": request.bit_address,
+                    "width": request.width_bits,
+                    "sequence_index": request.sequence_index,
+                    "sequence_length": request.sequence_length,
+                    "value": data,
+                }
+            )
+            result = self.cache.accept_read(data)
+        assert result.word is not None
+        return result.word, timing_complete
 
     def _register_snapshot(self) -> dict[tuple[str, int], int]:
         snapshot = {
