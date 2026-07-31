@@ -60,6 +60,12 @@
   per-step lookup/native-read traces, I/O-controlled disable/flush, cache-aware
   snapshot replay, full rollback on failed steps, and explicit incomplete
   timing on a miss or bypass.
+- A synthesizable bounded instruction-cache leaf with four-segment lookup,
+  demand-long-word-last refill, move-to-front LRU, delayed present-bit commit,
+  `CD` bypass, idle `CF` flush, decoupled successful native reads, and stable
+  requests/responses under backpressure.
+- Self-checking Verilator and Cyclone V Analysis & Synthesis commands for the
+  bounded cache slice.
 
 ### Changed
 
@@ -77,6 +83,9 @@
 - Removed a stale one-bit padding field from the Quartus observability digest
   after the generated opcode enum grew to six bits; the warning-enforcing first
   synthesis run caught the resulting 33-to-32-bit truncation.
+- Refactored the cache data-array access into an inference-friendly synchronous
+  RAM path after synthesis review showed the initial form was implemented in
+  logic; Quartus now maps the 128×32 array to 4,096 block-memory bits.
 
 ### Verified
 
@@ -129,6 +138,11 @@
   RTL verifies three-word decode and rejection at the one-word router boundary.
   Quartus synthesizes the diagnostic wrapper to 5,504 logic cells with zero
   errors and zero warnings.
+- Verilator verifies the bounded cache's successful refill/bypass path, refill
+  ordering, lookup classifications, delayed present-bit commit, four-segment
+  LRU behavior, controls, and backpressure. Quartus synthesizes it with zero
+  errors/warnings to 361 logic cells, 198 registers, and 4,096 block-memory
+  bits. No fault, retry, fit, or timing result is implied.
 
 ### Documentation
 
@@ -157,6 +171,9 @@
   deterministic FPGA register clearing is not represented as silicon behavior.
 - Documented the bounded commit contract: a future sequencer owns the real
   architectural completion boundary, stalls, faults, interrupts, and timing.
+- Documented the successful-read cache RTL boundary, deterministic private tag
+  validity, native-interface convention, active-refill flush uncertainty, and
+  exact exclusions from cache/timing claims.
 - Recorded the SPVU004/SPVU020 tool-guide catalog evidence and lawful search
   result without treating secondary GSPA notes as a syntax specification.
 - Recorded and resolved the ORI instruction-page alignment wording error
@@ -170,9 +187,10 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary,
-  externally gated state commit does not form an executable RTL core, and
-  there is no RTL fetch/PC/timed retirement sequencer, cache RTL, pipeline,
-  memory bus, or subsystem integration.
+  externally gated state commit does not form an executable RTL core, and the
+  standalone cache RTL has successful reads only. There is no RTL fetch/PC/
+  timed-retirement composition, completion-code memory bus, pipeline, or
+  subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

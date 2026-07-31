@@ -1,6 +1,7 @@
 # Synthesis status
 
-- Portable RTL: first verified leaf slice only; no processor top exists
+- Portable RTL: verified execution/register leaves plus bounded successful-read
+  instruction-cache leaf; no processor top exists
 - Yosys: not installed in the local environment
 - Quartus: Prime Lite 17.0.2 Build 602 at
   `/home/aberu/intelFPGA_lite/17.0/quartus/bin/quartus_sh`
@@ -24,3 +25,20 @@
 - Unconstrained paths: not assessed by fitter/TimeQuest
 - Qualification claim: only warning-free Cyclone V Analysis & Synthesis of the
   named leaf slice
+
+## Bounded cache smoke
+
+- Command: `make quartus-cache-smoke`
+- Result: Analysis & Synthesis successful, 0 errors, 0 warnings
+- Analysis resources: 361 logic cells, 198 registers, 104 pins, 4,096
+  block-memory bits, 0 DSP blocks, and 0 PLLs
+- Memory inference: one 128×32 simple dual-port `altsyncram`; the portable RTL
+  contains no vendor primitive
+- Scope: successful-read lookup/refill/bypass controller, four tags, 32 present
+  bits, four-entry LRU, 128-long-word data array, decoupled handshakes, and
+  observability-only wrapper
+- Fit/placement/routing: not run
+- TimeQuest/setup/hold: not run; the 20 ns SDC is an analysis boundary, not a
+  timing-closure result
+- Qualification claim: warning-free Cyclone V Analysis & Synthesis and RAM
+  inference for only the named bounded cache slice

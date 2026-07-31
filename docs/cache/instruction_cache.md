@@ -5,9 +5,10 @@
 This document records the architectural cache contract established directly
 from the August 1990 *TMS34020 User's Guide* (`SPVU019 /
 2564006-9721`). A transaction-level independent model implements the bounded
-contract in `tools/model/cache.py` and now supplies instruction words to the
-architectural model; this is not evidence that cache RTL, pipeline timing, or
-local-bus timing is complete.
+contract in `tools/model/cache.py` and supplies instruction words to the
+architectural model. A separate synthesizable successful-read subset exists in
+`rtl/cache/tms34020_icache.sv`. Neither implementation is evidence that
+pipeline or local-bus timing is complete.
 
 The organization, address partition, replacement policy, ordinary hit/miss
 behavior, reset state, refill order, cache disable, and cache flush behavior
@@ -183,11 +184,13 @@ Immediately following reset:
 User's Guide §6.12.2, p.6-23.
 
 Portable synthesizable RTL must not rely on FPGA power-up unknowns. The
-architecturally unobservable SSA representation and the exact selection rule
-if an uninitialized SSA happens to compare equal while every `P` bit in that
-segment is clear require an explicit implementation decision after further
-evidence. No validity or replacement behavior beyond the cited guide is
-invented here.
+bounded model and RTL carry a private `tag_valid` bit per segment. Reset clears
+these bits and therefore prevents a deterministic zeroed FPGA tag from
+spuriously matching before allocation. This is an implementation abstraction
+for the guide's uninitialized SSA state, not a new architectural cache flag or
+a silicon claim. The exact externally observable selection rule if an
+uninitialized SSA happens to compare equal while every `P` bit in that segment
+is clear remains unresolved.
 
 ## Disable, flush, and coherence
 
@@ -240,7 +243,7 @@ These statements do not yet establish the exact transaction beat schedule for
 fault/retry, or every pipeline overlap case. They must not be promoted to a
 general cycle-accuracy claim.
 
-## Transaction model and RTL boundary
+## Transaction model and bounded RTL
 
 `tools/model/cache.py` implements the cycle-independent request/response
 boundary below. It supports resumable current-beat retry and bus fault,
@@ -249,8 +252,45 @@ drives opcode and extension-word reads in `Tms34020Model.step()` and records
 lookup/refill/direct-fetch traces. It does not decompose native long words into
 pin-level 16-bit cycles or assign cache-miss machine-state timing.
 
-The portable cache must separate instruction lookup from the native
-transaction interface. Its eventual contract must make these events explicit:
+The portable RTL leaf uses a decoupled lookup/response interface and a
+decoupled native read interface. It implements:
+
+- aligned 16-bit PC-word lookup and a classified hit, segment-miss,
+  subsegment-miss, or bypass response;
+- four ordered 32-bit successful-read refill requests, with the requested
+  long word last and explicit cache-fill/sequence qualifiers;
+- direct 16-bit successful-read requests while `CD` or `CF` bypasses the
+  cache; the native adapter supplies that word in response data `[15:0]`;
+- stable request fields until accepted and stable instruction response fields
+  until accepted;
+- reset, segment allocation, present-bit commit only after the fourth response,
+  move-to-front LRU, `CD` metadata preservation, and `CF` empty-cache state;
+- a private deterministic tag-valid abstraction for reset; and
+- debug visibility of present bits, LRU order, and private tag validity.
+
+The cache data array is expressed as portable synthesizable SystemVerilog.
+Quartus 17.0.2 infers it as a 128×32 simple dual-port RAM on the Cyclone V
+smoke target. No vendor primitive is present in the module.
+
+`make cache-tests` names the bounded self-checking RTL test. It covers reset,
+cold and subsegment misses, all four refill rotations, low/high word hits,
+four-segment allocation, LRU touch and replacement, `CD` preservation, `CF`
+empty state, request backpressure, response backpressure, and delayed
+present-bit commit. `make quartus-cache-smoke` checks warning-free Cyclone V
+Analysis & Synthesis and block-memory inference. These tests do not cover the
+remaining required cache matrix below.
+
+The first RTL slice deliberately has no native completion-status input. Every
+accepted memory response therefore means a successful transfer. It does not
+yet implement wait/retry/fault disposition, abort after a saved fault,
+interrupt recognition, dynamic 16-bit refill decomposition, page-mode
+phasing, pin timing, or architectural machine-state counts. `CF` asserted
+during an already active refill is also outside the verified interface
+contract; the current leaf only verifies flush on request acceptance while
+idle. These exclusions prevent a full cache or cycle-accuracy claim.
+
+The eventual cache/memory-controller composition must additionally make these
+events explicit:
 
 - aligned 16-bit PC-word lookup request and response;
 - hit, subsegment miss, and segment miss classification;
@@ -314,6 +354,10 @@ The following prevent honest cache RTL completion:
 6. What exact cache-fill and disabled-fetch local-bus status encodings and
    phase waveforms apply?
 
+7. What is the defined processor response if `CF` becomes asserted while an
+   instruction refill or disabled-cache fetch is already active?
+
 These questions are tracked under `OQ-0009` and dependent cache, pipeline,
 memory, page-mode, and fault tasks. Until they are resolved and tested, the
-cache remains a researched contract rather than implemented RTL.
+cache remains a partial transaction-level model and a bounded successful-read
+RTL leaf, not a complete architectural or cycle-timed cache implementation.

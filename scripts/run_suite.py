@@ -24,7 +24,7 @@ SUITES = {
     "decode": ("NOT_IMPLEMENTED", "TMS20-0006"),
     "instruction": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0010"),
     "compatibility": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0031"),
-    "cache": ("NOT_IMPLEMENTED", "TMS20-0012"),
+    "cache": ("IMPLEMENTED", "TMS20-0012 bounded RTL slice"),
     "memory": ("NOT_IMPLEMENTED", "TMS20-0014"),
     "graphics": ("NOT_IMPLEMENTED", "TMS20-0024"),
     "video": ("NOT_IMPLEMENTED", "TMS20-0027"),
@@ -38,6 +38,7 @@ SUITES = {
     "synth-yosys": ("NOT_IMPLEMENTED", "TMS20-0033"),
     "synth-quartus": ("NOT_IMPLEMENTED", "TMS20-0034"),
     "quartus-leaf-smoke": ("IMPLEMENTED", "TMS20-0034"),
+    "quartus-cache-smoke": ("IMPLEMENTED", "TMS20-0012/TMS20-0034"),
     "battletoads": ("NOT_IMPLEMENTED", "TMS20-0037"),
     "revx": ("NOT_IMPLEMENTED", "TMS20-0040"),
 }
@@ -179,8 +180,17 @@ def rtl_leaf() -> None:
     print("PASS: synthesizable verified leaf RTL slice")
 
 
+def cache() -> None:
+    run([sys.executable, "scripts/run_cache_rtl_tests.py"])
+    print("PASS: bounded cache RTL regression slice")
+
+
 def quartus_leaf_smoke() -> None:
     run([sys.executable, "scripts/run_quartus_leaf_smoke.py"])
+
+
+def quartus_cache_smoke() -> None:
+    run([sys.executable, "scripts/run_quartus_cache_smoke.py"])
 
 
 def doctor() -> None:
@@ -266,8 +276,12 @@ def main() -> None:
         model()
     elif args.suite == "rtl-leaf":
         rtl_leaf()
+    elif args.suite == "cache":
+        cache()
     elif args.suite == "quartus-leaf-smoke":
         quartus_leaf_smoke()
+    elif args.suite == "quartus-cache-smoke":
+        quartus_cache_smoke()
 
 
 if __name__ == "__main__":

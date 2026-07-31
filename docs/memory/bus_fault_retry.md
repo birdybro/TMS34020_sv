@@ -125,6 +125,12 @@ transaction-level contract and intentionally omits machine-state and pin
 timing. Exact visibility of partial cache RAM contents, `BSFLTST` encoding,
 interrupt-stack contents, and reset during a saved fault remain unresolved.
 
+The bounded `rtl/cache/tms34020_icache.sv` leaf is not yet connected to this
+completion-code contract. Its native response handshake represents successful
+reads only. RTL fault, retry, abort, and restored-current-cycle behavior remain
+acceptance work for `TMS20-0017`; the successful-read cache test must not be
+counted as fault verification.
+
 ## Required verification
 
 Future RTL tests and properties must inject all four completion codes during
