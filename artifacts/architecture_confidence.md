@@ -4,11 +4,13 @@
 |---|---|---|
 | Required device family list | VERIFIED_PRIMARY | Project scope |
 | TMS34010 pin commit identity | VERIFIED_PRIMARY | Git commit/tree and upstream remote |
-| Exact game silicon | UNKNOWN | Board evidence not yet cataloged |
-| ISA | UNKNOWN | Primary guide not yet locally verified |
+| Commercial original/A revision delta | VERIFIED_PRIMARY | SPVS004D bounds the stated delta to A clock stretch |
+| Exact Battletoads silicon | UNKNOWN | 32 MHz fits both commercial original and A parts; marking unreadable |
+| Exact Revolution X silicon | INFERRED | 40 MHz board/driver evidence and commercial A-40 catalog option; marking unreadable |
+| ISA | UNKNOWN | Primary guide acquired; complete encoding extraction pending |
 | Cache organization | VERIFIED_PRIMARY | August 1990 guide Chapter 5 |
 | Pipeline timing | UNKNOWN | Detailed timing-case extraction pending |
-| Memory/bus timing | UNKNOWN | Device/revision audit pending |
+| Memory/bus timing | PROVISIONAL | A clock-stretch cases identified; complete phase extraction pending |
 | Host/multiprocessor/coprocessor | UNKNOWN | Primary audit pending |
 | Graphics/display | UNKNOWN | Primary audit pending |
 

@@ -1,9 +1,10 @@
 # Progress
 
-- Current milestone: reference acquisition and device/delta research
+- Current milestone: device/delta research and architecture extraction
 - Completed task IDs: `TMS20-0001`
-- Latest commit: `22bd2bdb92f59a6fb571dd7d44716b88d1e8bcfc`
-- Passing tests: foundation policy/unit checks
+- Latest commit: `af24345f45ced6bdd614e71f38a922535b07cf3f`
+- Passing tests: foundation, reference-manifest/hash, reuse-audit, and
+  device-scope policy checks
 - Failing tests: none observed
 - Model status: not implemented (`TMS20-0007`)
 - RTL status: not implemented (`TMS20-0009`, `TMS20-0010`)
@@ -15,7 +16,9 @@
 - Documentation acquired: seven hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
 - Provisional behavior: none implemented
-- Unresolved conflicts: original versus A revision; exact game parts
+- Unresolved conflicts: exact game parts, original/A errata and first-silicon
+  history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: complete reference manifest/fetch/hash tooling and device evidence
+- Next task: machine-readable TMS34010/TMS34020 delta and primary-guide
+  architecture extraction

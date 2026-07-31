@@ -13,6 +13,9 @@
   architecture ADRs.
 - Hash-pinned TI/MAME reference manifest with safe fetch, verify, and missing
   source reporting tools; copyrighted payloads remain untracked.
+- Source-cited device scope, five-variant matrix, and target-game identification
+  record with mechanical checks against missing categories and readiness
+  overclaims.
 
 ### Changed
 
@@ -32,11 +35,17 @@
   upstream RTL and simulation-model module is named in the reuse audit.
 - Verified local SHA-256 values for seven TI documents and the pinned eleven-file
   MAME TMS34020 source set.
+- Verified SPVS004D's bounded original-to-A delta: CONFIG.CSE clock stretching,
+  reset disabled, with no unsupported ISA or subsystem differences asserted.
+- Verified the documented commercial 32 MHz options and the A-only commercial
+  40 MHz option; exact production-game top markings remain explicitly unknown.
 
 ### Documentation
 
 - Defined evidence precedence, TMS34010 reuse constraints, coding/CDC/synthesis
   rules, completion claims, and current architectural risks.
+- Distinguished TMS34020, TMS34020A, SMJ34020, SMJ34020A, and SM34020A without
+  substituting later high-reliability data sheets for the original user guide.
 
 ### Integration
 
@@ -45,6 +54,7 @@
 ### Known Issues
 
 - The architectural model and RTL are not implemented.
-- Device variants and target-game chip markings remain under research.
+- Target-game chip markings, first-silicon history, and silicon errata remain
+  unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local
   environment; Quartus Prime Lite 17.0 and Verilator are available.
