@@ -77,6 +77,20 @@ module tb_tms34020_verified_leaves;
     logic [31:0] status_write_mask;
     logic [31:0] status_value;
 
+    logic [15:0] execute_first_word;
+    logic [31:0] execute_source;
+    logic [31:0] execute_destination;
+    logic [31:0] execute_status;
+    logic execute_supported;
+    logic execute_register_file;
+    logic [3:0] execute_source_index;
+    logic [3:0] execute_destination_index;
+    logic execute_register_write_enable;
+    logic [31:0] execute_register_write_data;
+    logic execute_status_write_enable;
+    logic [31:0] execute_status_write_data;
+    logic [31:0] execute_status_write_mask;
+
     tms34020_decode decode_dut (
         .first_word_i(decode_word),
         .valid_o(decode_valid),
@@ -169,6 +183,22 @@ module tb_tms34020_verified_leaves;
         .write_data_i(status_write_data),
         .write_mask_i(status_write_mask),
         .status_o(status_value)
+    );
+
+    tms34020_register_execute register_execute_dut (
+        .first_word_i(execute_first_word),
+        .source_i(execute_source),
+        .destination_i(execute_destination),
+        .status_i(execute_status),
+        .supported_o(execute_supported),
+        .register_file_o(execute_register_file),
+        .source_index_o(execute_source_index),
+        .destination_index_o(execute_destination_index),
+        .register_write_enable_o(execute_register_write_enable),
+        .register_write_data_o(execute_register_write_data),
+        .status_write_enable_o(execute_status_write_enable),
+        .status_write_data_o(execute_status_write_data),
+        .status_write_mask_o(execute_status_write_mask)
     );
 
     always #5 clk = ~clk;
@@ -283,6 +313,35 @@ module tb_tms34020_verified_leaves;
         status_write_enable = 1'b0;
     endtask
 
+    task automatic check_register_execute(
+        input logic [15:0] first_word,
+        input logic [31:0] source,
+        input logic [31:0] destination,
+        input logic [31:0] status,
+        input logic expected_supported,
+        input logic expected_register_write,
+        input logic [31:0] expected_register_data,
+        input logic expected_status_write,
+        input logic [31:0] expected_status_data,
+        input logic [31:0] expected_status_mask,
+        input string message
+    );
+        execute_first_word = first_word;
+        execute_source = source;
+        execute_destination = destination;
+        execute_status = status;
+        #1;
+        check_condition(
+            execute_supported == expected_supported &&
+            execute_register_write_enable == expected_register_write &&
+            execute_register_write_data == expected_register_data &&
+            execute_status_write_enable == expected_status_write &&
+            execute_status_write_data == expected_status_data &&
+            execute_status_write_mask == expected_status_mask,
+            message
+        );
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
@@ -314,6 +373,10 @@ module tb_tms34020_verified_leaves;
         status_write_enable = 1'b0;
         status_write_data = 32'd0;
         status_write_mask = 32'd0;
+        execute_first_word = 16'd0;
+        execute_source = 32'd0;
+        execute_destination = 32'd0;
+        execute_status = 32'd0;
 
         repeat (2) @(posedge clk);
         reset = 1'b0;
@@ -374,6 +437,70 @@ module tb_tms34020_verified_leaves;
         #1;
         check_condition(status_value == 32'h0000_0010,
                         "status holds without write enable");
+
+        check_register_execute(
+            16'h0300, 32'd0, 32'd0, 32'd0,
+            1'b1, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "register execute NOP"
+        );
+        check_register_execute(
+            16'h0392, 32'd0, 32'hFFFF_FFFF, 32'h4000_0000,
+            1'b1, 1'b1, 32'h0000_0001, 1'b1,
+            32'd0, 32'hB000_0000,
+            "register execute ABS partial flags"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd2 &&
+            execute_destination_index == 4'd2,
+            "register execute unary operand selectors"
+        );
+        check_register_execute(
+            16'h03C0, 32'd0, 32'd0, 32'h4000_0000,
+            1'b1, 1'b1, 32'hFFFF_FFFF, 1'b1,
+            32'hC000_0000, 32'hF000_0000,
+            "register execute NEGB consumes carry as borrow"
+        );
+        check_register_execute(
+            16'h4074, 32'd1, 32'd2, 32'd0,
+            1'b1, 1'b1, 32'd3, 1'b1,
+            32'd0, 32'hF000_0000,
+            "register execute binary ADD"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd3 &&
+            execute_destination_index == 4'd4,
+            "register execute binary operand selectors"
+        );
+        check_register_execute(
+            16'h4820, 32'd1, 32'd1, 32'd0,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'h2000_0000, 32'hF000_0000,
+            "register execute nondestructive CMP"
+        );
+        check_register_execute(
+            16'h3400, 32'd0, 32'd32, 32'd0,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'h2000_0000, 32'hF000_0000,
+            "register execute CMPK"
+        );
+        check_register_execute(
+            16'h7A21, 32'h0000_0010, 32'd0, 32'd0,
+            1'b1, 1'b1, 32'd4, 1'b1,
+            32'd0, 32'h2000_0000,
+            "register execute RMO"
+        );
+        check_register_execute(
+            16'h00F0, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decoded but unsupported register execute instruction"
+        );
+        check_register_execute(
+            16'hFFFF, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "unclassified register execute instruction"
+        );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
         check_decode(16'h0080, TMS20_OP_MWAIT, 3'd1, "MWAIT exact decode");

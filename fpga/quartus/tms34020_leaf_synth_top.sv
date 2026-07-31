@@ -44,6 +44,15 @@ module tms34020_leaf_synth_top (
     logic [3:0] register_read_index;
     logic [31:0] second_register_data;
     logic [31:0] status_value;
+    logic execute_supported;
+    logic execute_register_file;
+    logic [3:0] execute_source_index;
+    logic [3:0] execute_destination_index;
+    logic execute_register_write_enable;
+    logic [31:0] execute_register_write_data;
+    logic execute_status_write_enable;
+    logic [31:0] execute_status_write_data;
+    logic [31:0] execute_status_write_mask;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -60,6 +69,12 @@ module tms34020_leaf_synth_top (
         second_register_data ^
         sp ^
         status_value ^
+        execute_register_write_data ^
+        execute_status_write_data ^
+        execute_status_write_mask ^
+        {20'd0, execute_supported, execute_register_file,
+         execute_source_index, execute_destination_index,
+         execute_register_write_enable, execute_status_write_enable} ^
         {27'd0, binary_nczv, binary_register_write_enable} ^
         {1'd0, unary_nczv, unary_status_write_mask,
          add_nczv, compare_nczv, rmo_z, decode_valid, decoded_id,
@@ -157,6 +172,22 @@ module tms34020_leaf_synth_top (
         .write_data_i(immediate_i),
         .write_mask_i(operand_i),
         .status_o(status_value)
+    );
+
+    tms34020_register_execute register_execute (
+        .first_word_i(first_word_i),
+        .source_i(immediate_i),
+        .destination_i(operand_i),
+        .status_i(status_value),
+        .supported_o(execute_supported),
+        .register_file_o(execute_register_file),
+        .source_index_o(execute_source_index),
+        .destination_index_o(execute_destination_index),
+        .register_write_enable_o(execute_register_write_enable),
+        .register_write_data_o(execute_register_write_data),
+        .status_write_enable_o(execute_status_write_enable),
+        .status_write_data_o(execute_status_write_data),
+        .status_write_mask_o(execute_status_write_mask)
     );
 
 endmodule

@@ -40,6 +40,9 @@
   semantics with explicit 33-bit carry, borrow, and overflow handling.
 - A primary-cited 32-bit ST state owner with verified reset, documented field
   constants, reserved-bit mask, and partial masked updates.
+- A decoder-controlled combinational register-execution router for twelve
+  one-word instructions, with explicit operand selectors and register/ST write
+  intents but no retirement or timing claim.
 
 ### Changed
 
@@ -79,6 +82,10 @@
 - Quartus Prime Lite 17.0.2 Cyclone V Analysis & Synthesis passes for the
   implemented leaf slice with zero errors and zero warnings. This is not a
   fitter or timing-closure result.
+- Verilator verifies instruction-controlled NOP, unary, binary-arithmetic,
+  CMPK, and RMO write intents, including partial status masks and unsupported
+  decode rejection; Quartus synthesizes the expanded leaf slice to 2,414 logic
+  cells with zero errors and zero warnings.
 
 ### Documentation
 
@@ -101,8 +108,10 @@
 
 ### Known Issues
 
-- The architectural model and RTL cover only a small verified slice; there is
-  no executable RTL core, cache, pipeline, memory bus, or subsystem integration.
+- The architectural model and RTL cover only a small verified slice; the new
+  combinational write intents do not form an executable RTL core, and there is
+  no fetch/retirement sequencer, cache, pipeline, memory bus, or subsystem
+  integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

@@ -14,6 +14,7 @@ core, sequencer, pipeline, cache, memory controller, or pin interface.
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
 | `rtl/execute/tms34020_cmpk.sv` | Encoded-zero-means-32 subtraction and N/C/Z/V compare results without register modification | TI *TMS34020 User's Guide*, August 1990, CMPK, printed p.13-83 |
+| `rtl/execute/tms34020_register_execute.sv` | Decoder-controlled operand selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, ADD, ADDC, SUB, SUBB, CMP, CMPK, and RMO | TI *TMS34020 User's Guide*, August 1990, printed pp.13-32..13-34, 13-80, 13-83, 13-178..13-181, 13-224, and 13-241..13-242 |
 | `rtl/execute/tms34020_rmo.sv` | Least-significant set-bit index and Z result | TI *TMS34020 User's Guide*, August 1990, RMO, printed p.13-224 |
 | `rtl/execute/tms34020_unary.sv` | ABS, NEG, NEGB, and NOT results plus instruction-specific N/C/Z/V values and write masks | TI *TMS34020 User's Guide*, August 1990, printed pp.13-32 and 13-178..13-181 |
 | `rtl/graphics/tms34020_pixel_size_ops.sv` | GETPS zero-extension and EXGPS register/16-bit PSIZE-write data paths; no I/O timing or write-queue implementation | TI *TMS34020 User's Guide*, August 1990, EXGPS, printed p.13-113; GETPS, printed p.13-131 |
@@ -54,6 +55,10 @@ Verilator. It checks:
 - ST reset/priority, documented bit layout and reserved mask, full flag
   replacement, partial flag preservation, isolated IE set, and isolated C
   clear.
+- decoder-controlled NOP, unary, binary-arithmetic, CMPK, and RMO write intents,
+  including A/B register-file selection, source/destination indices, CMP write
+  inhibition, partial status masks, and rejection of decoded-but-unsupported
+  and unclassified words.
 
 The testbench must emit `PASS: tms34020 verified leaf RTL`; simulator exit
 status alone is not accepted.
@@ -62,17 +67,19 @@ status alone is not accepted.
 the leaf qualification wrapper on Cyclone V device `5CSEBA6U23I7`. The wrapper
 keeps both register-file read ports, arithmetic flags, decoder outputs, PSIZE
 data paths, unary and binary arithmetic, RMO, and RPIX timing outputs
-observable. This is an early
-portability check only:
+observable. It also keeps every output of the register-execution router
+observable. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
 
 ## Explicitly absent
 
-There is no instruction fetch or execution sequencer, instruction-controlled
-status/writeback path, interrupt logic, cache, memory access, page mode,
-bus-fault/retry, host interface, multiprocessor interface, coprocessor
-interface, display subsystem, original-pin bus, or game wrapper. The instruction
-modules are combinational semantic leaves; their presence does not mean any
-instruction can execute in RTL. In particular, the EXGPS leaf does not
-implement the documented hidden internal-I/O write cycle.
+There is no instruction fetch, PC owner, execution sequencer, retirement
+boundary, register-file writeback connection, ST writeback connection,
+interrupt logic, cache, memory access, page mode, bus-fault/retry, host
+interface, multiprocessor interface, coprocessor interface, display subsystem,
+original-pin bus, or game wrapper. The register-execution module emits
+combinational write *intents* only; it neither commits state nor supplies
+architectural timing. Its presence does not mean any instruction can execute
+in RTL. In particular, the EXGPS leaf does not implement the documented hidden
+internal-I/O write cycle.
