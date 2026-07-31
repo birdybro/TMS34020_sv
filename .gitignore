@@ -1,0 +1,48 @@
+# Build, simulation, and synthesis output
+/build/*
+!/build/.gitignore
+obj_dir/
+*.vcd
+*.fst
+*.wlf
+*.log
+*.jou
+*.qws
+*.rpt
+*.sof
+*.pof
+*.smsg
+*.summary
+
+# Local reference cache: manuals, tools, ROMs, emulator builds
+/reference_cache/*
+!/reference_cache/.gitignore
+/artifacts/*
+!/artifacts/*.md
+!/artifacts/.gitignore
+
+# Proprietary/copyrighted payloads and common ROM/archive forms
+*.rom
+*.chd
+*.zip
+*.7z
+*.rar
+*.exe
+*.com
+*.coff
+
+# Python/tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+
+# Editor and OS files
+.DS_Store
+*~
+*.swp
+*.swo
+.idea/
+.vscode/
