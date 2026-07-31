@@ -8,6 +8,9 @@ from typing import Any, Callable
 from tools.isa.isa_db import IsaDatabase, Instruction
 from .cache import InstructionCache
 from .state import (
+    CONVDP_ADDRESS,
+    CONVMP_ADDRESS,
+    CONVSP_ADDRESS,
     CONTROL_ADDRESS,
     HSTCTLH_ADDRESS,
     MASK32,
@@ -126,6 +129,9 @@ class Tms34020Model:
             "GETPS": self._execute_getps,
             "RMO": self._execute_rmo,
             "RPIX": self._execute_rpix,
+            "SETCDP": self._execute_setcdp,
+            "SETCMP": self._execute_setcmp,
+            "SETCSP": self._execute_setcsp,
         }
         self._active_trace: StepTrace | None = None
         self._new_hidden_write_states = 0
@@ -1038,3 +1044,67 @@ class Tms34020Model:
             result |= pixel << offset
         self.state.write_reg(register_file, index, result)
         return cycles[pixel_size]
+
+    @staticmethod
+    def _pitch_conversion(pitch: int) -> tuple[int, int]:
+        set_bits = tuple(
+            bit_index
+            for bit_index in range(32)
+            if pitch & (1 << bit_index)
+        )
+        if len(set_bits) == 1:
+            conversion_value_1 = (~set_bits[0]) & 0x1F
+            if conversion_value_1 != 0:
+                return conversion_value_1, 4
+        elif len(set_bits) == 2:
+            lesser_power, greater_power = set_bits
+            conversion_value_1 = (~greater_power) & 0x1F
+            conversion_value_2 = (~lesser_power) & 0x1F
+            if conversion_value_1 != 0 and conversion_value_2 != 0:
+                return (
+                    conversion_value_1 |
+                    (conversion_value_2 << 8),
+                    6,
+                )
+        return 0, 3
+
+    def _execute_set_pitch_conversion(
+        self,
+        source_index: int,
+        destination_address: int,
+    ) -> int:
+        pitch = self.state.read_reg("B", source_index)
+        conversion, machine_states = self._pitch_conversion(pitch)
+        self.state.write_io(destination_address, conversion)
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "internal_io_write",
+                "bit_address": destination_address,
+                "width": 16,
+                "value": conversion,
+            }
+        )
+        self._new_hidden_write_states = 1
+        self._active_trace.notes.append(
+            "one hidden conversion-register write state remains"
+        )
+        return machine_states
+
+    def _execute_setcdp(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        return self._execute_set_pitch_conversion(3, CONVDP_ADDRESS)
+
+    def _execute_setcmp(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        return self._execute_set_pitch_conversion(11, CONVMP_ADDRESS)
+
+    def _execute_setcsp(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        return self._execute_set_pitch_conversion(1, CONVSP_ADDRESS)

@@ -6,6 +6,9 @@ import json
 import unittest
 
 from tools.model import (
+    CONVDP_ADDRESS,
+    CONVMP_ADDRESS,
+    CONVSP_ADDRESS,
     CONTROL_ADDRESS,
     HSTCTLH_ADDRESS,
     ModelError,
@@ -1350,6 +1353,88 @@ class ExecutionTests(unittest.TestCase):
         event = model.step()
         self.assertEqual(event.machine_states, 3)
         self.assertEqual(model.state.pending_write_states, 0)
+
+    def test_setc_pitch_primary_conversion_rows(self) -> None:
+        variants = (
+            (0x0273, 3, CONVDP_ADDRESS),
+            (0x02FB, 11, CONVMP_ADDRESS),
+            (0x0251, 1, CONVSP_ADDRESS),
+        )
+        rows = (
+            (0x0000_1000, 0x0013, 4),
+            (0x0000_0400, 0x0015, 4),
+            (0x0000_1400, 0x1513, 6),
+            (0x0000_0019, 0x0000, 3),
+        )
+        for opcode, source_index, destination_address in variants:
+            for pitch, conversion, machine_states in rows:
+                with self.subTest(
+                    opcode=f"{opcode:04X}",
+                    pitch=f"{pitch:08X}",
+                ):
+                    model = Tms34020Model()
+                    model.load_program([opcode])
+                    model.state.write_reg("B", source_index, pitch)
+                    model.state.st = 0xF020_001F
+                    event = model.step()
+                    self.assertEqual(
+                        model.state.read_io(destination_address),
+                        conversion,
+                    )
+                    self.assertEqual(event.machine_states, machine_states)
+                    self.assertEqual(model.state.st, 0xF020_001F)
+                    self.assertEqual(model.state.pending_write_states, 1)
+
+    def test_setc_pitch_uses_each_implied_source_and_destination(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0251, 0x0273, 0x02FB])
+        model.state.write_reg("B", 1, 0x0000_0400)
+        model.state.write_reg("B", 3, 0x0000_1000)
+        model.state.write_reg("B", 11, 0x0000_1400)
+        events = [model.step(), model.step(), model.step()]
+        self.assertEqual(model.state.read_io(CONVSP_ADDRESS), 0x0015)
+        self.assertEqual(model.state.read_io(CONVDP_ADDRESS), 0x0013)
+        self.assertEqual(model.state.read_io(CONVMP_ADDRESS), 0x1513)
+        self.assertEqual(
+            [event.machine_states for event in events],
+            [4, 4, 6],
+        )
+        self.assertEqual(
+            [
+                event.transactions[-1]["bit_address"]
+                for event in events
+            ],
+            [CONVSP_ADDRESS, CONVDP_ADDRESS, CONVMP_ADDRESS],
+        )
+
+    def test_setc_pitch_conversion_encoding_boundaries(self) -> None:
+        cases = (
+            (0x0000_0001, 0x001F, 4),
+            (0x0000_0005, 0x1F1D, 6),
+            (0x0000_0000, 0x0000, 3),
+            (0x8000_0000, 0x0000, 3),
+        )
+        for pitch, conversion, machine_states in cases:
+            with self.subTest(pitch=f"{pitch:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x0273])
+                model.state.write_reg("B", 3, pitch)
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_io(CONVDP_ADDRESS),
+                    conversion,
+                )
+                self.assertEqual(event.machine_states, machine_states)
+                self.assertEqual(
+                    event.transactions[-1],
+                    {
+                        "class": "internal_io_write",
+                        "bit_address": CONVDP_ADDRESS,
+                        "width": 16,
+                        "value": conversion,
+                    },
+                )
+                self.assertIn("hidden conversion-register", event.notes[-1])
 
     def test_idle_retains_pc_and_marks_timing_incomplete(self) -> None:
         model = Tms34020Model()

@@ -22,7 +22,7 @@ Implemented:
   MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry,
-  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
+  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, and SETCSP.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -42,6 +42,14 @@ trace and schedules the one hidden write state shown by TI's `2 (1)` timing.
 Subsequent modeled execution states overlap outstanding hidden writes, while
 MWAIT drains them. RMO returns the least-significant set-bit number and changes
 only Z.
+SETCDP, SETCMP, and SETCSP read B3/DPTCH, B11/MPTCH, and B1/SPTCH,
+respectively. They generate the documented 16-bit one's-complement shift
+fields in CONVDP, CONVMP, or CONVSP for one- and two-power pitches, use zero
+for arbitrary pitches, preserve ST, and schedule the parenthesized hidden
+internal-I/O write state. Sources: the same guide, CONVxP description printed
+pp.4-28..4-29, Figure 12-20 on p.12-49, instruction pages
+13-227..13-229, and timing table p.15-8. Pinned MAME discrepancies are recorded
+in `docs/research/source_conflicts.md` RSC-0014.
 The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,
@@ -145,7 +153,7 @@ raises `ModelError` for any other current value. That is a verification guard,
 not a claim that physical silicon traps or otherwise behaves the same way for
 an undocumented PSIZE value.
 
-Decoded BLMOVE, SETCDP, SETCMP, SETCSP, TRAPL, and VLCOL entries intentionally
+Decoded BLMOVE, TRAPL, and VLCOL entries intentionally
 raise `UnsupportedInstruction` without changing state. Their presence in the
 ISA database is not an implementation claim.
 
@@ -221,7 +229,9 @@ and N/Z/V updates; all MOVX/MOVY example rows, half preservation, same-file
 selection, shared SP, and status preservation;
 CMPK constants/flags; PSIZE get/exchange; RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
-pending states, IDLE claim boundaries, no mutation on unsupported
+pending states, all SETCDP/SETCMP/SETCSP primary conversion rows, implied
+source/destination selection, conversion-field boundaries, hidden writes,
+IDLE claim boundaries, no mutation on unsupported
 instructions, and snapshot/replay equivalence.
 
 The cache tests independently cover reset metadata, the Figure 5-2

@@ -214,3 +214,27 @@
   other published RL rows. This is a documentation resolution, not
   physical-hardware evidence. Confidence: `VERIFIED_PRIMARY` for the bit
   relation and `CORROBORATED` for the secondary implementation.
+
+## RSC-0014: pinned MAME SETC-pitch conversion is incomplete and misencoded
+
+- Status: resolved secondary-reference defects; TI behavior implemented
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, CONVxP register
+  description and Figure 12-20, printed pp.4-28..4-29 and 12-49, define each
+  conversion field as the five-bit one's complement of the corresponding
+  power-of-two shift count. SETCDP/SETCMP/SETCSP, printed
+  pp.13-227..13-229, give `1000h -> 0013h`, `0400h -> 0015h`,
+  `1400h -> 1513h`, and arbitrary `19h -> 0000h`.
+- Secondary conflict: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 2437–2468 stores
+  `std::bit_width` values directly for SETCDP. For `1000h`, that expression is
+  decimal 13 (`000Dh`), rather than TI's complemented `0013h`. Lines
+  2470–2478 implement SETCMP and SETCSP only as log messages and do not update
+  their conversion registers.
+- Decision: derive all three conversion registers from the primary field
+  definition and example rows. One set bit uses one complemented shift field;
+  two set bits place the greater-power field low and lesser-power field in bits
+  12–8; other pitches use zero and the arbitrary-pitch path. A zero
+  conversion-value-1 is retained as the documented multiplication sentinel.
+  MAME remains a differential target, not the expected result for these
+  instructions. Confidence: `VERIFIED_PRIMARY`.

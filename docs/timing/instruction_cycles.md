@@ -43,6 +43,11 @@ counter for the few extracted cases that need this dependency. It is not a
 complete memory-controller schedule. `MWAIT` consumes the abstract pending
 states; full request-by-request validation remains pending.
 
+SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
+`6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
+records 4/6/3 visible states and one pending hidden internal-I/O write state.
+Source: User's Guide instruction pages 13-227..13-229 and timing table p.15-8.
+
 ## Cache-fetch interaction
 
 A cache hit reads an instruction word in one machine state, normally overlapped

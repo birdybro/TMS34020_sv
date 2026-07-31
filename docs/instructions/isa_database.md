@@ -126,6 +126,14 @@ Sources: printed pp.13-222..13-223 and timing table p.15-8. The p.13-222
 count-30 example's C digit conflicts with both its published result and the
 page's bit definition; RSC-0013 records the resolution.
 
+SETCDP, SETCMP, and SETCSP are fixed one-word TMS34020 operations. They read
+the implied DPTCH (B3), MPTCH (B11), or SPTCH (B1) register and write CONVDP,
+CONVMP, or CONVSP through a hidden internal-I/O state. Their conversion fields
+are the five-bit one's complements of the represented shift counts; arbitrary
+pitches select zero. Sources: printed pp.4-28..4-29, Figure 12-20 on p.12-49,
+instruction pages 13-227..13-229, and timing table p.15-8. RSC-0014 records
+why the pinned MAME implementation is not used as the oracle.
+
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database
 covers every legal instruction and explicitly classifies the remainder.

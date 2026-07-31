@@ -324,6 +324,12 @@
   execution, C/Z replacement, N/V preservation, and the RSC-0013 count-30
   interpretation. Warning-free Quartus requalification reports 6,520 leaf and
   4,129 scalar logic cells; registers and cache RAM are unchanged.
+- Implemented independent SETCDP/SETCMP/SETCSP model behavior from the TI
+  CONVxP field definition, Figure 12-20, and all instruction-page example
+  rows. The 80-test model suite now covers 49/52 extracted forms, all three
+  implied B-register/I/O-register mappings, one-/two-power and arbitrary
+  pitch timing, status preservation, and the hidden write state. RSC-0014
+  records that pinned MAME misencodes SETCDP and leaves SETCMP/SETCSP as stubs.
 
 ### Documentation
 
