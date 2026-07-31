@@ -117,6 +117,11 @@
   directions, zero/max magnitudes, instruction-range endpoints, PC wrap,
   A/B/shared-SP selection, exact write traces, complete status preservation,
   and documented two-/three-state cases.
+- Synthesizable DSJS direct-PC execution with unconditional modulo-`2^32`
+  destination decrement, status preservation, nonzero-result redirect,
+  independent direction and unsigned-magnitude handling, held frontend target,
+  A/B/shared-SP coverage, PC wrap, and two runtime safety assertions.
+  Architectural two-/three-state retirement remains unimplemented.
 - Independent DSJ/DSJEQ/DSJNE model execution covering all published rows,
   enabled and suppressed conditions, zero/wrapping decrements, signed
   displacement extremes, PC wrap, A/B/shared-SP selection, exact write traces,
@@ -229,6 +234,15 @@
 
 ### Verified
 
+- DSJS functional RTL passes direct-PC, ordered commit, and cache-fed scalar
+  tests for zero/nonzero results, zero/max magnitudes, both directions,
+  A/B/shared-SP destinations, exact status preservation, and PC wrap. The
+  129-case model suite, 28-case ISA suite, complete 65,536-word decode sweep,
+  warning-free Verilator lint, and all affected regressions pass. Quartus
+  Cyclone V Analysis & Synthesis passes with zero errors/warnings at 8,641 leaf
+  and 5,255 scalar diagnostic logic cells; register/RAM counts remain 2,048/0
+  and 1,414/4,096 respectively. These are functional and synthesis-portability
+  results, not retirement-timing, fit, TimeQuest, or release evidence.
 - The 129-case independent model suite covers bounded successful semantics for
   all 79 currently extracted forms. DSJS tests distinguish the embedded
   unsigned magnitude plus direction bit from DSJ signed extension and cover

@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 50 one-word, four
+asserted only when its declared length matches one of the 51 one-word, seven
 two-word, or eight three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -29,7 +29,8 @@ Supported operations are:
 - ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPK, BTST.K, BTST.R, LMO, and RMO;
 - AND, ANDN, OR, and XOR;
 - MOVE, MOVX, MOVY, RL.K, RL.R, SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R;
-- GETPC, EXGPC, and JUMP;
+- GETPC, EXGPC, JUMP, and DSJS;
+- two-word DSJ, DSJEQ, and DSJNE;
 - two-word ADDI.W, CMPI.W, MOVI.W, and SUBI.W; and
 - three-word ADDI.L, ADDXYI, ANDNI, CMPI.L, MOVI.L, ORI, SUBI.L, and XORI.
 
@@ -85,8 +86,10 @@ destinations in both field banks,
 PUTST full-width status replacement from a dependent ordinary A register and
 the B-file shared-SP alias,
 state-neutral NOP, GETPC into a B register, EXGPC old-value capture and aligned
-redirect through an A register and shared SP, and rejection of an otherwise
-decoded but unsupported BLMOVE word. Two runtime assertions additionally
+redirect through an A register and shared SP, JUMP redirect-only ownership,
+DSJ-family and DSJS decrement/redirect behavior through ordinary and shared-SP
+destinations, and rejection of an otherwise decoded but unsupported BLMOVE
+word. Two runtime assertions additionally
 check mutual exclusion between execution owners and require every redirect to
 be accepted and aligned. The
 testbench requires the explicit marker

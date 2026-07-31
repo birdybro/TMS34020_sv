@@ -2,7 +2,7 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 65 register/status/control-flow operations already verified
+execution path for 66 register/status/control-flow operations already verified
 against their individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, GETST, and PUTST;
@@ -12,7 +12,7 @@ against their individual TI instruction pages:
   MOVE, MOVX, MOVY,
   RL.K, and RL.R; plus
 - SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R; plus
-- GETPC, EXGPC, JUMP, DSJ, DSJEQ, and DSJNE; plus
+- GETPC, EXGPC, JUMP, DSJ, DSJEQ, DSJNE, and DSJS; plus
 - the three-word ANDNI, ORI, and XORI immediate-logical family; and
 - the three-word ADDXYI immediate XY operation; plus
 - the two-word ADDI.W/CMPI.W/SUBI.W and three-word
@@ -39,13 +39,16 @@ enable. A supported packet therefore commits at most once. For an ordinary
 instruction or GETPC, the frontend then receives a sequential completion
 handshake. EXGPC, JUMP, and taken DSJ-family instructions instead hold their
 redirect target across the commit-to-completion boundary and present it with
-the completion handshake. Sixteen scalar runtime assertions check that only supported packets
-commit, blocked packets cannot assert state writes, a commit cannot remain
+the completion handshake. Eighteen scalar runtime assertions check that only
+supported packets commit, blocked packets cannot assert state writes, a commit
+cannot remain
 asserted on the next FPGA clock, and committed and pending redirect targets
 stay identified and aligned; JUMP must redirect without a register or status
 write; DSJ-family commits must match their Z condition, never write status, and
 redirect exactly by their signed 16-bit word displacement only when the
-decrement result is nonzero; shift commits must assert atomic register
+decrement result is nonzero; DSJS commits must always decrement, never write
+status, and redirect by their encoded unsigned word magnitude and direction
+only when the result is nonzero; shift commits must assert atomic register
 and status writes without redirect; LMO commits must likewise atomically write
 their destination and the exact Z-only mask; ADDXY/SUBXY commits must atomically
 write their destination and all four NCZV bits; BTST.K/R commits must suppress
@@ -65,16 +68,20 @@ commit. The serialized acceptance edge is not the instruction's documented
 three-machine-state retirement. Source: TI *TMS34020 User's Guide*, August
 1990, printed pp.4-2..4-3, 13-216, and 15-7.
 
+DSJS always decrements its A/B/shared-SP destination modulo `2^32` and never
+writes ST. A nonzero result redirects from the sequential one-word PC by the
+encoded five-bit magnitude times 16, adding when D is zero and subtracting
+when D is one; zero falls through. Two dedicated scalar assertions require the
+unconditional write/conditioned-redirect relationship and exact encoded
+target. This functional
+ordering does not implement the documented two-/three-state retirement.
+Source: TI *TMS34020 User's Guide*, August 1990, printed pp.13-12, 13-108,
+and 15-4.
+
 Decoded instructions outside the verified scalar set and unclassified packets
 remain presented with `packet_blocked_o=1`. They are neither consumed nor
 treated as illegal instructions, because the architectural exception and other
 execution behavior are not yet implemented.
-
-DSJS is currently one of those decoded blocked packets. Directed simulation
-fetches its backward/max-magnitude/shared-SP boundary word and holds it for
-three FPGA clocks without a commit, register write, status write, redirect, or
-state change. This guard is removed only when a direct-PC execution owner is
-implemented.
 
 DSJ always decrements its selected destination. DSJEQ does so only for Z=1,
 and DSJNE only for Z=0. An enabled modulo-`2^32` decrement writes the A/B/shared
@@ -198,6 +205,11 @@ one- and two-machine-state timings. The
 earlier INC and DEC spellings exercise the canonical
 ADDK K=1 and SUBK K=1 object codes.
 
+An additional direct-PC sequence fetches the backward, maximum-magnitude DSJS
+shared-SP encoding at bit address `000000E0h`. It verifies the wrapping
+decrement from zero to `FFFFFFFFh`, complete ST preservation, and the held
+redirect from sequential PC `000000F0h` to `FFFFFF00h`.
+
 A second pass enables the cache, checks the demand-word-last refill sequence,
 and executes the first eight dependent instructions, including the cache-fed
 GETST-to-LMO dependency, with exactly four native
@@ -206,7 +218,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 5,211 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 5,255 logic cells,
 1,414 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,
@@ -216,8 +228,8 @@ TimeQuest, full-core utilization, or a timing-closure result.
 
 The automatic handshake sequence is an FPGA implementation protocol, not a
 documented TMS34020 machine-state schedule. The slice has no authentic
-fetch/execute overlap, interrupt recognition, branch or trap execution beyond
-the bounded EXGPC direct redirect,
+fetch/execute overlap, interrupt recognition, control-flow execution beyond
+the bounded direct-PC operations listed above,
 reset-vector controller, data-memory operations, graphics operations, complete
 fault continuation, or original-pin timing. It is not an instruction-complete
 or cycle-accurate processor core.

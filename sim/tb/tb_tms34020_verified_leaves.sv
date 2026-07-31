@@ -1240,6 +1240,45 @@ module tb_tms34020_verified_leaves;
         #1;
     endtask
 
+    task automatic commit_dsjs_instruction(
+        input logic [15:0] first_word,
+        input logic [31:0] sequential_next_pc,
+        input logic [31:0] expected_register_data,
+        input logic expected_redirect,
+        input logic [31:0] expected_redirect_address,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {32'd0, first_word};
+        commit_packet_length = 3'd1;
+        commit_sequential_next_pc = sequential_next_pc;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            commit_register_write_enable &&
+            commit_register_write_file == first_word[4] &&
+            commit_register_write_index == first_word[3:0] &&
+            commit_register_write_data == expected_register_data &&
+            !commit_status_write_enable &&
+            commit_pc_redirect_enable == expected_redirect &&
+            commit_pc_redirect_bit_address ==
+                expected_redirect_address,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
@@ -2004,11 +2043,39 @@ module tb_tms34020_verified_leaves;
             "PC execute DSJNE suppressed"
         );
         check_pc_execute(
-            16'h3FFF, 3'd1, 16'd0, 32'h0000_20A0,
-            32'h0000_0002, 32'hA000_0010,
-            1'b0, 1'b0, 32'd0,
+            16'h3845, 3'd1, 16'd0, 32'h0000_20A0,
+            32'h0000_0009, 32'hA000_0010,
+            1'b1, 1'b1, 32'h0000_0008,
+            1'b1, 32'h0000_20C0,
+            "PC execute DSJS forward decrement and redirect"
+        );
+        check_pc_execute(
+            16'h3845, 3'd1, 16'd0, 32'h0000_20A0,
+            32'h0000_0001, 32'hA000_0010,
+            1'b1, 1'b1, 32'd0,
             1'b0, 32'd0,
-            "PC execute blocks decoded DSJS before implementation"
+            "PC execute DSJS decrement-to-zero falls through"
+        );
+        check_pc_execute(
+            16'h3800, 3'd1, 16'd0, 32'h0000_20A0,
+            32'h0000_0002, 32'hA000_0010,
+            1'b1, 1'b1, 32'h0000_0001,
+            1'b1, 32'h0000_20A0,
+            "PC execute DSJS zero-magnitude taken redirect"
+        );
+        check_pc_execute(
+            16'h3BE0, 3'd1, 16'd0, 32'hFFFF_FF10,
+            32'h0000_0002, 32'hA000_0010,
+            1'b1, 1'b1, 32'h0000_0001,
+            1'b1, 32'h0000_0100,
+            "PC execute DSJS maximum forward redirect wraps PC"
+        );
+        check_pc_execute(
+            16'h3FE0, 3'd1, 16'd0, 32'h0000_0090,
+            32'h0000_0002, 32'hA000_0010,
+            1'b1, 1'b1, 32'h0000_0001,
+            1'b1, 32'hFFFF_FEA0,
+            "PC execute DSJS maximum backward redirect wraps PC"
         );
         check_pc_execute(
             16'h0121, 3'd2, 16'd0, 32'h0000_2090,
@@ -3004,13 +3071,6 @@ module tb_tms34020_verified_leaves;
             32'h0000_0010, 32'd1,
             "register commit rejects decode-only PUSHST"
         );
-        commit_register_instruction(
-            16'h3FFF, 1'b0,
-            1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'd1,
-            "register commit rejects decode-only DSJS"
-        );
         commit_dsj_instruction(
             16'h0D9F, 16'h0002, 32'h0000_1000,
             1'b1, 32'd0, 1'b0, 32'd0,
@@ -3067,6 +3127,38 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0,
             32'h0000_0010, 32'd1,
             "register commit restores shared SP after DSJ matrix"
+        );
+        commit_immediate_move_instruction(
+            16'h09F2, 3'd3, 32'h0000_0002,
+            1'b1, 4'd2, 32'h0000_0002,
+            1'b0, 1'b0,
+            32'h0000_0010, 32'd1,
+            "register commit prepares B2 for DSJS"
+        );
+        commit_dsjs_instruction(
+            16'h3852, 32'h0000_1000,
+            32'h0000_0001, 1'b1, 32'h0000_1020,
+            32'h0000_0010, 32'd1,
+            "register commit DSJS forward B2"
+        );
+        commit_dsjs_instruction(
+            16'h3BFF, 32'h0000_1000,
+            32'd0, 1'b0, 32'd0,
+            32'h0000_0010, 32'd0,
+            "register commit DSJS decrement-to-zero shared SP"
+        );
+        commit_immediate_move_instruction(
+            16'h09FF, 3'd3, 32'h0000_0002,
+            1'b1, 4'd15, 32'h0000_0002,
+            1'b0, 1'b0,
+            32'h0000_0010, 32'd2,
+            "register commit prepares shared SP for backward DSJS"
+        );
+        commit_dsjs_instruction(
+            16'h3FFF, 32'h0000_0090,
+            32'h0000_0001, 1'b1, 32'hFFFF_FEA0,
+            32'h0000_0010, 32'd1,
+            "register commit DSJS backward shared SP and PC wrap"
         );
         commit_register_instruction(
             16'h0300, 1'b1,

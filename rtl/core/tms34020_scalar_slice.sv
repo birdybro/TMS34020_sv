@@ -230,7 +230,8 @@ module tms34020_scalar_slice (
                     packet_opcode_id_o == TMS20_OP_JUMP ||
                     packet_opcode_id_o == TMS20_OP_DSJ ||
                     packet_opcode_id_o == TMS20_OP_DSJEQ ||
-                    packet_opcode_id_o == TMS20_OP_DSJNE
+                    packet_opcode_id_o == TMS20_OP_DSJNE ||
+                    packet_opcode_id_o == TMS20_OP_DSJS
                 ) &&
                 commit_pc_redirect_bit_address[3:0] == 4'd0;
     endproperty
@@ -298,6 +299,41 @@ module tms34020_scalar_slice (
                     packet_words_o[31:16],
                     4'd0
                 };
+    endproperty
+
+    property p_dsjs_commit_has_write_and_conditioned_redirect;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            packet_opcode_id_o == TMS20_OP_DSJS
+            |-> register_write_enable_o &&
+                !status_write_enable_o &&
+                (
+                    commit_pc_redirect_enable ==
+                    (register_write_data_o != 32'd0)
+                );
+    endproperty
+
+    property p_dsjs_redirect_uses_encoded_word_magnitude;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            commit_pc_redirect_enable &&
+            packet_opcode_id_o == TMS20_OP_DSJS
+            |-> commit_pc_redirect_bit_address ==
+                (
+                    packet_words_o[10]
+                    ? packet_sequential_next_pc -
+                        {
+                            23'd0,
+                            packet_words_o[9:5],
+                            4'd0
+                        }
+                    : packet_sequential_next_pc +
+                        {
+                            23'd0,
+                            packet_words_o[9:5],
+                            4'd0
+                        }
+                );
     endproperty
 
     property p_shift_commit_has_atomic_register_and_status_writes;
@@ -425,6 +461,12 @@ module tms34020_scalar_slice (
     );
     assert property (
         p_dsj_redirect_uses_signed_word_displacement
+    );
+    assert property (
+        p_dsjs_commit_has_write_and_conditioned_redirect
+    );
+    assert property (
+        p_dsjs_redirect_uses_encoded_word_magnitude
     );
     assert property (
         p_shift_commit_has_atomic_register_and_status_writes

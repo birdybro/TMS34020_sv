@@ -53,8 +53,8 @@ clock and explicit clock enables:
   not an arbitrarily advanced fetch cursor.
 
 The bounded `tms34020_scalar_slice` connects the serialized frontend to
-`tms34020_register_commit` for 49 verified one-word operations and the
-two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and three-word
+`tms34020_register_commit` for 51 verified one-word operations, the
+two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W/DSJ/DSJEQ/DSJNE operations, and three-word
 ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L operations, while blocking everything
 else. This verifies a conservative fetch-to-commit ordering, but does not
 implement or measure documented pipeline overlap.

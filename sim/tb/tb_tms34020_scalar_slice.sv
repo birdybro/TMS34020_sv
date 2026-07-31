@@ -824,30 +824,40 @@ module tb_tms34020_scalar_slice;
         apply_reset();
         load_pc(32'hE0);
         serve_word(32'hE0);
+        wait (commit_accepted);
+        check_condition(
+            packet_valid &&
+            packet_supported &&
+            !packet_blocked &&
+            packet_opcode_id == TMS20_OP_DSJS &&
+            packet_length_words == 3'd1 &&
+            packet_words[15:0] == 16'h3FFF &&
+            register_write_enable &&
+            register_write_file &&
+            register_write_index == 4'd15 &&
+            register_write_data == 32'hFFFF_FFFF &&
+            !status_write_enable,
+            "complete DSJS packet decrements shared SP and redirects"
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            !commit_accepted &&
+            commit_count == 1 &&
+            status == TMS34020_ST_RESET &&
+            sp == 32'hFFFF_FFFF,
+            "DSJS commit preserves status and writes shared SP"
+        );
+        serve_word(32'hFFFF_FF00);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
             !packet_supported &&
-            packet_opcode_id == TMS20_OP_DSJS &&
-            packet_length_words == 3'd1 &&
-            packet_words[15:0] == 16'h3FFF &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "complete decoded DSJS packet is blocked"
+            packet_opcode_id == TMS20_OP_UNCLASSIFIED &&
+            packet_start_pc == 32'hFFFF_FF00 &&
+            commit_count == 1,
+            "DSJS backward maximum redirect reaches wrapped target"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0 &&
-                packet_start_pc == 32'hE0,
-                "blocked DSJS packet cannot mutate or redirect state"
-            );
-        end
 
         apply_reset();
         load_pc(32'h100);

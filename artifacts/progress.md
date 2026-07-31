@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `3aa3c3e57d333ccd36817cf0d480c4b252f28535`
+- Latest verified baseline commit: `110c42bca952ae077f83a0b50047cc72ecf8ce16`
 - Passing tests: foundation, reference/hash, delta, 28-case ISA sweep, 129 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -47,7 +47,7 @@
 - RTL status: generated 79-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
-  write intents for 50 one-word instructions, with externally gated one-edge
+  write intents for 51 one-word instructions, with externally gated one-edge
   state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
@@ -57,7 +57,7 @@
   standalone native-completion cache lookup/refill RTL;
   a dedicated GETPC/EXGPC/JUMP direct-PC leaf, an integrated serialized
   cache/instruction-packet frontend with explicit completion and abort/reload;
-  and a bounded fetch-to-commit path for those 50
+  and a bounded fetch-to-commit path for those 51
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
   GETPC consumes the packet sequential PC, while EXGPC atomically writes that
@@ -87,8 +87,10 @@
   writeback and passes a cache-fed dependency; its three-state architectural
   retirement is not implemented.
   JUMP functional redirect semantics pass, but its documented two-state
-  retirement is not implemented. DSJS decodes as a complete one-word packet
-  but remains explicitly blocked and state-neutral. DSJ/DSJEQ/DSJNE
+  retirement is not implemented. DSJS always decrements its A/B/shared-SP
+  destination, preserves ST, and holds its encoded forward/backward short
+  redirect for a nonzero result; its documented two-/three-state retirement is
+  not implemented. DSJ/DSJEQ/DSJNE
   conditionally decrement
   A/B/shared-SP destinations, preserve ST, and issue signed relative redirects
   only for nonzero results; their documented two-/three-state retirement is not
@@ -105,13 +107,13 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, sixteen scalar, and two commit-owner
+- Formal status: four cache, four fetch, eighteen scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,612 logic cells and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 416, 790, and 5,211 logic cells;
+  warnings; the leaf wrapper uses 8,641 logic cells and 2,048 registers, while
+  the fetch, frontend, and scalar wrappers use 416, 790, and 5,255 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

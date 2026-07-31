@@ -149,9 +149,12 @@ unaffected. The primary guide's −30..+32-word range is relative to the
 instruction address, not the already-advanced `PC'`. Sources: TMS34020 User's
 Guide printed pp.13-12 and 13-108; TMS34010 User's Guide printed
 pp.12-74..12-75. The independent model implements the successful instruction
-boundary, including both direction and magnitude endpoints. RTL execution
-remains deliberately blocked at this checkpoint.
-The RTL still lacks the documented two-/three-state scheduling.
+boundary, including both direction and magnitude endpoints. The bounded RTL
+always commits the modulo-`2^32` decrement, preserves ST, and holds the exact
+encoded forward or backward target through frontend completion when the result
+is nonzero. Two runtime assertions require the unconditional destination-write
+and conditioned-redirect relationship plus the exact unsigned-magnitude
+target. The RTL still lacks the documented two-/three-state scheduling.
 
 ## Reset entry
 

@@ -23,6 +23,7 @@ module tms34020_pc_execute (
     logic [2:0] decoded_length_words;
     logic [31:0] decrement_result;
     logic [31:0] signed_displacement_bits;
+    logic [31:0] dsjs_magnitude_bits;
     logic dsj_condition;
 
     tms34020_decode decode (
@@ -37,6 +38,11 @@ module tms34020_pc_execute (
         signed_displacement_bits = {
             {12{immediate_word_i[15]}},
             immediate_word_i,
+            4'd0
+        };
+        dsjs_magnitude_bits = {
+            23'd0,
+            first_word_i[9:5],
             4'd0
         };
         dsj_condition =
@@ -92,6 +98,24 @@ module tms34020_pc_execute (
                             redirect_bit_address_o =
                                 sequential_next_pc_i +
                                 signed_displacement_bits;
+                        end
+                    end
+                end
+
+                TMS20_OP_DSJS: begin
+                    supported_o = 1'b1;
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = decrement_result;
+                    if (decrement_result != 32'd0) begin
+                        redirect_enable_o = 1'b1;
+                        if (first_word_i[10]) begin
+                            redirect_bit_address_o =
+                                sequential_next_pc_i -
+                                dsjs_magnitude_bits;
+                        end else begin
+                            redirect_bit_address_o =
+                                sequential_next_pc_i +
+                                dsjs_magnitude_bits;
                         end
                     end
                 end
