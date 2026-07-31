@@ -260,6 +260,19 @@ module tms34020_scalar_slice (
                 !commit_pc_redirect_enable;
     endproperty
 
+    property p_xy_commit_has_atomic_register_and_status_writes;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            (
+                packet_opcode_id_o == TMS20_OP_ADDXY ||
+                packet_opcode_id_o == TMS20_OP_SUBXY
+            )
+            |-> register_write_enable_o &&
+                status_write_enable_o &&
+                status_write_mask_o == 32'hF000_0000 &&
+                !commit_pc_redirect_enable;
+    endproperty
+
     assert property (p_only_supported_packets_commit);
     assert property (p_blocked_packet_cannot_write);
     assert property (p_commit_is_single_pulse);
@@ -270,6 +283,9 @@ module tms34020_scalar_slice (
     );
     assert property (
         p_lmo_commit_has_atomic_register_and_status_writes
+    );
+    assert property (
+        p_xy_commit_has_atomic_register_and_status_writes
     );
 `endif
 

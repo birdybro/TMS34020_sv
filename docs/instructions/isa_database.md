@@ -101,7 +101,9 @@ pp.13-38 and 13-246, and the independently acquired TMS34010 guide, printed
 pp.12-41 and 12-251..12-252. They are therefore classified compatible from
 primary sources. The independent model executes every published row and
 same-register/B/shared-SP hazards. At this model checkpoint they decode in the
-generated RTL but remain deliberately rejected by execution and commit.
+generated RTL and execute through the shared XY leaf, register router, atomic
+commit owner, and bounded scalar slice. RTL tests cover all 25 published rows
+plus same-register, B-file, shared-SP, and dependent-commit hazards.
 
 The `.W` and `.L` suffixes on the ADDI, CMPI, and SUBI record pairs are
 canonical database encoding-form names. TI's source mnemonics remain `ADDI`,

@@ -2,12 +2,12 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 52 register/status operations already verified against their
+execution path for 54 register/status operations already verified against their
 individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
 - ABS, NEG, NEGB, and NOT;
-- ADD, ADDC, SUB, SUBB, CMP, ADDK/INC, SUBK/DEC, and MOVK; and
+- ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, ADDK/INC, SUBK/DEC, and MOVK; and
 - AND, ANDN, OR, XOR, CMPK, LMO, RMO, MOVE, MOVX, MOVY, RL.K, and RL.R; plus
 - SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R; plus
 - GETPC and EXGPC; plus
@@ -37,12 +37,13 @@ enable. A supported packet therefore commits at most once. For an ordinary
 instruction or GETPC, the frontend then receives a sequential completion
 handshake. EXGPC instead holds its aligned old-register target across the
 commit-to-completion boundary and presents that redirect with the completion
-handshake. Seven scalar runtime assertions check that only supported packets
+handshake. Eight scalar runtime assertions check that only supported packets
 commit, blocked packets cannot assert state writes, a commit cannot remain
 asserted on the next FPGA clock, and EXGPC committed and pending redirect
 targets stay identified and aligned; shift commits must assert atomic register
 and status writes without redirect; LMO commits must likewise atomically write
-their destination and the exact Z-only mask. Two additional assertions in the
+their destination and the exact Z-only mask; ADDXY/SUBXY commits must atomically
+write their destination and all four NCZV bits. Two additional assertions in the
 commit owner check execution-owner exclusion and committed redirect alignment.
 
 Decoded instructions outside the verified scalar set and unclassified packets
@@ -91,6 +92,11 @@ perform 32-bit addition or subtraction and replace all four NCZV bits. CMPI
 suppresses the register write while preserving the same compare result flags.
 This verifies atomic packet consumption, not the documented
 alignment-dependent machine-state cases.
+ADDXY and SUBXY also operate on independent 16-bit X/Y halves. ADDXY flags
+come from the two result halves, while SUBXY flags encode source/destination
+half equality and unsigned greater-than comparisons. Both use a same-file
+source/destination pair, replace NCZV, and honor A15/B15 as shared SP. Sources:
+TI *TMS34020 User's Guide*, August 1990, printed pp.13-38 and 13-246.
 
 ## Directed verification
 
@@ -123,6 +129,9 @@ two's-complement counts, arithmetic/logical fill, overflow, and partial status
 preservation. It applies LMO to the final shifted A2 value, then executes GETPC,
 EXGPC to the prior A0 value, and GETPC at the redirected address before a
 separate unclassified packet remains blocked without changing that sequence.
+An isolated dependency sequence then seeds A0/A1 with MOVK, commits ADDXY, and
+feeds its new A0 value directly into SUBXY while checking both atomic register
+and NCZV writes.
 The direct-PC checks prove ordering and target selection, not the documented
 one- and two-machine-state timings. The
 earlier INC and DEC spellings exercise the canonical
@@ -136,7 +145,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 4,559 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 4,726 logic cells,
 1,387 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

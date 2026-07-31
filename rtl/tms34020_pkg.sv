@@ -33,6 +33,11 @@ package tms34020_pkg;
         TMS34020_BINARY_CMP  = 3'd4
     } tms34020_binary_op_t;
 
+    typedef enum logic {
+        TMS34020_XY_ADD = 1'b0,
+        TMS34020_XY_SUB = 1'b1
+    } tms34020_xy_op_t;
+
     typedef enum logic [1:0] {
         TMS34020_LOGICAL_AND  = 2'd0,
         TMS34020_LOGICAL_ANDN = 2'd1,

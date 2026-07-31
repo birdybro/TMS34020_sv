@@ -48,6 +48,9 @@
 - Independent ADDXY/SUBXY architectural-model semantics with all 25 published
   rows, exact NCZV replacement, one-state accounting, B-file selection,
   same-register read-before-write, and shared-SP source/destination coverage.
+- A shared synthesizable ADDXY/SUBXY independent-half arithmetic leaf, atomic
+  register/NCZV routing, shared-SP commit coverage, and a dependent
+  MOVK-to-ADDXY-to-SUBXY scalar sequence.
 - A synthesizable LMO leading-priority leaf, Z-only atomic register/ST commit,
   cache-fed dependency sequence, and A/B/same-register/shared-SP RTL coverage.
 - Primary-page-verified ABS, NEG, NEGB, and NOT ISA/model/RTL semantics with
@@ -108,6 +111,8 @@
 
 - Expanded the initial one-line README into an evidence and build-oriented
   project introduction.
+- ADDXYI now reuses the shared XY-add leaf, keeping its independently verified
+  immediate packet behavior and status mapping unchanged.
 - Verilator lint and verified-leaf runners now fail on emitted warnings even
   when `--Wno-fatal` allows the tool process itself to return success.
 
@@ -137,6 +142,12 @@
 
 ### Verified
 
+- All 16 published ADDXY and nine published SUBXY result/flag rows now pass in
+  both the independent model and directed RTL, with additional A/B,
+  same-register, shared-SP, and dependent-commit checks. Warning-free Quartus
+  Cyclone V Analysis & Synthesis reports 8,038 leaf and 4,726 bounded-scalar
+  diagnostic logic cells; these are portability metrics, not fitted core area
+  or timing closure.
 - The 105-case independent model suite covers bounded semantics for all 65
   currently extracted forms. This remains coverage of a partial ISA
   extraction, not instruction completeness.

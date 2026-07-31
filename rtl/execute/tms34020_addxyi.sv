@@ -11,18 +11,23 @@ module tms34020_addxyi (
     output logic        status_v_o
 );
 
-    logic [15:0] result_x;
-    logic [15:0] result_y;
+    import tms34020_pkg::*;
+
+    logic [3:0] status_nczv;
+
+    tms34020_xy_arithmetic arithmetic (
+        .operation_i(TMS34020_XY_ADD),
+        .source_i(immediate_i),
+        .destination_i(destination_i),
+        .result_o(result_o),
+        .status_nczv_o(status_nczv)
+    );
 
     always_comb begin
-        result_x = destination_i[15:0] + immediate_i[15:0];
-        result_y = destination_i[31:16] + immediate_i[31:16];
-        result_o = {result_y, result_x};
-
-        status_n_o = (result_x == 16'd0);
-        status_c_o = result_y[15];
-        status_z_o = (result_y == 16'd0);
-        status_v_o = result_x[15];
+        status_n_o = status_nczv[3];
+        status_c_o = status_nczv[2];
+        status_z_o = status_nczv[1];
+        status_v_o = status_nczv[0];
     end
 
 endmodule

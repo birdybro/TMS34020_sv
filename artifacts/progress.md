@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `5af6c6251f6662b6dfdf39ffbbd6faa155a544f7`
+- Latest verified baseline commit: `ce1254716ee8daae0af85fa62a52cdc0f515f295`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 105 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -24,11 +24,10 @@
   BLMOVE overlap,
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
   (`TMS20-0006`, `TMS20-0007`)
-- RTL status: generated 65-entry partial decode, with ADDXY/SUBXY explicitly
-  rejected at execution/commit, A/B/SP and masked ST state,
+- RTL status: generated 65-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
-  write intents for 40 one-word instructions, with externally gated one-edge
+  write intents for 42 one-word instructions, with externally gated one-edge
   state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
@@ -47,6 +46,9 @@
   replace N/Z/V while preserving C.
   LMO uses a dedicated leading-priority leaf, Z-only masked update, same-file
   selection, shared-SP aliasing, and cache-fed dependent commit coverage.
+  ADDXY/SUBXY use a shared independent-half arithmetic leaf, replace NCZV,
+  and pass all 25 primary example rows plus A/B, same-register, shared-SP, and
+  dependent scalar-commit tests.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -58,13 +60,14 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, seven scalar, and two commit-owner
+- Formal status: four cache, four fetch, eight scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 4,559 logic cells, 1,387 registers, and
-  4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
+  warnings; the leaf wrapper uses 8,038 logic cells and 2,021 registers, while
+  the scalar wrapper uses 4,726 logic cells, 1,387 registers, and 4,096
+  block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
 - Provisional behavior: the cache model represents architecturally

@@ -183,6 +183,10 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0460: memory_word = 16'h6A43;
                 32'h0000_0470: memory_word = 16'h0153;
                 32'h0000_0480: memory_word = 16'h0120;
+                32'h0000_0500: memory_word = 16'h1820;
+                32'h0000_0510: memory_word = 16'h1841;
+                32'h0000_0520: memory_word = 16'hE020;
+                32'h0000_0530: memory_word = 16'hE201;
                 32'h2468_ACF0: memory_word = 16'h0154;
                 default: memory_word = 16'hFFFF;
             endcase
@@ -1038,6 +1042,41 @@ module tb_tms34020_scalar_slice;
             cache_lru_debug == 8'b00_01_10_11 &&
             cache_tag_valid_debug == 4'd0,
             "bypass scalar slice leaves cache invalid"
+        );
+
+        apply_reset();
+        load_pc(32'h500);
+        serve_and_commit(
+            32'h500, TMS20_OP_MOVK,
+            1'b1, 1'b0, 4'd0, 32'd1,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd0,
+            "scalar MOVK seeds ADDXY destination"
+        );
+        serve_and_commit(
+            32'h510, TMS20_OP_MOVK,
+            1'b1, 1'b0, 4'd1, 32'd2,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd0,
+            "scalar MOVK seeds ADDXY source"
+        );
+        serve_and_commit(
+            32'h520, TMS20_OP_ADDXY,
+            1'b1, 1'b0, 4'd0, 32'd3,
+            1'b1, 32'h2000_0000, 32'hF000_0000,
+            32'h2000_0010, 32'd0,
+            "scalar ADDXY consumes dependent register state"
+        );
+        serve_and_commit(
+            32'h530, TMS20_OP_SUBXY,
+            1'b1, 1'b0, 4'd1, 32'h0000_FFFF,
+            1'b1, 32'h3000_0000, 32'hF000_0000,
+            32'h3000_0010, 32'd0,
+            "scalar SUBXY consumes preceding ADDXY result"
+        );
+        check_condition(
+            commit_count == 4,
+            "four dependent MOVK and XY arithmetic commits"
         );
 
         apply_reset();

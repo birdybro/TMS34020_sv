@@ -47,6 +47,12 @@ module tb_tms34020_verified_leaves;
     logic add_z;
     logic add_v;
 
+    tms34020_xy_op_t xy_operation;
+    logic [31:0] xy_source;
+    logic [31:0] xy_destination;
+    logic [31:0] xy_result;
+    logic [3:0] xy_nczv;
+
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
     logic [31:0] binary_destination;
@@ -192,6 +198,14 @@ module tb_tms34020_verified_leaves;
         .status_c_o(add_c),
         .status_z_o(add_z),
         .status_v_o(add_v)
+    );
+
+    tms34020_xy_arithmetic xy_arithmetic_dut (
+        .operation_i(xy_operation),
+        .source_i(xy_source),
+        .destination_i(xy_destination),
+        .result_o(xy_result),
+        .status_nczv_o(xy_nczv)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -414,6 +428,55 @@ module tb_tms34020_verified_leaves;
             execute_destination_index == first_word[3:0] &&
             execute_register_write_enable &&
             execute_register_write_data == expected_register_data &&
+            execute_status_write_enable &&
+            execute_status_write_data == {expected_nczv, 28'd0} &&
+            execute_status_write_mask == 32'hF000_0000,
+            message
+        );
+    endtask
+
+    task automatic check_xy_arithmetic(
+        input tms34020_xy_op_t operation,
+        input logic [31:0] source,
+        input logic [31:0] destination,
+        input logic [31:0] expected_result,
+        input logic [3:0] expected_nczv,
+        input string message
+    );
+        xy_operation = operation;
+        xy_source = source;
+        xy_destination = destination;
+        #1;
+        check_condition(
+            xy_result == expected_result &&
+            xy_nczv == expected_nczv,
+            message
+        );
+    endtask
+
+    task automatic check_xy_register_execute(
+        input logic [15:0] first_word,
+        input logic [31:0] source,
+        input logic [31:0] destination,
+        input logic [31:0] expected_result,
+        input logic [3:0] expected_nczv,
+        input string message
+    );
+        execute_first_word = first_word;
+        execute_packet_length = 3'd1;
+        execute_immediate = 32'd0;
+        execute_source = source;
+        execute_destination = destination;
+        execute_status = 32'h0ABC_DEF0;
+        #1;
+        check_condition(
+            execute_supported &&
+            execute_register_file == first_word[4] &&
+            execute_destination_register_file == first_word[4] &&
+            execute_source_index == first_word[8:5] &&
+            execute_destination_index == first_word[3:0] &&
+            execute_register_write_enable &&
+            execute_register_write_data == expected_result &&
             execute_status_write_enable &&
             execute_status_write_data == {expected_nczv, 28'd0} &&
             execute_status_write_mask == 32'hF000_0000,
@@ -1043,6 +1106,9 @@ module tb_tms34020_verified_leaves;
         pc_execute_destination = 32'd0;
         add_destination = 32'd0;
         add_immediate = 32'd0;
+        xy_operation = TMS34020_XY_ADD;
+        xy_source = 32'd0;
+        xy_destination = 32'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2170,17 +2236,35 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "unclassified register execute instruction"
         );
-        check_register_execute(
+        check_xy_register_execute(
             16'hE020, 32'h0001_0002, 32'h0003_0004,
-            32'hF020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only ADDXY cannot enter register execute"
+            32'h0004_0006, 4'b0000,
+            "register execute ADDXY independent halves"
         );
-        check_register_execute(
+        check_xy_register_execute(
             16'hE220, 32'h0001_0002, 32'h0003_0004,
-            32'hF020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only SUBXY cannot enter register execute"
+            32'h0002_0002, 4'b0000,
+            "register execute SUBXY comparisons"
+        );
+        check_xy_register_execute(
+            16'hE052, 32'h0001_0002, 32'h0001_0002,
+            32'h0002_0004, 4'b0000,
+            "register execute ADDXY B-file same-register prewrite"
+        );
+        check_xy_register_execute(
+            16'hE252, 32'h0001_0002, 32'h0001_0002,
+            32'd0, 4'b1010,
+            "register execute SUBXY B-file same-register prewrite"
+        );
+        check_xy_register_execute(
+            16'hE1E0, 32'h0003_0004, 32'h0000_0000,
+            32'h0003_0004, 4'b0000,
+            "register execute ADDXY shared-SP source selector"
+        );
+        check_xy_register_execute(
+            16'hE23F, 32'h0001_0001, 32'h0003_0004,
+            32'h0002_0003, 4'b0000,
+            "register execute SUBXY shared-SP destination selector"
         );
 
         commit_register_instruction(
@@ -2320,20 +2404,6 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'd0, 32'h2000_0000,
             32'h0000_0010, 32'd1,
             "register commit LMO reads shared SP"
-        );
-        commit_register_instruction(
-            16'hE020, 1'b0,
-            1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'd1,
-            "register commit rejects decode-only ADDXY"
-        );
-        commit_register_instruction(
-            16'hE220, 1'b0,
-            1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'd1,
-            "register commit rejects decode-only SUBXY"
         );
         commit_register_instruction(
             16'h00F0, 1'b0,
@@ -2530,6 +2600,48 @@ module tb_tms34020_verified_leaves;
             32'h8000_0010, 32'h0000_4000,
             "register commit EXGPC shared SP"
         );
+        commit_register_instruction(
+            16'h1820, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'd1,
+            1'b0, 32'd0, 32'd0,
+            32'h8000_0010, 32'h0000_4000,
+            "register commit seeds ADDXY destination"
+        );
+        commit_register_instruction(
+            16'h1841, 1'b1,
+            1'b1, 1'b0, 4'd1, 32'd2,
+            1'b0, 32'd0, 32'd0,
+            32'h8000_0010, 32'h0000_4000,
+            "register commit seeds ADDXY source"
+        );
+        commit_register_instruction(
+            16'hE020, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'd3,
+            1'b1, 32'h2000_0000, 32'hF000_0000,
+            32'h2000_0010, 32'h0000_4000,
+            "register commit ADDXY observes seeded registers"
+        );
+        commit_register_instruction(
+            16'hE201, 1'b1,
+            1'b1, 1'b0, 4'd1, 32'h0000_FFFF,
+            1'b1, 32'h3000_0000, 32'hF000_0000,
+            32'h3000_0010, 32'h0000_4000,
+            "register commit SUBXY observes preceding ADDXY"
+        );
+        commit_register_instruction(
+            16'hE1E0, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'h0000_4003,
+            1'b1, 32'h2000_0000, 32'hF000_0000,
+            32'h2000_0010, 32'h0000_4000,
+            "register commit ADDXY reads shared SP source"
+        );
+        commit_register_instruction(
+            16'hE20F, 1'b1,
+            1'b1, 1'b0, 4'd15, 32'h0000_FFFD,
+            1'b1, 32'h3000_0000, 32'hF000_0000,
+            32'h3000_0010, 32'h0000_FFFD,
+            "register commit SUBXY updates shared SP destination"
+        );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
         check_decode(16'h0080, TMS20_OP_MWAIT, 3'd1, "MWAIT exact decode");
@@ -2677,6 +2789,108 @@ module tb_tms34020_verified_leaves;
         check_condition(add_result == 32'h8001_8000, "ADDXYI sign cases");
         check_condition({add_n, add_c, add_z, add_v} == 4'b0101,
                "ADDXYI sign-derived flags");
+
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'h0000_0000, 32'h0000_0000,
+            32'h0000_0000, 4'b1010, "ADDXY primary row 0"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'h0000_0000, 32'h0000_0001,
+            32'h0000_0001, 4'b0010, "ADDXY primary row 1"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'h0000_0000, 32'h0001_0000,
+            32'h0001_0000, 4'b1000, "ADDXY primary row 2"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'h0000_0000, 32'h0001_0001,
+            32'h0001_0001, 4'b0000, "ADDXY primary row 3"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'h0000_FFFF, 32'h0000_0001,
+            32'h0000_0000, 4'b1010, "ADDXY primary row 4"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'h0000_FFFF, 32'h0001_0001,
+            32'h0001_0000, 4'b1000, "ADDXY primary row 5"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'h0000_FFFF, 32'h0000_0002,
+            32'h0000_0001, 4'b0010, "ADDXY primary row 6"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'h0000_FFFF, 32'h0001_0002,
+            32'h0001_0001, 4'b0000, "ADDXY primary row 7"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'hFFFF_0000, 32'h0001_0000,
+            32'h0000_0000, 4'b1010, "ADDXY primary row 8"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'hFFFF_0000, 32'h0001_0001,
+            32'h0000_0001, 4'b0010, "ADDXY primary row 9"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'hFFFF_0000, 32'h0002_0000,
+            32'h0001_0000, 4'b1000, "ADDXY primary row 10"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'hFFFF_0000, 32'h0002_0001,
+            32'h0001_0001, 4'b0000, "ADDXY primary row 11"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'hFFFF_FFFF, 32'h0001_0001,
+            32'h0000_0000, 4'b1010, "ADDXY primary row 12"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'hFFFF_FFFF, 32'h0001_0002,
+            32'h0000_0001, 4'b0010, "ADDXY primary row 13"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'hFFFF_FFFF, 32'h0002_0001,
+            32'h0001_0000, 4'b1000, "ADDXY primary row 14"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_ADD, 32'hFFFF_FFFF, 32'h0002_0002,
+            32'h0001_0001, 4'b0000, "ADDXY primary row 15"
+        );
+
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0001_0001, 32'h0009_0009,
+            32'h0008_0008, 4'b0000, "SUBXY primary row 0"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0009_0001, 32'h0009_0009,
+            32'h0000_0008, 4'b0010, "SUBXY primary row 1"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0001_0009, 32'h0009_0009,
+            32'h0008_0000, 4'b1000, "SUBXY primary row 2"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0009_0009, 32'h0009_0009,
+            32'h0000_0000, 4'b1010, "SUBXY primary row 3"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0000_0010, 32'h0009_0009,
+            32'h0009_FFF9, 4'b0001, "SUBXY primary row 4"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0009_0010, 32'h0009_0009,
+            32'h0000_FFF9, 4'b0011, "SUBXY primary row 5"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0010_0000, 32'h0009_0009,
+            32'hFFF9_0009, 4'b0100, "SUBXY primary row 6"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0010_0009, 32'h0009_0009,
+            32'hFFF9_0000, 4'b1100, "SUBXY primary row 7"
+        );
+        check_xy_arithmetic(
+            TMS34020_XY_SUB, 32'h0010_0010, 32'h0009_0009,
+            32'hFFF9_FFF9, 4'b0101, "SUBXY primary row 8"
+        );
 
         check_binary_arithmetic(
             TMS34020_BINARY_ADD, 32'hFFFF_FFFF, 32'h0000_0001, 1'b0,

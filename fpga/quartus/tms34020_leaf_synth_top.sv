@@ -27,6 +27,8 @@ module tms34020_leaf_synth_top (
     logic [31:0] pc_execute_redirect_bit_address;
     logic [31:0] add_result;
     logic [3:0] add_nczv;
+    logic [31:0] xy_result;
+    logic [3:0] xy_nczv;
     logic [31:0] binary_result;
     logic [3:0] binary_nczv;
     logic binary_register_write_enable;
@@ -81,6 +83,7 @@ module tms34020_leaf_synth_top (
     assign register_read_index = first_word_i[3:0];
     assign result_digest_o =
         add_result ^
+        xy_result ^
         binary_result ^
         pixel_result ^
         compare_result ^
@@ -119,6 +122,7 @@ module tms34020_leaf_synth_top (
          execute_source_index, execute_destination_index,
          execute_register_write_enable, execute_status_write_enable} ^
         {27'd0, binary_nczv, binary_register_write_enable} ^
+        {28'd0, xy_nczv} ^
         {31'd0, lmo_z} ^
         {6'd0, unary_nczv, unary_status_write_mask,
          add_nczv, compare_nczv, rmo_z, decode_valid,
@@ -156,6 +160,14 @@ module tms34020_leaf_synth_top (
         .status_c_o(add_nczv[2]),
         .status_z_o(add_nczv[1]),
         .status_v_o(add_nczv[0])
+    );
+
+    tms34020_xy_arithmetic xy_arithmetic (
+        .operation_i(tms34020_xy_op_t'(first_word_i[9])),
+        .source_i(immediate_i),
+        .destination_i(operand_i),
+        .result_o(xy_result),
+        .status_nczv_o(xy_nczv)
     );
 
     tms34020_binary_arithmetic binary_arithmetic (
