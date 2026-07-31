@@ -26,38 +26,40 @@ typedef enum logic [5:0] {
     TMS20_OP_ANDNI = 6'd18,
     TMS20_OP_CMPI_L = 6'd19,
     TMS20_OP_CMPI_W = 6'd20,
-    TMS20_OP_EXGPS = 6'd21,
-    TMS20_OP_GETPS = 6'd22,
-    TMS20_OP_GETST = 6'd23,
-    TMS20_OP_MOVI_L = 6'd24,
-    TMS20_OP_MOVI_W = 6'd25,
-    TMS20_OP_NEG = 6'd26,
-    TMS20_OP_NEGB = 6'd27,
-    TMS20_OP_NOT = 6'd28,
-    TMS20_OP_ORI = 6'd29,
-    TMS20_OP_RPIX = 6'd30,
-    TMS20_OP_SUBI_L = 6'd31,
-    TMS20_OP_SUBI_W = 6'd32,
-    TMS20_OP_XORI = 6'd33,
-    TMS20_OP_ADD = 6'd34,
-    TMS20_OP_ADDC = 6'd35,
-    TMS20_OP_AND = 6'd36,
-    TMS20_OP_ANDN = 6'd37,
-    TMS20_OP_CMP = 6'd38,
-    TMS20_OP_MOVX = 6'd39,
-    TMS20_OP_MOVY = 6'd40,
-    TMS20_OP_OR = 6'd41,
-    TMS20_OP_RL_R = 6'd42,
-    TMS20_OP_RMO = 6'd43,
-    TMS20_OP_SUB = 6'd44,
-    TMS20_OP_SUBB = 6'd45,
-    TMS20_OP_XOR = 6'd46,
-    TMS20_OP_ADDK = 6'd47,
-    TMS20_OP_CMPK = 6'd48,
-    TMS20_OP_MOVE = 6'd49,
-    TMS20_OP_MOVK = 6'd50,
-    TMS20_OP_RL_K = 6'd51,
-    TMS20_OP_SUBK = 6'd52
+    TMS20_OP_EXGPC = 6'd21,
+    TMS20_OP_EXGPS = 6'd22,
+    TMS20_OP_GETPC = 6'd23,
+    TMS20_OP_GETPS = 6'd24,
+    TMS20_OP_GETST = 6'd25,
+    TMS20_OP_MOVI_L = 6'd26,
+    TMS20_OP_MOVI_W = 6'd27,
+    TMS20_OP_NEG = 6'd28,
+    TMS20_OP_NEGB = 6'd29,
+    TMS20_OP_NOT = 6'd30,
+    TMS20_OP_ORI = 6'd31,
+    TMS20_OP_RPIX = 6'd32,
+    TMS20_OP_SUBI_L = 6'd33,
+    TMS20_OP_SUBI_W = 6'd34,
+    TMS20_OP_XORI = 6'd35,
+    TMS20_OP_ADD = 6'd36,
+    TMS20_OP_ADDC = 6'd37,
+    TMS20_OP_AND = 6'd38,
+    TMS20_OP_ANDN = 6'd39,
+    TMS20_OP_CMP = 6'd40,
+    TMS20_OP_MOVX = 6'd41,
+    TMS20_OP_MOVY = 6'd42,
+    TMS20_OP_OR = 6'd43,
+    TMS20_OP_RL_R = 6'd44,
+    TMS20_OP_RMO = 6'd45,
+    TMS20_OP_SUB = 6'd46,
+    TMS20_OP_SUBB = 6'd47,
+    TMS20_OP_XOR = 6'd48,
+    TMS20_OP_ADDK = 6'd49,
+    TMS20_OP_CMPK = 6'd50,
+    TMS20_OP_MOVE = 6'd51,
+    TMS20_OP_MOVK = 6'd52,
+    TMS20_OP_RL_K = 6'd53,
+    TMS20_OP_SUBK = 6'd54
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -155,8 +157,16 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_CMPI_W;
                 decoded.length_words = 3'd2;
             end
+            16'b00000001001?????: begin
+                decoded.opcode_id = TMS20_OP_EXGPC;
+                decoded.length_words = 3'd1;
+            end
             16'b00000010101?????: begin
                 decoded.opcode_id = TMS20_OP_EXGPS;
+                decoded.length_words = 3'd1;
+            end
+            16'b00000001010?????: begin
+                decoded.opcode_id = TMS20_OP_GETPC;
                 decoded.length_words = 3'd1;
             end
             16'b00000010110?????: begin

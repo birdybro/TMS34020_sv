@@ -352,6 +352,13 @@
   cases, abstract tracing, and rollback guards. The 88-test model now has
   bounded semantics for all 52 currently extracted forms; this is not a
   complete ISA or continuation/timing claim.
+- Extracted the primary GETPC and EXGPC register-file forms from TI printed
+  pp.13-130 and 13-112. The 54-record partial database covers 13,520 first
+  words; independent boundary fixtures and the full first-word collision sweep
+  verify both A/B-file ranges, instruction lengths, and no new decode overlap.
+  The regenerated 54-entry RTL decode passes the complete implemented
+  regression and warning-free Cyclone V leaf/fetch/frontend/scalar synthesis;
+  model execution and RTL redirect ownership remain separate follow-on work.
 
 ### Documentation
 

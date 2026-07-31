@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 52 page-verified encoding records and covers 13,456 of 65,536
+slice contains 54 page-verified encoding records and covers 13,520 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |

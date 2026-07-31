@@ -84,6 +84,10 @@ class IsaTests(unittest.TestCase):
             0x0360: ("DINT", 1),
             0x0D60: ("EINT", 1),
             0x0DE0: ("SETC", 1),
+            0x0120: ("EXGPC", 1),
+            0x013F: ("EXGPC", 1),
+            0x0140: ("GETPC", 1),
+            0x015F: ("GETPC", 1),
             0x0180: ("GETST", 1),
             0x019F: ("GETST", 1),
             0x1000: ("ADDK", 1),
@@ -188,8 +192,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 13456)
-        self.assertEqual(unclassified, 65536 - 13456)
+        self.assertEqual(matched, 13520)
+        self.assertEqual(unclassified, 65536 - 13520)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:

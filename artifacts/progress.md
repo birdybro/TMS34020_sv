@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `f6229ee81392e12a62ba707e145ad82901ee4a4e`
+- Latest verified commit before this ISA extraction: `0548710b5ef22e5d7269a4a74a5b7db7bcc63c32`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 88 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -11,13 +11,14 @@
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 52 currently extracted encoding forms have bounded
+- Model status: 52 of 54 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SETCDP/SETCMP/SETCSP plus bounded BLMOVE and successful TRAPL/VLCOL forms;
   fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
-  replay. The extracted ISA is far from complete; BLMOVE overlap,
+  replay. GETPC/EXGPC execution is not yet modeled. The extracted ISA is far
+  from complete; BLMOVE overlap,
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
   (`TMS20-0006`, `TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
@@ -51,7 +52,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 4,129 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 4,102 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
