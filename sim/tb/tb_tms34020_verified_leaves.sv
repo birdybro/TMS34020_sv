@@ -1157,6 +1157,39 @@ module tb_tms34020_verified_leaves;
         #1;
     endtask
 
+    task automatic commit_jump_instruction(
+        input logic [15:0] first_word,
+        input logic [31:0] expected_redirect_address,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {32'd0, first_word};
+        commit_packet_length = 3'd1;
+        commit_sequential_next_pc = 32'hDEAD_BEEF;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            !commit_register_write_enable &&
+            !commit_status_write_enable &&
+            commit_pc_redirect_enable &&
+            commit_pc_redirect_bit_address ==
+                expected_redirect_address,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
@@ -1861,6 +1894,13 @@ module tb_tms34020_verified_leaves;
             1'b1, 1'b1, 32'h0000_2090,
             1'b1, 32'h1234_5670,
             "PC execute EXGPC exchange and alignment"
+        );
+        check_pc_execute(
+            16'h017F, 3'd1, 32'h0000_2090,
+            32'h89AB_CDEF,
+            1'b1, 1'b0, 32'd0,
+            1'b1, 32'h89AB_CDE0,
+            "PC execute JUMP redirect and alignment"
         );
         check_pc_execute(
             16'h0121, 3'd2, 32'h0000_2090,
@@ -2839,13 +2879,6 @@ module tb_tms34020_verified_leaves;
             "register commit rejects decode-only PUSHST"
         );
         commit_register_instruction(
-            16'h0160, 1'b0,
-            1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'd1,
-            "register commit rejects decode-only JUMP"
-        );
-        commit_register_instruction(
             16'h0300, 1'b1,
             1'b0, 1'b0, 4'd0, 32'd0,
             1'b0, 32'd0, 32'd0,
@@ -3032,6 +3065,16 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'hCAFE_BAB0,
             32'h8000_0010, 32'h0000_4000,
             "register commit EXGPC shared SP"
+        );
+        commit_jump_instruction(
+            16'h0161, 32'h0000_2090,
+            32'h8000_0010, 32'h0000_4000,
+            "register commit JUMP reads A1 without state write"
+        );
+        commit_jump_instruction(
+            16'h017F, 32'h0000_4000,
+            32'h8000_0010, 32'h0000_4000,
+            "register commit JUMP reads shared SP without state write"
         );
         commit_register_instruction(
             16'h1820, 1'b1,

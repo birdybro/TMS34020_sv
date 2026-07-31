@@ -218,11 +218,14 @@ module tms34020_scalar_slice (
             commit_accepted_o |=> !commit_accepted_o;
     endproperty
 
-    property p_exgpc_commit_captures_aligned_redirect;
+    property p_pc_redirect_commit_is_supported_and_aligned;
         @(posedge clk_i) disable iff (reset_i)
             commit_pc_redirect_enable
             |-> commit_accepted_o &&
-                packet_opcode_id_o == TMS20_OP_EXGPC &&
+                (
+                    packet_opcode_id_o == TMS20_OP_EXGPC ||
+                    packet_opcode_id_o == TMS20_OP_JUMP
+                ) &&
                 commit_pc_redirect_bit_address[3:0] == 4'd0;
     endproperty
 
@@ -230,6 +233,15 @@ module tms34020_scalar_slice (
         @(posedge clk_i) disable iff (reset_i)
             completion_redirect_q
             |-> completion_redirect_bit_address_q[3:0] == 4'd0;
+    endproperty
+
+    property p_jump_commit_has_only_redirect;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            packet_opcode_id_o == TMS20_OP_JUMP
+            |-> !register_write_enable_o &&
+                !status_write_enable_o &&
+                commit_pc_redirect_enable;
     endproperty
 
     property p_shift_commit_has_atomic_register_and_status_writes;
@@ -347,8 +359,11 @@ module tms34020_scalar_slice (
     assert property (p_only_supported_packets_commit);
     assert property (p_blocked_packet_cannot_write);
     assert property (p_commit_is_single_pulse);
-    assert property (p_exgpc_commit_captures_aligned_redirect);
+    assert property (
+        p_pc_redirect_commit_is_supported_and_aligned
+    );
     assert property (p_pending_redirect_stays_aligned);
+    assert property (p_jump_commit_has_only_redirect);
     assert property (
         p_shift_commit_has_atomic_register_and_status_writes
     );

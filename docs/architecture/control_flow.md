@@ -97,18 +97,23 @@ that value with bits `[3:0]` cleared, leaves status and the source unchanged,
 and takes two machine states. Sources: User's Guide `JUMP`, printed p.13-141,
 and §4.2, printed p.4-4; compatibility cross-check: TMS34010 User's Guide
 printed p.12-98 and its instruction summary. The independent model implements
-this successful instruction boundary; RTL remains blocked pending a verified
-redirect owner.
+this successful instruction boundary. The bounded RTL direct-PC owner reads
+the old selected register, emits its aligned target without a register or
+status write, and holds that target through frontend completion. This is a
+functional serialized redirect boundary, not the documented two-state
+retirement timing.
 
 The bounded RTL implements this data-ordering boundary in
 `tms34020_pc_execute.sv`: the complete packet supplies its sequential address,
 while the commit composition reads the old destination and atomically writes
-the sequential address. For EXGPC, `tms34020_scalar_slice.sv` holds the aligned
-old-destination target until the packet-completion handshake redirects the
-frontend. Directed simulation reaches a GETPC at a nonsequential EXGPC target.
+the sequential address for EXGPC. For EXGPC and JUMP,
+`tms34020_scalar_slice.sv` holds the aligned target until the
+packet-completion handshake redirects the frontend. Directed simulation
+reaches GETPC at a nonsequential EXGPC target and then uses the sequential
+address captured in A0 as a JUMP target.
 This proves functional ordering in the serialized FPGA handshake only; it does
 not reproduce GETPC's documented one machine state, EXGPC's two machine states,
-or speculative pipeline overlap.
+JUMP's two machine states, or speculative pipeline overlap.
 
 ## Reset entry
 

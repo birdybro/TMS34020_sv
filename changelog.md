@@ -99,6 +99,10 @@
 - Independent JUMP model semantics reproducing all three TI target rows and
   covering both register files, shared SP, target alignment, complete source/ST
   preservation, next-PC traces, and the documented two-state count.
+- Synthesizable JUMP direct-PC ownership with A/B/shared-SP target reads,
+  low-nibble alignment, state-neutral commit, held frontend redirection, an
+  EXGPC-to-GETPC-to-JUMP scalar dependency test, and a redirect-only runtime
+  assertion. The documented two-state retirement remains unimplemented.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -208,11 +212,11 @@
   full-ISA or RTL redirect-timing claim.
 - Expanded the collision-free ISA slice to 75 entries covering 23,122 first
   words. JUMP A/B/shared-SP and adjacent GETPC/GETST boundaries pass; model
-  preimplementation rollback and current RTL execution/commit/scalar
-  nonredirect guards prevent an extracted opcode from mutating architectural
-  state before implementation.
+  preimplementation rollback guards were replaced by direct leaf, ordered
+  commit, and scalar redirect tests that require alignment and forbid
+  register/status writes.
   All four decoder-bearing Cyclone V analyses pass with zero errors/warnings at
-  8,537 leaf, 401 fetch, 769 frontend, and 5,126 scalar diagnostic logic cells;
+  8,547 leaf, 401 fetch, 769 frontend, and 5,157 scalar diagnostic logic cells;
   these are not fitted core-area or timing-closure results.
 - The 120-case independent model suite covers bounded successful semantics for
   all 74 currently extracted forms. POPST/PUSHST tests cover both alignment

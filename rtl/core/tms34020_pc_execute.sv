@@ -52,6 +52,13 @@ module tms34020_pc_execute (
                         destination_i & 32'hFFFF_FFF0;
                 end
 
+                TMS20_OP_JUMP: begin
+                    supported_o = 1'b1;
+                    redirect_enable_o = 1'b1;
+                    redirect_bit_address_o =
+                        destination_i & 32'hFFFF_FFF0;
+                end
+
                 default: begin
                     supported_o = 1'b0;
                 end

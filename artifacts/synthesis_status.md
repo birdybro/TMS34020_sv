@@ -9,12 +9,12 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 8,537 logic cells after synthesis, 2,048 registers,
+- Analysis resources: 8,547 logic cells after synthesis, 2,048 registers,
   127 pins, 0 block-memory bits, 0 DSP blocks, and 0 PLLs
 - Scope: generated 75-entry partial decoder, A/B/SP register file, masked ST state,
   instruction semantic leaves including pitch conversion, decoder-controlled
   register-execution and direct-PC intents, and externally gated state commit
-  for 61 register/status/direct-PC instructions, including PUTST,
+  for 62 register/status/direct-PC instructions, including JUMP and PUTST,
   SETF/EXGF/SEXT/ZEXT, ADDXY/SUBXY, BTST.K/R, LMO, and all eight scalar shift forms,
   and an observability-only synthesis wrapper
 - Utilization caveat: the diagnostic top deliberately instantiates both the raw
@@ -80,12 +80,12 @@
 
 - Command: `make quartus-scalar-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 5,126 logic cells, 1,414 registers, 82 pins, 4,096
+- Analysis resources: 5,157 logic cells, 1,414 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`
-- Scope: cache/fetch frontend, 61-operation register/direct-PC execution,
-  A/B/SP and ST state, held EXGPC completion redirect, bounded
+- Scope: cache/fetch frontend, 62-operation register/direct-PC execution,
+  A/B/SP and ST state, held EXGPC/JUMP completion redirects, bounded
   acceptance/completion, and observability wrapper
 - Fit/placement/routing and TimeQuest: not run; no timing-closure claim
 - Qualification claim: warning-free Analysis & Synthesis for only the bounded

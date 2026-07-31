@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 49 one-word, four
+asserted only when its declared length matches one of the 50 one-word, four
 two-word, or eight three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -16,9 +16,9 @@ reported as `commit_accepted_o`.
 
 Register and status event outputs expose the exact write that is presented to
 the state owners on that edge. Unsupported instructions assert neither event
-and cannot change architectural state. The EXGPC redirect output is likewise
-gated by the accepted commit. NOP is supported and accepted but produces no
-register, status, or redirect event.
+and cannot change architectural state. EXGPC and JUMP redirect outputs are
+likewise gated by the accepted commit. NOP is supported and accepted but
+produces no register, status, or redirect event.
 
 Supported operations are:
 
@@ -29,7 +29,7 @@ Supported operations are:
 - ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPK, BTST.K, BTST.R, LMO, and RMO;
 - AND, ANDN, OR, and XOR;
 - MOVE, MOVX, MOVY, RL.K, RL.R, SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R;
-- GETPC and EXGPC;
+- GETPC, EXGPC, and JUMP;
 - two-word ADDI.W, CMPI.W, MOVI.W, and SUBI.W; and
 - three-word ADDI.L, ADDXYI, ANDNI, CMPI.L, MOVI.L, ORI, SUBI.L, and XORI.
 
@@ -46,6 +46,8 @@ a speculative fetch cursor. GETPC writes that value to `Rd`. EXGPC reads the
 old `Rd`, writes the sequential address on the same state-commit edge, and
 emits the old value with bits `[3:0]` cleared as a redirect event. This module
 does not store PC; the execution composition owns application of that event.
+JUMP emits the selected old register or shared-SP value with bits `[3:0]`
+cleared, without a register or status write.
 
 `commit_i` is an integration contract, not a reconstructed TMS34020 pipeline
 signal. A future sequencer must assert it at the documented architectural
@@ -61,7 +63,7 @@ the general registers on reset; TI leaves them uninitialized. Source: TI
 
 ## Verification
 
-`make rtl-leaf-tests` executes sixty ordered state-commit sequences plus
+`make rtl-leaf-tests` executes ordered state-commit sequences plus
 direct combinational instruction checks. The suite verifies prior-state
 dependency, A/B selection, shared A15/B15 SP aliasing, partial ST masks,
 register-plus-status updates on one edge, nondestructive CMP/CMPI, every SUBK

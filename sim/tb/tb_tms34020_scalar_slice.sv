@@ -199,6 +199,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_05A0: memory_word = 16'hD701;
                 32'h0000_05B0: memory_word = 16'h01A0;
                 32'h2468_ACF0: memory_word = 16'h0154;
+                32'h2468_AD00: memory_word = 16'h0160;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -780,32 +781,6 @@ module tb_tms34020_scalar_slice;
         end
 
         apply_reset();
-        load_pc(32'hC0);
-        serve_word(32'hC0);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_JUMP &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "decode-only JUMP packet is blocked"
-        );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0 &&
-                packet_start_pc == 32'hC0,
-                "blocked JUMP packet cannot mutate or redirect state"
-            );
-        end
-
-        apply_reset();
         load_pc(32'h100);
         serve_immediate_and_commit(
             32'h100, TMS20_OP_ORI,
@@ -1093,12 +1068,19 @@ module tb_tms34020_scalar_slice;
             32'hD000_0010, 32'h1234_5678,
             "scalar EXGPC redirect reaches GETPC target"
         );
+        serve_and_commit(
+            32'h2468_AD00, TMS20_OP_JUMP,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'hD000_0010, 32'h1234_5678,
+            "scalar JUMP reads A0 and redirects without state write"
+        );
         check_condition(
-            commit_count == 20,
-            "twenty move, rotate, LMO, and direct-PC packet commits"
+            commit_count == 21,
+            "twenty-one move, rotate, LMO, and direct-PC packet commits"
         );
 
-        serve_word(32'h2468_AD00);
+        serve_word(32'h0000_0490);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -1115,10 +1097,10 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 20 &&
+                commit_count == 21 &&
                 status == 32'hD000_0010 &&
                 sp == 32'h1234_5678,
-                "blocked packet cannot mutate shift sequence"
+                "unclassified JUMP target cannot mutate shift sequence"
             );
         end
 

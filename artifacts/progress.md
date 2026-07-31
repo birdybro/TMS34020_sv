@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `cf10df31e63403a527aae777712bb059f4022a0c`
+- Latest verified baseline commit: `bec7b4efa8f700eb6a2763bd2a262f81ea55b38c`
 - Passing tests: foundation, reference/hash, delta, 26-case ISA sweep, 122 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -41,7 +41,7 @@
 - RTL status: generated 75-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
-  write intents for 49 one-word instructions, with externally gated one-edge
+  write intents for 50 one-word instructions, with externally gated one-edge
   state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
@@ -49,13 +49,15 @@
   preservation, plus all eight SLA/SLL/SRA/SRL forms with direct or
   two's-complement count recovery and instruction-specific status masks;
   standalone native-completion cache lookup/refill RTL;
-  a dedicated GETPC/EXGPC direct-PC leaf, an integrated serialized
+  a dedicated GETPC/EXGPC/JUMP direct-PC leaf, an integrated serialized
   cache/instruction-packet frontend with explicit completion and abort/reload;
-  and a bounded fetch-to-commit path for those 49
+  and a bounded fetch-to-commit path for those 50
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
   GETPC consumes the packet sequential PC, while EXGPC atomically writes that
-  address and redirects to the aligned old destination. MOVI.W
+  address and redirects to the aligned old destination. JUMP reads an
+  A/B/shared-SP target, clears bits `[3:0]`, and redirects through the held
+  completion path without a register or status write. MOVI.W
   sign-extends its extension word; both MOVI forms
   replace N/Z/V while preserving C.
   LMO uses a dedicated leading-priority leaf, Z-only masked update, same-file
@@ -78,9 +80,9 @@
   PUTST replaces all 32 ST bits from an A/B/shared-SP source without register
   writeback and passes a cache-fed dependency; its three-state architectural
   retirement is not implemented.
-  JUMP remains blocked and nonredirecting pending independent control-flow
-  execution; POPST and PUSHST remain blocked and noncommitting pending
-  memory-transaction ownership.
+  JUMP functional redirect semantics pass, but its documented two-state
+  retirement is not implemented; POPST and PUSHST remain blocked and
+  noncommitting pending memory-transaction ownership.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -92,13 +94,13 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, thirteen scalar, and two commit-owner
+- Formal status: four cache, four fetch, fourteen scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,537 logic cells and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 401, 769, and 5,126 logic cells;
+  warnings; the leaf wrapper uses 8,547 logic cells and 2,048 registers, while
+  the fetch, frontend, and scalar wrappers use 401, 769, and 5,157 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
