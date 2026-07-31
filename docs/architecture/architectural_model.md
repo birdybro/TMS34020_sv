@@ -20,16 +20,15 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGPC, GETPC, GETST, ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
+  SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 54 of the 62 currently extracted database forms. The
-newly decoded SLA/SLL/SRA/SRL constant/register forms deliberately raise
-`UnsupportedInstruction` and roll back the complete checkpoint until their
-semantics are independently implemented. Decoding them is not model support.
+These handlers cover all 62 currently extracted database forms. This is
+coverage of the current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -145,6 +144,16 @@ preserve N/V, and take one state. Shared SP and same-register operands use
 pre-write values. Sources: the same guide, printed pp.13-222..13-223 and
 timing-table p.15-8. The count-30 example's contradictory C digit is resolved
 in `docs/research/source_conflicts.md` RSC-0013.
+
+SLA/SLL take direct five-bit left-shift counts from either the object word or
+the low five bits of a same-file source register. SRA/SRL recover their
+right-shift count by taking the five-bit two's complement of that field or
+source value. All forms clear C at count zero and otherwise copy the last bit
+shifted out. SLL/SRL preserve N/V and replace C/Z; SRA preserves V and replaces
+N/C/Z; SLA replaces N/C/Z/V and takes three states. SLA overflow is set when
+the new sign or any shifted-out bit differs from the original sign. Shared SP
+and same-register source/destination cases use pre-write values. Sources: the
+same guide, printed pp.13-233..13-240 and timing table p.15-8.
 
 The two ADDI encoding forms add either a sign-extended 16-bit word or a full
 32-bit immediate and replace NCZV. The short form takes two documented states;
@@ -265,6 +274,10 @@ long alignment cases, A/B selection, and shared SP; all MOVE register rows,
 same/cross-file selection, shared SP, same-register operation, C preservation,
 and N/Z/V updates; all MOVX/MOVY example rows, half preservation, same-file
 selection, shared SP, and status preservation;
+every published SLA/SLL/SRA/SRL constant and register
+row, all 32 counts against an independent iterative SLA overflow oracle,
+direct versus two's-complement count decoding, partial status preservation,
+same-register count hazards, B-file selection, and shared SP;
 CMPK constants/flags; PSIZE get/exchange; RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
 pending states, all SETCDP/SETCMP/SETCSP primary conversion rows, implied
@@ -274,9 +287,8 @@ TRAPL primary vector examples, signed extremes, stack order, ST/PC changes,
 aligned/unaligned timing, and vector-target alignment,
 all BLMOVE S/D modes, alignment guards, zero/self/wrapping ranges, abstract
 transactions, overlap refusal, and final B0/B2/B7/ST state;
-IDLE claim boundaries, no mutation on unclassified instructions, rollback for
-all eight decoded-but-unsupported shift forms, and snapshot/replay
-equivalence.
+IDLE claim boundaries, no mutation on unclassified instructions, and
+snapshot/replay equivalence.
 
 The cache tests independently cover reset metadata, the Figure 5-2
 address partition, every demand-longword-last refill rotation, segment and

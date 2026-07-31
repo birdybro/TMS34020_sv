@@ -3,23 +3,23 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified commit before this ISA extension: `b1ac06cec47efeaf3750bd735035982135812711`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 91 directed model
+- Latest verified commit before this model extension: `ca116e89e774620192d49921306828b6228b0b71`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 100 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 54 of 62 currently extracted encoding forms have bounded
+- Model status: all 62 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
-  SETCDP/SETCMP/SETCSP plus bounded BLMOVE and successful TRAPL/VLCOL forms;
+  SLA/SLL/SRA/SRL constant/register forms, SETCDP/SETCMP/SETCSP, bounded
+  BLMOVE, and successful TRAPL/VLCOL forms;
   fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
   replay, including GETPC/EXGPC sequential-PC, redirect, alignment, A/B, and
-  shared-SP behavior. The eight newly extracted SLA/SLL/SRA/SRL forms remain
-  unimplemented. The extracted ISA is far from complete; BLMOVE overlap,
+  shared-SP behavior. The extracted ISA is far from complete; BLMOVE overlap,
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
   (`TMS20-0006`, `TMS20-0007`)
 - RTL status: generated 62-entry partial decode, A/B/SP and masked ST state,
@@ -68,5 +68,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: extract and independently fixture the next primary-source scalar
-  instruction family before extending the model or RTL
+- Next task: implement and independently verify the eight extracted scalar
+  shift forms in the bounded RTL path

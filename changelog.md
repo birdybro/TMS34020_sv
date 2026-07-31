@@ -387,6 +387,14 @@
   smoke boundary warning-free. Quartus reports 6,932 leaf, 375 fetch, 748
   frontend, and 4,167 scalar logic cells; these remain Analysis & Synthesis
   diagnostics, not timing or area qualification.
+- Implemented independent architectural-model semantics for all eight
+  SLA/SLL/SRA/SRL forms. The 100-test model suite checks every published TI
+  example row, direct and five-bit two's-complement counts, arithmetic versus
+  zero fill, count-zero carry, partial status preservation, B-file/shared-SP
+  selection, and same-register pre-write hazards. All 32 SLA counts across
+  representative bit patterns also match a separate iterative overflow oracle.
+  All 62 currently extracted forms now have bounded successful model semantics;
+  this is not a complete-ISA or cycle-accuracy claim.
 
 ### Documentation
 

@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1775,24 +1774,304 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_extracted_shift_forms_are_explicitly_unsupported(self) -> None:
-        for opcode in (
-            0x2000,
-            0x6000,
-            0x2400,
-            0x6200,
-            0x2800,
-            0x6400,
-            0x2C00,
-            0x6600,
-        ):
-            with self.subTest(opcode=f"{opcode:04X}"):
+    def test_sla_constant_primary_examples(self) -> None:
+        cases = (
+            (0, 0x3333_3333, 0x3333_3333, 0b0000),
+            (0, 0xCCCC_CCCC, 0xCCCC_CCCC, 0b1000),
+            (1, 0xCCCC_CCCC, 0x9999_9998, 0b1100),
+            (2, 0x3333_3333, 0xCCCC_CCCC, 0b1001),
+            (2, 0xCCCC_CCCC, 0x3333_3330, 0b0101),
+            (3, 0xCCCC_CCCC, 0x6666_6660, 0b0001),
+            (5, 0xCCCC_CCCC, 0x9999_9980, 0b1101),
+            (30, 0xCCCC_CCCC, 0x0000_0000, 0b0111),
+            (31, 0xCCCC_CCCC, 0x0000_0000, 0b0011),
+            (31, 0x0000_0000, 0x0000_0000, 0b0010),
+        )
+        for count, before, expected, expected_nczv in cases:
+            with self.subTest(count=count, before=f"{before:08X}"):
                 model = Tms34020Model()
-                model.load_program([opcode], bit_address=0x80)
-                before = model.snapshot()
-                with self.assertRaises(UnsupportedInstruction):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
+                model.load_program([0x2001 | (count << 5)])
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0xF020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SLA.K")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(
+                    model.state.st & 0x0FFF_FFFF, 0x0020_0010
+                )
+                self.assertEqual(event.machine_states, 3)
+
+    def test_sla_register_primary_examples(self) -> None:
+        cases = (
+            (0, 0x3333_3333, 0x3333_3333, 0b0000),
+            (0, 0xCCCC_CCCC, 0xCCCC_CCCC, 0b1000),
+            (1, 0xCCCC_CCCC, 0x9999_9998, 0b1100),
+            (2, 0x3333_3333, 0xCCCC_CCCC, 0b1001),
+            (2, 0xCCCC_CCCC, 0x3333_3330, 0b0101),
+            (3, 0xCCCC_CCCC, 0x6666_6660, 0b0001),
+            (5, 0xCCCC_CCCC, 0x9999_9980, 0b1101),
+            (30, 0xCCCC_CCCC, 0x0000_0000, 0b0111),
+            (31, 0xCCCC_CCCC, 0x0000_0000, 0b0011),
+            (31, 0x0000_0000, 0x0000_0000, 0b0010),
+        )
+        for count_source, before, expected, expected_nczv in cases:
+            with self.subTest(
+                count=count_source, before=f"{before:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x6001])
+                model.state.write_reg("A", 0, count_source)
+                model.state.write_reg("A", 1, before)
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SLA.R")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 3)
+
+    def test_sla_all_counts_match_iterative_overflow_oracle(self) -> None:
+        values = (
+            0x0000_0000,
+            0xFFFF_FFFF,
+            0x0000_0001,
+            0x8000_0000,
+            0x4000_0000,
+            0x7FFF_FFFF,
+            0xAAAA_AAAA,
+            0x5555_5555,
+            0x3333_3333,
+            0xCCCC_CCCC,
+            0x0123_4567,
+            0x89AB_CDEF,
+        )
+        model = Tms34020Model()
+        for count in range(32):
+            for value in values:
+                with self.subTest(count=count, value=f"{value:08X}"):
+                    expected = value
+                    original_sign = bool(value & 0x8000_0000)
+                    expected_carry = False
+                    expected_overflow = False
+                    for _ in range(count):
+                        expected_carry = bool(expected & 0x8000_0000)
+                        expected = (expected << 1) & 0xFFFF_FFFF
+                        expected_overflow |= (
+                            expected_carry != original_sign
+                            or bool(expected & 0x8000_0000)
+                            != original_sign
+                        )
+
+                    model.state.st = 0
+                    model.state.write_reg("A", 1, value)
+                    states = model._execute_shift(
+                        "A",
+                        1,
+                        count,
+                        left=True,
+                        arithmetic=True,
+                    )
+                    self.assertEqual(model.state.read_reg("A", 1), expected)
+                    self.assertEqual(
+                        bool(model.state.st & (1 << 31)),
+                        bool(expected & 0x8000_0000),
+                    )
+                    self.assertEqual(
+                        bool(model.state.st & (1 << 30)),
+                        expected_carry,
+                    )
+                    self.assertEqual(
+                        bool(model.state.st & (1 << 29)),
+                        expected == 0,
+                    )
+                    self.assertEqual(
+                        bool(model.state.st & (1 << 28)),
+                        expected_overflow,
+                    )
+                    self.assertEqual(states, 3)
+
+    def test_sll_constant_primary_examples_preserve_n_and_v(self) -> None:
+        cases = (
+            (0, 0x0000_0000, 0x0000_0000, 0b1011),
+            (0, 0x8888_8888, 0x8888_8888, 0b1001),
+            (1, 0x8888_8888, 0x1111_1110, 0b1101),
+            (4, 0x8888_8888, 0x8888_8880, 0b1001),
+            (30, 0xFFFF_FFFC, 0x0000_0000, 0b1111),
+            (31, 0xFFFF_FFFC, 0x0000_0000, 0b1011),
+        )
+        for count, before, expected, expected_nczv in cases:
+            with self.subTest(count=count, before=f"{before:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x2401 | (count << 5)])
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0x9020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SLL.K")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_sll_register_primary_examples_use_low_five_bits(self) -> None:
+        cases = (
+            (0xFFFF_FFE0, 0x0000_0000, 0x0000_0000, 0b1011),
+            (0, 0x8888_8888, 0x8888_8888, 0b1001),
+            (1, 0x8888_8888, 0x1111_1110, 0b1101),
+            (4, 0x8888_8888, 0x8888_8880, 0b1001),
+            (30, 0xFFFF_FFFC, 0x0000_0000, 0b1111),
+            (31, 0xFFFF_FFFC, 0x0000_0000, 0b1011),
+        )
+        for count_source, before, expected, expected_nczv in cases:
+            with self.subTest(count_source=f"{count_source:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x6201])
+                model.state.write_reg("A", 0, count_source)
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0x9020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SLL.R")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_sra_constant_primary_examples_use_twos_complement_field(
+        self,
+    ) -> None:
+        cases = (
+            (0, 0x0000_0000, 0x0000_0000, 0b0011),
+            (0, 0xFFFF_0000, 0xFFFF_0000, 0b1001),
+            (8, 0x7FFF_0000, 0x007F_FF00, 0b0001),
+            (8, 0xFFFF_0000, 0xFFFF_FF00, 0b1001),
+            (30, 0x7FFF_0000, 0x0000_0001, 0b0101),
+            (31, 0x7FFF_0000, 0x0000_0000, 0b0111),
+            (31, 0xFFFF_0000, 0xFFFF_FFFF, 0b1101),
+        )
+        for count, before, expected, expected_nczv in cases:
+            with self.subTest(count=count, before=f"{before:08X}"):
+                encoded_count = (-count) & 0x1F
+                model = Tms34020Model()
+                model.load_program([0x2801 | (encoded_count << 5)])
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0x1020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SRA.K")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_sra_register_primary_examples_decode_negated_low_five_bits(
+        self,
+    ) -> None:
+        cases = (
+            (0, 0x0000_0000, 0x0000_0000, 0b0011),
+            (0, 0xFFFF_0000, 0xFFFF_0000, 0b1001),
+            (31, 0x7FFF_0000, 0x3FFF_8000, 0b0001),
+            (31, 0xFFFF_0000, 0xFFFF_8000, 0b1001),
+            (24, 0x7FFF_0000, 0x007F_FF00, 0b0001),
+            (24, 0xFFFF_0000, 0xFFFF_FF00, 0b1001),
+            (2, 0x7FFF_0000, 0x0000_0001, 0b0101),
+            (1, 0x7FFF_0000, 0x0000_0000, 0b0111),
+            (1, 0xFFFF_0000, 0xFFFF_FFFF, 0b1101),
+        )
+        for encoded_count, before, expected, expected_nczv in cases:
+            with self.subTest(
+                encoded_count=encoded_count, before=f"{before:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x6401])
+                model.state.write_reg("A", 0, encoded_count)
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0x1020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SRA.R")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_srl_constant_primary_examples_preserve_n_and_v(self) -> None:
+        cases = (
+            (0, 0x0000_0000, 0x0000_0000, 0b1011),
+            (0, 0x7FFF_FFFF, 0x7FFF_FFFF, 0b1001),
+            (1, 0x7FFF_FFFF, 0x3FFF_FFFF, 0b1101),
+            (8, 0x7FFF_0000, 0x007F_FF00, 0b1001),
+            (30, 0x7FFF_0000, 0x0000_0001, 0b1101),
+            (31, 0x7FFF_0000, 0x0000_0000, 0b1111),
+            (31, 0x3FFF_0000, 0x0000_0000, 0b1011),
+        )
+        for count, before, expected, expected_nczv in cases:
+            with self.subTest(count=count, before=f"{before:08X}"):
+                encoded_count = (-count) & 0x1F
+                model = Tms34020Model()
+                model.load_program([0x2C01 | (encoded_count << 5)])
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0x9020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SRL.K")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_srl_register_primary_examples_decode_negated_low_five_bits(
+        self,
+    ) -> None:
+        cases = (
+            (0, 0x0000_0000, 0x0000_0000, 0b1011),
+            (0, 0x7FFF_FFFF, 0x7FFF_FFFF, 0b1001),
+            (31, 0x7FFF_FFFF, 0x3FFF_FFFF, 0b1101),
+            (24, 0x7FFF_0000, 0x007F_FF00, 0b1001),
+            (2, 0x7FFF_0000, 0x0000_0001, 0b1101),
+            (1, 0x7FFF_0000, 0x0000_0000, 0b1111),
+            (1, 0x3FFF_0000, 0x0000_0000, 0b1011),
+        )
+        for encoded_count, before, expected, expected_nczv in cases:
+            with self.subTest(
+                encoded_count=encoded_count, before=f"{before:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x6601])
+                model.state.write_reg("A", 0, encoded_count)
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0x9020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SRL.R")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_shift_forms_b_file_shared_sp_and_same_register_hazards(
+        self,
+    ) -> None:
+        model = Tms34020Model()
+        model.load_program([0x6273, 0x65F2, 0x283F])
+        model.state.write_reg("B", 3, 4)
+        model.state.sp = 31
+        model.state.write_reg("B", 2, 0x8000_0001)
+
+        same_register = model.step()
+        self.assertEqual(same_register.mnemonic, "SLL.R")
+        self.assertEqual(model.state.read_reg("B", 3), 0x0000_0040)
+
+        shared_sp_source = model.step()
+        self.assertEqual(shared_sp_source.mnemonic, "SRA.R")
+        self.assertEqual(model.state.read_reg("B", 2), 0xC000_0000)
+
+        shared_sp_destination = model.step()
+        self.assertEqual(shared_sp_destination.mnemonic, "SRA.K")
+        self.assertEqual(model.state.sp, 0)
 
     def test_snapshot_json_round_trip_and_deterministic_replay(self) -> None:
         original = Tms34020Model(ProcessorState.randomized(17))

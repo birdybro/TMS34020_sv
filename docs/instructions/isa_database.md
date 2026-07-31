@@ -134,8 +134,9 @@ complement of a register source's low five bits at execution. All four define
 count zero as no data shift with C cleared. SLA alone takes three machine
 states and replaces N/C/Z/V with overflow detection; SLL and SRL replace only
 C/Z, while SRA replaces N/C/Z. Sources: printed pp.13-233..13-240 and timing
-table p.15-8. These records are decode metadata only until independent model
-and RTL execution are added.
+table p.15-8. The independent model executes all eight forms and checks every
+published example row plus all 32 SLA counts against an iterative overflow
+oracle. RTL execution remains a separate unimplemented boundary.
 
 The RL form names distinguish the embedded five-bit count (`RL.K`) from the
 same-file register count (`RL.R`); TI uses `RL` for both. Each form rotates Rd

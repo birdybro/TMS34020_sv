@@ -104,6 +104,14 @@ class Tms34020Model:
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
             "RL.R": self._execute_rl_register,
+            "SLA.K": self._execute_sla_constant,
+            "SLA.R": self._execute_sla_register,
+            "SLL.K": self._execute_sll_constant,
+            "SLL.R": self._execute_sll_register,
+            "SRA.K": self._execute_sra_constant,
+            "SRA.R": self._execute_sra_register,
+            "SRL.K": self._execute_srl_constant,
+            "SRL.R": self._execute_srl_register,
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
@@ -656,6 +664,155 @@ class Tms34020Model:
         count = self.state.read_reg(register_file, source_index) & 0x1F
         return self._execute_rotate_left(
             register_file, destination_index, count
+        )
+
+    def _execute_shift(
+        self,
+        register_file: str,
+        destination_index: int,
+        count: int,
+        *,
+        left: bool,
+        arithmetic: bool,
+    ) -> int:
+        count &= 0x1F
+        destination = self.state.read_reg(register_file, destination_index)
+
+        if count == 0:
+            result = destination
+            carry = False
+        elif left:
+            result = (destination << count) & MASK32
+            carry = bool((destination >> (32 - count)) & 1)
+        elif arithmetic and destination & 0x8000_0000:
+            signed_destination = destination - (1 << 32)
+            result = (signed_destination >> count) & MASK32
+            carry = bool((destination >> (count - 1)) & 1)
+        else:
+            result = destination >> count
+            carry = bool((destination >> (count - 1)) & 1)
+
+        self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(C_BIT, carry)
+        self._set_status_bit(Z_BIT, result == 0)
+
+        if arithmetic:
+            self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        if arithmetic and left:
+            if count == 0:
+                overflow = False
+            else:
+                sign_window_width = count + 1
+                sign_window = destination >> (32 - sign_window_width)
+                sign_window_mask = (1 << sign_window_width) - 1
+                if destination & 0x8000_0000:
+                    overflow = sign_window != sign_window_mask
+                else:
+                    overflow = sign_window != 0
+            self._set_status_bit(V_BIT, overflow)
+
+        return 3 if arithmetic and left else 1
+
+    def _execute_shift_constant(
+        self,
+        words: list[int],
+        *,
+        left: bool,
+        arithmetic: bool,
+    ) -> int:
+        register_file, destination_index = self._decode_destination(words[0])
+        encoded_count = (words[0] >> 5) & 0x1F
+        count = encoded_count if left else (-encoded_count) & 0x1F
+        return self._execute_shift(
+            register_file,
+            destination_index,
+            count,
+            left=left,
+            arithmetic=arithmetic,
+        )
+
+    def _execute_shift_register(
+        self,
+        words: list[int],
+        *,
+        left: bool,
+        arithmetic: bool,
+    ) -> int:
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        encoded_count = self.state.read_reg(register_file, source_index) & 0x1F
+        count = encoded_count if left else (-encoded_count) & 0x1F
+        return self._execute_shift(
+            register_file,
+            destination_index,
+            count,
+            left=left,
+            arithmetic=arithmetic,
+        )
+
+    def _execute_sla_constant(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_shift_constant(
+            words, left=True, arithmetic=True
+        )
+
+    def _execute_sla_register(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_shift_register(
+            words, left=True, arithmetic=True
+        )
+
+    def _execute_sll_constant(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_shift_constant(
+            words, left=True, arithmetic=False
+        )
+
+    def _execute_sll_register(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_shift_register(
+            words, left=True, arithmetic=False
+        )
+
+    def _execute_sra_constant(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_shift_constant(
+            words, left=False, arithmetic=True
+        )
+
+    def _execute_sra_register(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_shift_register(
+            words, left=False, arithmetic=True
+        )
+
+    def _execute_srl_constant(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_shift_constant(
+            words, left=False, arithmetic=False
+        )
+
+    def _execute_srl_register(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_shift_register(
+            words, left=False, arithmetic=False
         )
 
     def _execute_setc(
