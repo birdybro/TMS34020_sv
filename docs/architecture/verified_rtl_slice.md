@@ -9,6 +9,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | Module | Implemented behavior | Primary source |
 |---|---|---|
 | `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 38 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
 | `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit for the 23 one-word instructions supported by `tms34020_register_execute`; unsupported words cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for `tms34020_register_execute` |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
@@ -96,6 +97,15 @@ returned word against an independent address-derived memory function and
 records a failing seed under ignored `build/` for replay. This is protocol
 stress, not differential silicon evidence or architectural cycle validation.
 
+`make fetch-tests` separately verifies the serialized instruction-packet
+assembler. It checks aligned PC load and redirect, one-word and three-word
+packets, extension order, per-word cache classifications, request and packet
+backpressure, explicit completion gating, unclassified-word isolation,
+cache-abort discard/reload, and 32-bit PC wrap. Four runtime assertions cover
+request stability, packet stability, alignment, and post-abort packet safety.
+This handshake regression does not establish machine-state timing or pipeline
+overlap.
+
 `make quartus-leaf-smoke` runs warning-free Quartus Analysis & Synthesis for
 the leaf qualification wrapper on Cyclone V device `5CSEBA6U23I7`. The wrapper
 keeps both register-file read ports, arithmetic flags, decoder outputs, PSIZE
@@ -114,12 +124,18 @@ block-memory bits; the diagnostic top uses 375 logic cells and 200 registers.
 This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
+`make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
+packet assembler and generated decoder. Its observability wrapper uses 343
+logic cells and 174 registers. This is not fit, routing, TimeQuest, a complete
+frontend, or a core-area/timing result.
+
 ## Explicitly absent
 
-There is no RTL PC owner, opcode-to-execution fetch composition, execution
-sequencer, retirement boundary derived from processor state, interrupt logic,
-complete memory access, page mode, complete bus-fault/retry subsystem, host
-interface, multiprocessor interface, coprocessor interface, display subsystem,
+There is a serialized RTL instruction-start/fetch cursor, but no integrated
+cache/frontend top, opcode-to-execution composition, timing sequencer,
+retirement boundary derived from processor state, interrupt logic, complete
+memory access, page mode, complete bus-fault/retry subsystem, host interface,
+multiprocessor interface, coprocessor interface, display subsystem,
 original-pin bus, or game wrapper. The standalone cache leaf has transaction
 completion outcomes, but no pin-level decoder, fault registers, interrupt
 entry/return, or dynamic-width/page-mode memory controller.

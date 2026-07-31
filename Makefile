@@ -5,10 +5,10 @@ QUARTUS_SH ?= quartus_sh
 
 .DEFAULT_GOAL := help
 
-.PHONY: help doctor foundation lint reference-tests delta-tests isa-tests model-tests rtl-leaf-tests decode-tests instruction-tests
+.PHONY: help doctor foundation lint reference-tests delta-tests isa-tests model-tests rtl-leaf-tests fetch-tests decode-tests instruction-tests
 .PHONY: compatibility-tests cache-tests memory-tests graphics-tests video-tests
 .PHONY: host-tests fault-tests coprocessor-tests bus-tests differential fuzz
-.PHONY: formal synth-yosys synth-quartus quartus-leaf-smoke quartus-cache-smoke battletoads-tests revx-tests test clean
+.PHONY: formal synth-yosys synth-quartus quartus-leaf-smoke quartus-cache-smoke quartus-fetch-smoke battletoads-tests revx-tests test clean
 
 help:
 	@$(PYTHON) scripts/run_suite.py --list
@@ -36,6 +36,9 @@ model-tests:
 
 rtl-leaf-tests:
 	@$(PYTHON) scripts/run_suite.py rtl-leaf
+
+fetch-tests:
+	@$(PYTHON) scripts/run_suite.py fetch
 
 decode-tests:
 	@$(PYTHON) scripts/run_suite.py decode
@@ -91,13 +94,16 @@ quartus-leaf-smoke:
 quartus-cache-smoke:
 	@$(PYTHON) scripts/run_suite.py quartus-cache-smoke
 
+quartus-fetch-smoke:
+	@$(PYTHON) scripts/run_suite.py quartus-fetch-smoke
+
 battletoads-tests:
 	@$(PYTHON) scripts/run_suite.py battletoads
 
 revx-tests:
 	@$(PYTHON) scripts/run_suite.py revx
 
-test: foundation lint reference-tests delta-tests isa-tests model-tests rtl-leaf-tests cache-tests fault-tests decode-tests
+test: foundation lint reference-tests delta-tests isa-tests model-tests rtl-leaf-tests fetch-tests cache-tests fault-tests decode-tests
 	@printf '%s\n' 'PASS: implemented regression suites'
 
 clean:

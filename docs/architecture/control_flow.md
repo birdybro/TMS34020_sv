@@ -134,7 +134,7 @@ The project uses these unambiguous names for the first executable composition:
 | `packet_valid` | Opcode and all known extension words are buffered | No; handshake mechanism |
 | `retire` | State change accepted at the currently bounded completion point | No general timing claim until per-instruction tests exist |
 
-Initial RTL may fetch one instruction packet at a time to establish correctness
-and backpressure behavior. It must disclose that this serialization does not
-reproduce the documented fetch/execute overlap and therefore cannot support a
-cycle-accuracy claim.
+The initial RTL fetches one instruction packet at a time to establish
+correctness and backpressure behavior. This serialization does not reproduce
+the documented fetch/execute overlap and therefore cannot support a
+cycle-accuracy claim. See `instruction_fetch.md`.

@@ -74,6 +74,11 @@
 - A deterministic randomized cache-native testbench and three-seed runner with
   address-derived data checking, randomized backpressure/latency/completions,
   explicit coverage counters, replayable plusargs, and ignored failure logs.
+- A synthesizable serialized instruction-packet fetch block with aligned
+  PC-load/redirect, one-to-five-word cache assembly, per-word cache metadata,
+  invalid-word isolation, explicit completion gating, and abort-to-reload.
+- Self-checking Verilator and warning-enforcing Cyclone V synthesis commands
+  for the bounded instruction-fetch slice.
 
 ### Changed
 
@@ -162,6 +167,10 @@
 - Three deterministic randomized seeds pass 396 fetches and 1,226 accepted
   native requests, including 36 retries, 83 faults, and 43 aborts, without
   weakening the warning or assertion gates.
+- The bounded packet fetch passes directed NOP/ORI/unclassified/abort/wrap and
+  backpressure tests plus four runtime assertions; Quartus synthesizes the
+  diagnostic wrapper to 343 logic cells and 174 registers with zero
+  errors/warnings.
 
 ### Documentation
 
@@ -205,6 +214,9 @@
   serialization, hidden-write, and chapter 15 timing-assumption contracts.
 - Defined a bounded instruction-packet/fetch-cursor vocabulary separately from
   undocumented physical pipeline stages and from TMS34020 machine-state timing.
+- Documented the implemented packet-fetch signals, state progression,
+  assertions, test evidence, synthesis boundary, and explicit lack of
+  fetch/execute overlap or cycle qualification.
 
 ### Integration
 
@@ -213,11 +225,11 @@
 ### Known Issues
 
 - The architectural model and RTL cover only a small verified slice; modeled
-  instruction fetch uses an untimed native cache transaction boundary,
-  externally gated state commit does not form an executable RTL core, and the
-  standalone cache RTL has only a bounded internal completion protocol. There
-  is no RTL fetch/PC/timed-retirement composition, pin-level completion decoder,
-  CPU fault controller, pipeline, or subsystem integration.
+  instruction fetch uses an untimed native cache transaction boundary, the
+  serialized RTL packet fetch is not connected to the standalone cache or
+  externally gated state commit, and no composition forms an executable core.
+  There is no timed retirement, pin-level completion decoder, CPU fault
+  controller, overlapped pipeline, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

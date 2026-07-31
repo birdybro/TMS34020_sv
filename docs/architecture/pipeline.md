@@ -58,7 +58,7 @@ transaction. Neither currently proves the ordering between those blocks.
 
 ## Portable implementation decomposition
 
-The initial portable implementation will use explicit handshake boundaries:
+The initial portable implementation uses explicit handshake boundaries:
 
 ```text
 reset/vector or completed redirect
@@ -83,14 +83,16 @@ reset/vector or completed redirect
 ```
 
 This is an RTL decomposition chosen for verification. It is not asserted to be
-the physical TMS34020 stage topology. The first packet assembler may serialize
-instructions and therefore will not yet implement the zero-overhead cache-hit
-overlap. Later timing work may add buffering or overlap only when tests preserve
-the same packet, redirect, fault, and commit invariants.
+the physical TMS34020 stage topology. `tms34020_instruction_fetch` now
+serializes one instruction packet and waits for explicit completion, so it does
+not implement the zero-overhead cache-hit overlap. Later timing work may add
+buffering or overlap only when tests preserve the same packet, redirect, fault,
+and commit invariants. Its signal contract is documented in
+`instruction_fetch.md`.
 
 ## Initial instruction-packet contract
 
-The first executable fetch boundary must:
+The first executable fetch boundary currently:
 
 - accept only a 16-bit-aligned bit-address PC;
 - request the opcode word through `tms34020_icache`;

@@ -1,7 +1,8 @@
 # Synthesis status
 
-- Portable RTL: verified execution/register leaves plus bounded native-completion
-  instruction-cache leaf; no processor top exists
+- Portable RTL: verified execution/register leaves, serialized instruction
+  packet fetch, and bounded native-completion instruction-cache leaf; no
+  processor top exists
 - Yosys: not installed in the local environment
 - Quartus: Prime Lite 17.0.2 Build 602 at
   `/home/aberu/intelFPGA_lite/17.0/quartus/bin/quartus_sh`
@@ -42,3 +43,19 @@
   timing-closure result
 - Qualification claim: warning-free Cyclone V Analysis & Synthesis and RAM
   inference for only the named bounded cache slice
+
+## Bounded instruction-fetch smoke
+
+- Command: `make quartus-fetch-smoke`
+- Result: Analysis & Synthesis successful, 0 errors, 0 warnings
+- Analysis resources: 343 logic cells, 174 registers, 74 pins, 0 block-memory
+  bits, 0 DSP blocks, and 0 PLLs
+- Scope: generated partial decoder, aligned instruction-start cursor,
+  one-to-five-word packet storage, per-word cache classifications, decoupled
+  cache/packet/completion handshakes, sequential/redirect selection, abort
+  discard/reload, and an observability-only wrapper
+- Fit/placement/routing: not run
+- TimeQuest/setup/hold: not run; the 20 ns SDC is an analysis boundary, not a
+  timing-closure result
+- Qualification claim: warning-free Cyclone V Analysis & Synthesis for only the
+  named serialized fetch slice
