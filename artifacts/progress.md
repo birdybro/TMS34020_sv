@@ -3,25 +3,26 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified commit before this RTL extension: `79ea7fda16d057b81a23a0fdc182311c5a3ac33f`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 90 directed model
+- Latest verified commit before this ISA extension: `b1ac06cec47efeaf3750bd735035982135812711`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 91 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 54 currently extracted encoding forms have bounded
+- Model status: 54 of 62 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SETCDP/SETCMP/SETCSP plus bounded BLMOVE and successful TRAPL/VLCOL forms;
   fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
   replay, including GETPC/EXGPC sequential-PC, redirect, alignment, A/B, and
-  shared-SP behavior. The extracted ISA is far from complete; BLMOVE overlap,
+  shared-SP behavior. The eight newly extracted SLA/SLL/SRA/SRL forms remain
+  unimplemented. The extracted ISA is far from complete; BLMOVE overlap,
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
   (`TMS20-0006`, `TMS20-0007`)
-- RTL status: generated partial decode, A/B/SP and masked ST state,
+- RTL status: generated 62-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 31 one-word instructions, with externally gated one-edge
@@ -36,8 +37,9 @@
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
   GETPC consumes the packet sequential PC, while EXGPC atomically writes that
-  address and redirects to the aligned old destination. All other unsupported
-  packets block. MOVI.W sign-extends its extension word; both MOVI forms
+  address and redirects to the aligned old destination. The eight shift forms
+  now decode but remain blocked with all other unsupported packets. MOVI.W
+  sign-extends its extension word; both MOVI forms
   replace N/Z/V while preserving C.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
@@ -55,7 +57,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 4,145 logic cells, 1,386 registers, and
+  warnings; the scalar wrapper uses 4,167 logic cells, 1,386 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored

@@ -375,6 +375,18 @@
   Cyclone V Analysis & Synthesis reports 6,933 leaf logic cells and
   4,145 scalar-composition logic cells; these are diagnostic wrapper metrics,
   not fit, TimeQuest, or core-area results.
+- Extracted primary SLA/SLL/SRA/SRL constant and same-file register forms from
+  TI printed pp.13-233..13-240, including direct left-count encodings,
+  two's-complement right-count encodings, status masks, and the three-state SLA
+  versus one-state logical/right-shift distinction. The 62-record database now
+  covers 19,664 first words without collisions; independent Python boundaries
+  and SystemVerilog decode fixtures pass. A model guard verifies that all eight
+  decoded-but-unsupported forms roll back without state change; execution
+  support is explicitly deferred.
+- Regenerated the partial RTL decoder and requalified every decoder-bearing
+  smoke boundary warning-free. Quartus reports 6,932 leaf, 375 fetch, 748
+  frontend, and 4,167 scalar logic cells; these remain Analysis & Synthesis
+  diagnostics, not timing or area qualification.
 
 ### Documentation
 

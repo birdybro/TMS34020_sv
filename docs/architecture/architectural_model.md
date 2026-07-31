@@ -26,6 +26,11 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
+These handlers cover 54 of the 62 currently extracted database forms. The
+newly decoded SLA/SLL/SRA/SRL constant/register forms deliberately raise
+`UnsupportedInstruction` and roll back the complete checkpoint until their
+semantics are independently implemented. Decoding them is not model support.
+
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
 4-2..4-3.
@@ -269,8 +274,9 @@ TRAPL primary vector examples, signed extremes, stack order, ST/PC changes,
 aligned/unaligned timing, and vector-target alignment,
 all BLMOVE S/D modes, alignment guards, zero/self/wrapping ranges, abstract
 transactions, overlap refusal, and final B0/B2/B7/ST state;
-IDLE claim boundaries, no mutation on unclassified
-instructions, and snapshot/replay equivalence.
+IDLE claim boundaries, no mutation on unclassified instructions, rollback for
+all eight decoded-but-unsupported shift forms, and snapshot/replay
+equivalence.
 
 The cache tests independently cover reset metadata, the Figure 5-2
 address partition, every demand-longword-last refill rotation, segment and

@@ -2171,6 +2171,22 @@ module tb_tms34020_verified_leaves;
                      "MOVE lower-bound decode");
         check_decode(16'h4FFF, TMS20_OP_MOVE, 3'd1,
                      "MOVE upper-bound decode");
+        check_decode(16'h23FF, TMS20_OP_SLA_K, 3'd1,
+                     "SLA.K masked decode");
+        check_decode(16'h61FF, TMS20_OP_SLA_R, 3'd1,
+                     "SLA.R masked decode");
+        check_decode(16'h27FF, TMS20_OP_SLL_K, 3'd1,
+                     "SLL.K masked decode");
+        check_decode(16'h63FF, TMS20_OP_SLL_R, 3'd1,
+                     "SLL.R masked decode");
+        check_decode(16'h2BFF, TMS20_OP_SRA_K, 3'd1,
+                     "SRA.K masked decode");
+        check_decode(16'h65FF, TMS20_OP_SRA_R, 3'd1,
+                     "SRA.R masked decode");
+        check_decode(16'h2FFF, TMS20_OP_SRL_K, 3'd1,
+                     "SRL.K masked decode");
+        check_decode(16'h67FF, TMS20_OP_SRL_R, 3'd1,
+                     "SRL.R masked decode");
         check_decode(16'hEC00, TMS20_OP_MOVX, 3'd1,
                      "MOVX lower-bound decode");
         check_decode(16'hEDFF, TMS20_OP_MOVX, 3'd1,

@@ -109,6 +109,22 @@ class IsaTests(unittest.TestCase):
             0x33FF: ("RL.K", 1),
             0x6800: ("RL.R", 1),
             0x69FF: ("RL.R", 1),
+            0x2000: ("SLA.K", 1),
+            0x23FF: ("SLA.K", 1),
+            0x6000: ("SLA.R", 1),
+            0x61FF: ("SLA.R", 1),
+            0x2400: ("SLL.K", 1),
+            0x27FF: ("SLL.K", 1),
+            0x6200: ("SLL.R", 1),
+            0x63FF: ("SLL.R", 1),
+            0x2800: ("SRA.K", 1),
+            0x2BFF: ("SRA.K", 1),
+            0x6400: ("SRA.R", 1),
+            0x65FF: ("SRA.R", 1),
+            0x2C00: ("SRL.K", 1),
+            0x2FFF: ("SRL.K", 1),
+            0x6600: ("SRL.R", 1),
+            0x67FF: ("SRL.R", 1),
             0xEC00: ("MOVX", 1),
             0xEDFF: ("MOVX", 1),
             0xEE00: ("MOVY", 1),
@@ -183,18 +199,72 @@ class IsaTests(unittest.TestCase):
         for word in (0x0041, 0x0081, 0x017F, 0x01A0, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
-                     0x0FFF, 0x1C00, 0x2FFF, 0x3800,
+                     0x0FFF, 0x1C00, 0x3800,
                      0x0AFF, 0x0C20, 0x3FFF, 0x4A00,
-                     0x5800, 0x67FF, 0x6A00,
+                     0x5800, 0x6A00,
                      0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 13520)
-        self.assertEqual(unclassified, 65536 - 13520)
+        self.assertEqual(matched, 19664)
+        self.assertEqual(unclassified, 65536 - 19664)
         self.assertGreater(unclassified, 0)
+
+    def test_shift_forms_record_direct_and_twos_complement_counts(self) -> None:
+        direct_constant = self.database.decode(0x20E1)
+        direct_register = self.database.decode(0x60E1)
+        right_constant = self.database.decode(0x2FE1)
+        right_register = self.database.decode(0x64E1)
+
+        self.assertEqual(direct_constant.mnemonic, "SLA.K")
+        self.assertEqual(direct_register.mnemonic, "SLA.R")
+        self.assertEqual(
+            direct_constant.metadata["immediate_fields"][0][
+                "object_encoding"
+            ],
+            "direct_count_modulo_32",
+        )
+        self.assertIn(
+            "direct left-shift count",
+            direct_register.metadata["operand_fields"][0]["encoding"],
+        )
+
+        self.assertEqual(right_constant.mnemonic, "SRL.K")
+        self.assertEqual(right_register.mnemonic, "SRA.R")
+        self.assertEqual(
+            right_constant.metadata["immediate_fields"][0][
+                "object_encoding"
+            ],
+            "negative_count_modulo_32",
+        )
+        self.assertIn(
+            "two's complement",
+            right_register.metadata["operand_fields"][0]["encoding"],
+        )
+
+        expected_cycles = {
+            "SLA.K": 3,
+            "SLA.R": 3,
+            "SLL.K": 1,
+            "SLL.R": 1,
+            "SRA.K": 1,
+            "SRA.R": 1,
+            "SRL.K": 1,
+            "SRL.R": 1,
+        }
+        for mnemonic, machine_states in expected_cycles.items():
+            instruction = next(
+                entry
+                for entry in self.database.instructions
+                if entry.mnemonic == mnemonic
+            )
+            with self.subTest(mnemonic=mnemonic):
+                self.assertEqual(
+                    instruction.metadata["documented_cycles"],
+                    {"kind": "fixed", "machine_states": machine_states},
+                )
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
         trapl = self.database.decode(0x080F)

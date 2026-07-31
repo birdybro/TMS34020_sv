@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1773,6 +1774,25 @@ class ExecutionTests(unittest.TestCase):
         with self.assertRaises(UnclassifiedEncoding):
             model.step()
         self.assertEqual(model.snapshot(), before)
+
+    def test_extracted_shift_forms_are_explicitly_unsupported(self) -> None:
+        for opcode in (
+            0x2000,
+            0x6000,
+            0x2400,
+            0x6200,
+            0x2800,
+            0x6400,
+            0x2C00,
+            0x6600,
+        ):
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=0x80)
+                before = model.snapshot()
+                with self.assertRaises(UnsupportedInstruction):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
 
     def test_snapshot_json_round_trip_and_deterministic_replay(self) -> None:
         original = Tms34020Model(ProcessorState.randomized(17))

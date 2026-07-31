@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 54 page-verified encoding records and covers 13,520 of 65,536
+slice contains 62 page-verified encoding records and covers 19,664 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -30,6 +30,14 @@ first words without collisions:
 | MOVE | `4C00h`, mask `FC00h` | 1 | p.13-158 |
 | RL.K / RL constant | `3000h`, mask `FC00h` | 1 | p.13-222 |
 | RL.R / RL register | `6800h`, mask `FE00h` | 1 | p.13-223 |
+| SLA.K / SLA constant | `2000h`, mask `FC00h` | 1 | p.13-233 |
+| SLA.R / SLA register | `6000h`, mask `FE00h` | 1 | p.13-234 |
+| SLL.K / SLL constant | `2400h`, mask `FC00h` | 1 | p.13-235 |
+| SLL.R / SLL register | `6200h`, mask `FE00h` | 1 | p.13-236 |
+| SRA.K / SRA constant | `2800h`, mask `FC00h` | 1 | p.13-237 |
+| SRA.R / SRA register | `6400h`, mask `FE00h` | 1 | p.13-238 |
+| SRL.K / SRL constant | `2C00h`, mask `FC00h` | 1 | p.13-239 |
+| SRL.R / SRL register | `6600h`, mask `FE00h` | 1 | p.13-240 |
 | MOVX | `EC00h`, mask `FE00h` | 1 | p.13-170 |
 | MOVY | `EE00h`, mask `FE00h` | 1 | p.13-171 |
 | SETC | `0DE0h` | 1 | p.13-226 |
@@ -118,6 +126,16 @@ M=0 keeps the destination in that file, while M=1 selects the opposite file.
 It is the sole MOVE form that crosses A/B files, copies all 32 bits, derives N/Z
 from that value, preserves C, clears V, and takes one state. Source: printed
 p.13-158.
+
+The eight SLA/SLL/SRA/SRL records distinguish constant and same-register-file
+source-count forms. SLA and SLL encode left-shift counts directly. SRA and SRL
+encode a constant count as its five-bit two's complement and take the two's
+complement of a register source's low five bits at execution. All four define
+count zero as no data shift with C cleared. SLA alone takes three machine
+states and replaces N/C/Z/V with overflow detection; SLL and SRL replace only
+C/Z, while SRA replaces N/C/Z. Sources: printed pp.13-233..13-240 and timing
+table p.15-8. These records are decode metadata only until independent model
+and RTL execution are added.
 
 The RL form names distinguish the embedded five-bit count (`RL.K`) from the
 same-file register count (`RL.R`); TI uses `RL` for both. Each form rotates Rd

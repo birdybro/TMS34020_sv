@@ -51,15 +51,23 @@ typedef enum logic [5:0] {
     TMS20_OP_OR = 6'd43,
     TMS20_OP_RL_R = 6'd44,
     TMS20_OP_RMO = 6'd45,
-    TMS20_OP_SUB = 6'd46,
-    TMS20_OP_SUBB = 6'd47,
-    TMS20_OP_XOR = 6'd48,
-    TMS20_OP_ADDK = 6'd49,
-    TMS20_OP_CMPK = 6'd50,
-    TMS20_OP_MOVE = 6'd51,
-    TMS20_OP_MOVK = 6'd52,
-    TMS20_OP_RL_K = 6'd53,
-    TMS20_OP_SUBK = 6'd54
+    TMS20_OP_SLA_R = 6'd46,
+    TMS20_OP_SLL_R = 6'd47,
+    TMS20_OP_SRA_R = 6'd48,
+    TMS20_OP_SRL_R = 6'd49,
+    TMS20_OP_SUB = 6'd50,
+    TMS20_OP_SUBB = 6'd51,
+    TMS20_OP_XOR = 6'd52,
+    TMS20_OP_ADDK = 6'd53,
+    TMS20_OP_CMPK = 6'd54,
+    TMS20_OP_MOVE = 6'd55,
+    TMS20_OP_MOVK = 6'd56,
+    TMS20_OP_RL_K = 6'd57,
+    TMS20_OP_SLA_K = 6'd58,
+    TMS20_OP_SLL_K = 6'd59,
+    TMS20_OP_SRA_K = 6'd60,
+    TMS20_OP_SRL_K = 6'd61,
+    TMS20_OP_SUBK = 6'd62
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -257,6 +265,22 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_RMO;
                 decoded.length_words = 3'd1;
             end
+            16'b0110000?????????: begin
+                decoded.opcode_id = TMS20_OP_SLA_R;
+                decoded.length_words = 3'd1;
+            end
+            16'b0110001?????????: begin
+                decoded.opcode_id = TMS20_OP_SLL_R;
+                decoded.length_words = 3'd1;
+            end
+            16'b0110010?????????: begin
+                decoded.opcode_id = TMS20_OP_SRA_R;
+                decoded.length_words = 3'd1;
+            end
+            16'b0110011?????????: begin
+                decoded.opcode_id = TMS20_OP_SRL_R;
+                decoded.length_words = 3'd1;
+            end
             16'b0100010?????????: begin
                 decoded.opcode_id = TMS20_OP_SUB;
                 decoded.length_words = 3'd1;
@@ -287,6 +311,22 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b001100??????????: begin
                 decoded.opcode_id = TMS20_OP_RL_K;
+                decoded.length_words = 3'd1;
+            end
+            16'b001000??????????: begin
+                decoded.opcode_id = TMS20_OP_SLA_K;
+                decoded.length_words = 3'd1;
+            end
+            16'b001001??????????: begin
+                decoded.opcode_id = TMS20_OP_SLL_K;
+                decoded.length_words = 3'd1;
+            end
+            16'b001010??????????: begin
+                decoded.opcode_id = TMS20_OP_SRA_K;
+                decoded.length_words = 3'd1;
+            end
+            16'b001011??????????: begin
+                decoded.opcode_id = TMS20_OP_SRL_K;
                 decoded.length_words = 3'd1;
             end
             16'b000101??????????: begin
