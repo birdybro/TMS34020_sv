@@ -124,9 +124,11 @@ publishes different timing, so no TMS34010 timing machine is reused.
 Only the exact 16 long first words are classified at this checkpoint. The
 remaining `CcodeXXh` space is deliberately unclassified until the short
 eight-bit `JRcc` form can be represented while reserving `XX=00h` for the long
-form and `XX=80h` for `JAcc`. The independent model therefore rolls a decoded
-long packet back as unsupported, and bounded RTL fetch/commit tests require it
-to remain nonmutating until execution is implemented.
+form and `XX=80h` for `JAcc`. The independent model executes all 16 long
+conditions, preserves ST/registers, applies signed displacement extremes and
+PC wrap, and reports the documented two-/three-state instruction-boundary
+cases. Bounded RTL fetch/commit tests still require the packet to remain
+nonmutating until an execution owner is implemented.
 
 DSJ, DSJEQ, and DSJNE each consume a signed 16-bit **word** displacement in
 their second word. When the instruction's decrement condition is true, the

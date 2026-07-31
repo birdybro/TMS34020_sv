@@ -153,8 +153,11 @@ same object format and visible behavior but materially different timing.
 The current generated decoder classifies only the exact 16 long-form first
 words (`C?00h`). Short `JRcc` and `JAcc` share the surrounding `CcodeXXh`
 region, so they remain unclassified pending an explicit exclusion-capable
-decode representation. Model rollback and bounded RTL noncommit guards prove
-that extraction alone cannot advance or mutate architectural state.
+decode representation. The independent model implements all 16 long-form
+conditions, both possible outcomes, signed displacement extremes, PC wrap,
+complete ST/register preservation, and two-/three-state instruction-boundary
+counts. Bounded RTL noncommit guards still prove that decode alone cannot
+advance or mutate architectural state.
 
 ## Decrement-and-jump instructions
 

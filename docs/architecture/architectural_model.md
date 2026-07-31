@@ -19,7 +19,7 @@ Implemented:
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
-  EXGPC, GETPC, GETST, JUMP, POPST, PUSHST, PUTST,
+  EXGPC, GETPC, GETST, JR.L, JUMP, POPST, PUSHST, PUTST,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -31,10 +31,16 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 79 of the 80 currently extracted database forms. The
-newly decoded long JRcc form has an exact rollback test and remains
-non-executable until its independent condition handler is added. This is
+These handlers cover all 80 currently extracted database forms. This is
 coverage of a current partial extraction, not instruction completeness.
+
+JR.L tests cover all 16 condition codes, a taken case for every code and a
+false case for every conditional code, signed `+1`, `+32767`, `-32768`, and
+PC-wrapping displacements, exact instruction words/next PC, complete
+ST/register preservation, cache-only transaction classes, and the documented
+two-/three-state boundary cases. Sources: TI *TMS34020 User's Guide*, August
+1990, condition table printed pp.13-27 and 13-138, instruction reference
+printed pp.13-139..13-140, and timing table p.15-5.
 
 DSJ/DSJEQ/DSJNE tests reproduce all 15 published example rows, both condition
 outcomes, decrement-to-zero suppression, zero-to-`FFFFFFFFh` wrap, signed

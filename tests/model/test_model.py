@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1926,14 +1925,99 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_decoded_jr_long_without_handler_rolls_back(self) -> None:
-        model = Tms34020Model()
-        model.load_program([0xC000, 0x0002], bit_address=0x80)
-        model.state.st = 0xB5A3_4A95
-        before = model.snapshot()
-        with self.assertRaises(UnsupportedInstruction):
-            model.step()
-        self.assertEqual(model.snapshot(), before)
+    def test_jr_long_all_condition_outcomes_status_and_cycles(self) -> None:
+        fixtures = {
+            0x0: (0x0, None),
+            0x1: (0x0, 0x8),
+            0x2: (0x4, 0x0),
+            0x3: (0x0, 0x4),
+            0x4: (0x8, 0x0),
+            0x5: (0x0, 0x8),
+            0x6: (0x8, 0x0),
+            0x7: (0x0, 0x2),
+            0x8: (0x4, 0x0),
+            0x9: (0x0, 0x4),
+            0xA: (0x2, 0x0),
+            0xB: (0x0, 0x2),
+            0xC: (0x1, 0x0),
+            0xD: (0x0, 0x1),
+            0xE: (0x8, 0x0),
+            0xF: (0x0, 0x8),
+        }
+        for condition_code, (taken_nczv, false_nczv) in fixtures.items():
+            outcomes = [(taken_nczv, True)]
+            if false_nczv is not None:
+                outcomes.append((false_nczv, False))
+            for nczv, expected_taken in outcomes:
+                with self.subTest(
+                    condition_code=f"{condition_code:X}",
+                    nczv=f"{nczv:X}",
+                    expected_taken=expected_taken,
+                ):
+                    model = Tms34020Model()
+                    opcode = 0xC000 | (condition_code << 8)
+                    model.load_program(
+                        [opcode, 0x0002],
+                        bit_address=0x80,
+                    )
+                    original_status = (
+                        (nczv << 28) | 0x05A3_4A95
+                    )
+                    model.state.st = original_status
+
+                    event = model.step()
+
+                    self.assertEqual(
+                        model.state.pc,
+                        0xC0 if expected_taken else 0xA0,
+                    )
+                    self.assertEqual(
+                        event.machine_states,
+                        3 if expected_taken else 2,
+                    )
+                    self.assertEqual(model.state.st, original_status)
+                    self.assertEqual(event.status_before, original_status)
+                    self.assertEqual(event.status_after, original_status)
+                    self.assertEqual(event.register_writes, [])
+                    self.assertEqual(
+                        event.instruction_words,
+                        [opcode, 0x0002],
+                    )
+                    self.assertEqual(event.next_pc, model.state.pc)
+                    self.assertTrue(
+                        all(
+                            transaction["class"]
+                            in ("instruction_cache_lookup", "cache_fill")
+                            for transaction in event.transactions
+                        )
+                    )
+
+    def test_jr_long_signed_displacement_extremes_and_pc_wrap(self) -> None:
+        fixtures = (
+            (0x0001, 0x0000_0080, 0x0000_00B0),
+            (0x7FFF, 0xFFFF_0100, 0x0007_0110),
+            (0x8000, 0x0007_FF00, 0xFFFF_FF20),
+            (0x0020, 0xFFFF_FF00, 0x0000_0120),
+            (0xFFE0, 0x0000_0100, 0xFFFF_FF20),
+        )
+        for displacement, start_pc, expected_pc in fixtures:
+            with self.subTest(
+                displacement=f"{displacement:04X}",
+                start_pc=f"{start_pc:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program(
+                    [0xC000, displacement],
+                    bit_address=start_pc,
+                )
+                model.state.st = 0xF5A3_4A95
+
+                event = model.step()
+
+                self.assertEqual(model.state.pc, expected_pc)
+                self.assertEqual(model.state.st, 0xF5A3_4A95)
+                self.assertEqual(event.machine_states, 3)
+                self.assertEqual(event.register_writes, [])
 
     def test_dsjs_all_primary_rows_status_and_cycles(self) -> None:
         for before, after, jump_taken in (

@@ -3,17 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `596fe46a80bd6da85fecf340adc0b1b8a672b2c3`
-- Passing tests: foundation, reference/hash, delta, 29-case ISA sweep, 130 directed model
+- Latest verified baseline commit: `aa0a1e8254446c17d0439cad65cb946bc309adcf`
+- Passing tests: foundation, reference/hash, delta, 29-case ISA sweep, 131 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 79 of 80 currently extracted encoding forms have bounded
-  successful semantics. The newly decoded long JRcc packet rolls back exactly
-  until its independent condition implementation lands. DSJS covers every published row, direction/magnitude
+- Model status: all 80 currently extracted encoding forms have bounded
+  successful semantics. Long JRcc covers all 16 conditions, every possible
+  false outcome, signed extremes, PC wrap, exact trace fields, complete state
+  preservation, and two-/three-state cases. DSJS covers every published row, direction/magnitude
   endpoints, instruction-range endpoints, PC wrap, A/B/shared-SP, exact writes,
   ST preservation, and two-/three-state cases. DSJ, DSJEQ, and DSJNE reproduce
   all published rows,

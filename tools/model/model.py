@@ -99,6 +99,7 @@ class Tms34020Model:
             "EXGPC": self._execute_exgpc,
             "GETPC": self._execute_getpc,
             "GETST": self._execute_getst,
+            "JR.L": self._execute_jr_long,
             "JUMP": self._execute_jump,
             "POPST": self._execute_popst,
             "PUSHST": self._execute_pushst,
@@ -510,6 +511,62 @@ class Tms34020Model:
         target = self.state.read_reg(register_file, index)
         self.state.pc = target & 0xFFFF_FFF0
         return 2
+
+    @staticmethod
+    def _condition_true(condition_code: int, status: int) -> bool:
+        n = bool(status & (1 << N_BIT))
+        c = bool(status & (1 << C_BIT))
+        z = bool(status & (1 << Z_BIT))
+        v = bool(status & (1 << V_BIT))
+        if condition_code == 0x0:
+            return True
+        if condition_code == 0x1:
+            return not n and not z
+        if condition_code == 0x2:
+            return c or z
+        if condition_code == 0x3:
+            return not c and not z
+        if condition_code == 0x4:
+            return n != v
+        if condition_code == 0x5:
+            return n == v
+        if condition_code == 0x6:
+            return n != v or z
+        if condition_code == 0x7:
+            return n == v and not z
+        if condition_code == 0x8:
+            return c
+        if condition_code == 0x9:
+            return not c
+        if condition_code == 0xA:
+            return z
+        if condition_code == 0xB:
+            return not z
+        if condition_code == 0xC:
+            return v
+        if condition_code == 0xD:
+            return not v
+        if condition_code == 0xE:
+            return n
+        if condition_code == 0xF:
+            return not n
+        raise ValueError("condition code must be four bits")
+
+    def _execute_jr_long(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        condition_code = (words[0] >> 8) & 0xF
+        if not self._condition_true(condition_code, self.state.st):
+            return 2
+
+        displacement = words[1]
+        if displacement & 0x8000:
+            displacement -= 0x1_0000
+        self.state.pc = (
+            self.state.pc + displacement * 16
+        ) & MASK32
+        return 3
 
     def _execute_dsj_family(
         self, instruction: Instruction, words: list[int]

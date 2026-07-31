@@ -123,6 +123,10 @@
   directions, zero/max magnitudes, instruction-range endpoints, PC wrap,
   A/B/shared-SP selection, exact write traces, complete status preservation,
   and documented two-/three-state cases.
+- Independent long-JR model execution covering all 16 condition predicates,
+  every possible false outcome, signed displacement extremes, forward/backward
+  PC wrap, exact instruction/next-PC trace fields, complete ST/register
+  preservation, and documented two-/three-state cases.
 - Synthesizable DSJS direct-PC execution with unconditional modulo-`2^32`
   destination decrement, status preservation, nonzero-result redirect,
   independent direction and unsigned-magnitude handling, held frontend target,
@@ -240,6 +244,11 @@
 
 ### Verified
 
+- The 131-case independent model suite now has bounded successful semantics for
+  all 80 currently extracted forms. JR.L tests independently cover every
+  condition outcome and signed target boundary without weakening the RTL
+  noncommit guard. This is not coverage of short JRcc, JAcc, the unextracted
+  ISA, or RTL retirement timing.
 - Expanded the collision-free ISA slice to 80 entries covering 25,282 first
   words. The 29-case ISA suite checks all long-JR conditions and neighboring
   exclusions across the complete 65,536-word sweep; the 130-case model suite

@@ -82,8 +82,9 @@ operation but publishes alignment-dependent 34010 timing that is materially
 different; it is compatibility evidence, not a reusable timing schedule.
 Sources: TMS34020 User's Guide printed pp.13-138..13-140 and timing table
 p.15-5; TMS34010 User's Guide printed pp.12-96..12-97. The independent model
-and bounded RTL deliberately reject the newly decoded packet at this extraction
-checkpoint, so neither currently claims these state counts.
+reports these two-/three-state instruction-boundary cases for all 16 condition
+codes. Bounded RTL still rejects the decoded packet, so it makes no retirement
+timing claim.
 
 DSJ, DSJEQ, and DSJNE each take two machine states when no jump occurs and
 three when the decremented register remains nonzero and the relative redirect
