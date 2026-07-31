@@ -6,8 +6,8 @@ This document records the architectural cache contract established directly
 from the August 1990 *TMS34020 User's Guide* (`SPVU019 /
 2564006-9721`). A transaction-level independent model implements the bounded
 contract in `tools/model/cache.py` and supplies instruction words to the
-architectural model. A separate synthesizable successful-read subset exists in
-`rtl/cache/tms34020_icache.sv`. Neither implementation is evidence that
+architectural model. A separate synthesizable native-completion subset exists
+in `rtl/cache/tms34020_icache.sv`. Neither implementation is evidence that
 pipeline or local-bus timing is complete.
 
 The organization, address partition, replacement policy, ordinary hit/miss
@@ -257,12 +257,14 @@ decoupled native read interface. It implements:
 
 - aligned 16-bit PC-word lookup and a classified hit, segment-miss,
   subsegment-miss, or bypass response;
-- four ordered 32-bit successful-read refill requests, with the requested
+- four ordered 32-bit refill requests, with the requested
   long word last and explicit cache-fill/sequence qualifiers;
-- direct 16-bit successful-read requests while `CD` or `CF` bypasses the
+- direct 16-bit requests while `CD` or `CF` bypasses the
   cache; the native adapter supplies that word in response data `[15:0]`;
 - stable request fields until accepted and stable instruction response fields
   until accepted;
+- absence of a native response as transaction-level wait, plus explicit
+  success, current-beat retry, and fault pause/resume/abort dispositions;
 - reset, segment allocation, present-bit commit only after the fourth response,
   move-to-front LRU, `CD` metadata preservation, and `CF` empty-cache state;
 - a private deterministic tag-valid abstraction for reset; and
@@ -280,17 +282,20 @@ present-bit commit. `make quartus-cache-smoke` checks warning-free Cyclone V
 Analysis & Synthesis and block-memory inference. These tests do not cover the
 remaining required cache matrix below.
 
-The first RTL slice deliberately has no native completion-status input. Every
-accepted memory response therefore means a successful transfer. It does not
-yet implement wait/retry/fault disposition, abort after a saved fault,
-interrupt recognition, dynamic 16-bit refill decomposition, page-mode
-phasing, pin timing, or architectural machine-state counts. `CF` asserted
-during an already active refill is also outside the verified interface
-contract; the current leaf only verifies flush on request acceptance while
-idle. These exclusions prevent a full cache or cycle-accuracy claim.
+The completion enum is an internal transaction protocol, not a pin encoding.
+Retry reissues only the current native request. Fault freezes that request
+until an external controller resumes it or aborts it; abort emits a
+cancellation pulse and cannot expose partial refill data. The leaf does not
+implement CPU fault registers, interrupt entry/return, dynamic 16-bit refill
+decomposition, page-mode phasing, pin timing, or architectural machine-state
+counts. `CF` asserted during an already active refill is also outside the
+verified interface contract; the current leaf only verifies flush on request
+acceptance while idle. These exclusions prevent a full cache or
+cycle-accuracy claim. The signal-level contract is recorded in
+`docs/memory/cache_native_interface.md`.
 
-The eventual cache/memory-controller composition must additionally make these
-events explicit:
+The eventual cache/memory-controller composition must preserve these events
+and extend them with physical-bus scheduling:
 
 - aligned 16-bit PC-word lookup request and response;
 - hit, subsegment miss, and segment miss classification;
@@ -353,11 +358,10 @@ The following prevent honest cache RTL completion:
    compares equal after reset while all of that segment's `P` flags are clear?
 6. What exact cache-fill and disabled-fetch local-bus status encodings and
    phase waveforms apply?
-
 7. What is the defined processor response if `CF` becomes asserted while an
    instruction refill or disabled-cache fetch is already active?
 
 These questions are tracked under `OQ-0009` and dependent cache, pipeline,
 memory, page-mode, and fault tasks. Until they are resolved and tested, the
-cache remains a partial transaction-level model and a bounded successful-read
+cache remains a partial transaction-level model and a bounded native-completion
 RTL leaf, not a complete architectural or cycle-timed cache implementation.

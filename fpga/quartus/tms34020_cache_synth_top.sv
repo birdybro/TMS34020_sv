@@ -12,6 +12,10 @@ module tms34020_cache_synth_top (
     input  logic        memory_request_ready_i,
     input  logic        memory_response_valid_i,
     input  logic [31:0] memory_response_data_i,
+    input  tms34020_pkg::tms34020_memory_completion_t
+                        memory_response_completion_i,
+    input  logic        fault_resume_i,
+    input  logic        fault_abort_i,
     output logic [31:0] result_digest_o
 );
 
@@ -25,6 +29,8 @@ module tms34020_cache_synth_top (
     logic memory_request_cache_fill;
     logic [1:0] memory_request_sequence_index;
     logic memory_response_ready;
+    logic faulted;
+    logic request_aborted;
     logic [31:0] present_debug;
     logic [7:0] lru_debug;
     logic [3:0] tag_valid_debug;
@@ -34,7 +40,7 @@ module tms34020_cache_synth_top (
         present_debug ^
         {16'd0, response_word} ^
         {
-            10'd0,
+            8'd0,
             request_ready,
             response_valid,
             response_result,
@@ -43,6 +49,8 @@ module tms34020_cache_synth_top (
             memory_request_cache_fill,
             memory_request_sequence_index,
             memory_response_ready,
+            faulted,
+            request_aborted,
             lru_debug,
             tag_valid_debug
         };
@@ -70,6 +78,11 @@ module tms34020_cache_synth_top (
         .memory_response_valid_i(memory_response_valid_i),
         .memory_response_ready_o(memory_response_ready),
         .memory_response_data_i(memory_response_data_i),
+        .memory_response_completion_i(memory_response_completion_i),
+        .faulted_o(faulted),
+        .fault_resume_i(fault_resume_i),
+        .fault_abort_i(fault_abort_i),
+        .request_aborted_o(request_aborted),
         .present_debug_o(present_debug),
         .lru_debug_o(lru_debug),
         .tag_valid_debug_o(tag_valid_debug)

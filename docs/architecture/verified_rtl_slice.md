@@ -21,7 +21,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/execute/tms34020_unary.sv` | ABS, NEG, NEGB, and NOT results plus instruction-specific N/C/Z/V values and write masks | TI *TMS34020 User's Guide*, August 1990, printed pp.13-32 and 13-178..13-181 |
 | `rtl/graphics/tms34020_pixel_size_ops.sv` | GETPS zero-extension and EXGPS register/16-bit PSIZE-write data paths; no I/O timing or write-queue implementation | TI *TMS34020 User's Guide*, August 1990, EXGPS, printed p.13-113; GETPS, printed p.13-131 |
 | `rtl/graphics/tms34020_pixel_replicate.sv` | RPIX replication and documented machine-state counts for PSIZE 1, 2, 4, 8, 16, and 32 | TI *TMS34020 User's Guide*, August 1990, RPIX, printed p.13-225; §12.6, printed p.12-17 |
-| `rtl/cache/tms34020_icache.sv` | Bounded successful-read cache leaf: four segments, 32 subsegments, 128×32 data RAM, lookup classifications, demand-long-word-last refill, move-to-front LRU, reset abstraction, `CD` bypass, `CF` flush while idle, and decoupled backpressure | TI *TMS34020 User's Guide*, August 1990, §§5.1–5.3.6, printed pp.5-2..5-8; reset §6.12.2, printed p.6-23 |
+| `rtl/cache/tms34020_icache.sv` | Bounded native-completion cache leaf: four segments, 32 subsegments, 128×32 data RAM, lookup classifications, demand-long-word-last refill, move-to-front LRU, reset abstraction, `CD` bypass, idle `CF`, backpressure, current-beat retry, and fault pause/resume/abort | TI *TMS34020 User's Guide*, August 1990, §§5.1–5.3.6, printed pp.5-2..5-8; fault/retry §§6.9 and 8.6, printed pp.6-19..6-20 and 8-12..8-14; reset §6.12.2, printed p.6-23 |
 
 The generated include `rtl/generated/tms34020_isa_decode.svh` is derived from
 `docs/generated/tms34020_isa.yaml` by
@@ -75,13 +75,19 @@ The testbench must emit `PASS: tms34020 verified leaf RTL`; simulator exit
 status alone is not accepted.
 
 `make cache-tests` separately builds the cache leaf with Verilator and requires
-`PASS: tms34020 bounded instruction-cache RTL`. It checks reset metadata,
+`PASS: tms34020 cache native completion RTL`. It checks reset metadata,
 segment/subsegment miss refill, all four demand-word refill rotations,
 low/high half hits, no early present-bit commit, four-segment LRU
 allocation/touch/replacement, `CD` preservation, an idle `CF` flush/bypass,
-and stable request/response payloads under backpressure. The test supplies
-successful native reads only. Fault/retry, interrupt, `SIZE16`, page mode,
-reset or flush during refill, and cycle timing remain unverified.
+and stable request/response payloads under backpressure. It also checks retry
+and fault resume at all four refill sequence indices, bypass retry/fault,
+fault abort after a prior successful beat, full refill restart, bypass abort,
+reset in the request and response-wait states of every refill index, and no
+early present commit. Four enabled SystemVerilog assertions check stalled
+payloads, retry/fault present safety, and fault-state quiescence in simulation;
+they are not formal proofs. Other abort/control combinations, the CPU fault
+controller/interrupt, `SIZE16`, page mode, reset in other cache states, flush
+during refill, and cycle timing remain unverified.
 
 `make quartus-leaf-smoke` runs warning-free Quartus Analysis & Synthesis for
 the leaf qualification wrapper on Cyclone V device `5CSEBA6U23I7`. The wrapper
@@ -97,7 +103,7 @@ full-core qualification.
 
 `make quartus-cache-smoke` independently runs warning-free Analysis &
 Synthesis for the cache leaf. Quartus infers the 128×32 data array as 4,096
-block-memory bits; the diagnostic top uses 361 logic cells and 198 registers.
+block-memory bits; the diagnostic top uses 375 logic cells and 200 registers.
 This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
@@ -105,11 +111,11 @@ result.
 
 There is no RTL PC owner, opcode-to-execution fetch composition, execution
 sequencer, retirement boundary derived from processor state, interrupt logic,
-complete memory access, page mode, bus-fault/retry, host interface,
+complete memory access, page mode, complete bus-fault/retry subsystem, host interface,
 multiprocessor interface, coprocessor interface, display subsystem,
-original-pin bus, or game wrapper. The standalone cache leaf has a native
-successful-read request/response port, but no completion codes or pin-level
-memory controller.
+original-pin bus, or game wrapper. The standalone cache leaf has transaction
+completion outcomes, but no pin-level decoder, fault registers, interrupt
+entry/return, or dynamic-width/page-mode memory controller.
 The register-execution module emits combinational write *intents*. The bounded
 commit composition can apply those intents to its private register/ST state,
 but only when an external controller asserts `commit_i`; it does not fetch,

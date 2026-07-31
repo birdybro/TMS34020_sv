@@ -1,6 +1,6 @@
 # Synthesis status
 
-- Portable RTL: verified execution/register leaves plus bounded successful-read
+- Portable RTL: verified execution/register leaves plus bounded native-completion
   instruction-cache leaf; no processor top exists
 - Yosys: not installed in the local environment
 - Quartus: Prime Lite 17.0.2 Build 602 at
@@ -30,13 +30,13 @@
 
 - Command: `make quartus-cache-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 361 logic cells, 198 registers, 104 pins, 4,096
+- Analysis resources: 375 logic cells, 200 registers, 108 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: one 128×32 simple dual-port `altsyncram`; the portable RTL
   contains no vendor primitive
-- Scope: successful-read lookup/refill/bypass controller, four tags, 32 present
-  bits, four-entry LRU, 128-long-word data array, decoupled handshakes, and
-  observability-only wrapper
+- Scope: lookup/refill/bypass controller, native success/retry/fault outcomes,
+  fault pause/resume/abort, four tags, 32 present bits, four-entry LRU,
+  128-long-word data array, decoupled handshakes, and observability-only wrapper
 - Fit/placement/routing: not run
 - TimeQuest/setup/hold: not run; the 20 ns SDC is an analysis boundary, not a
   timing-closure result

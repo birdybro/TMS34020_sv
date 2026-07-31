@@ -29,7 +29,7 @@ SUITES = {
     "graphics": ("NOT_IMPLEMENTED", "TMS20-0024"),
     "video": ("NOT_IMPLEMENTED", "TMS20-0027"),
     "host": ("NOT_IMPLEMENTED", "TMS20-0020"),
-    "fault": ("NOT_IMPLEMENTED", "TMS20-0017"),
+    "fault": ("IMPLEMENTED", "TMS20-0017 bounded cache completion slice"),
     "coprocessor": ("NOT_IMPLEMENTED", "TMS20-0021"),
     "bus": ("NOT_IMPLEMENTED", "TMS20-0030"),
     "differential": ("NOT_IMPLEMENTED", "TMS20-0031"),
@@ -185,6 +185,11 @@ def cache() -> None:
     print("PASS: bounded cache RTL regression slice")
 
 
+def fault() -> None:
+    run([sys.executable, "scripts/run_cache_rtl_tests.py"])
+    print("PASS: bounded cache retry/fault RTL regression slice")
+
+
 def quartus_leaf_smoke() -> None:
     run([sys.executable, "scripts/run_quartus_leaf_smoke.py"])
 
@@ -278,6 +283,8 @@ def main() -> None:
         rtl_leaf()
     elif args.suite == "cache":
         cache()
+    elif args.suite == "fault":
+        fault()
     elif args.suite == "quartus-leaf-smoke":
         quartus_leaf_smoke()
     elif args.suite == "quartus-cache-smoke":

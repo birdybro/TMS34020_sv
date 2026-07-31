@@ -9,7 +9,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BUILD = ROOT / "build/verilator_icache"
-PASS_MARKER = "PASS: tms34020 bounded instruction-cache RTL"
+PASS_MARKER = "PASS: tms34020 cache native completion RTL"
 
 SOURCES = [
     ROOT / "rtl/tms34020_pkg.sv",
@@ -26,6 +26,7 @@ def main() -> None:
         verilator,
         "--binary",
         "--timing",
+        "--assert",
         "--Wall",
         "--Wno-fatal",
         "--Wno-UNUSEDPARAM",

@@ -125,11 +125,20 @@ transaction-level contract and intentionally omits machine-state and pin
 timing. Exact visibility of partial cache RAM contents, `BSFLTST` encoding,
 interrupt-stack contents, and reset during a saved fault remain unresolved.
 
-The bounded `rtl/cache/tms34020_icache.sv` leaf is not yet connected to this
-completion-code contract. Its native response handshake represents successful
-reads only. RTL fault, retry, abort, and restored-current-cycle behavior remain
-acceptance work for `TMS20-0017`; the successful-read cache test must not be
-counted as fault verification.
+The bounded `rtl/cache/tms34020_icache.sv` leaf now implements the
+transaction-level cache consequence of this contract. Absence of a native
+response represents wait/outstanding state; explicit success, retry, and fault
+outcomes either advance, reissue the same beat, or pause it. External
+resume reissues that beat. External abort discards the pending lookup without
+setting its present flag. Directed tests cover retry and fault-resume at all
+four refill sequence indices, bypass retry/fault, and partial-refill
+fault-abort/restart.
+
+This is not the local-bus pin completion decoder or a CPU fault controller.
+`BSFLTD`, `BSFLTST`, vectoring, `RETI`, interrupt context, nested faults,
+dynamic 16-bit subcycles, page mode, and exact sampling phases remain
+acceptance work for `TMS20-0017`. See
+`docs/memory/cache_native_interface.md`.
 
 ## Required verification
 

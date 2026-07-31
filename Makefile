@@ -97,7 +97,7 @@ battletoads-tests:
 revx-tests:
 	@$(PYTHON) scripts/run_suite.py revx
 
-test: foundation lint reference-tests delta-tests isa-tests model-tests rtl-leaf-tests cache-tests decode-tests
+test: foundation lint reference-tests delta-tests isa-tests model-tests rtl-leaf-tests cache-tests fault-tests decode-tests
 	@printf '%s\n' 'PASS: implemented regression suites'
 
 clean:

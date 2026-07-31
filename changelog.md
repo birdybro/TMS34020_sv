@@ -66,6 +66,11 @@
   requests/responses under backpressure.
 - Self-checking Verilator and Cyclone V Analysis & Synthesis commands for the
   bounded cache slice.
+- A cache-native completion protocol in which absent response represents wait,
+  retry reissues only the current beat, fault pauses it for external resume or
+  abort, and abort signals cancellation without exposing partial refill data.
+- Signal-level documentation for the bounded cache lookup, native read,
+  completion, fault-control, reset, and cache-control interfaces.
 
 ### Changed
 
@@ -143,6 +148,14 @@
   LRU behavior, controls, and backpressure. Quartus synthesizes it with zero
   errors/warnings to 361 logic cells, 198 registers, and 4,096 block-memory
   bits. No fault, retry, fit, or timing result is implied.
+- Verilator verifies current-beat retry and fault-resume at all four refill
+  indices, bypass retry/fault, abort after a partial refill, complete restart
+  after abort, bypass abort, and no present-bit commit from retry/fault/abort.
+  Reset is injected in the request and waiting-response states of every refill
+  index. Four enabled runtime SVAs check stalled payloads, present safety, and
+  fault quiescence without being represented as formal proof. Quartus retains
+  the 4,096-bit inferred RAM and synthesizes the expanded controller to 375
+  logic cells and 200 registers with zero errors/warnings.
 
 ### Documentation
 
@@ -174,6 +187,9 @@
 - Documented the successful-read cache RTL boundary, deterministic private tag
   validity, native-interface convention, active-refill flush uncertainty, and
   exact exclusions from cache/timing claims.
+- Refined the cache boundary from successful-only reads to explicit internal
+  success/retry/fault completion outcomes while keeping pin encodings, CPU fault
+  state, interrupt handling, dynamic width, page mode, and cycles unclaimed.
 - Recorded the SPVU004/SPVU020 tool-guide catalog evidence and lawful search
   result without treating secondary GSPA notes as a syntax specification.
 - Recorded and resolved the ORI instruction-page alignment wording error
@@ -188,9 +204,9 @@
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary,
   externally gated state commit does not form an executable RTL core, and the
-  standalone cache RTL has successful reads only. There is no RTL fetch/PC/
-  timed-retirement composition, completion-code memory bus, pipeline, or
-  subsystem integration.
+  standalone cache RTL has only a bounded internal completion protocol. There
+  is no RTL fetch/PC/timed-retirement composition, pin-level completion decoder,
+  CPU fault controller, pipeline, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

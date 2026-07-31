@@ -47,6 +47,13 @@ package tms34020_pkg;
         TMS34020_CACHE_BYPASS          = 2'd3
     } tms34020_cache_result_t;
 
+    typedef enum logic [1:0] {
+        TMS34020_MEMORY_SUCCESS  = 2'd0,
+        TMS34020_MEMORY_RETRY    = 2'd1,
+        TMS34020_MEMORY_FAULT    = 2'd2,
+        TMS34020_MEMORY_RESERVED = 2'd3
+    } tms34020_memory_completion_t;
+
 `include "generated/tms34020_isa_decode.svh"
 
 endpackage

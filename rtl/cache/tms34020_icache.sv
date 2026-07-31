@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-// Bounded portable instruction-cache leaf. Every accepted native response is
-// a successful read; wait/retry/fault disposition belongs to the future native
-// memory-controller composition and is intentionally absent from this port.
+// Bounded portable instruction-cache leaf. A missing native response represents
+// an outstanding/waiting transfer. Explicit success, retry, and fault outcomes
+// operate at native-cycle granularity; pin phases remain outside this module.
 module tms34020_icache (
     input  logic        clk_i,
     input  logic        reset_i,
@@ -29,6 +29,13 @@ module tms34020_icache (
     input  logic        memory_response_valid_i,
     output logic        memory_response_ready_o,
     input  logic [31:0] memory_response_data_i,
+    input  tms34020_pkg::tms34020_memory_completion_t
+                        memory_response_completion_i,
+
+    output logic        faulted_o,
+    input  logic        fault_resume_i,
+    input  logic        fault_abort_i,
+    output logic        request_aborted_o,
 
     output logic [31:0] present_debug_o,
     output logic [7:0]  lru_debug_o,
@@ -41,6 +48,7 @@ module tms34020_icache (
         STATE_IDLE,
         STATE_MEMORY_REQUEST,
         STATE_MEMORY_RESPONSE,
+        STATE_FAULTED,
         STATE_CACHE_HIT_RESPONSE,
         STATE_WORD_RESPONSE
     } cache_state_t;
@@ -159,6 +167,7 @@ module tms34020_icache (
         cache_ram_write_enable =
             state == STATE_MEMORY_RESPONSE &&
             memory_response_valid_i &&
+            memory_response_completion_i == TMS34020_MEMORY_SUCCESS &&
             !active_bypass;
 
         request_ready_o = state == STATE_IDLE;
@@ -190,7 +199,13 @@ module tms34020_icache (
             };
         end
 
-        memory_response_ready_o = state == STATE_MEMORY_RESPONSE;
+        memory_response_ready_o =
+            state == STATE_MEMORY_RESPONSE &&
+            (
+                !memory_response_valid_i ||
+                memory_response_completion_i != TMS34020_MEMORY_RESERVED
+            );
+        faulted_o = state == STATE_FAULTED;
 
         present_debug_o = {
             present[3],
@@ -227,6 +242,7 @@ module tms34020_icache (
             active_bypass <= 1'b0;
             response_word <= 16'd0;
             response_result <= TMS34020_CACHE_HIT;
+            request_aborted_o <= 1'b0;
             for (metadata_segment_index = 0;
                  metadata_segment_index < 4;
                  metadata_segment_index = metadata_segment_index + 1) begin
@@ -234,6 +250,7 @@ module tms34020_icache (
                 present[metadata_segment_index] <= 8'd0;
             end
         end else begin
+            request_aborted_o <= 1'b0;
             if (cache_flush_i) begin
                 tag_valid <= 4'd0;
                 lru_stack <= 8'b00_01_10_11;
@@ -298,31 +315,56 @@ module tms34020_icache (
 
                 STATE_MEMORY_RESPONSE: begin
                     if (memory_response_valid_i) begin
-                        if (active_bypass) begin
-                            response_word <=
-                                memory_response_data_i[15:0];
-                            state <= STATE_WORD_RESPONSE;
-                        end else begin
-                            if (refill_sequence_index == 2'd3) begin
-                                response_word <=
-                                    requested_half_index ?
-                                    memory_response_data_i[31:16] :
-                                    memory_response_data_i[15:0];
-                                if (!cache_flush_i) begin
-                                    present[active_segment]
-                                        [active_subsegment] <= 1'b1;
-                                    lru_stack <= touch_lru(
-                                        lru_stack,
-                                        active_segment
-                                    );
-                                end
-                                state <= STATE_WORD_RESPONSE;
-                            end else begin
-                                refill_sequence_index <=
-                                    refill_sequence_index + 2'd1;
+                        case (memory_response_completion_i)
+                            TMS34020_MEMORY_RETRY: begin
                                 state <= STATE_MEMORY_REQUEST;
                             end
-                        end
+
+                            TMS34020_MEMORY_FAULT: begin
+                                state <= STATE_FAULTED;
+                            end
+
+                            TMS34020_MEMORY_SUCCESS: begin
+                                if (active_bypass) begin
+                                    response_word <=
+                                        memory_response_data_i[15:0];
+                                    state <= STATE_WORD_RESPONSE;
+                                end else if (
+                                    refill_sequence_index == 2'd3
+                                ) begin
+                                    response_word <=
+                                        requested_half_index ?
+                                        memory_response_data_i[31:16] :
+                                        memory_response_data_i[15:0];
+                                    if (!cache_flush_i) begin
+                                        present[active_segment]
+                                            [active_subsegment] <= 1'b1;
+                                        lru_stack <= touch_lru(
+                                            lru_stack,
+                                            active_segment
+                                        );
+                                    end
+                                    state <= STATE_WORD_RESPONSE;
+                                end else begin
+                                    refill_sequence_index <=
+                                        refill_sequence_index + 2'd1;
+                                    state <= STATE_MEMORY_REQUEST;
+                                end
+                            end
+
+                            default: begin
+                                state <= STATE_MEMORY_RESPONSE;
+                            end
+                        endcase
+                    end
+                end
+
+                STATE_FAULTED: begin
+                    if (fault_abort_i) begin
+                        request_aborted_o <= 1'b1;
+                        state <= STATE_IDLE;
+                    end else if (fault_resume_i) begin
+                        state <= STATE_MEMORY_REQUEST;
                     end
                 end
 
@@ -346,12 +388,66 @@ module tms34020_icache (
     end
 
 `ifndef SYNTHESIS
+    property native_request_stable_while_stalled;
+        @(posedge clk_i) disable iff (reset_i)
+            memory_request_valid_o && !memory_request_ready_i
+            |=> memory_request_valid_o &&
+                $stable(memory_request_bit_address_o) &&
+                $stable(memory_request_width_32_o) &&
+                $stable(memory_request_cache_fill_o) &&
+                $stable(memory_request_sequence_index_o);
+    endproperty
+
+    property instruction_response_stable_while_stalled;
+        @(posedge clk_i) disable iff (reset_i)
+            response_valid_o && !response_ready_i
+            |=> response_valid_o &&
+                $stable(response_word_o) &&
+                $stable(response_result_o);
+    endproperty
+
+    property retry_or_fault_does_not_commit_present;
+        @(posedge clk_i) disable iff (reset_i)
+            memory_response_valid_i &&
+                memory_response_ready_o &&
+                memory_response_completion_i != TMS34020_MEMORY_SUCCESS &&
+                !cache_flush_i
+            |=> cache_flush_i || $stable(present_debug_o);
+    endproperty
+
+    property fault_state_quiesces_ports;
+        @(posedge clk_i) disable iff (reset_i)
+            faulted_o
+            |-> !request_ready_o &&
+                !memory_request_valid_o &&
+                !memory_response_ready_o &&
+                !response_valid_o;
+    endproperty
+
+    assert property (native_request_stable_while_stalled)
+        else $fatal(1, "stalled native request changed");
+    assert property (instruction_response_stable_while_stalled)
+        else $fatal(1, "stalled instruction response changed");
+    assert property (retry_or_fault_does_not_commit_present)
+        else $fatal(1, "retry or fault committed a present flag");
+    assert property (fault_state_quiesces_ports)
+        else $fatal(1, "faulted cache exposed an active port");
+
     always_ff @(posedge clk_i) begin
         if (!reset_i) begin
             if (request_valid_i && request_ready_o) begin
                 assert (request_bit_address_i[3:0] == 4'd0)
                     else $fatal(1, "instruction request is not word aligned");
             end
+            if (memory_response_valid_i &&
+                state == STATE_MEMORY_RESPONSE) begin
+                assert (
+                    memory_response_completion_i !=
+                        TMS34020_MEMORY_RESERVED
+                ) else $fatal(1, "reserved memory completion accepted");
+            end
+            assert (!(fault_resume_i && fault_abort_i))
+                else $fatal(1, "fault resume and abort asserted together");
             assert (
                 lru_stack[7:6] != lru_stack[5:4] &&
                 lru_stack[7:6] != lru_stack[3:2] &&
