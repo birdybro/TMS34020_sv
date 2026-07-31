@@ -179,6 +179,8 @@ class IsaTests(unittest.TestCase):
             0x02BF: ("EXGPS", 1),
             0x02C0: ("GETPS", 1),
             0x02DF: ("GETPS", 1),
+            0x6A00: ("LMO", 1),
+            0x6BFF: ("LMO", 1),
             0x7A00: ("RMO", 1),
             0x7BFF: ("RMO", 1),
             0x0273: ("SETCDP", 1),
@@ -201,16 +203,32 @@ class IsaTests(unittest.TestCase):
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x0FFF, 0x1C00, 0x3800,
                      0x0AFF, 0x0C20, 0x3FFF, 0x4A00,
-                     0x5800, 0x6A00,
+                     0x5800,
                      0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 19664)
-        self.assertEqual(unclassified, 65536 - 19664)
+        self.assertEqual(matched, 20176)
+        self.assertEqual(unclassified, 65536 - 20176)
         self.assertGreater(unclassified, 0)
+
+    def test_lmo_records_primary_register_and_status_contract(self) -> None:
+        lmo = self.database.decode(0x6A00)
+        self.assertIsNotNone(lmo)
+        self.assertEqual(lmo.mnemonic, "LMO")
+        self.assertEqual(lmo.length_words, 1)
+        self.assertEqual(lmo.metadata["status_bits_written"], ["Z"])
+        self.assertEqual(
+            lmo.metadata["documented_cycles"],
+            {"kind": "fixed", "machine_states": 1},
+        )
+        self.assertTrue(lmo.metadata["compatible_with_tms34010"])
+        self.assertIn(
+            "same file",
+            lmo.metadata["register_file"],
+        )
 
     def test_shift_forms_record_direct_and_twos_complement_counts(self) -> None:
         direct_constant = self.database.decode(0x20E1)

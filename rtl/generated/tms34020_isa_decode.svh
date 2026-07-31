@@ -46,28 +46,29 @@ typedef enum logic [5:0] {
     TMS20_OP_AND = 6'd38,
     TMS20_OP_ANDN = 6'd39,
     TMS20_OP_CMP = 6'd40,
-    TMS20_OP_MOVX = 6'd41,
-    TMS20_OP_MOVY = 6'd42,
-    TMS20_OP_OR = 6'd43,
-    TMS20_OP_RL_R = 6'd44,
-    TMS20_OP_RMO = 6'd45,
-    TMS20_OP_SLA_R = 6'd46,
-    TMS20_OP_SLL_R = 6'd47,
-    TMS20_OP_SRA_R = 6'd48,
-    TMS20_OP_SRL_R = 6'd49,
-    TMS20_OP_SUB = 6'd50,
-    TMS20_OP_SUBB = 6'd51,
-    TMS20_OP_XOR = 6'd52,
-    TMS20_OP_ADDK = 6'd53,
-    TMS20_OP_CMPK = 6'd54,
-    TMS20_OP_MOVE = 6'd55,
-    TMS20_OP_MOVK = 6'd56,
-    TMS20_OP_RL_K = 6'd57,
-    TMS20_OP_SLA_K = 6'd58,
-    TMS20_OP_SLL_K = 6'd59,
-    TMS20_OP_SRA_K = 6'd60,
-    TMS20_OP_SRL_K = 6'd61,
-    TMS20_OP_SUBK = 6'd62
+    TMS20_OP_LMO = 6'd41,
+    TMS20_OP_MOVX = 6'd42,
+    TMS20_OP_MOVY = 6'd43,
+    TMS20_OP_OR = 6'd44,
+    TMS20_OP_RL_R = 6'd45,
+    TMS20_OP_RMO = 6'd46,
+    TMS20_OP_SLA_R = 6'd47,
+    TMS20_OP_SLL_R = 6'd48,
+    TMS20_OP_SRA_R = 6'd49,
+    TMS20_OP_SRL_R = 6'd50,
+    TMS20_OP_SUB = 6'd51,
+    TMS20_OP_SUBB = 6'd52,
+    TMS20_OP_XOR = 6'd53,
+    TMS20_OP_ADDK = 6'd54,
+    TMS20_OP_CMPK = 6'd55,
+    TMS20_OP_MOVE = 6'd56,
+    TMS20_OP_MOVK = 6'd57,
+    TMS20_OP_RL_K = 6'd58,
+    TMS20_OP_SLA_K = 6'd59,
+    TMS20_OP_SLL_K = 6'd60,
+    TMS20_OP_SRA_K = 6'd61,
+    TMS20_OP_SRL_K = 6'd62,
+    TMS20_OP_SUBK = 6'd63
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -243,6 +244,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b0100100?????????: begin
                 decoded.opcode_id = TMS20_OP_CMP;
+                decoded.length_words = 3'd1;
+            end
+            16'b0110101?????????: begin
+                decoded.opcode_id = TMS20_OP_LMO;
                 decoded.length_words = 3'd1;
             end
             16'b1110110?????????: begin

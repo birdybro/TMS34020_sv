@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -49,6 +50,17 @@ class StateTests(unittest.TestCase):
 
 
 class ExecutionTests(unittest.TestCase):
+    def test_decoded_lmo_is_unsupported_and_rolls_back(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x6A01])
+        model.state.write_reg("A", 0, 0x08000000)
+        before = model.snapshot()
+
+        with self.assertRaises(UnsupportedInstruction):
+            model.step()
+
+        self.assertEqual(model.snapshot(), before)
+
     def test_nop_advances_bit_addressed_pc(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0300], bit_address=0x20000)

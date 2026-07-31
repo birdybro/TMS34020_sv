@@ -11,7 +11,7 @@
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 62 currently extracted encoding forms have bounded
+- Model status: 62 of 63 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, SETCDP/SETCMP/SETCSP, bounded
@@ -20,9 +20,10 @@
   transaction-level cache/retry state with traces, rollback and snapshot
   replay, including GETPC/EXGPC sequential-PC, redirect, alignment, A/B, and
   shared-SP behavior. The extracted ISA is far from complete; BLMOVE overlap,
-  continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
+  continuation/timing, LMO execution, non-cache fault/retry, and full
+  ISA/interfaces remain
   (`TMS20-0006`, `TMS20-0007`)
-- RTL status: generated 62-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 63-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 39 one-word instructions, with externally gated one-edge
@@ -42,6 +43,7 @@
   address and redirects to the aligned old destination. MOVI.W
   sign-extends its extension word; both MOVI forms
   replace N/Z/V while preserving C.
+  LMO is decode-only and remains blocked from architectural commit.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -58,7 +60,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 4,491 logic cells, 1,386 registers, and
+  warnings; the scalar wrapper uses 4,563 logic cells, 1,386 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored

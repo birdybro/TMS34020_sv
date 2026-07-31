@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 62 page-verified encoding records and covers 19,664 of 65,536
+slice contains 63 page-verified encoding records and covers 20,176 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -67,6 +67,7 @@ first words without collisions:
 | CMPK | `3400h`, mask `FC00h` | 1 | p.13-83 |
 | EXGPS | `02A0h`, mask `FFE0h` | 1 | p.13-113 |
 | GETPS | `02C0h`, mask `FFE0h` | 1 | p.13-131 |
+| LMO | `6A00h`, mask `FE00h` | 1 | p.13-147 |
 | RMO | `7A00h`, mask `FE00h` | 1 | p.13-224 |
 | SETCDP | `0273h` | 1 | p.13-227 |
 | SETCMP | `02FBh` | 1 | p.13-228 |
@@ -79,6 +80,14 @@ also carries instruction length, operand layout, register selection, status
 reads/writes, memory transactions, graphics dependencies, cache/pipeline
 interaction, interrupt/restart/fault behavior, documented cycle cases,
 16/32-bit/page effects, compatibility, citations, and confidence.
+
+LMO uses a same-file register pair, returns the number of leading zero bits
+for a nonzero source, and returns zero for a zero source. It writes only Z and
+takes one state. The exact `6A00h`/`FE00h` encoding and semantics are present
+in both the TMS34020 guide, printed p.13-147, and the independently acquired
+1988 TMS34010 guide, printed p.12-108. This establishes the database's
+compatibility classification; neither MAME nor the pinned RTL is the source of
+that claim.
 
 The `.W` and `.L` suffixes on the ADDI, CMPI, and SUBI record pairs are
 canonical database encoding-form names. TI's source mnemonics remain `ADDI`,

@@ -27,8 +27,11 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 62 currently extracted database forms. This is
-coverage of the current partial extraction, not instruction completeness.
+These handlers cover 62 of the 63 currently extracted database forms. LMO is
+decoded but intentionally raises `UnsupportedInstruction`; a directed test
+proves that the failed step restores processor, cache, trace, and PC state.
+This is coverage of the current partial extraction, not instruction
+completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages

@@ -1652,6 +1652,11 @@ module tb_tms34020_verified_leaves;
             "decoded but unsupported register execute instruction"
         );
         check_register_execute(
+            16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decoded LMO remains outside register execute"
+        );
+        check_register_execute(
             16'h09C0, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "incomplete MOVI.W cannot enter register execute"
@@ -2240,6 +2245,13 @@ module tb_tms34020_verified_leaves;
             "register commit RMO clears zero"
         );
         commit_register_instruction(
+            16'h6A01, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only LMO"
+        );
+        commit_register_instruction(
             16'h00F0, 1'b0,
             1'b0, 1'b0, 4'd0, 32'd0,
             1'b0, 32'd0, 32'd0,
@@ -2548,6 +2560,10 @@ module tb_tms34020_verified_leaves;
                      "EXGPS masked decode");
         check_decode(16'h02DF, TMS20_OP_GETPS, 3'd1,
                      "GETPS masked decode");
+        check_decode(16'h6A00, TMS20_OP_LMO, 3'd1,
+                     "LMO lower-bound decode");
+        check_decode(16'h6BFF, TMS20_OP_LMO, 3'd1,
+                     "LMO upper-bound decode");
         check_decode(16'h7BFF, TMS20_OP_RMO, 3'd1, "RMO masked decode");
 
         decode_word = 16'h080E;
