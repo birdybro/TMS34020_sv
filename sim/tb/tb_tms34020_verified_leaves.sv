@@ -1006,15 +1006,38 @@ module tb_tms34020_verified_leaves;
                 "register execute SUBK every constant"
             );
         end
+        for (constant_index = 1;
+             constant_index <= 32;
+             constant_index = constant_index + 1) begin
+            constant_opcode = 16'h1812;
+            constant_opcode[9:5] = constant_index[4:0];
+            check_register_execute(
+                constant_opcode,
+                32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hF020_0010,
+                1'b1, 1'b1, constant_index, 1'b0,
+                32'd0, 32'd0,
+                "register execute MOVK every constant"
+            );
+        end
+        check_condition(
+            execute_register_file &&
+            execute_destination_index == 4'd2,
+            "register execute MOVK B-file selector"
+        );
+        check_register_execute(
+            16'h180F, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hF020_0010,
+            1'b1, 1'b1, 32'd32, 1'b0, 32'd0, 32'd0,
+            "register execute MOVK encoded-zero shared SP"
+        );
+        check_condition(
+            !execute_register_file &&
+            execute_destination_index == 4'd15,
+            "register execute MOVK shared-SP selector"
+        );
         check_register_execute(
             16'h00F0, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "decoded but unsupported register execute instruction"
-        );
-        check_register_execute(
-            16'h1800, 32'd0, 32'd0, 32'd0,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decoded MOVK remains unsupported at extraction checkpoint"
         );
         check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
@@ -1408,6 +1431,13 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'd0, 32'hF000_0000,
             32'h0000_0010, 32'd34,
             "register commit ADDK encoded-zero shared SP"
+        );
+        commit_register_instruction(
+            16'h181F, 1'b1,
+            1'b1, 1'b1, 4'd15, 32'd32,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd32,
+            "register commit MOVK encoded-zero shared SP"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");

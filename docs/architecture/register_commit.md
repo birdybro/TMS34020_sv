@@ -7,7 +7,7 @@ fetch/cache/pipeline sequencer is introduced.
 
 ## Contract
 
-The module decodes `first_word_i` continuously. When the word is one of the 23
+The module decodes `first_word_i` continuously. When the word is one of the 24
 one-word operations supported by `tms34020_register_execute`,
 `supported_o` is asserted. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -21,7 +21,7 @@ produces no register or status event.
 Supported operations are:
 
 - NOP, ABS, NEG, NEGB, NOT;
-- CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, SETC;
+- CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK, SETC;
 - ADD, ADDC, SUB, SUBB, CMP, CMPK, and RMO;
 - AND, ANDN, OR, and XOR.
 
@@ -47,12 +47,13 @@ the general registers on reset; TI leaves them uninitialized. Source: TI
 
 ## Verification
 
-`make rtl-leaf-tests` executes thirty-six ordered state-commit sequences plus
+`make rtl-leaf-tests` executes thirty-seven ordered state-commit sequences plus
 direct combinational instruction checks. The suite verifies prior-state
 dependency, A/B selection, shared A15/B15 SP aliasing, partial ST masks,
 register-plus-status updates on one edge, nondestructive CMP/CMPI, every SUBK
-constant, encoded-zero ADDK and SUBK, Z-only logical flags, state-neutral NOP,
-and rejection of an otherwise decoded but unsupported BLMOVE word. The
+and MOVK constant, encoded-zero ADDK/SUBK/MOVK, MOVK status preservation,
+Z-only logical flags, state-neutral NOP, and rejection of an otherwise decoded
+but unsupported BLMOVE word. The
 testbench requires the explicit marker
 `PASS: tms34020 verified leaf RTL`.
 

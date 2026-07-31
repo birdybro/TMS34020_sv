@@ -50,11 +50,10 @@ module tms34020_register_execute (
     logic [31:0] immediate_subtract_result;
     logic [3:0] immediate_subtract_nczv;
     logic immediate_subtract_write_enable;
-    logic [31:0] addk_source;
+    logic [31:0] constant_value;
     logic [31:0] addk_result;
     logic [3:0] addk_nczv;
     logic addk_write_enable;
-    logic [31:0] subk_source;
     logic [31:0] subk_result;
     logic [3:0] subk_nczv;
     logic subk_write_enable;
@@ -178,17 +177,15 @@ module tms34020_register_execute (
     );
 
     always_comb begin
-        addk_source = {27'd0, first_word_i[9:5]};
-        subk_source = {27'd0, first_word_i[9:5]};
+        constant_value = {27'd0, first_word_i[9:5]};
         if (first_word_i[9:5] == 5'd0) begin
-            addk_source = 32'd32;
-            subk_source = 32'd32;
+            constant_value = 32'd32;
         end
     end
 
     tms34020_binary_arithmetic addk (
         .operation_i(TMS34020_BINARY_ADD),
-        .source_i(addk_source),
+        .source_i(constant_value),
         .destination_i(destination_i),
         .carry_or_borrow_i(1'b0),
         .result_o(addk_result),
@@ -198,7 +195,7 @@ module tms34020_register_execute (
 
     tms34020_binary_arithmetic subk (
         .operation_i(TMS34020_BINARY_SUB),
-        .source_i(subk_source),
+        .source_i(constant_value),
         .destination_i(destination_i),
         .carry_or_borrow_i(1'b0),
         .result_o(subk_result),
@@ -404,6 +401,12 @@ module tms34020_register_execute (
                     status_write_data_o =
                         {subk_nczv, 28'd0};
                     status_write_mask_o = 32'hF000_0000;
+                end
+
+                TMS20_OP_MOVK: begin
+                    supported_o = 1'b1;
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = constant_value;
                 end
 
                 default: begin

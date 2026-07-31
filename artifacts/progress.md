@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `761d2690d08265cb8407a07ceaad5dd1719c1972`
+- Latest commit: `47fb7472dc174573615c696fae2bb6e2a24ae31a`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 68 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -17,15 +17,15 @@
   replay; full ISA/interfaces remain (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX
-  semantic leaves, and decoder-controlled register/ST write intents for 23
+  semantic leaves, and decoder-controlled register/ST write intents for 24
   one-word instructions, with externally gated one-edge state commit and
   ordered-state tests; standalone native-completion cache lookup/refill RTL;
   an integrated serialized cache/instruction-packet frontend with explicit
-  completion and abort/reload; and a bounded fetch-to-commit path for those 23
+  completion and abort/reload; and a bounded fetch-to-commit path for those 24
   one-word operations plus complete two-word ADDI.W/CMPI.W/SUBI.W and
   three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/SUBI.L packets. All other
-  unsupported packets, including newly decoded MOVK, block. There is no
-  architectural completion timing or
+  unsupported packets block. MOVK commits its constant while preserving ST.
+  There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
   current-cycle fault/retry contracts are covered by the model and bounded RTL;
@@ -41,7 +41,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 3,722 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 3,747 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored

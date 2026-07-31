@@ -266,6 +266,11 @@
   blocked and non-mutating at this extraction-only RTL checkpoint.
   Warning-free Quartus reports 5,867 leaf, 347 fetch, 721 frontend, and 3,722
   scalar logic cells.
+- MOVK now passes RTL write-intent and atomic-commit checks for every K value,
+  A/B selection, encoded-zero shared SP, and complete ST preservation. A fetched
+  packet commits K=32 without changing live status. Warning-free Quartus
+  requalification reports 5,915 leaf and 3,747 scalar logic cells; the unchanged
+  fetch/frontend wrappers remain 347 and 721 logic cells.
 
 ### Documentation
 
@@ -314,7 +319,7 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
-- Documented the exact 33-operation scalar admission set, blocked-packet
+- Documented the exact 34-operation scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
 - Recorded RSC-0009 for the SUBI.L example row that prints `NCZV=0001` despite
@@ -329,7 +334,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 23 one-word, three two-word, and seven
+  bounded scalar composition accepts only 24 one-word, three two-word, and seven
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

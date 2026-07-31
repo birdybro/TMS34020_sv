@@ -745,29 +745,17 @@ module tb_tms34020_scalar_slice;
             "fourteen multiword and constant packet commits"
         );
 
-        serve_word(32'h320);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_MOVK &&
-            packet_length_words == 3'd1 &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "decoded MOVK packet remains blocked"
+        serve_and_commit(
+            32'h320, TMS20_OP_MOVK,
+            1'b1, 1'b0, 4'd0, 32'd32,
+            1'b0, 32'd0, 32'd0,
+            32'h2000_0010, 32'd0,
+            "scalar MOVK encoded-zero commit preserves status"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 14 &&
-                status == 32'h2000_0010 &&
-                sp == 32'd0,
-                "blocked MOVK packet cannot mutate state"
-            );
-        end
+        check_condition(
+            commit_count == 15,
+            "fifteen multiword and constant packet commits"
+        );
 
         apply_reset();
         load_pc(32'h330);
