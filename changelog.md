@@ -365,6 +365,16 @@
   SP, low-nibble target alignment, status preservation, one-/two-state counts,
   and trace next-PC values. All 54 currently extracted forms now have bounded
   successful model semantics; this remains a partial-ISA claim only.
+- Added a synthesizable direct-PC execution leaf and atomic commit integration
+  for GETPC and EXGPC. The bounded scalar composition carries the packet's
+  sequential PC through writeback and holds EXGPC's aligned old-register target
+  until frontend completion, without assigning architectural cycle timing.
+- Verilator verifies direct GETPC/EXGPC leaf semantics, A/B and shared-SP
+  commits, old-value capture, status preservation, length rejection, and an
+  EXGPC redirect that reaches a GETPC at a nonsequential address. Warning-free
+  Cyclone V Analysis & Synthesis reports 6,933 leaf logic cells and
+  4,145 scalar-composition logic cells; these are diagnostic wrapper metrics,
+  not fit, TimeQuest, or core-area results.
 
 ### Documentation
 
@@ -422,7 +432,7 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
-- Documented the exact 34-operation scalar admission set, blocked-packet
+- Documented the current 43-operation scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
 - Recorded RSC-0009 for the SUBI.L example row that prints `NCZV=0001` despite
@@ -440,7 +450,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 29 one-word, four two-word, and eight
+  bounded scalar composition accepts only 31 one-word, four two-word, and eight
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

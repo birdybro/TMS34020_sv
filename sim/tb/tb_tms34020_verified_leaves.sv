@@ -23,6 +23,16 @@ module tb_tms34020_verified_leaves;
     tms34020_opcode_id_t decode_id;
     logic [2:0] decode_length;
 
+    logic [15:0] pc_execute_first_word;
+    logic [2:0] pc_execute_packet_length;
+    logic [31:0] pc_execute_sequential_next_pc;
+    logic [31:0] pc_execute_destination;
+    logic pc_execute_supported;
+    logic pc_execute_register_write_enable;
+    logic [31:0] pc_execute_register_write_data;
+    logic pc_execute_redirect_enable;
+    logic [31:0] pc_execute_redirect_bit_address;
+
     logic [31:0] add_destination;
     logic [31:0] add_immediate;
     logic [31:0] add_result;
@@ -119,6 +129,7 @@ module tb_tms34020_verified_leaves;
     logic commit_valid;
     logic [47:0] commit_packet_words;
     logic [2:0] commit_packet_length;
+    logic [31:0] commit_sequential_next_pc;
     logic commit_supported;
     logic commit_accepted;
     logic commit_register_write_enable;
@@ -128,6 +139,8 @@ module tb_tms34020_verified_leaves;
     logic commit_status_write_enable;
     logic [31:0] commit_status_write_data;
     logic [31:0] commit_status_write_mask;
+    logic commit_pc_redirect_enable;
+    logic [31:0] commit_pc_redirect_bit_address;
     logic [31:0] commit_status;
     logic [31:0] commit_sp;
 
@@ -136,6 +149,22 @@ module tb_tms34020_verified_leaves;
         .valid_o(decode_valid),
         .opcode_id_o(decode_id),
         .length_words_o(decode_length)
+    );
+
+    tms34020_pc_execute pc_execute_dut (
+        .first_word_i(pc_execute_first_word),
+        .packet_length_words_i(pc_execute_packet_length),
+        .sequential_next_pc_i(pc_execute_sequential_next_pc),
+        .destination_i(pc_execute_destination),
+        .supported_o(pc_execute_supported),
+        .register_write_enable_o(
+            pc_execute_register_write_enable
+        ),
+        .register_write_data_o(pc_execute_register_write_data),
+        .redirect_enable_o(pc_execute_redirect_enable),
+        .redirect_bit_address_o(
+            pc_execute_redirect_bit_address
+        )
     );
 
     tms34020_addxyi addxyi_dut (
@@ -274,6 +303,7 @@ module tb_tms34020_verified_leaves;
         .commit_i(commit_valid),
         .packet_words_i(commit_packet_words),
         .packet_length_words_i(commit_packet_length),
+        .sequential_next_pc_i(commit_sequential_next_pc),
         .supported_o(commit_supported),
         .commit_accepted_o(commit_accepted),
         .register_write_enable_o(commit_register_write_enable),
@@ -283,6 +313,10 @@ module tb_tms34020_verified_leaves;
         .status_write_enable_o(commit_status_write_enable),
         .status_write_data_o(commit_status_write_data),
         .status_write_mask_o(commit_status_write_mask),
+        .pc_redirect_enable_o(commit_pc_redirect_enable),
+        .pc_redirect_bit_address_o(
+            commit_pc_redirect_bit_address
+        ),
         .status_o(commit_status),
         .sp_o(commit_sp)
     );
@@ -456,6 +490,36 @@ module tb_tms34020_verified_leaves;
             decode_valid &&
             decode_id == expected_id &&
             decode_length == expected_length,
+            message
+        );
+    endtask
+
+    task automatic check_pc_execute(
+        input logic [15:0] first_word,
+        input logic [2:0] packet_length,
+        input logic [31:0] sequential_next_pc,
+        input logic [31:0] destination,
+        input logic expected_supported,
+        input logic expected_register_write,
+        input logic [31:0] expected_register_data,
+        input logic expected_redirect,
+        input logic [31:0] expected_redirect_address,
+        input string message
+    );
+        pc_execute_first_word = first_word;
+        pc_execute_packet_length = packet_length;
+        pc_execute_sequential_next_pc = sequential_next_pc;
+        pc_execute_destination = destination;
+        #1;
+        check_condition(
+            pc_execute_supported == expected_supported &&
+            pc_execute_register_write_enable ==
+                expected_register_write &&
+            pc_execute_register_write_data ==
+                expected_register_data &&
+            pc_execute_redirect_enable == expected_redirect &&
+            pc_execute_redirect_bit_address ==
+                expected_redirect_address,
             message
         );
     endtask
@@ -845,7 +909,8 @@ module tb_tms34020_verified_leaves;
             commit_supported == expected_supported &&
             commit_accepted == expected_supported &&
             commit_register_write_enable == expected_register_write &&
-            commit_status_write_enable == expected_status_write,
+            commit_status_write_enable == expected_status_write &&
+            !commit_pc_redirect_enable,
             message
         );
         if (expected_register_write) begin
@@ -874,10 +939,55 @@ module tb_tms34020_verified_leaves;
         #1;
     endtask
 
+    task automatic commit_pc_instruction(
+        input logic [15:0] first_word,
+        input logic [31:0] sequential_next_pc,
+        input logic expected_register_file,
+        input logic [3:0] expected_register_index,
+        input logic [31:0] expected_register_data,
+        input logic expected_redirect,
+        input logic [31:0] expected_redirect_address,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {32'd0, first_word};
+        commit_packet_length = 3'd1;
+        commit_sequential_next_pc = sequential_next_pc;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            commit_register_write_enable &&
+            commit_register_write_file == expected_register_file &&
+            commit_register_write_index == expected_register_index &&
+            commit_register_write_data == expected_register_data &&
+            !commit_status_write_enable &&
+            commit_pc_redirect_enable == expected_redirect &&
+            commit_pc_redirect_bit_address ==
+                expected_redirect_address,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
         decode_word = 16'd0;
+        pc_execute_first_word = 16'd0;
+        pc_execute_packet_length = 3'd1;
+        pc_execute_sequential_next_pc = 32'd0;
+        pc_execute_destination = 32'd0;
         add_destination = 32'd0;
         add_immediate = 32'd0;
         binary_operation = TMS34020_BINARY_ADD;
@@ -920,6 +1030,7 @@ module tb_tms34020_verified_leaves;
         commit_valid = 1'b0;
         commit_packet_words = 48'd0;
         commit_packet_length = 3'd1;
+        commit_sequential_next_pc = 32'd0;
 
         repeat (2) @(posedge clk);
         reset = 1'b0;
@@ -1196,6 +1307,34 @@ module tb_tms34020_verified_leaves;
             execute_source_index == 4'd2 &&
             execute_destination_index == 4'd2,
             "register execute GETST operand selector"
+        );
+        check_pc_execute(
+            16'h0141, 3'd1, 32'h0000_1BE0,
+            32'hDEAD_BEEF,
+            1'b1, 1'b1, 32'h0000_1BE0,
+            1'b0, 32'd0,
+            "PC execute GETPC sequential address"
+        );
+        check_pc_execute(
+            16'h0132, 3'd1, 32'h0000_2090,
+            32'h1234_567F,
+            1'b1, 1'b1, 32'h0000_2090,
+            1'b1, 32'h1234_5670,
+            "PC execute EXGPC exchange and alignment"
+        );
+        check_pc_execute(
+            16'h0121, 3'd2, 32'h0000_2090,
+            32'h1234_567F,
+            1'b0, 1'b0, 32'd0,
+            1'b0, 32'd0,
+            "PC execute rejects length mismatch"
+        );
+        check_pc_execute(
+            16'hFFFF, 3'd1, 32'h0000_2090,
+            32'h1234_567F,
+            1'b0, 1'b0, 32'd0,
+            1'b0, 32'd0,
+            "PC execute rejects unclassified word"
         );
         check_register_execute(
             16'h1031, 32'd0, 32'hFFFF_FFFF, 32'd0,
@@ -1949,6 +2088,39 @@ module tb_tms34020_verified_leaves;
             32'h0000_0010, 32'd32,
             "register commit MOVK encoded-zero shared SP"
         );
+        commit_pc_instruction(
+            16'h0152, 32'h0000_1C20,
+            1'b1, 4'd2, 32'h0000_1C20,
+            1'b0, 32'd0,
+            32'h0000_0010, 32'd32,
+            "register commit GETPC B2"
+        );
+        commit_immediate_move_instruction(
+            16'h09E1, 3'd3, 32'h1234_567F,
+            1'b0, 4'd1, 32'h1234_567F,
+            1'b0, 1'b0, 32'h0000_0010, 32'd32,
+            "register commit seeds EXGPC A1 target"
+        );
+        commit_pc_instruction(
+            16'h0121, 32'h0000_2090,
+            1'b0, 4'd1, 32'h0000_2090,
+            1'b1, 32'h1234_5670,
+            32'h0000_0010, 32'd32,
+            "register commit EXGPC captures old A1"
+        );
+        commit_immediate_move_instruction(
+            16'h09FF, 3'd3, 32'hCAFE_BABF,
+            1'b1, 4'd15, 32'hCAFE_BABF,
+            1'b1, 1'b0, 32'h8000_0010, 32'hCAFE_BABF,
+            "register commit seeds EXGPC shared-SP target"
+        );
+        commit_pc_instruction(
+            16'h013F, 32'h0000_4000,
+            1'b1, 4'd15, 32'h0000_4000,
+            1'b1, 32'hCAFE_BAB0,
+            32'h8000_0010, 32'h0000_4000,
+            "register commit EXGPC shared SP"
+        );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
         check_decode(16'h0080, TMS20_OP_MWAIT, 3'd1, "MWAIT exact decode");
@@ -1967,6 +2139,10 @@ module tb_tms34020_verified_leaves;
                      "SETC exact decode");
         check_decode(16'h019F, TMS20_OP_GETST, 3'd1,
                      "GETST masked decode");
+        check_decode(16'h0120, TMS20_OP_EXGPC, 3'd1,
+                     "EXGPC masked decode");
+        check_decode(16'h015F, TMS20_OP_GETPC, 3'd1,
+                     "GETPC masked decode");
         check_decode(16'h1000, TMS20_OP_ADDK, 3'd1,
                      "ADDK encoded-zero decode");
         check_decode(16'h103F, TMS20_OP_ADDK, 3'd1,

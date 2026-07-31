@@ -58,11 +58,15 @@ module tms34020_scalar_slice (
 
     logic packet_decode_valid;
     logic [9:0] packet_cache_results_unused;
-    logic [31:0] packet_sequential_next_pc_unused;
+    logic [31:0] packet_sequential_next_pc;
     logic frontend_completion_valid;
     logic frontend_completion_ready;
     logic register_commit_supported;
     logic execution_eligible;
+    logic commit_pc_redirect_enable;
+    logic [31:0] commit_pc_redirect_bit_address;
+    logic completion_redirect_q;
+    logic [31:0] completion_redirect_bit_address_q;
 
     always_comb begin
         execution_eligible =
@@ -72,6 +76,23 @@ module tms34020_scalar_slice (
         packet_supported_o = execution_eligible;
         packet_blocked_o = packet_valid_o && !execution_eligible;
         frontend_completion_valid = frontend_completion_ready;
+    end
+
+    always_ff @(posedge clk_i) begin
+        if (reset_i) begin
+            completion_redirect_q <= 1'b0;
+            completion_redirect_bit_address_q <= 32'd0;
+        end else if (commit_accepted_o) begin
+            completion_redirect_q <= commit_pc_redirect_enable;
+            completion_redirect_bit_address_q <=
+                commit_pc_redirect_bit_address;
+        end else if (
+            frontend_completion_valid &&
+            frontend_completion_ready
+        ) begin
+            completion_redirect_q <= 1'b0;
+            completion_redirect_bit_address_q <= 32'd0;
+        end
     end
 
     tms34020_frontend frontend (
@@ -91,12 +112,14 @@ module tms34020_scalar_slice (
         .packet_cache_results_o(packet_cache_results_unused),
         .packet_start_pc_o(packet_start_pc_o),
         .packet_sequential_next_pc_o(
-            packet_sequential_next_pc_unused
+            packet_sequential_next_pc
         ),
         .completion_valid_i(frontend_completion_valid),
         .completion_ready_o(frontend_completion_ready),
-        .completion_redirect_i(1'b0),
-        .completion_redirect_bit_address_i(32'd0),
+        .completion_redirect_i(completion_redirect_q),
+        .completion_redirect_bit_address_i(
+            completion_redirect_bit_address_q
+        ),
         .memory_request_valid_o(memory_request_valid_o),
         .memory_request_ready_i(memory_request_ready_i),
         .memory_request_bit_address_o(
@@ -130,6 +153,7 @@ module tms34020_scalar_slice (
         .commit_i(execution_eligible),
         .packet_words_i(packet_words_o[47:0]),
         .packet_length_words_i(packet_length_words_o),
+        .sequential_next_pc_i(packet_sequential_next_pc),
         .supported_o(register_commit_supported),
         .commit_accepted_o(commit_accepted_o),
         .register_write_enable_o(register_write_enable_o),
@@ -139,6 +163,10 @@ module tms34020_scalar_slice (
         .status_write_enable_o(status_write_enable_o),
         .status_write_data_o(status_write_data_o),
         .status_write_mask_o(status_write_mask_o),
+        .pc_redirect_enable_o(commit_pc_redirect_enable),
+        .pc_redirect_bit_address_o(
+            commit_pc_redirect_bit_address
+        ),
         .status_o(status_o),
         .sp_o(sp_o)
     );
@@ -190,9 +218,25 @@ module tms34020_scalar_slice (
             commit_accepted_o |=> !commit_accepted_o;
     endproperty
 
+    property p_exgpc_commit_captures_aligned_redirect;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_pc_redirect_enable
+            |-> commit_accepted_o &&
+                packet_opcode_id_o == TMS20_OP_EXGPC &&
+                commit_pc_redirect_bit_address[3:0] == 4'd0;
+    endproperty
+
+    property p_pending_redirect_stays_aligned;
+        @(posedge clk_i) disable iff (reset_i)
+            completion_redirect_q
+            |-> completion_redirect_bit_address_q[3:0] == 4'd0;
+    endproperty
+
     assert property (p_only_supported_packets_commit);
     assert property (p_blocked_packet_cannot_write);
     assert property (p_commit_is_single_pulse);
+    assert property (p_exgpc_commit_captures_aligned_redirect);
+    assert property (p_pending_redirect_stays_aligned);
 `endif
 
 endmodule

@@ -14,6 +14,7 @@ PASS_MARKER = "PASS: tms34020 bounded scalar slice"
 SOURCES = [
     ROOT / "rtl/tms34020_pkg.sv",
     ROOT / "rtl/core/tms34020_decode.sv",
+    ROOT / "rtl/core/tms34020_pc_execute.sv",
     ROOT / "rtl/execute/tms34020_binary_arithmetic.sv",
     ROOT / "rtl/execute/tms34020_unary.sv",
     ROOT / "rtl/execute/tms34020_cmpk.sv",

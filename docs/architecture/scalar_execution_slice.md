@@ -2,13 +2,14 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 41 register/status operations already verified against their
+execution path for 43 register/status operations already verified against their
 individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
 - ABS, NEG, NEGB, and NOT;
 - ADD, ADDC, SUB, SUBB, CMP, ADDK/INC, SUBK/DEC, and MOVK; and
 - AND, ANDN, OR, XOR, CMPK, RMO, MOVE, MOVX, MOVY, RL.K, and RL.R; plus
+- GETPC and EXGPC; plus
 - the three-word ANDNI, ORI, and XORI immediate-logical family; and
 - the three-word ADDXYI immediate XY operation; plus
 - the two-word ADDI.W/CMPI.W/SUBI.W and three-word
@@ -31,11 +32,15 @@ A packet is accepted only when all of these conditions are true:
 4. the register-execution owner reports that complete packet as supported.
 
 The same acceptance event supplies the existing atomic register/ST commit
-enable. A supported packet therefore commits at most once. The frontend then
-receives a sequential completion handshake. Three runtime assertions check
-that only the supported one-, two-, or three-word packet classes commit, blocked
-packets cannot assert state writes, and a commit cannot remain asserted on the
-next FPGA clock.
+enable. A supported packet therefore commits at most once. For an ordinary
+instruction or GETPC, the frontend then receives a sequential completion
+handshake. EXGPC instead holds its aligned old-register target across the
+commit-to-completion boundary and presents that redirect with the completion
+handshake. Five scalar runtime assertions check that only supported packets
+commit, blocked packets cannot assert state writes, a commit cannot remain
+asserted on the next FPGA clock, and EXGPC committed and pending redirect
+targets stay identified and aligned. Two additional assertions in the commit
+owner check execution-owner exclusion and committed redirect alignment.
 
 Decoded instructions outside the verified scalar set and unclassified packets
 remain presented with `packet_blocked_o=1`. They are neither consumed nor
@@ -64,6 +69,10 @@ RL.K rotates its destination by the embedded five-bit count. RL.R uses the
 low five bits of a same-file source register as its count. Both write C from
 the last bit rotated out (and clear C for count zero), derive Z from the
 result, and preserve N/V.
+GETPC writes the packet's sequential next address to its selected A/B
+destination without changing ST. EXGPC captures the old destination as an
+aligned redirect before atomically replacing that register with the sequential
+next address; shared A15/B15 SP follows the same rule.
 ADDXYI adds its X and Y halves independently and replaces NCZV with the
 instruction-specific zero/sign meanings. ADDI.W/L, CMPI.W/L, and SUBI.W/L
 perform 32-bit addition or subtraction and replace all four NCZV bits. CMPI
@@ -96,8 +105,11 @@ after reset, commits a zero MOVI.W and a dependent MOVI.L to shared SP, followed
 by MOVX and MOVY packets that read shared SP and observe the prior half-register
 commit; then commits a cross-file A0-to-B1 MOVE followed by a dependent
 B1-to-A2 MOVE; then commits RL.K against A2 followed by a dependent RL.R whose
-count comes from the newly rotated A2 value. A separate unclassified packet
-then remains blocked without changing that sequence. The
+count comes from the newly rotated A2 value. The sequence then executes GETPC,
+EXGPC to the prior A0 value, and GETPC at the redirected address before a
+separate unclassified packet remains blocked without changing that sequence.
+The direct-PC checks prove ordering and target selection, not the documented
+one- and two-machine-state timings. The
 earlier INC and DEC spellings exercise the canonical
 ADDK K=1 and SUBK K=1 object codes.
 
@@ -108,8 +120,8 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 4,102 logic cells,
-1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
+Synthesis for this composition. The diagnostic wrapper uses 4,145 logic cells,
+1,386 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,
 TimeQuest, full-core utilization, or a timing-closure result.
@@ -118,7 +130,8 @@ TimeQuest, full-core utilization, or a timing-closure result.
 
 The automatic handshake sequence is an FPGA implementation protocol, not a
 documented TMS34020 machine-state schedule. The slice has no authentic
-fetch/execute overlap, interrupt recognition, branch or trap execution,
+fetch/execute overlap, interrupt recognition, branch or trap execution beyond
+the bounded EXGPC direct redirect,
 reset-vector controller, data-memory operations, graphics operations, complete
 fault continuation, or original-pin timing. It is not an instruction-complete
 or cycle-accurate processor core.

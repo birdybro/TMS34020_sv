@@ -15,6 +15,7 @@ PASS_MARKER = "PASS: tms34020 verified leaf RTL"
 SOURCES = [
     ROOT / "rtl/tms34020_pkg.sv",
     ROOT / "rtl/core/tms34020_decode.sv",
+    ROOT / "rtl/core/tms34020_pc_execute.sv",
     ROOT / "rtl/core/tms34020_regfile.sv",
     ROOT / "rtl/core/tms34020_status.sv",
     ROOT / "rtl/core/tms34020_register_commit.sv",

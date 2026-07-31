@@ -20,6 +20,11 @@ module tms34020_leaf_synth_top (
     tms34020_opcode_id_t decoded_id;
     logic decode_valid;
     logic [2:0] decode_length;
+    logic pc_execute_supported;
+    logic pc_execute_register_write_enable;
+    logic [31:0] pc_execute_register_write_data;
+    logic pc_execute_redirect_enable;
+    logic [31:0] pc_execute_redirect_bit_address;
     logic [31:0] add_result;
     logic [3:0] add_nczv;
     logic [31:0] binary_result;
@@ -65,6 +70,8 @@ module tms34020_leaf_synth_top (
     logic commit_status_write_enable;
     logic [31:0] commit_status_write_data;
     logic [31:0] commit_status_write_mask;
+    logic commit_pc_redirect_enable;
+    logic [31:0] commit_pc_redirect_bit_address;
     logic [31:0] commit_status;
     logic [31:0] commit_sp;
 
@@ -85,18 +92,25 @@ module tms34020_leaf_synth_top (
         second_register_data ^
         sp ^
         status_value ^
+        pc_execute_register_write_data ^
+        pc_execute_redirect_bit_address ^
         execute_register_write_data ^
         execute_status_write_data ^
         execute_status_write_mask ^
         commit_register_write_data ^
         commit_status_write_data ^
         commit_status_write_mask ^
+        commit_pc_redirect_bit_address ^
         commit_status ^
         commit_sp ^
         {24'd0, commit_supported, commit_accepted,
          commit_register_write_enable, commit_register_write_file,
          commit_register_write_index} ^
         {31'd0, commit_status_write_enable} ^
+        {30'd0, commit_pc_redirect_enable,
+         pc_execute_redirect_enable} ^
+        {30'd0, pc_execute_supported,
+         pc_execute_register_write_enable} ^
         {19'd0, execute_supported, execute_register_file,
          execute_destination_register_file,
          execute_source_index, execute_destination_index,
@@ -111,6 +125,22 @@ module tms34020_leaf_synth_top (
         .valid_o(decode_valid),
         .opcode_id_o(decoded_id),
         .length_words_o(decode_length)
+    );
+
+    tms34020_pc_execute pc_execute (
+        .first_word_i(first_word_i),
+        .packet_length_words_i(decode_length),
+        .sequential_next_pc_i(immediate_i),
+        .destination_i(operand_i),
+        .supported_o(pc_execute_supported),
+        .register_write_enable_o(
+            pc_execute_register_write_enable
+        ),
+        .register_write_data_o(pc_execute_register_write_data),
+        .redirect_enable_o(pc_execute_redirect_enable),
+        .redirect_bit_address_o(
+            pc_execute_redirect_bit_address
+        )
     );
 
     tms34020_addxyi addxyi (
@@ -233,6 +263,7 @@ module tms34020_leaf_synth_top (
         .commit_i(write_enable_i),
         .packet_words_i({immediate_i, first_word_i}),
         .packet_length_words_i(decode_length),
+        .sequential_next_pc_i(immediate_i),
         .supported_o(commit_supported),
         .commit_accepted_o(commit_accepted),
         .register_write_enable_o(commit_register_write_enable),
@@ -242,6 +273,10 @@ module tms34020_leaf_synth_top (
         .status_write_enable_o(commit_status_write_enable),
         .status_write_data_o(commit_status_write_data),
         .status_write_mask_o(commit_status_write_mask),
+        .pc_redirect_enable_o(commit_pc_redirect_enable),
+        .pc_redirect_bit_address_o(
+            commit_pc_redirect_bit_address
+        ),
         .status_o(commit_status),
         .sp_o(commit_sp)
     );

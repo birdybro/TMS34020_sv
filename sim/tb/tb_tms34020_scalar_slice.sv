@@ -172,6 +172,9 @@ module tb_tms34020_scalar_slice;
                 32'h0000_03B0: memory_word = 16'h4E32;
                 32'h0000_03C0: memory_word = 16'h3082;
                 32'h0000_03D0: memory_word = 16'h6840;
+                32'h0000_03E0: memory_word = 16'h0153;
+                32'h0000_03F0: memory_word = 16'h0120;
+                32'h2468_ACF0: memory_word = 16'h0154;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -901,7 +904,33 @@ module tb_tms34020_scalar_slice;
             "eight move and rotate packet commits"
         );
 
-        serve_word(32'h3E0);
+        serve_and_commit(
+            32'h3E0, TMS20_OP_GETPC,
+            1'b1, 1'b1, 4'd3, 32'h0000_03F0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar GETPC uses packet sequential address"
+        );
+        serve_and_commit(
+            32'h3F0, TMS20_OP_EXGPC,
+            1'b1, 1'b0, 4'd0, 32'h0000_0400,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar EXGPC commits sequential PC before redirect"
+        );
+        serve_and_commit(
+            32'h2468_ACF0, TMS20_OP_GETPC,
+            1'b1, 1'b1, 4'd4, 32'h2468_AD00,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar EXGPC redirect reaches GETPC target"
+        );
+        check_condition(
+            commit_count == 11,
+            "eleven move, rotate, and direct-PC packet commits"
+        );
+
+        serve_word(32'h2468_AD00);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -918,7 +947,7 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 8 &&
+                commit_count == 11 &&
                 status == 32'h0000_0010 &&
                 sp == 32'h1234_5678,
                 "blocked packet cannot mutate rotate sequence"

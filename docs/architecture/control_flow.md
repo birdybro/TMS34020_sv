@@ -91,6 +91,16 @@ These instructions require the execution boundary to carry both:
 Using a free-running speculative fetch address as the `GETPC` value would be
 incorrect if it had advanced beyond this instruction.
 
+The bounded RTL implements this data-ordering boundary in
+`tms34020_pc_execute.sv`: the complete packet supplies its sequential address,
+while the commit composition reads the old destination and atomically writes
+the sequential address. For EXGPC, `tms34020_scalar_slice.sv` holds the aligned
+old-destination target until the packet-completion handshake redirects the
+frontend. Directed simulation reaches a GETPC at a nonsequential EXGPC target.
+This proves functional ordering in the serialized FPGA handshake only; it does
+not reproduce GETPC's documented one machine state, EXGPC's two machine states,
+or speculative pipeline overlap.
+
 ## Reset entry
 
 Reset does not define an ordinary fixed PC reset value. In self-bootstrap mode,

@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified commit before this model extension: `8d733ddc603183720feac0b881056b7ad2faa62d`
+- Latest verified commit before this RTL extension: `79ea7fda16d057b81a23a0fdc182311c5a3ac33f`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 90 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -24,18 +24,21 @@
 - RTL status: generated partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
-  write intents for 29 one-word instructions, with externally gated one-edge
+  write intents for 31 one-word instructions, with externally gated one-edge
   state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
   complete ST preservation, and RL.K/RL.R C/Z replacement with N/V
   preservation; standalone native-completion cache lookup/refill RTL;
-  an integrated serialized cache/instruction-packet frontend with explicit
-  completion and abort/reload; and a bounded fetch-to-commit path for those 29
+  a dedicated GETPC/EXGPC direct-PC leaf, an integrated serialized
+  cache/instruction-packet frontend with explicit completion and abort/reload;
+  and a bounded fetch-to-commit path for those 31
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
-  three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets. All
-  other unsupported packets block. MOVI.W sign-extends its extension word;
-  both MOVI forms replace N/Z/V while preserving C.
+  three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
+  GETPC consumes the packet sequential PC, while EXGPC atomically writes that
+  address and redirects to the aligned old destination. All other unsupported
+  packets block. MOVI.W sign-extends its extension word; both MOVI forms
+  replace N/Z/V while preserving C.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -47,12 +50,12 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, and three scalar acceptance/noncommit
+- Formal status: four cache, four fetch, five scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 4,102 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 4,145 logic cells, 1,386 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored

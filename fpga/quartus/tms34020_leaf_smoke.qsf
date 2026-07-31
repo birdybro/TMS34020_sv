@@ -6,6 +6,7 @@ set_global_assignment -name SEARCH_PATH ../../../rtl
 
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/tms34020_pkg.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_decode.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_pc_execute.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_regfile.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_status.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_register_commit.sv
