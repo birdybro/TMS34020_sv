@@ -55,6 +55,10 @@ module tms34020_register_execute (
     logic immediate_move_n;
     logic immediate_move_z;
     logic [31:0] register_half_move_result;
+    logic [4:0] rotate_count;
+    logic [31:0] rotate_result;
+    logic rotate_c;
+    logic rotate_z;
     logic [31:0] constant_value;
     logic [31:0] addk_result;
     logic [3:0] addk_nczv;
@@ -205,6 +209,21 @@ module tms34020_register_execute (
             };
         end
     end
+
+    always_comb begin
+        rotate_count = first_word_i[9:5];
+        if (opcode_id == TMS20_OP_RL_R) begin
+            rotate_count = source_i[4:0];
+        end
+    end
+
+    tms34020_rotate_left rotate_left (
+        .value_i(destination_i),
+        .count_i(rotate_count),
+        .result_o(rotate_result),
+        .status_c_o(rotate_c),
+        .status_z_o(rotate_z)
+    );
 
     always_comb begin
         constant_value = {27'd0, first_word_i[9:5]};
@@ -432,6 +451,25 @@ module tms34020_register_execute (
                         28'd0
                     };
                     status_write_mask_o = 32'hB000_0000;
+                end
+
+                TMS20_OP_RL_K,
+                TMS20_OP_RL_R: begin
+                    supported_o = 1'b1;
+                    if (opcode_id == TMS20_OP_RL_K) begin
+                        source_index_o = first_word_i[3:0];
+                    end
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = rotate_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = {
+                        1'b0,
+                        rotate_c,
+                        rotate_z,
+                        1'b0,
+                        28'd0
+                    };
+                    status_write_mask_o = 32'h6000_0000;
                 end
 
                 TMS20_OP_RMO: begin

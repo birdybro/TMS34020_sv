@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 27 one-word, four
+asserted only when its declared length matches one of the 29 one-word, four
 two-word, or eight three-word operations supported by
 `tms34020_register_execute`. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -25,7 +25,7 @@ Supported operations are:
 - CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK, SETC;
 - ADD, ADDC, SUB, SUBB, CMP, CMPK, and RMO;
 - AND, ANDN, OR, and XOR;
-- MOVE, MOVX, and MOVY;
+- MOVE, MOVX, MOVY, RL.K, and RL.R;
 - two-word ADDI.W, CMPI.W, MOVI.W, and SUBI.W; and
 - three-word ADDI.L, ADDXYI, ANDNI, CMPI.L, MOVI.L, ORI, SUBI.L, and XORI.
 
@@ -51,7 +51,7 @@ the general registers on reset; TI leaves them uninitialized. Source: TI
 
 ## Verification
 
-`make rtl-leaf-tests` executes forty-three ordered state-commit sequences plus
+`make rtl-leaf-tests` executes forty-five ordered state-commit sequences plus
 direct combinational instruction checks. The suite verifies prior-state
 dependency, A/B selection, shared A15/B15 SP aliasing, partial ST masks,
 register-plus-status updates on one edge, nondestructive CMP/CMPI, every SUBK
@@ -60,6 +60,7 @@ MOVI short sign extension, long-word assembly, N/Z/V replacement with C
 preservation, MOVX/MOVY half-word merging with complete ST preservation,
 same-file and cross-file MOVE with independent source/destination file
 selection, MOVE N/Z/V replacement with C preservation, Z-only logical flags,
+constant/register rotate counts, RL C/Z replacement with N/V preservation,
 state-neutral NOP, and rejection of an otherwise decoded but unsupported
 BLMOVE word. The
 testbench requires the explicit marker

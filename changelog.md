@@ -318,6 +318,12 @@
   definition and result, corroborated by pinned MAME. RL remains blocked at
   this extraction-only RTL checkpoint. Warning-free Quartus reports 6,037
   leaf, 363 fetch, 742 frontend, and 3,838 scalar logic cells.
+- Routed RL.K and RL.R through a dedicated rotate leaf, the register executor,
+  and atomic state commit. Directed RTL covers all count boundaries, count
+  zero, source-low-five register counts, same-file selectors, dependent
+  execution, C/Z replacement, N/V preservation, and the RSC-0013 count-30
+  interpretation. Warning-free Quartus requalification reports 6,520 leaf and
+  4,129 scalar logic cells; registers and cache RAM are unchanged.
 
 ### Documentation
 
@@ -384,7 +390,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 27 one-word, four two-word, and eight
+  bounded scalar composition accepts only 29 one-word, four two-word, and eight
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

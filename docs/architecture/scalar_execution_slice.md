@@ -2,13 +2,13 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 39 register/status operations already verified against their
+execution path for 41 register/status operations already verified against their
 individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
 - ABS, NEG, NEGB, and NOT;
 - ADD, ADDC, SUB, SUBB, CMP, ADDK/INC, SUBK/DEC, and MOVK; and
-- AND, ANDN, OR, XOR, CMPK, RMO, MOVE, MOVX, and MOVY; plus
+- AND, ANDN, OR, XOR, CMPK, RMO, MOVE, MOVX, MOVY, RL.K, and RL.R; plus
 - the three-word ANDNI, ORI, and XORI immediate-logical family; and
 - the three-word ADDXYI immediate XY operation; plus
 - the two-word ADDI.W/CMPI.W/SUBI.W and three-word
@@ -60,6 +60,10 @@ the destination file is bit 4 XOR the cross-file bit 9. This preserves the
 same-file forms and admits both cross-file directions without breaking the
 shared A15/B15 SP alias. MOVE replaces N/Z/V from the copied value and
 preserves C.
+RL.K rotates its destination by the embedded five-bit count. RL.R uses the
+low five bits of a same-file source register as its count. Both write C from
+the last bit rotated out (and clear C for count zero), derive Z from the
+result, and preserve N/V.
 ADDXYI adds its X and Y halves independently and replaces NCZV with the
 instruction-specific zero/sign meanings. ADDI.W/L, CMPI.W/L, and SUBI.W/L
 perform 32-bit addition or subtraction and replace all four NCZV bits. CMPI
@@ -91,9 +95,9 @@ against shared SP; commits MOVK with encoded K=0 while preserving live ST; then,
 after reset, commits a zero MOVI.W and a dependent MOVI.L to shared SP, followed
 by MOVX and MOVY packets that read shared SP and observe the prior half-register
 commit; then commits a cross-file A0-to-B1 MOVE followed by a dependent
-B1-to-A2 MOVE; after another reset, a decoded RL.K packet remains blocked and
-non-mutating; after a final reset, a separate unclassified packet remains
-blocked. The
+B1-to-A2 MOVE; then commits RL.K against A2 followed by a dependent RL.R whose
+count comes from the newly rotated A2 value. A separate unclassified packet
+then remains blocked without changing that sequence. The
 earlier INC and DEC spellings exercise the canonical
 ADDK K=1 and SUBK K=1 object codes.
 
@@ -104,7 +108,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 3,838 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 4,129 logic cells,
 1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

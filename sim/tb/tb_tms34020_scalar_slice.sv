@@ -170,7 +170,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0390: memory_word = 16'hEFE0;
                 32'h0000_03A0: memory_word = 16'h4E01;
                 32'h0000_03B0: memory_word = 16'h4E32;
-                32'h0000_03C0: memory_word = 16'h3001;
+                32'h0000_03C0: memory_word = 16'h3082;
+                32'h0000_03D0: memory_word = 16'h6840;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -881,35 +882,26 @@ module tb_tms34020_scalar_slice;
             "six immediate, half-move, and full-move packet commits"
         );
 
-        apply_reset();
-        load_pc(32'h3C0);
-        serve_word(32'h3C0);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_RL_K &&
-            packet_length_words == 3'd1 &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "decoded RL.K packet is blocked"
+        serve_and_commit(
+            32'h3C0, TMS20_OP_RL_K,
+            1'b1, 1'b0, 4'd2, 32'h2345_6781,
+            1'b1, 32'h4000_0000, 32'h6000_0000,
+            32'h4000_0010, 32'h1234_5678,
+            "scalar RL.K rotates prior cross-file MOVE result"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0,
-                "blocked RL.K packet cannot mutate state"
-            );
-        end
+        serve_and_commit(
+            32'h3D0, TMS20_OP_RL_R,
+            1'b1, 1'b0, 4'd0, 32'h2468_ACF0,
+            1'b1, 32'd0, 32'h6000_0000,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar RL.R observes rotated source low-five count"
+        );
+        check_condition(
+            commit_count == 8,
+            "eight move and rotate packet commits"
+        );
 
-        apply_reset();
-        load_pc(32'h3D0);
-        serve_word(32'h3D0);
+        serve_word(32'h3E0);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -921,6 +913,17 @@ module tb_tms34020_scalar_slice;
             !status_write_enable,
             "unclassified packet is blocked"
         );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 8 &&
+                status == 32'h0000_0010 &&
+                sp == 32'h1234_5678,
+                "blocked packet cannot mutate rotate sequence"
+            );
+        end
 
         check_condition(
             !faulted &&

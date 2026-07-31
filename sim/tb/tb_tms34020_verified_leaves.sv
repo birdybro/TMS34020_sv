@@ -8,7 +8,9 @@ module tb_tms34020_verified_leaves;
     logic clk;
     logic reset;
     integer constant_index;
+    integer rotate_index;
     logic [15:0] constant_opcode;
+    logic [31:0] expected_rotate;
 
     logic [15:0] decode_word;
     logic decode_valid;
@@ -53,6 +55,12 @@ module tb_tms34020_verified_leaves;
     logic [31:0] rmo_source;
     logic [31:0] rmo_result;
     logic rmo_z;
+
+    logic [31:0] rotate_value;
+    logic [4:0] rotate_count;
+    logic [31:0] rotate_result;
+    logic rotate_c;
+    logic rotate_z;
 
     tms34020_unary_op_t unary_operation;
     logic [31:0] unary_destination;
@@ -174,6 +182,14 @@ module tb_tms34020_verified_leaves;
         .source_i(rmo_source),
         .result_o(rmo_result),
         .status_z_o(rmo_z)
+    );
+
+    tms34020_rotate_left rotate_left_dut (
+        .value_i(rotate_value),
+        .count_i(rotate_count),
+        .result_o(rotate_result),
+        .status_c_o(rotate_c),
+        .status_z_o(rotate_z)
     );
 
     tms34020_unary unary_dut (
@@ -718,6 +734,25 @@ module tb_tms34020_verified_leaves;
         register_write_enable = 1'b0;
     endtask
 
+    task automatic check_rotate_left(
+        input logic [31:0] value,
+        input logic [4:0] count,
+        input logic [31:0] expected_result,
+        input logic expected_c,
+        input logic expected_z,
+        input string message
+    );
+        rotate_value = value;
+        rotate_count = count;
+        #1;
+        check_condition(
+            rotate_result == expected_result &&
+            rotate_c == expected_c &&
+            rotate_z == expected_z,
+            message
+        );
+    endtask
+
     task automatic write_status(
         input logic [31:0] write_data,
         input logic [31:0] write_mask
@@ -829,6 +864,8 @@ module tb_tms34020_verified_leaves;
         pixel_size = 6'd0;
         compare_constant = 5'd0;
         rmo_source = 32'd0;
+        rotate_value = 32'd0;
+        rotate_count = 5'd0;
         unary_operation = TMS34020_UNARY_ABS;
         unary_destination = 32'd0;
         unary_borrow = 1'b0;
@@ -884,6 +921,50 @@ module tb_tms34020_verified_leaves;
         );
         check_condition(status_value == 32'h0000_0010,
                         "status state reset value");
+
+        check_rotate_left(
+            32'hF000_0000, 5'd0, 32'hF000_0000, 1'b0, 1'b0,
+            "RL count zero clears carry"
+        );
+        check_rotate_left(
+            32'h8000_0000, 5'd1, 32'h0000_0001, 1'b1, 1'b0,
+            "RL count one"
+        );
+        check_rotate_left(
+            32'h1234_5678, 5'd4, 32'h2345_6781, 1'b1, 1'b0,
+            "RL nibble"
+        );
+        check_rotate_left(
+            32'hF000_0000, 5'd30, 32'h3C00_0000, 1'b0, 1'b0,
+            "RL count thirty primary-result interpretation"
+        );
+        check_rotate_left(
+            32'h0000_0001, 5'd31, 32'h8000_0000, 1'b0, 1'b0,
+            "RL count thirty-one"
+        );
+        check_rotate_left(
+            32'd0, 5'd17, 32'd0, 1'b0, 1'b1,
+            "RL zero result"
+        );
+        expected_rotate = 32'hA5C3_0F96;
+        for (rotate_index = 0;
+             rotate_index < 32;
+             rotate_index = rotate_index + 1) begin
+            if (rotate_index != 0) begin
+                expected_rotate = {
+                    expected_rotate[30:0],
+                    expected_rotate[31]
+                };
+            end
+            check_rotate_left(
+                32'hA5C3_0F96,
+                rotate_index[4:0],
+                expected_rotate,
+                (rotate_index == 0) ? 1'b0 : expected_rotate[0],
+                1'b0,
+                "RL every five-bit count"
+            );
+        end
 
         write_status(32'hF000_0000, 32'hF000_0000);
         check_condition(status_value == 32'hF000_0010,
@@ -1281,13 +1362,55 @@ module tb_tms34020_verified_leaves;
         );
         check_register_execute(
             16'h3001, 32'd0, 32'hF000_0000, 32'hF020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decoded RL.K remains unsupported"
+            1'b1, 1'b1, 32'hF000_0000, 1'b1,
+            32'd0, 32'h6000_0000,
+            "register execute RL.K count zero"
+        );
+        check_condition(
+            !execute_register_file &&
+            !execute_destination_register_file &&
+            execute_source_index == 4'd1 &&
+            execute_destination_index == 4'd1,
+            "register execute RL.K reads destination only"
+        );
+        check_register_execute(
+            16'h33C1, 32'd0, 32'hF000_0000, 32'hF020_001F,
+            1'b1, 1'b1, 32'h3C00_0000, 1'b1,
+            32'd0, 32'h6000_0000,
+            "register execute RL.K count thirty"
         );
         check_register_execute(
             16'h6801, 32'd4, 32'hF000_0000, 32'hF020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decoded RL.R remains unsupported"
+            1'b1, 1'b1, 32'h0000_000F, 1'b1,
+            32'h4000_0000, 32'h6000_0000,
+            "register execute RL.R source count"
+        );
+        check_condition(
+            !execute_register_file &&
+            !execute_destination_register_file &&
+            execute_source_index == 4'd0 &&
+            execute_destination_index == 4'd1,
+            "register execute RL.R selectors"
+        );
+        check_register_execute(
+            16'h6811, 32'hFFFF_FFE4, 32'hF000_0000,
+            32'hF020_001F,
+            1'b1, 1'b1, 32'h0000_000F, 1'b1,
+            32'h4000_0000, 32'h6000_0000,
+            "register execute RL.R uses source low five bits"
+        );
+        check_register_execute(
+            16'h69FF, 32'd31, 32'd1, 32'h9020_001F,
+            1'b1, 1'b1, 32'h8000_0000, 1'b1,
+            32'd0, 32'h6000_0000,
+            "register execute RL.R shared SP"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_destination_register_file &&
+            execute_source_index == 4'd15 &&
+            execute_destination_index == 4'd15,
+            "register execute RL.R shared-SP selectors"
         );
         check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
@@ -1531,6 +1654,20 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'h8000_0000, 32'hB000_0000,
             32'hC000_0010, 32'd0,
             "register commit MOVE B1 to A2"
+        );
+        commit_register_instruction(
+            16'h3002, 1'b1,
+            1'b1, 1'b0, 4'd2, 32'hFFFF_FFFF,
+            1'b1, 32'd0, 32'h6000_0000,
+            32'h8000_0010, 32'd0,
+            "register commit RL.K count zero clears carry"
+        );
+        commit_register_instruction(
+            16'h6840, 1'b1,
+            1'b1, 1'b0, 4'd0, 32'hFFFF_FFFF,
+            1'b1, 32'h4000_0000, 32'h6000_0000,
+            32'hC000_0010, 32'd0,
+            "register commit RL.R observes source count and preserves N"
         );
         commit_register_instruction(
             16'h0380, 1'b1,

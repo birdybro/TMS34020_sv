@@ -18,6 +18,7 @@ SOURCES = [
     ROOT / "rtl/execute/tms34020_unary.sv",
     ROOT / "rtl/execute/tms34020_cmpk.sv",
     ROOT / "rtl/execute/tms34020_rmo.sv",
+    ROOT / "rtl/execute/tms34020_rotate_left.sv",
     ROOT / "rtl/execute/tms34020_logical.sv",
     ROOT / "rtl/execute/tms34020_addxyi.sv",
     ROOT / "rtl/execute/tms34020_register_execute.sv",
