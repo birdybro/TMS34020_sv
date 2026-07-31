@@ -113,6 +113,10 @@
   range interpretation, two-/three-state timing, TMS34010 semantic
   compatibility, complete boundary fixtures, atomic model rollback guards, and
   explicit RTL packet noncommit checks.
+- Independent DSJS model execution covering every published row, both
+  directions, zero/max magnitudes, instruction-range endpoints, PC wrap,
+  A/B/shared-SP selection, exact write traces, complete status preservation,
+  and documented two-/three-state cases.
 - Independent DSJ/DSJEQ/DSJNE model execution covering all published rows,
   enabled and suppressed conditions, zero/wrapping decrements, signed
   displacement extremes, PC wrap, A/B/shared-SP selection, exact write traces,
@@ -225,6 +229,11 @@
 
 ### Verified
 
+- The 129-case independent model suite covers bounded successful semantics for
+  all 79 currently extracted forms. DSJS tests distinguish the embedded
+  unsigned magnitude plus direction bit from DSJ signed extension and cover
+  primary examples, range endpoints, aliasing, wrap, status, and state counts.
+  This is not full-ISA or RTL retirement-timing coverage.
 - Expanded the collision-free ISA slice to 79 entries covering 25,266 first
   words. DSJS forward/backward, zero/max-magnitude, A/B/shared-SP, and adjacent
   CMPK/ADD boundaries pass independent fixtures and the 65,536-word sweep. The

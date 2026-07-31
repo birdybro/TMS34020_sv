@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1926,18 +1925,88 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_dsjs_is_atomic_until_semantics_are_implemented(self) -> None:
-        for opcode in (0x3800, 0x3BFF, 0x3C00, 0x3FFF):
-            with self.subTest(opcode=f"{opcode:04X}"):
+    def test_dsjs_all_primary_rows_status_and_cycles(self) -> None:
+        for before, after, jump_taken in (
+            (9, 8, True),
+            (1, 0, False),
+            (0, 0xFFFF_FFFF, True),
+        ):
+            with self.subTest(before=before):
                 model = Tms34020Model()
-                model.load_program([opcode], bit_address=0x80)
-                model.state.write_reg("A", 0, 0x1234_5678)
-                model.state.sp = 0x89AB_CDEF
-                model.state.st = 0xA000_0010
-                before = model.snapshot()
-                with self.assertRaises(UnsupportedInstruction):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
+                model.load_program([0x3845], bit_address=0x80)
+                model.state.write_reg("A", 5, before)
+                model.state.st = 0xB5A3_4A95
+
+                event = model.step()
+
+                self.assertEqual(model.state.read_reg("A", 5), after)
+                self.assertEqual(model.state.st, 0xB5A3_4A95)
+                self.assertEqual(
+                    model.state.pc,
+                    0xB0 if jump_taken else 0x90,
+                )
+                self.assertEqual(
+                    event.machine_states,
+                    3 if jump_taken else 2,
+                )
+                self.assertEqual(
+                    event.register_writes,
+                    [
+                        {
+                            "file": "A",
+                            "index": 5,
+                            "old": before,
+                            "new": after,
+                        }
+                    ],
+                )
+
+    def test_dsjs_direction_magnitude_boundaries_and_pc_wrap(self) -> None:
+        fixtures = (
+            (0x3800, 0x80, 0x90),
+            (0x3BE0, 0x80, 0x280),
+            (0x3C00, 0x80, 0x90),
+            (0x3FE0, 0x80, 0xFFFF_FEA0),
+            (0x3BE0, 0xFFFF_FF00, 0x100),
+        )
+        for opcode, start_pc, expected_pc in fixtures:
+            with self.subTest(
+                opcode=f"{opcode:04X}",
+                start_pc=f"{start_pc:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=start_pc)
+                model.state.write_reg("A", 0, 2)
+
+                event = model.step()
+
+                self.assertEqual(model.state.read_reg("A", 0), 1)
+                self.assertEqual(model.state.pc, expected_pc)
+                self.assertEqual(event.machine_states, 3)
+
+    def test_dsjs_b_file_shared_sp_and_zero_result(self) -> None:
+        shared_sp = Tms34020Model()
+        shared_sp.load_program([0x3FFF], bit_address=0x80)
+        shared_sp.state.sp = 2
+        shared_sp.state.st = 0xA000_0010
+
+        shared_event = shared_sp.step()
+
+        self.assertEqual(shared_sp.state.sp, 1)
+        self.assertEqual(shared_sp.state.read_reg("A", 15), 1)
+        self.assertEqual(shared_sp.state.pc, 0xFFFF_FEA0)
+        self.assertEqual(shared_sp.state.st, 0xA000_0010)
+        self.assertEqual(shared_event.machine_states, 3)
+
+        b_file = Tms34020Model()
+        b_file.load_program([0x3872], bit_address=0x80)
+        b_file.state.write_reg("B", 2, 1)
+
+        b_event = b_file.step()
+
+        self.assertEqual(b_file.state.read_reg("B", 2), 0)
+        self.assertEqual(b_file.state.pc, 0x90)
+        self.assertEqual(b_event.machine_states, 2)
 
     def test_dsj_all_primary_register_rows_status_and_cycles(self) -> None:
         for before, after, jump_taken in (

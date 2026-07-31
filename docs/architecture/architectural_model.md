@@ -18,7 +18,7 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, EINT, EXGF,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, JUMP, POPST, PUSHST, PUTST,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
@@ -31,7 +31,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 78 of the 79 currently extracted database forms. This is
+These handlers cover all 79 currently extracted database forms. This is
 coverage of a current partial extraction, not instruction completeness.
 
 DSJ/DSJEQ/DSJNE tests reproduce all 15 published example rows, both condition
@@ -41,10 +41,12 @@ register-write traces, and the documented two-/three-state instruction
 boundary cases. Sources: TI *TMS34020 User's Guide*, August 1990, printed
 pp.13-103..13-107.
 
-DSJS is decoded across all direction/magnitude/file/index combinations, but
-successful semantics are not yet present. Four independent range-boundary
-fixtures require a complete attempted step to raise `UnsupportedInstruction`
-and restore PC, registers, ST, memory, cache, and traces atomically.
+DSJS tests reproduce all three published input rows, both directions, zero and
+maximum magnitudes, A/B/shared-SP selection, instruction-address range
+endpoints, PC wrap, unchanged ST, exact register-write traces, and the
+documented two-/three-state cases. The direction bit controls add/subtract of
+an unsigned magnitude; it does not use the signed-extension path of DSJ.
+Source: TI *TMS34020 User's Guide*, August 1990, printed p.13-108.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages

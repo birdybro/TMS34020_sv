@@ -134,10 +134,10 @@ two's-complement value. The guide's range of −30 through +32 words is measured
 from the DSJS instruction address because `PC'` is already one word ahead.
 ST remains unchanged, and the no-jump/jump cases take two/three states.
 Sources: TMS34020 User's Guide printed pp.13-12, 13-108, and 15-4; TMS34010
-User's Guide printed pp.12-74..12-75. At this extraction checkpoint the
-independent model raises `UnsupportedInstruction` and rolls back the complete
-checkpoint, while the RTL blocks complete DSJS packets without architectural
-mutation.
+User's Guide printed pp.12-74..12-75. The independent model executes the
+published rows plus direction/magnitude/file/wrap boundaries and reports the
+two-/three-state cases. The RTL still blocks complete DSJS packets without
+architectural mutation.
 
 EXGF atomically exchanges the selected six-bit FS/FE status bank with the low
 six bits of an A/B/shared-SP destination and clears the register's upper

@@ -3,18 +3,19 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `9502eebd3f7322c2b25b18a0dba47233c051fb99`
-- Passing tests: foundation, reference/hash, delta, 28-case ISA sweep, 127 directed model
+- Latest verified baseline commit: `3aa3c3e57d333ccd36817cf0d480c4b252f28535`
+- Passing tests: foundation, reference/hash, delta, 28-case ISA sweep, 129 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 78 of 79 currently extracted encoding forms have bounded
-  successful semantics. DSJS is protected by exact full-checkpoint rollback
-  tests pending implementation. DSJ, DSJEQ, and DSJNE reproduce all published
-  rows,
+- Model status: all 79 currently extracted encoding forms have bounded
+  successful semantics. DSJS covers every published row, direction/magnitude
+  endpoints, instruction-range endpoints, PC wrap, A/B/shared-SP, exact writes,
+  ST preservation, and two-/three-state cases. DSJ, DSJEQ, and DSJNE reproduce
+  all published rows,
   both condition outcomes, zero and wrapping decrements, signed displacement
   extremes, PC wrap, A/B/shared-SP selection, ST preservation, and two-/three-
   state instruction-boundary cases. JUMP covers all published targets, A/B/shared-SP

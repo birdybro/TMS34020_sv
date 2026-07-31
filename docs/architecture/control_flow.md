@@ -148,8 +148,9 @@ always decrements the destination modulo `2^32`. A nonzero result redirects to
 unaffected. The primary guide's −30..+32-word range is relative to the
 instruction address, not the already-advanced `PC'`. Sources: TMS34020 User's
 Guide printed pp.13-12 and 13-108; TMS34010 User's Guide printed
-pp.12-74..12-75. Decode is implemented, but model and RTL execution are
-deliberately blocked at this extraction checkpoint.
+pp.12-74..12-75. The independent model implements the successful instruction
+boundary, including both direction and magnitude endpoints. RTL execution
+remains deliberately blocked at this checkpoint.
 The RTL still lacks the documented two-/three-state scheduling.
 
 ## Reset entry

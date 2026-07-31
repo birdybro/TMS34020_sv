@@ -92,8 +92,8 @@ three when the short relative jump occurs. Its instruction word embeds a
 direction bit and five-bit unsigned magnitude; these cases do not imply that
 its pipeline implementation is identical to the two-word DSJ family. Sources:
 TMS34020 User's Guide printed p.13-108 and timing table p.15-4; TMS34010
-User's Guide printed pp.12-74..12-75. The timing is extracted metadata only at
-this checkpoint; model execution and RTL retirement are not implemented.
+User's Guide printed pp.12-74..12-75. The independent model reports both
+instruction-boundary cases. RTL retirement is not implemented.
 
 PUTST takes three machine states and copies the complete source register into
 ST. The same encoding, operation, and three-state summary appear in the

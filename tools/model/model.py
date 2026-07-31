@@ -93,6 +93,7 @@ class Tms34020Model:
             "DSJ": self._execute_dsj_family,
             "DSJEQ": self._execute_dsj_family,
             "DSJNE": self._execute_dsj_family,
+            "DSJS": self._execute_dsjs,
             "EINT": self._execute_eint,
             "EXGF": self._execute_exgf,
             "EXGPC": self._execute_exgpc,
@@ -541,6 +542,25 @@ class Tms34020Model:
         self.state.pc = (
             self.state.pc + displacement * 16
         ) & MASK32
+        return 3
+
+    def _execute_dsjs(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        first_word = words[0]
+        register_file, index = self._decode_destination(first_word)
+        result = (
+            self.state.read_reg(register_file, index) - 1
+        ) & MASK32
+        self.state.write_reg(register_file, index, result)
+        if result == 0:
+            return 2
+
+        displacement = ((first_word >> 5) & 0x1F) * 16
+        if first_word & 0x0400:
+            displacement = -displacement
+        self.state.pc = (self.state.pc + displacement) & MASK32
         return 3
 
     def _execute_putst(
