@@ -43,5 +43,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: extract the documented PC/pipeline completion contract before
-  integrating cache fetch into executable RTL
+- Next task: implement and verify the bounded instruction-packet assembler
+  between the cache and decoder without assigning TMS34020 machine-state timing

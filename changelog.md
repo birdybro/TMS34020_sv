@@ -200,6 +200,11 @@
   result without treating secondary GSPA notes as a syntax specification.
 - Recorded and resolved the ORI instruction-page alignment wording error
   against the same guide's chapter 15 timing table.
+- Extracted the primary PC alignment/advance, branch redirect, reset-vector,
+  GETPC/EXGPC, IDLE, interrupt-checkpoint, cache/execute overlap, read
+  serialization, hidden-write, and chapter 15 timing-assumption contracts.
+- Defined a bounded instruction-packet/fetch-cursor vocabulary separately from
+  undocumented physical pipeline stages and from TMS34020 machine-state timing.
 
 ### Integration
 

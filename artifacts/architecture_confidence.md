@@ -12,7 +12,8 @@
 | Architectural model slice | PROVISIONAL | 32 page-verified instructions fetch through deterministic cache transaction/retry state; full ISA/interfaces absent |
 | Synthesizable RTL slice | PROVISIONAL | Generated 38-entry partial decoder, A/B/SP and masked ST storage, common unary/binary/logical arithmetic, six TMS34020-specific semantic leaves, externally gated commit for 23 one-word instructions, and a standalone native-completion cache leaf pass directed Verilator and Cyclone V synthesis; no PC/execution integration, architectural retirement timing, or executable core |
 | Cache organization | VERIFIED_PRIMARY | August 1990 guide chapters 5–6 and 8; directed model and bounded RTL cover native retry/fault semantics, while active-refill flush, CPU fault/interrupt state, bus-width/page/pin timing remain absent |
-| Pipeline timing | UNKNOWN | Detailed timing-case extraction pending |
+| PC/control-flow boundary | VERIFIED_PRIMARY | Bit-address alignment/advance, redirect classes, reset vector, GETPC/EXGPC, IDLE and interrupt checkpoint rules are extracted with page citations |
+| Pipeline timing | PROVISIONAL | Primary guide establishes cache/execute/register/memory overlap, read blocking and hidden-write ordering; physical stage topology and complete timing cases remain unknown |
 | Memory/bus timing | PROVISIONAL | A clock-stretch cases identified; complete phase extraction pending |
 | Host/multiprocessor/coprocessor | UNKNOWN | Primary audit pending |
 | Graphics/display | UNKNOWN | Primary audit pending |
