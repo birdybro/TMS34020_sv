@@ -76,6 +76,9 @@
 - Primary-page-verified PUTST encoding, full-width status-write contract,
   A/B/shared-SP boundaries, three-state timing, adjacent POPST nonaliasing, and
   explicit model/RTL rollback boundaries pending independent semantics.
+- Independent PUTST model semantics with complete A/B/shared-SP source-to-ST
+  transfer, source preservation, all-zero/all-one/mixed patterns, and the
+  primary-documented three-state count.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -179,6 +182,9 @@
 
 ### Verified
 
+- The 116-case independent model suite covers bounded semantics for all 72
+  currently extracted forms, including PUTST full-width transfer and timing.
+  This is not coverage of the unextracted ISA or RTL retirement timing.
 - Expanded the collision-free ISA slice to 72 entries covering 23,088 first
   words. All four PUTST file/index boundaries roll back atomically in the model
   and remain blocked without architectural writes in leaf/commit/scalar RTL.

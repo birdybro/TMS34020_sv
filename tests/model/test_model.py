@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1924,21 +1923,59 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_putst_decode_checkpoint_rolls_back_atomically(self) -> None:
-        for opcode in (0x01A0, 0x01AF, 0x01B0, 0x01BF):
-            with self.subTest(opcode=f"{opcode:04X}"):
-                model = Tms34020Model()
-                model.load_program([opcode], bit_address=0x80)
-                model.state.st = 0xF000_0FFF
-                model.state.write_reg(
-                    "B" if opcode & 0x10 else "A",
-                    opcode & 0xF,
-                    0xA5C3_5A3C,
-                )
-                before = model.snapshot()
-                with self.assertRaises(UnsupportedInstruction):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
+    def test_putst_primary_full_status_copy_and_timing(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x01A0], bit_address=0x80)
+        model.state.st = 0xF000_0FFF
+        model.state.write_reg("A", 0, 0x0000_0010)
+
+        event = model.step()
+
+        self.assertEqual(model.state.st, 0x0000_0010)
+        self.assertEqual(model.state.read_reg("A", 0), 0x0000_0010)
+        self.assertEqual(event.mnemonic, "PUTST")
+        self.assertEqual(event.machine_states, 3)
+        self.assertEqual(event.status_before, 0xF000_0FFF)
+        self.assertEqual(event.status_after, 0x0000_0010)
+        self.assertEqual(event.register_writes, [])
+
+    def test_putst_all_files_indices_and_full_width_values(self) -> None:
+        values = (0x0000_0000, 0xFFFF_FFFF, 0xA5C3_5A3C)
+        for register_file, file_bit in (("A", 0), ("B", 1)):
+            for source_index in (0, 14, 15):
+                for value in values:
+                    with self.subTest(
+                        register_file=register_file,
+                        source_index=source_index,
+                        value=f"{value:08X}",
+                    ):
+                        opcode = 0x01A0 | (file_bit << 4) | source_index
+                        model = Tms34020Model()
+                        model.load_program([opcode], bit_address=0x80)
+                        model.state.st = 0x1234_5678
+                        model.state.write_reg(
+                            register_file, source_index, value
+                        )
+
+                        event = model.step()
+
+                        self.assertEqual(model.state.st, value)
+                        self.assertEqual(
+                            model.state.read_reg(
+                                register_file, source_index
+                            ),
+                            value,
+                        )
+                        self.assertEqual(event.machine_states, 3)
+                        self.assertEqual(event.register_writes, [])
+                        if source_index == 15:
+                            other_file = (
+                                "B" if register_file == "A" else "A"
+                            )
+                            self.assertEqual(
+                                model.state.read_reg(other_file, 15),
+                                value,
+                            )
 
     def test_exgf_primary_examples(self) -> None:
         for field_bank, opcode, expected_status in (

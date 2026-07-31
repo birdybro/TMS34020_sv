@@ -18,7 +18,8 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGF, EXGPC, GETPC, GETST, ADDK/INC,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGF, EXGPC, GETPC, GETST, PUTST,
+  ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
@@ -29,10 +30,8 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 71 of the 72 currently extracted database forms. Newly
-classified PUTST remains an atomic non-execution boundary until its independent
-full-status handler is added. This is coverage of a current partial extraction,
-not instruction completeness.
+These handlers cover all 72 currently extracted database forms. This is
+coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -79,6 +78,16 @@ one state for `F=0` and two for `F=1`; RSC-0019 records pinned MAME's
 field-one undercount. Sources: TMS34020 User's Guide printed pp.13-111 and
 15-4; compatibility cross-check: TMS34010 User's Guide printed pp.12-17 and
 12-78.
+
+PUTST captures the complete selected A/B register, including the shared-SP
+alias, and replaces all 32 ST bits without changing the source. Directed tests
+cover both files, ordinary and shared-SP indices, all-zero/all-one/mixed
+patterns, and the three documented machine states. The mixed pattern exercises
+reserved positions as part of the documented full-width transfer; it is model
+semantics, not evidence for silicon-revision-specific reserved-bit readback.
+Sources: TMS34020 User's Guide printed pp.4-2..4-3, 13-216, and 15-7;
+compatibility cross-check: TMS34010 User's Guide printed p.12-229 and its
+instruction summary.
 
 RPIX implements every
 legal PSIZE and the page-13-225 state counts. MWAIT exposes an abstract

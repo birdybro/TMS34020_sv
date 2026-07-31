@@ -86,13 +86,20 @@ shared SP. The RTL exposes simultaneous register and selected-bank masked write
 intents; its FPGA commit edge is not evidence for EXGF's documented one- or
 two-machine-state timing.
 
+The independent model verifies PUTST as a complete 32-bit source-to-ST copy
+from both files and shared SP, with the documented three-state count. Mixed
+reserved-bit patterns are tested at the architectural-model boundary; this is
+not silicon readback evidence. The RTL path remains noncommitting pending its
+separate state-write owner.
+
 ## Incomplete behavior
 
 The following are not yet implemented:
 
-- classified PUTST full-status semantics and three-state timing are not yet
-  owned by the model or RTL; PUSHST and POPST semantics/sequencing also remain,
-  as does EXGF architectural retirement timing;
+- classified PUTST full-status semantics are not yet owned by RTL, and its
+  three-state retirement is not implemented there; PUSHST and POPST
+  semantics/sequencing also remain, as does EXGF architectural retirement
+  timing;
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;
