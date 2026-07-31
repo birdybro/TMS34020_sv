@@ -2,7 +2,7 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 66 register/status/control-flow operations already verified
+execution path for 67 register/status/control-flow operations already verified
 against their individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, GETST, and PUTST;
@@ -12,7 +12,7 @@ against their individual TI instruction pages:
   MOVE, MOVX, MOVY,
   RL.K, and RL.R; plus
 - SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R; plus
-- GETPC, EXGPC, JUMP, DSJ, DSJEQ, DSJNE, and DSJS; plus
+- GETPC, EXGPC, JUMP, JR.L, DSJ, DSJEQ, DSJNE, and DSJS; plus
 - the three-word ANDNI, ORI, and XORI immediate-logical family; and
 - the three-word ADDXYI immediate XY operation; plus
 - the two-word ADDI.W/CMPI.W/SUBI.W and three-word
@@ -37,14 +37,16 @@ A packet is accepted only when all of these conditions are true:
 The same acceptance event supplies the existing atomic register/ST commit
 enable. A supported packet therefore commits at most once. For an ordinary
 instruction or GETPC, the frontend then receives a sequential completion
-handshake. EXGPC, JUMP, and taken DSJ-family instructions instead hold their
+handshake. EXGPC, JUMP, and taken JR.L/DSJ-family instructions instead hold their
 redirect target across the commit-to-completion boundary and present it with
-the completion handshake. Eighteen scalar runtime assertions check that only
+the completion handshake. Twenty scalar runtime assertions check that only
 supported packets commit, blocked packets cannot assert state writes, a commit
 cannot remain
 asserted on the next FPGA clock, and committed and pending redirect targets
 stay identified and aligned; JUMP must redirect without a register or status
-write; DSJ-family commits must match their Z condition, never write status, and
+write; JR.L must never write a register or status, must redirect exactly when
+its selected condition is true, and must use the sign-extended 16-bit word
+displacement; DSJ-family commits must match their Z condition, never write status, and
 redirect exactly by their signed 16-bit word displacement only when the
 decrement result is nonzero; DSJS commits must always decrement, never write
 status, and redirect by their encoded unsigned word magnitude and direction
@@ -67,6 +69,17 @@ supplies all 32 data bits, register writeback is suppressed, and the mask is
 commit. The serialized acceptance edge is not the instruction's documented
 three-machine-state retirement. Source: TI *TMS34020 User's Guide*, August
 1990, printed pp.4-2..4-3, 13-216, and 15-7.
+
+JR.L reads the encoded condition from the packet first word and N/C/Z/V from
+ST. A true predicate redirects from the sequential two-word PC by the signed
+extension word multiplied by 16; a false predicate falls through. It never
+writes a register or ST. Direct verification exhausts the 16 condition codes
+against all 16 NCZV combinations and checks signed displacement/PC-wrap
+boundaries; cache-fed tests cover both taken and false completion paths. Two
+scalar assertions independently constrain redirect ownership and the exact
+target. This functional ordering does not implement the documented
+two-/three-state retirement. Source: TI *TMS34020 User's Guide*, August 1990,
+printed pp.13-27, 13-138..13-140, and 15-5.
 
 DSJS always decrements its A/B/shared-SP destination modulo `2^32` and never
 writes ST. A nonzero result redirects from the sequential one-word PC by the
@@ -205,7 +218,10 @@ one- and two-machine-state timings. The
 earlier INC and DEC spellings exercise the canonical
 ADDK K=1 and SUBK K=1 object codes.
 
-An additional direct-PC sequence fetches the backward, maximum-magnitude DSJS
+Additional direct-PC sequences fetch an unconditional forward JR.L and a
+false JR.C, proving respectively that the held taken target and sequential
+fallthrough are consumed without register or status writes. Another sequence
+fetches the backward, maximum-magnitude DSJS
 shared-SP encoding at bit address `000000E0h`. It verifies the wrapping
 decrement from zero to `FFFFFFFFh`, complete ST preservation, and the held
 redirect from sequential PC `000000F0h` to `FFFFFF00h`.
@@ -218,7 +234,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 5,227 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 5,242 logic cells,
 1,414 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

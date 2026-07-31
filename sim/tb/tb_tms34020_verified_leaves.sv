@@ -14,6 +14,8 @@ module tb_tms34020_verified_leaves;
     integer field_size_index;
     integer pitch_first_power;
     integer pitch_second_power;
+    integer condition_code_index;
+    integer condition_status_index;
     logic [15:0] constant_opcode;
     logic [31:0] expected_rotate;
     logic [31:0] expected_shift;
@@ -409,6 +411,41 @@ module tb_tms34020_verified_leaves;
             $fatal(1);
         end
     endtask
+
+    function automatic logic reference_condition_true(
+        input logic [3:0] condition_code,
+        input logic [3:0] nczv
+    );
+        logic n;
+        logic c;
+        logic z;
+        logic v;
+        begin
+            n = nczv[3];
+            c = nczv[2];
+            z = nczv[1];
+            v = nczv[0];
+            case (condition_code)
+                4'h0: reference_condition_true = 1'b1;
+                4'h1: reference_condition_true = !n && !z;
+                4'h2: reference_condition_true = c || z;
+                4'h3: reference_condition_true = !c && !z;
+                4'h4: reference_condition_true = n != v;
+                4'h5: reference_condition_true = n == v;
+                4'h6: reference_condition_true = (n != v) || z;
+                4'h7: reference_condition_true = (n == v) && !z;
+                4'h8: reference_condition_true = c;
+                4'h9: reference_condition_true = !c;
+                4'hA: reference_condition_true = z;
+                4'hB: reference_condition_true = !z;
+                4'hC: reference_condition_true = v;
+                4'hD: reference_condition_true = !v;
+                4'hE: reference_condition_true = n;
+                4'hF: reference_condition_true = !n;
+                default: reference_condition_true = 1'b0;
+            endcase
+        end
+    endfunction
 
     task automatic check_immediate_register_execute(
         input logic [15:0] first_word,
@@ -1198,6 +1235,42 @@ module tb_tms34020_verified_leaves;
         #1;
     endtask
 
+    task automatic commit_jr_long_instruction(
+        input logic [15:0] first_word,
+        input logic [15:0] displacement,
+        input logic [31:0] sequential_next_pc,
+        input logic expected_redirect,
+        input logic [31:0] expected_redirect_address,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {16'd0, displacement, first_word};
+        commit_packet_length = 3'd2;
+        commit_sequential_next_pc = sequential_next_pc;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            !commit_register_write_enable &&
+            !commit_status_write_enable &&
+            commit_pc_redirect_enable == expected_redirect &&
+            commit_pc_redirect_bit_address ==
+                expected_redirect_address,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
     task automatic commit_dsj_instruction(
         input logic [15:0] first_word,
         input logic [15:0] displacement,
@@ -1378,6 +1451,29 @@ module tb_tms34020_verified_leaves;
             TMS34020_ST_RESERVED_MASK == 32'h099F_F000,
             "status reserved-bit mask"
         );
+        for (
+            condition_code_index = 0;
+            condition_code_index < 16;
+            condition_code_index = condition_code_index + 1
+        ) begin
+            for (
+                condition_status_index = 0;
+                condition_status_index < 16;
+                condition_status_index = condition_status_index + 1
+            ) begin
+                check_condition(
+                    tms34020_condition_true(
+                        condition_code_index[3:0],
+                        {condition_status_index[3:0], 28'd0}
+                    ) ==
+                    reference_condition_true(
+                        condition_code_index[3:0],
+                        condition_status_index[3:0]
+                    ),
+                    "all condition-code/status truth-table cells"
+                );
+            end
+        end
         check_condition(status_value == 32'h0000_0010,
                         "status state reset value");
 
@@ -2080,9 +2176,37 @@ module tb_tms34020_verified_leaves;
         check_pc_execute(
             16'hC000, 3'd2, 16'h0002, 32'h0000_20A0,
             32'hDEAD_BEEF, 32'hA000_0010,
-            1'b0, 1'b0, 32'd0,
+            1'b1, 1'b0, 32'd0,
+            1'b1, 32'h0000_20C0,
+            "PC execute unconditional JR.L forward redirect"
+        );
+        check_pc_execute(
+            16'hC800, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'hDEAD_BEEF, 32'hA000_0010,
+            1'b1, 1'b0, 32'd0,
             1'b0, 32'd0,
-            "decoded JR.L cannot enter PC execute before implementation"
+            "PC execute JR.C false condition falls through"
+        );
+        check_pc_execute(
+            16'hC800, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'hDEAD_BEEF, 32'h4000_0010,
+            1'b1, 1'b0, 32'd0,
+            1'b1, 32'h0000_20C0,
+            "PC execute JR.C true condition redirects"
+        );
+        check_pc_execute(
+            16'hC000, 3'd2, 16'h7FFF, 32'hFFFF_0120,
+            32'hDEAD_BEEF, 32'hA000_0010,
+            1'b1, 1'b0, 32'd0,
+            1'b1, 32'h0007_0110,
+            "PC execute JR.L maximum positive displacement wraps"
+        );
+        check_pc_execute(
+            16'hC000, 3'd2, 16'h8000, 32'h0007_FF20,
+            32'hDEAD_BEEF, 32'hA000_0010,
+            1'b1, 1'b0, 32'd0,
+            1'b1, 32'hFFFF_FF20,
+            "PC execute JR.L minimum negative displacement wraps"
         );
         check_pc_execute(
             16'h0121, 3'd2, 16'd0, 32'h0000_2090,
@@ -2918,28 +3042,18 @@ module tb_tms34020_verified_leaves;
             "register execute SUBXY shared-SP destination selector"
         );
 
-        commit_packet_words = {16'd0, 16'h0002, 16'hC000};
-        commit_packet_length = 3'd2;
-        commit_sequential_next_pc = 32'h0000_1020;
-        commit_valid = 1'b1;
-        #1;
-        check_condition(
-            !commit_supported &&
-            !commit_accepted &&
-            !commit_register_write_enable &&
-            !commit_status_write_enable &&
-            !commit_pc_redirect_enable,
-            "decoded JR.L packet cannot commit before implementation"
+        commit_jr_long_instruction(
+            16'hC000, 16'h0002, 32'h0000_1020,
+            1'b1, 32'h0000_1040,
+            TMS34020_ST_RESET, 32'd0,
+            "register commit unconditional JR.L redirect"
         );
-        @(posedge clk);
-        #1;
-        check_condition(
-            commit_status == TMS34020_ST_RESET &&
-            commit_sp == 32'd0,
-            "blocked JR.L packet cannot mutate architectural state"
+        commit_jr_long_instruction(
+            16'hC800, 16'h0002, 32'h0000_1020,
+            1'b0, 32'd0,
+            TMS34020_ST_RESET, 32'd0,
+            "register commit false JR.C preserves state"
         );
-        commit_valid = 1'b0;
-        #1;
 
         commit_register_instruction(
             16'h0D60, 1'b1,

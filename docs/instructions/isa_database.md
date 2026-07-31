@@ -127,8 +127,10 @@ eight-bit `JRcc` form can be represented while reserving `XX=00h` for the long
 form and `XX=80h` for `JAcc`. The independent model executes all 16 long
 conditions, preserves ST/registers, applies signed displacement extremes and
 PC wrap, and reports the documented two-/three-state instruction-boundary
-cases. Bounded RTL fetch/commit tests still require the packet to remain
-nonmutating until an execution owner is implemented.
+cases. Bounded RTL direct, commit, and cache-fed tests exercise predicate-false
+fallthrough and predicate-true signed redirects while requiring complete
+register/status preservation. This is functional execution evidence, not the
+documented retirement schedule.
 
 DSJ, DSJEQ, and DSJNE each consume a signed 16-bit **word** displacement in
 their second word. When the instruction's decrement condition is true, the

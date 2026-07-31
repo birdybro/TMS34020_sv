@@ -156,8 +156,11 @@ region, so they remain unclassified pending an explicit exclusion-capable
 decode representation. The independent model implements all 16 long-form
 conditions, both possible outcomes, signed displacement extremes, PC wrap,
 complete ST/register preservation, and two-/three-state instruction-boundary
-counts. Bounded RTL noncommit guards still prove that decode alone cannot
-advance or mutate architectural state.
+counts. The bounded RTL evaluates the same predicates with a shared
+synthesizable condition function, preserves all register/status state, and
+holds either the signed redirect or sequential fallthrough through frontend
+completion. Its serialized handshake does not implement the documented
+two-/three-state schedule.
 
 ## Decrement-and-jump instructions
 

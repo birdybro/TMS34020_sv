@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 51 one-word, seven
+asserted only when its declared length matches one of the 51 one-word, eight
 two-word, or eight three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -16,8 +16,8 @@ reported as `commit_accepted_o`.
 
 Register and status event outputs expose the exact write that is presented to
 the state owners on that edge. Unsupported instructions assert neither event
-and cannot change architectural state. EXGPC and JUMP redirect outputs are
-likewise gated by the accepted commit. NOP is supported and accepted but
+and cannot change architectural state. EXGPC, JUMP, and JR.L redirect outputs
+are likewise gated by the accepted commit. NOP is supported and accepted but
 produces no register, status, or redirect event.
 
 Supported operations are:
@@ -30,7 +30,7 @@ Supported operations are:
 - AND, ANDN, OR, and XOR;
 - MOVE, MOVX, MOVY, RL.K, RL.R, SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R;
 - GETPC, EXGPC, JUMP, and DSJS;
-- two-word DSJ, DSJEQ, and DSJNE;
+- two-word JR.L, DSJ, DSJEQ, and DSJNE;
 - two-word ADDI.W, CMPI.W, MOVI.W, and SUBI.W; and
 - three-word ADDI.L, ADDXYI, ANDNI, CMPI.L, MOVI.L, ORI, SUBI.L, and XORI.
 
@@ -49,6 +49,8 @@ emits the old value with bits `[3:0]` cleared as a redirect event. This module
 does not store PC; the execution composition owns application of that event.
 JUMP emits the selected old register or shared-SP value with bits `[3:0]`
 cleared, without a register or status write.
+JR.L reads its condition from N/C/Z/V without modifying them, emits a signed
+16-bit word-relative target only when true, and otherwise emits no redirect.
 
 `commit_i` is an integration contract, not a reconstructed TMS34020 pipeline
 signal. A future sequencer must assert it at the documented architectural
@@ -87,6 +89,7 @@ PUTST full-width status replacement from a dependent ordinary A register and
 the B-file shared-SP alias,
 state-neutral NOP, GETPC into a B register, EXGPC old-value capture and aligned
 redirect through an A register and shared SP, JUMP redirect-only ownership,
+JR.L true redirect and false fallthrough with complete state preservation,
 DSJ-family and DSJS decrement/redirect behavior through ordinary and shared-SP
 destinations, and rejection of an otherwise decoded but unsupported BLMOVE
 word. Two runtime assertions additionally

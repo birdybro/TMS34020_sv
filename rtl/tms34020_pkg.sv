@@ -70,6 +70,41 @@ package tms34020_pkg;
         TMS34020_MEMORY_RESERVED = 2'd3
     } tms34020_memory_completion_t;
 
+    function automatic logic tms34020_condition_true(
+        input logic [3:0]  condition_code,
+        input logic [31:0] status
+    );
+        logic n;
+        logic c;
+        logic z;
+        logic v;
+        begin
+            n = status[TMS34020_ST_N_BIT];
+            c = status[TMS34020_ST_C_BIT];
+            z = status[TMS34020_ST_Z_BIT];
+            v = status[TMS34020_ST_V_BIT];
+            case (condition_code)
+                4'h0: tms34020_condition_true = 1'b1;
+                4'h1: tms34020_condition_true = !n && !z;
+                4'h2: tms34020_condition_true = c || z;
+                4'h3: tms34020_condition_true = !c && !z;
+                4'h4: tms34020_condition_true = n != v;
+                4'h5: tms34020_condition_true = n == v;
+                4'h6: tms34020_condition_true = (n != v) || z;
+                4'h7: tms34020_condition_true = (n == v) && !z;
+                4'h8: tms34020_condition_true = c;
+                4'h9: tms34020_condition_true = !c;
+                4'hA: tms34020_condition_true = z;
+                4'hB: tms34020_condition_true = !z;
+                4'hC: tms34020_condition_true = v;
+                4'hD: tms34020_condition_true = !v;
+                4'hE: tms34020_condition_true = n;
+                4'hF: tms34020_condition_true = !n;
+                default: tms34020_condition_true = 1'b0;
+            endcase
+        end
+    endfunction
+
 `include "generated/tms34020_isa_decode.svh"
 
 endpackage

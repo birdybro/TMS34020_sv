@@ -83,8 +83,9 @@ different; it is compatibility evidence, not a reusable timing schedule.
 Sources: TMS34020 User's Guide printed pp.13-138..13-140 and timing table
 p.15-5; TMS34010 User's Guide printed pp.12-96..12-97. The independent model
 reports these two-/three-state instruction-boundary cases for all 16 condition
-codes. Bounded RTL still rejects the decoded packet, so it makes no retirement
-timing claim.
+codes. Bounded RTL implements predicate-controlled fallthrough/redirect
+semantics but not either documented retirement case, so it makes no timing
+claim.
 
 DSJ, DSJEQ, and DSJNE each take two machine states when no jump occurs and
 three when the decremented register remains nonzero and the relative redirect

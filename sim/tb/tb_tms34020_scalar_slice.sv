@@ -133,6 +133,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_00E0: memory_word = 16'h3FFF;
                 32'h0000_0C00: memory_word = 16'hC000;
                 32'h0000_0C10: memory_word = 16'h0002;
+                32'h0000_0D00: memory_word = 16'hC800;
+                32'h0000_0D10: memory_word = 16'h0002;
                 32'h0000_0100: memory_word = 16'h0BA0;
                 32'h0000_0110: memory_word = 16'h5678;
                 32'h0000_0120: memory_word = 16'h1234;
@@ -865,29 +867,69 @@ module tb_tms34020_scalar_slice;
         load_pc(32'hC00);
         serve_word(32'hC00);
         serve_word(32'hC10);
-        wait (packet_blocked);
+        wait (commit_accepted);
         check_condition(
             packet_valid &&
-            !packet_supported &&
+            packet_supported &&
+            !packet_blocked &&
             packet_opcode_id == TMS20_OP_JR_L &&
             packet_length_words == 3'd2 &&
             packet_words[31:0] == {16'h0002, 16'hC000} &&
-            !commit_accepted &&
             !register_write_enable &&
             !status_write_enable,
-            "complete JR.L packet is blocked before implementation"
+            "complete unconditional JR.L packet commits without state write"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0,
-                "blocked JR.L packet cannot mutate scalar state"
-            );
-        end
+        @(posedge clk);
+        #1;
+        check_condition(
+            !commit_accepted &&
+            commit_count == 1 &&
+            status == TMS34020_ST_RESET &&
+            sp == 32'd0,
+            "JR.L taken commit preserves scalar architectural state"
+        );
+        serve_word(32'hC40);
+        wait (packet_blocked);
+        check_condition(
+            packet_opcode_id == TMS20_OP_UNCLASSIFIED &&
+            packet_start_pc == 32'hC40 &&
+            commit_count == 1,
+            "JR.L taken path reaches signed relative target"
+        );
+
+        apply_reset();
+        load_pc(32'hD00);
+        serve_word(32'hD00);
+        serve_word(32'hD10);
+        wait (commit_accepted);
+        check_condition(
+            packet_valid &&
+            packet_supported &&
+            !packet_blocked &&
+            packet_opcode_id == TMS20_OP_JR_L &&
+            packet_length_words == 3'd2 &&
+            packet_words[31:0] == {16'h0002, 16'hC800} &&
+            !register_write_enable &&
+            !status_write_enable,
+            "JR.C false packet commits without state write"
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            !commit_accepted &&
+            commit_count == 1 &&
+            status == TMS34020_ST_RESET &&
+            sp == 32'd0,
+            "JR.C false commit preserves scalar architectural state"
+        );
+        serve_word(32'hD20);
+        wait (packet_blocked);
+        check_condition(
+            packet_opcode_id == TMS20_OP_UNCLASSIFIED &&
+            packet_start_pc == 32'hD20 &&
+            commit_count == 1,
+            "JR.C false path falls through sequentially"
+        );
 
         apply_reset();
         load_pc(32'h100);

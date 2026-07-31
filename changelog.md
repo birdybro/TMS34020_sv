@@ -127,6 +127,12 @@
   every possible false outcome, signed displacement extremes, forward/backward
   PC wrap, exact instruction/next-PC trace fields, complete ST/register
   preservation, and documented two-/three-state cases.
+- Synthesizable long-JR execution with a shared 16-condition NCZV predicate
+  function, state-neutral true/false completion, exact signed word-relative
+  targets, held cache-fed redirect/fallthrough paths, exhaustive 256-cell
+  condition testing, displacement and PC-wrap boundaries, and two runtime
+  safety assertions. Architectural two-/three-state retirement remains
+  unimplemented.
 - Synthesizable DSJS direct-PC execution with unconditional modulo-`2^32`
   destination decrement, status preservation, nonzero-result redirect,
   independent direction and unsigned-magnitude handling, held frontend target,
@@ -246,16 +252,17 @@
 
 - The 131-case independent model suite now has bounded successful semantics for
   all 80 currently extracted forms. JR.L tests independently cover every
-  condition outcome and signed target boundary without weakening the RTL
-  noncommit guard. This is not coverage of short JRcc, JAcc, the unextracted
-  ISA, or RTL retirement timing.
+  condition outcome and signed target boundary. Functional RTL tests separately
+  cover the complete condition truth table, direct targets, state-neutral
+  commit, and cache-fed taken/fallthrough paths. This is not coverage of short
+  JRcc, JAcc, the unextracted ISA, or RTL retirement timing.
 - Expanded the collision-free ISA slice to 80 entries covering 25,282 first
   words. The 29-case ISA suite checks all long-JR conditions and neighboring
-  exclusions across the complete 65,536-word sweep; the 130-case model suite
+  exclusions across the complete 65,536-word sweep; the 131-case model suite
   proves unsupported execution rolls back exactly. Verilator leaf/scalar and
-  all four decoder-bearing Cyclone V analyses pass with zero warnings at 8,645
-  leaf, 410 fetch, 778 frontend, and 5,227 scalar logic cells. This is decode,
-  noncommit, and synthesis-portability evidence, not JR.L execution or timing.
+  all four decoder-bearing Cyclone V analyses pass with zero warnings at 8,679
+  leaf, 410 fetch, 778 frontend, and 5,242 scalar logic cells. This is bounded
+  functional and synthesis-portability evidence, not JR.L retirement timing.
 - DSJS functional RTL passes direct-PC, ordered commit, and cache-fed scalar
   tests for zero/nonzero results, zero/max magnitudes, both directions,
   A/B/shared-SP destinations, exact status preservation, and PC wrap. The

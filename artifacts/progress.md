@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `aa0a1e8254446c17d0439cad65cb946bc309adcf`
+- Latest verified baseline commit: `184f7c9e548e58170ac892ee436cf3a20065a848`
 - Passing tests: foundation, reference/hash, delta, 29-case ISA sweep, 131 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -88,8 +88,14 @@
   PUTST replaces all 32 ST bits from an A/B/shared-SP source without register
   writeback and passes a cache-fed dependency; its three-state architectural
   retirement is not implemented.
-  JUMP functional redirect semantics pass, but its documented two-state
-  retirement is not implemented. DSJS always decrements its A/B/shared-SP
+  Long JRcc evaluates all 16 NCZV predicates through a shared combinational
+  condition function, preserves registers and ST, and holds a signed
+  extension-word redirect when true or completes sequentially when false.
+  Direct tests exhaust all 256 condition/status combinations and signed/PC-wrap
+  targets; cache-fed taken and false paths pass. Its documented two-/three-state
+  retirement is not implemented. JUMP functional redirect semantics pass, but
+  its documented two-state retirement is not implemented. DSJS always
+  decrements its A/B/shared-SP
   destination, preserves ST, and holds its encoded forward/backward short
   redirect for a nonzero result; its documented two-/three-state retirement is
   not implemented. DSJ/DSJEQ/DSJNE
@@ -97,9 +103,7 @@
   A/B/shared-SP destinations, preserve ST, and issue signed relative redirects
   only for nonzero results; their documented two-/three-state retirement is not
   implemented. POPST and PUSHST remain blocked and noncommitting pending
-  memory-transaction ownership. Long JRcc is fetched as a complete two-word
-  packet but remains explicitly blocked, nonwriting, and nonredirecting at this
-  extraction checkpoint.
+  memory-transaction ownership.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -111,13 +115,13 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, eighteen scalar, and two commit-owner
+- Formal status: four cache, four fetch, twenty scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,645 logic cells and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 410, 778, and 5,227 logic cells;
+  warnings; the leaf wrapper uses 8,679 logic cells and 2,048 registers, while
+  the fetch, frontend, and scalar wrappers use 410, 778, and 5,242 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
