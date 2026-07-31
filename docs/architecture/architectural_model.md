@@ -14,8 +14,8 @@ Implemented:
 - verified reset-vector low-nibble loading into CONFIG and PC alignment;
 - deterministic randomized state;
 - program loading, single stepping, JSON snapshot/replay, and checkpoint traces;
-- NOP, ABS, NEG, NEGB, NOT, IDLE entry, MWAIT, ADDXYI, CMPK, EXGPS,
-  GETPS, RMO, and RPIX.
+- NOP, ABS, NEG, NEGB, NOT, ADD, ADDC, SUB, SUBB, CMP, IDLE entry, MWAIT,
+  ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -39,6 +39,10 @@ The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,
 13-131, 13-178..13-181, and 13-224; hidden-cycle definition on printed p.15-1.
+
+The binary register family implements ADD/ADDC carry and SUB/SUBB/CMP borrow,
+including carry/borrow inputs and one-state timing. Sources: the same guide,
+printed pp.13-33..13-34, 13-80, and 13-241..13-242.
 
 Where TI says PSIZE is assumed to be one of 1, 2, 4, 8, 16, or 32, the model
 raises `ModelError` for any other current value. That is a verification guard,
@@ -79,7 +83,9 @@ make model-tests
 
 Directed tests cover SP aliasing, crossing bit memory, reset vector handling,
 seed reproducibility, instruction PC increments, ADDXYI edge behavior and
-flags, all TI example rows for ABS/NEG/NEGB/NOT, CMPK constants/flags, PSIZE
-get/exchange, RMO zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE
-rejection, MWAIT pending states, IDLE claim boundaries, no mutation on
-unsupported instructions, and snapshot/replay equivalence.
+flags, all TI example rows for ABS/NEG/NEGB/NOT, directed
+ADD/ADDC/SUB/SUBB/CMP arithmetic boundaries and nondestructive CMP,
+CMPK constants/flags, PSIZE get/exchange, RMO zero/bit-position cases, all
+RPIX sizes/cycles, invalid PSIZE rejection, MWAIT pending states, IDLE claim
+boundaries, no mutation on unsupported instructions, and snapshot/replay
+equivalence.

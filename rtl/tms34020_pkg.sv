@@ -19,6 +19,14 @@ package tms34020_pkg;
         TMS34020_UNARY_NOT  = 2'b11
     } tms34020_unary_op_t;
 
+    typedef enum logic [2:0] {
+        TMS34020_BINARY_ADD  = 3'd0,
+        TMS34020_BINARY_ADDC = 3'd1,
+        TMS34020_BINARY_SUB  = 3'd2,
+        TMS34020_BINARY_SUBB = 3'd3,
+        TMS34020_BINARY_CMP  = 3'd4
+    } tms34020_binary_op_t;
+
 `include "generated/tms34020_isa_decode.svh"
 
 endpackage

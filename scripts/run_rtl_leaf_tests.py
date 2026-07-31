@@ -17,6 +17,7 @@ SOURCES = [
     ROOT / "rtl/core/tms34020_decode.sv",
     ROOT / "rtl/core/tms34020_regfile.sv",
     ROOT / "rtl/execute/tms34020_addxyi.sv",
+    ROOT / "rtl/execute/tms34020_binary_arithmetic.sv",
     ROOT / "rtl/execute/tms34020_cmpk.sv",
     ROOT / "rtl/execute/tms34020_rmo.sv",
     ROOT / "rtl/execute/tms34020_unary.sv",

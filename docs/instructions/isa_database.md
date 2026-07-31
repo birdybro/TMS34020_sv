@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains nineteen page-verified instructions and covers 1,804 of 65,536
+slice contains twenty-four page-verified instructions and covers 4,364 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -18,6 +18,11 @@ first words without collisions:
 | NEG | `03A0h`, mask `FFE0h` | 1 | p.13-178 |
 | NEGB | `03C0h`, mask `FFE0h` | 1 | p.13-179 |
 | NOT | `03E0h`, mask `FFE0h` | 1 | p.13-181 |
+| ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
+| ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
+| SUB | `4400h`, mask `FE00h` | 1 | p.13-241 |
+| SUBB | `4600h`, mask `FE00h` | 1 | p.13-242 |
+| CMP | `4800h`, mask `FE00h` | 1 | p.13-80 |
 | IDLE | `0040h` | 1 | p.13-133 |
 | MWAIT | `0080h` | 1 | p.13-177 |
 | ADDXYI | `0C00h`, mask `FFE0h` | 3 | p.13-39 |

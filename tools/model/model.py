@@ -75,6 +75,11 @@ class Tms34020Model:
             "NEG": self._execute_neg,
             "NEGB": self._execute_negb,
             "NOT": self._execute_not,
+            "ADD": self._execute_add,
+            "ADDC": self._execute_addc,
+            "SUB": self._execute_sub,
+            "SUBB": self._execute_subb,
+            "CMP": self._execute_cmp,
             "IDLE": self._execute_idle,
             "MWAIT": self._execute_mwait,
             "ADDXYI": self._execute_addxyi,
@@ -222,6 +227,12 @@ class Tms34020Model:
         register_file = "B" if first_word & 0x10 else "A"
         return register_file, first_word & 0xF
 
+    def _decode_source_destination(
+        self, first_word: int
+    ) -> tuple[str, int, int]:
+        register_file = "B" if first_word & 0x10 else "A"
+        return register_file, (first_word >> 5) & 0xF, first_word & 0xF
+
     def _execute_nop(
         self, instruction: Instruction, words: list[int]
     ) -> int:
@@ -283,6 +294,88 @@ class Tms34020Model:
         self.state.write_reg(register_file, index, result)
         self._set_status_bit(Z_BIT, result == 0)
         return 1
+
+    def _execute_binary_arithmetic(
+        self,
+        words: list[int],
+        operation: str,
+    ) -> int:
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        source = self.state.read_reg(register_file, source_index)
+        destination = self.state.read_reg(register_file, destination_index)
+        carry_or_borrow = (self.state.st >> C_BIT) & 1
+
+        if operation in ("ADD", "ADDC"):
+            carry_in = carry_or_borrow if operation == "ADDC" else 0
+            total = destination + source + carry_in
+            result = total & MASK32
+            carry_out = (total >> 32) & 1
+            status_c = carry_out
+            low_total = (
+                (destination & 0x7FFF_FFFF)
+                + (source & 0x7FFF_FFFF)
+                + carry_in
+            )
+            carry_into_sign = (low_total >> 31) & 1
+            overflow = carry_into_sign ^ carry_out
+        else:
+            borrow_in = carry_or_borrow if operation == "SUBB" else 0
+            result = (destination - source - borrow_in) & MASK32
+            borrow_out = destination < source + borrow_in
+            complement_add = (
+                destination
+                + ((~source) & MASK32)
+                + (1 - borrow_in)
+            )
+            complement_carry_out = (complement_add >> 32) & 1
+            low_complement_add = (
+                (destination & 0x7FFF_FFFF)
+                + ((~source) & 0x7FFF_FFFF)
+                + (1 - borrow_in)
+            )
+            carry_into_sign = (low_complement_add >> 31) & 1
+            overflow = carry_into_sign ^ complement_carry_out
+            status_c = int(borrow_out)
+
+        if operation != "CMP":
+            self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, bool(status_c))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, bool(overflow))
+        return 1
+
+    def _execute_add(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_binary_arithmetic(words, "ADD")
+
+    def _execute_addc(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_binary_arithmetic(words, "ADDC")
+
+    def _execute_sub(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_binary_arithmetic(words, "SUB")
+
+    def _execute_subb(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_binary_arithmetic(words, "SUBB")
+
+    def _execute_cmp(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_binary_arithmetic(words, "CMP")
 
     def _execute_idle(
         self, instruction: Instruction, words: list[int]

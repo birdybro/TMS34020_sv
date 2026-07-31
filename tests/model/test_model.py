@@ -154,6 +154,154 @@ class ExecutionTests(unittest.TestCase):
                 )
                 self.assertEqual(event.machine_states, 1)
 
+    def test_add_primary_examples(self) -> None:
+        cases = (
+            (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0b1100),
+            (0xFFFFFFFF, 0x00000001, 0x00000000, 0b0110),
+            (0xFFFFFFFF, 0x00000002, 0x00000001, 0b0100),
+            (0xFFFFFFFF, 0x80000000, 0x7FFFFFFF, 0b0101),
+            (0xFFFFFFFF, 0x80000001, 0x80000000, 0b1100),
+            (0x7FFFFFFF, 0x80000001, 0x00000000, 0b0110),
+            (0x7FFFFFFF, 0x80000000, 0xFFFFFFFF, 0b1000),
+            (0x7FFFFFFF, 0x00000001, 0x80000000, 0b1001),
+            (0x00000002, 0x00000002, 0x00000004, 0b0000),
+        )
+        for source, destination, expected_result, expected_nczv in cases:
+            with self.subTest(
+                source=f"{source:08X}", destination=f"{destination:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x4020])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_addc_uses_carry_and_handles_sign_boundary(self) -> None:
+        cases = (
+            (0xFFFFFFFF, 0xFFFFFFFF, 1, 0xFFFFFFFF, 0b1100),
+            (0xFFFFFFFF, 0x00000001, 1, 0x00000001, 0b0100),
+            (0x7FFFFFFF, 0x00000001, 1, 0x80000001, 0b1001),
+            (0x00000002, 0x00000002, 1, 0x00000005, 0b0000),
+            (0xFFFFFFFF, 0x00000001, 0, 0x00000000, 0b0110),
+        )
+        for source, destination, carry, expected_result, expected_nczv in cases:
+            with self.subTest(
+                source=f"{source:08X}",
+                destination=f"{destination:08X}",
+                carry=carry,
+            ):
+                model = Tms34020Model()
+                model.load_program([0x4220])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                model.state.st = carry << 30
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_sub_primary_examples(self) -> None:
+        cases = (
+            (0x7FFFFFF1, 0x7FFFFFF2, 0x00000001, 0b0000),
+            (0x7FFFFFF2, 0x7FFFFFF2, 0x00000000, 0b0010),
+            (0x7FFFFFF2, 0x7FFFFFF1, 0xFFFFFFFF, 0b1100),
+            (0xFFFFFFFF, 0x7FFFFFF1, 0x7FFFFFF2, 0b0100),
+            (0xFFFFFFFF, 0x7FFFFFFF, 0x80000000, 0b1101),
+            (0x00000001, 0xFFFFFFFF, 0xFFFFFFFE, 0b1000),
+            (0x00000001, 0x80000000, 0x7FFFFFFF, 0b0001),
+        )
+        for source, destination, expected_result, expected_nczv in cases:
+            with self.subTest(
+                source=f"{source:08X}", destination=f"{destination:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x4420])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_subb_uses_borrow_and_handles_sign_boundary(self) -> None:
+        cases = (
+            (0x00000001, 0x00000002, 0, 0x00000001, 0b0000),
+            (0x00000001, 0x00000002, 1, 0x00000000, 0b0010),
+            (0x00000002, 0x00000002, 1, 0xFFFFFFFF, 0b1100),
+            (0xFFFFFFFE, 0xFFFFFFFF, 1, 0x00000000, 0b0010),
+            (0x00000001, 0x80000001, 0, 0x80000000, 0b1000),
+            (0x00000001, 0x80000001, 1, 0x7FFFFFFF, 0b0001),
+        )
+        for source, destination, borrow, expected_result, expected_nczv in cases:
+            with self.subTest(
+                source=f"{source:08X}",
+                destination=f"{destination:08X}",
+                borrow=borrow,
+            ):
+                model = Tms34020Model()
+                model.load_program([0x4620])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                model.state.st = borrow << 30
+                event = model.step()
+                self.assertEqual(
+                    model.state.read_reg("A", 0), expected_result
+                )
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_cmp_primary_examples_are_nondestructive(self) -> None:
+        cases = (
+            (0x00000001, 0x00000001, 0b0010),
+            (0x00000001, 0x00000002, 0b0000),
+            (0x00000001, 0xFFFFFFFF, 0b1000),
+            (0x00000001, 0x80000000, 0b0001),
+            (0xFFFFFFFF, 0x7FFFFFFF, 0b1101),
+            (0xFFFFFFFF, 0x80000000, 0b1100),
+            (0x80000000, 0x7FFFFFFF, 0b1101),
+        )
+        for source, destination, expected_nczv in cases:
+            with self.subTest(
+                source=f"{source:08X}", destination=f"{destination:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x4820])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), source)
+                self.assertEqual(model.state.read_reg("A", 0), destination)
+                self.assertEqual(event.register_writes, [])
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_binary_arithmetic_reads_shared_sp_source(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x41F2])
+        model.state.sp = 0x00000003
+        model.state.write_reg("B", 2, 0x00000004)
+        model.step()
+        self.assertEqual(model.state.read_reg("B", 2), 0x00000007)
+
     def test_addxyi_adds_halves_without_cross_carry_and_sets_nczv(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0C00, 0xFFFF, 0xFFFF], bit_address=0x10)

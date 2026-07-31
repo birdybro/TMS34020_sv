@@ -36,6 +36,8 @@
   records for the SPVU004 and SPVU020 code-generation-tool guide editions.
 - Primary-page-verified ABS, NEG, NEGB, and NOT ISA/model/RTL semantics with
   explicit partial status-write masks and every TI example row as a test.
+- Primary-page-verified ADD, ADDC, SUB, SUBB, and CMP decode/model/RTL
+  semantics with explicit 33-bit carry, borrow, and overflow handling.
 
 ### Changed
 
@@ -70,6 +72,8 @@
   words and verified all current generated decoder entries in RTL.
 - Expanded the collision-free ISA slice to 19 entries covering 1,804 first
   words and the independent model to 13 instructions.
+- Expanded the collision-free ISA slice to 24 entries covering 4,364 first
+  words and the independent model to 18 instructions.
 - Quartus Prime Lite 17.0.2 Cyclone V Analysis & Synthesis passes for the
   implemented leaf slice with zero errors and zero warnings. This is not a
   fitter or timing-closure result.

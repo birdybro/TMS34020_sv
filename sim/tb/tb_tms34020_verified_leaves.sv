@@ -21,6 +21,14 @@ module tb_tms34020_verified_leaves;
     logic add_z;
     logic add_v;
 
+    tms34020_binary_op_t binary_operation;
+    logic [31:0] binary_source;
+    logic [31:0] binary_destination;
+    logic binary_carry_or_borrow;
+    logic [31:0] binary_result;
+    logic [3:0] binary_nczv;
+    logic binary_register_write_enable;
+
     logic [31:0] pixel;
     logic [5:0] pixel_size;
     logic [31:0] pixel_result;
@@ -79,6 +87,16 @@ module tb_tms34020_verified_leaves;
         .status_c_o(add_c),
         .status_z_o(add_z),
         .status_v_o(add_v)
+    );
+
+    tms34020_binary_arithmetic binary_arithmetic_dut (
+        .operation_i(binary_operation),
+        .source_i(binary_source),
+        .destination_i(binary_destination),
+        .carry_or_borrow_i(binary_carry_or_borrow),
+        .result_o(binary_result),
+        .status_nczv_o(binary_nczv),
+        .register_write_enable_o(binary_register_write_enable)
     );
 
     tms34020_pixel_replicate pixel_dut (
@@ -201,6 +219,30 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_binary_arithmetic(
+        input tms34020_binary_op_t operation,
+        input logic [31:0] source,
+        input logic [31:0] destination,
+        input logic carry_or_borrow,
+        input logic [31:0] expected_result,
+        input logic [3:0] expected_nczv,
+        input logic expected_register_write_enable,
+        input string message
+    );
+        binary_operation = operation;
+        binary_source = source;
+        binary_destination = destination;
+        binary_carry_or_borrow = carry_or_borrow;
+        #1;
+        check_condition(
+            binary_result == expected_result &&
+            binary_nczv == expected_nczv &&
+            binary_register_write_enable ==
+                expected_register_write_enable,
+            message
+        );
+    endtask
+
     task automatic write_register(
         input logic register_file,
         input logic [3:0] register_index_value,
@@ -221,6 +263,10 @@ module tb_tms34020_verified_leaves;
         decode_word = 16'd0;
         add_destination = 32'd0;
         add_immediate = 32'd0;
+        binary_operation = TMS34020_BINARY_ADD;
+        binary_source = 32'd0;
+        binary_destination = 32'd0;
+        binary_carry_or_borrow = 1'b0;
         pixel = 32'd0;
         pixel_size = 6'd0;
         compare_constant = 5'd0;
@@ -263,6 +309,13 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h03BF, TMS20_OP_NEG, 3'd1, "NEG masked decode");
         check_decode(16'h03DF, TMS20_OP_NEGB, 3'd1, "NEGB masked decode");
         check_decode(16'h03FF, TMS20_OP_NOT, 3'd1, "NOT masked decode");
+        check_decode(16'h41FF, TMS20_OP_ADD, 3'd1, "ADD masked decode");
+        check_decode(16'h43FF, TMS20_OP_ADDC, 3'd1,
+                     "ADDC masked decode");
+        check_decode(16'h45FF, TMS20_OP_SUB, 3'd1, "SUB masked decode");
+        check_decode(16'h47FF, TMS20_OP_SUBB, 3'd1,
+                     "SUBB masked decode");
+        check_decode(16'h49FF, TMS20_OP_CMP, 3'd1, "CMP masked decode");
         check_decode(16'h0273, TMS20_OP_SETCDP, 3'd1,
                      "SETCDP exact decode");
         check_decode(16'h02FB, TMS20_OP_SETCMP, 3'd1,
@@ -303,6 +356,67 @@ module tb_tms34020_verified_leaves;
         check_condition(add_result == 32'h8001_8000, "ADDXYI sign cases");
         check_condition({add_n, add_c, add_z, add_v} == 4'b0101,
                "ADDXYI sign-derived flags");
+
+        check_binary_arithmetic(
+            TMS34020_BINARY_ADD, 32'hFFFF_FFFF, 32'h0000_0001, 1'b0,
+            32'h0000_0000, 4'b0110, 1'b1,
+            "ADD carry and zero"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_ADD, 32'h7FFF_FFFF, 32'h0000_0001, 1'b0,
+            32'h8000_0000, 4'b1001, 1'b1,
+            "ADD signed overflow"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_ADD, 32'hFFFF_FFFF, 32'h8000_0000, 1'b0,
+            32'h7FFF_FFFF, 4'b0101, 1'b1,
+            "ADD carry with signed overflow"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_ADDC, 32'hFFFF_FFFF, 32'hFFFF_FFFF,
+            1'b1, 32'hFFFF_FFFF, 4'b1100, 1'b1,
+            "ADDC carry input"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_ADDC, 32'h7FFF_FFFF, 32'h0000_0001,
+            1'b1, 32'h8000_0001, 4'b1001, 1'b1,
+            "ADDC carry across sign"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_SUB, 32'h7FFF_FFF2, 32'h7FFF_FFF1, 1'b0,
+            32'hFFFF_FFFF, 4'b1100, 1'b1,
+            "SUB borrow"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_SUB, 32'hFFFF_FFFF, 32'h7FFF_FFFF, 1'b0,
+            32'h8000_0000, 4'b1101, 1'b1,
+            "SUB signed overflow"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_SUB, 32'h0000_0001, 32'h8000_0000, 1'b0,
+            32'h7FFF_FFFF, 4'b0001, 1'b1,
+            "SUB positive overflow result"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_SUBB, 32'h0000_0001, 32'h0000_0002,
+            1'b1, 32'h0000_0000, 4'b0010, 1'b1,
+            "SUBB borrow input to zero"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_SUBB, 32'h0000_0002, 32'h0000_0002,
+            1'b1, 32'hFFFF_FFFF, 4'b1100, 1'b1,
+            "SUBB borrow input underflow"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_SUBB, 32'h0000_0001, 32'h8000_0001,
+            1'b1, 32'h7FFF_FFFF, 4'b0001, 1'b1,
+            "SUBB signed overflow"
+        );
+        check_binary_arithmetic(
+            TMS34020_BINARY_CMP, 32'h0000_0001, 32'h0000_0001, 1'b1,
+            32'h0000_0000, 4'b0010, 1'b0,
+            "CMP nondestructive result indication"
+        );
 
         add_destination = 32'd0;
         compare_constant = 5'd0;
