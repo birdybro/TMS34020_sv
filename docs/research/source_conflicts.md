@@ -153,3 +153,22 @@
   INC as the conditional K=1 alias, and decode `1020h`–`103Fh` as ADDK. This
   replaces the earlier narrow INC-only extraction without changing its
   semantics. Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0011: SUBK and DEC share one encoding
+
+- Status: resolved primary-source alias identity
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, SUBK printed
+  p.13-245 defines `000101 KKKKK R DDDD`, including K=1. DEC printed p.13-94
+  shows the identical K=1 bit pattern and explicitly calls DEC an alternate
+  mnemonic for `SUBK 1,Rd`.
+- Corroboration: the pinned TMS34010 baseline decodes the full top-six-bit
+  family as SUBK in `rtl/core/tms34010_decode.sv` lines 64–70 and 606–617 at
+  commit `94a258e80a07ceb4303ce0b99818df832e96007f`. Pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e` executes the family with
+  `subk_a/subk_b` in `src/devices/cpu/tms34010/34010ops.hxx` lines 1025–1036
+  and only chooses the DEC spelling for K=1 in
+  `src/devices/cpu/tms34010/34010dsm.cpp` lines 966–980.
+- Decision: keep one canonical SUBK database record with mask `FC00h`, record
+  DEC as the conditional K=1 alias, and decode `1420h`–`143Fh` as SUBK. This
+  replaces the earlier narrow DEC-only extraction without changing its
+  semantics. Confidence: `VERIFIED_PRIMARY`.

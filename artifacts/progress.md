@@ -3,8 +3,8 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `7274bd3900745506215afdd6e845b3f5fdd6cf83`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 63 directed model
+- Latest commit: `293a64b2b572f972be2d418a4a4ac37397ed5294`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 66 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
@@ -12,9 +12,9 @@
   Synthesis
 - Failing tests: none observed
 - Model status: 38 of 44 extracted encoding forms, including the complete
-  ADDK/INC alias range, fetch opcodes/extensions through transaction-level
-  cache/retry state with traces, rollback and snapshot replay; full
-  ISA/interfaces remain (`TMS20-0007`)
+  ADDK/INC and SUBK/DEC alias ranges, fetch opcodes/extensions through
+  transaction-level cache/retry state with traces, rollback and snapshot
+  replay; full ISA/interfaces remain (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX
   semantic leaves, and decoder-controlled register/ST write intents for 23
@@ -40,7 +40,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 3,805 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 3,744 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored

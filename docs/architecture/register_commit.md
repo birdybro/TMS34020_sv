@@ -21,7 +21,7 @@ produces no register or status event.
 Supported operations are:
 
 - NOP, ABS, NEG, NEGB, NOT;
-- CLRC, DINT, EINT, GETST, ADDK/INC, DEC, SETC;
+- CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, SETC;
 - ADD, ADDC, SUB, SUBB, CMP, CMPK, and RMO;
 - AND, ANDN, OR, and XOR.
 
@@ -47,12 +47,14 @@ the general registers on reset; TI leaves them uninitialized. Source: TI
 
 ## Verification
 
-`make rtl-leaf-tests` executes thirty-six ordered state-commit sequences. The
-sequences verify prior-state dependency, A/B selection, shared A15/B15 SP
-aliasing, partial ST masks, register-plus-status updates on one edge,
-nondestructive CMP/CMPI, encoded-zero ADDK, Z-only logical flags, state-neutral
-NOP, and rejection of an otherwise decoded but unsupported BLMOVE word. The
-testbench requires the explicit marker `PASS: tms34020 verified leaf RTL`.
+`make rtl-leaf-tests` executes thirty-six ordered state-commit sequences plus
+direct combinational instruction checks. The suite verifies prior-state
+dependency, A/B selection, shared A15/B15 SP aliasing, partial ST masks,
+register-plus-status updates on one edge, nondestructive CMP/CMPI, every SUBK
+constant, encoded-zero ADDK and SUBK, Z-only logical flags, state-neutral NOP,
+and rejection of an otherwise decoded but unsupported BLMOVE word. The
+testbench requires the explicit marker
+`PASS: tms34020 verified leaf RTL`.
 
 `make quartus-leaf-smoke` includes the component in warning-enforcing Cyclone V
 Analysis & Synthesis. The qualification top retains separate raw state leaves

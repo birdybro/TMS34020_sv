@@ -90,7 +90,7 @@ class Tms34020Model:
             "EINT": self._execute_eint,
             "GETST": self._execute_getst,
             "ADDK": self._execute_addk,
-            "DEC": self._execute_dec,
+            "SUBK": self._execute_subk,
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
@@ -439,17 +439,6 @@ class Tms34020Model:
         self.state.write_reg(register_file, index, self.state.st)
         return 1
 
-    def _execute_decrement(self, words: list[int]) -> int:
-        register_file, index = self._decode_destination(words[0])
-        value = self.state.read_reg(register_file, index)
-        result = (value - 1) & MASK32
-        self.state.write_reg(register_file, index, result)
-        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
-        self._set_status_bit(C_BIT, value == 0)
-        self._set_status_bit(Z_BIT, result == 0)
-        self._set_status_bit(V_BIT, value == 0x8000_0000)
-        return 1
-
     def _execute_addk(
         self, instruction: Instruction, words: list[int]
     ) -> int:
@@ -471,11 +460,27 @@ class Tms34020Model:
         self._set_status_bit(V_BIT, bool(overflow))
         return 1
 
-    def _execute_dec(
+    def _execute_subk(
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_decrement(words)
+        register_file, index = self._decode_destination(words[0])
+        destination = self.state.read_reg(register_file, index)
+        encoded_constant = (words[0] >> 5) & 0x1F
+        constant = encoded_constant or 32
+        result = (destination - constant) & MASK32
+        borrow = destination < constant
+        overflow = bool(
+            (destination ^ constant)
+            & (destination ^ result)
+            & 0x8000_0000
+        )
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, borrow)
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, overflow)
+        return 1
 
     def _execute_setc(
         self, instruction: Instruction, words: list[int]

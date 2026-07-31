@@ -18,10 +18,10 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, DEC, SETC, ADD,
-  ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L, AND,
-  ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry, MWAIT,
-  ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, SETC,
+  ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
+  AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry,
+  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -57,6 +57,13 @@ executes the canonical ADDK record while preserving every published INC
 example. Sources: the same guide, printed pp.13-37 and 13-134 and timing-table
 p.15-2.
 
+SUBK subtracts the unsigned embedded constant 1–32 in one state and replaces
+NCZV; an all-zero five-bit K field represents 32. DEC is the documented
+assembler alias for the K=1 encoding, not a separate object-code family. The
+model executes the canonical SUBK record while preserving every published DEC
+example. Sources: the same guide, printed pp.13-94 and 13-245 and timing-table
+p.15-2.
+
 The two ADDI encoding forms add either a sign-extended 16-bit word or a full
 32-bit immediate and replace NCZV. The short form takes two documented states;
 the long form takes two states when its first extension word is long-word
@@ -90,13 +97,13 @@ The ORI page's duplicated “aligned” wording is resolved in
 `docs/research/source_conflicts.md` RSC-0006.
 
 CLRC/SETC and DINT/EINT update only C and IE respectively. GETST copies the
-complete ST value without modifying it. ADDK/INC and DEC implement the
+complete ST value without modifying it. ADDK/INC and SUBK/DEC implement the
 documented one-state result and N/C/Z/V behavior, including carry, borrow, and
 signed overflow edges. Sources: TI *TMS34020 User's Guide*, August 1990, §4.1
 printed pp.4-2..4-3 and instruction pages 13-37, 13-58, 13-94, 13-109, 13-132,
-13-134, and 13-226. DINT is on printed p.13-95; that scanned page is image-only
-in the acquired PDF and was visually inspected rather than inferred from
-failed OCR. Interrupt recognition around DINT/EINT remains outside this
+13-134, 13-226, and 13-245. DINT is on printed p.13-95; that scanned page is
+image-only in the acquired PDF and was visually inspected rather than inferred
+from failed OCR. Interrupt recognition around DINT/EINT remains outside this
 instruction-boundary model slice.
 
 Where TI says PSIZE is assumed to be one of 1, 2, 4, 8, 16, or 32, the model
@@ -170,8 +177,9 @@ lower-ST preservation, and short/long alignment timing;
 all TI register/immediate logical example rows, ANDI encoded-complement
 behavior, aligned and unaligned immediate timing,
 CLRC/SETC preservation, DINT/EINT IE changes, complete GETST transfer, all TI
-ADDK and INC-alias example rows, encoded-zero/B/SP cases, all DEC example
-rows, CMPK constants/flags, PSIZE get/exchange, RMO
+ADDK and INC-alias example rows, all SUBK and DEC-alias example rows,
+every SUBK constant, encoded-zero/B/SP cases for both constant families, CMPK
+constants/flags, PSIZE get/exchange, RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
 pending states, IDLE claim boundaries, no mutation on unsupported
 instructions, and snapshot/replay equivalence.

@@ -7,6 +7,8 @@ module tb_tms34020_verified_leaves;
 
     logic clk;
     logic reset;
+    integer constant_index;
+    logic [15:0] constant_opcode;
 
     logic [15:0] decode_word;
     logic decode_valid;
@@ -977,8 +979,33 @@ module tb_tms34020_verified_leaves;
             16'h1421, 32'd0, 32'd0, 32'd0,
             1'b1, 1'b1, 32'hFFFF_FFFF, 1'b1,
             32'hC000_0000, 32'hF000_0000,
-            "register execute DEC borrow and negative"
+            "register execute SUBK/DEC borrow and negative"
         );
+        check_register_execute(
+            16'h1400, 32'd0, 32'd9, 32'd0,
+            1'b1, 1'b1, 32'hFFFF_FFE9, 1'b1,
+            32'hC000_0000, 32'hF000_0000,
+            "register execute SUBK encoded zero means 32"
+        );
+        check_register_execute(
+            16'h17F2, 32'd0, 32'd32, 32'd0,
+            1'b1, 1'b1, 32'd1, 1'b1,
+            32'd0, 32'hF000_0000,
+            "register execute SUBK 31 B-file"
+        );
+        for (constant_index = 1;
+             constant_index <= 32;
+             constant_index = constant_index + 1) begin
+            constant_opcode = 16'h1400;
+            constant_opcode[9:5] = constant_index[4:0];
+            check_register_execute(
+                constant_opcode,
+                32'd0, constant_index, 32'd0,
+                1'b1, 1'b1, 32'd0, 1'b1,
+                32'h2000_0000, 32'hF000_0000,
+                "register execute SUBK every constant"
+            );
+        end
         check_register_execute(
             16'h00F0, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
@@ -1185,7 +1212,7 @@ module tb_tms34020_verified_leaves;
             1'b1, 1'b0, 4'd0, 32'hFFFF_FFFF,
             1'b1, 32'hC000_0000, 32'hF000_0000,
             32'hC000_0010, 32'd0,
-            "register commit DEC A0"
+            "register commit SUBK/DEC A0"
         );
         commit_register_instruction(
             16'h0380, 1'b1,
@@ -1401,8 +1428,12 @@ module tb_tms34020_verified_leaves;
                      "ADDK/INC alias decode");
         check_decode(16'h13FF, TMS20_OP_ADDK, 3'd1,
                      "ADDK upper-bound decode");
-        check_decode(16'h143F, TMS20_OP_DEC, 3'd1,
-                     "DEC masked decode");
+        check_decode(16'h1400, TMS20_OP_SUBK, 3'd1,
+                     "SUBK encoded-zero decode");
+        check_decode(16'h143F, TMS20_OP_SUBK, 3'd1,
+                     "SUBK/DEC alias decode");
+        check_decode(16'h17FF, TMS20_OP_SUBK, 3'd1,
+                     "SUBK upper-bound decode");
         check_decode(16'h41FF, TMS20_OP_ADD, 3'd1, "ADD masked decode");
         check_decode(16'h43FF, TMS20_OP_ADDC, 3'd1,
                      "ADDC masked decode");

@@ -112,6 +112,9 @@
 - Replaced the earlier narrow INC-only canonical decode with its full ADDK
   family after the primary INC page proved it is an alternate mnemonic for
   `ADDK 1,Rd`; no overlapping decode or expectation weakening was introduced.
+- Replaced the earlier narrow DEC-only canonical decode with its full SUBK
+  family after the primary DEC page proved it is an alternate mnemonic for
+  `SUBK 1,Rd`; no overlapping decode or expectation weakening was introduced.
 
 ### Verified
 
@@ -248,6 +251,13 @@
   A/B/SP selection, K=31, and encoded-zero K=32. RTL and fetched-packet tests
   cover the alias plus encoded-zero shared SP. Warning-free Quartus reports
   6,034 leaf, 344 fetch, 725 frontend, and 3,805 scalar logic cells.
+- Canonicalized the complete SUBK range from TI printed p.13-245 while retaining
+  DEC as the documented K=1 alias from p.13-94. The 44-record database now
+  covers 8,784 first words; 66 model tests cover every SUBK and DEC example
+  row, every K value, A/B/SP selection, K=31, and encoded-zero K=32. RTL and
+  fetched-packet tests cover every K value, the alias, and encoded-zero shared
+  SP. Warning-free Quartus reports 5,913 leaf, 344 fetch, 722 frontend, and
+  3,744 scalar logic cells.
 
 ### Documentation
 

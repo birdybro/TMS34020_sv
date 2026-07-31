@@ -367,7 +367,29 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(model.state.sp, 0x80000000)
         self.assertEqual((model.state.st >> 28) & 0xF, 0b1001)
 
-    def test_dec_primary_examples(self) -> None:
+    def test_subk_primary_examples(self) -> None:
+        cases = (
+            (5, 0x00000009, 0x00000004, 0b0000),
+            (9, 0x00000009, 0x00000000, 0b0010),
+            (32, 0x00000009, 0xFFFFFFE9, 0b1100),
+            (1, 0x80000000, 0x7FFFFFFF, 0b0001),
+        )
+        for constant, value, result, nczv in cases:
+            with self.subTest(
+                constant=constant,
+                value=f"{value:08X}",
+            ):
+                model = Tms34020Model()
+                opcode = 0x1400 | ((constant & 0x1F) << 5)
+                model.load_program([opcode])
+                model.state.write_reg("A", 0, value)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), result)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.mnemonic, "SUBK")
+                self.assertEqual(event.machine_states, 1)
+
+    def test_dec_alias_primary_examples_decode_as_subk(self) -> None:
         cases = (
             (0x00000010, 0x0000000F, 0b0000),
             (0x00000001, 0x00000000, 0b0010),
@@ -381,8 +403,35 @@ class ExecutionTests(unittest.TestCase):
                 model.load_program([0x1431])
                 model.state.write_reg("B", 1, value)
                 event = model.step()
+                self.assertEqual(event.mnemonic, "SUBK")
                 self.assertEqual(model.state.read_reg("B", 1), result)
                 self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, 1)
+
+    def test_subk_b_file_and_encoded_zero_shared_sp(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x17F2, 0x140F])
+        model.state.write_reg("B", 2, 32)
+        model.state.sp = 0x8000001F
+        first = model.step()
+        second = model.step()
+        self.assertEqual(first.mnemonic, "SUBK")
+        self.assertEqual(model.state.read_reg("B", 2), 1)
+        self.assertEqual(second.mnemonic, "SUBK")
+        self.assertEqual(model.state.sp, 0x7FFFFFFF)
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b0001)
+
+    def test_subk_all_constants_zero_result(self) -> None:
+        for constant in range(1, 33):
+            with self.subTest(constant=constant):
+                model = Tms34020Model()
+                opcode = 0x1400 | ((constant & 0x1F) << 5)
+                model.load_program([opcode])
+                model.state.write_reg("A", 0, constant)
+                event = model.step()
+                self.assertEqual(event.mnemonic, "SUBK")
+                self.assertEqual(model.state.read_reg("A", 0), 0)
+                self.assertEqual((model.state.st >> 28) & 0xF, 0b0010)
                 self.assertEqual(event.machine_states, 1)
 
     def test_add_primary_examples(self) -> None:

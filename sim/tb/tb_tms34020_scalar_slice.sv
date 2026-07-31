@@ -159,6 +159,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_02E0: memory_word = 16'h0001;
                 32'h0000_02F0: memory_word = 16'h0000;
                 32'h0000_0300: memory_word = 16'h101F;
+                32'h0000_0310: memory_word = 16'h140F;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -579,11 +580,11 @@ module tb_tms34020_scalar_slice;
             "scalar DINT commit"
         );
         serve_and_commit(
-            32'h50, TMS20_OP_DEC,
+            32'h50, TMS20_OP_SUBK,
             1'b1, 1'b0, 4'd0, 32'hFFFF_FFFF,
             1'b1, 32'hC000_0000, 32'hF000_0000,
             32'hC000_0010, 32'd0,
-            "scalar DEC A0 commit"
+            "scalar SUBK/DEC A0 commit"
         );
         serve_and_commit(
             32'h60, TMS20_OP_ADDK,
@@ -731,7 +732,19 @@ module tb_tms34020_scalar_slice;
             "thirteen multiword and constant packet commits"
         );
 
-        serve_word(32'h310);
+        serve_and_commit(
+            32'h310, TMS20_OP_SUBK,
+            1'b1, 1'b0, 4'd15, 32'd0,
+            1'b1, 32'h2000_0000, 32'hF000_0000,
+            32'h2000_0010, 32'd0,
+            "scalar SUBK encoded-zero shared SP"
+        );
+        check_condition(
+            commit_count == 14,
+            "fourteen multiword and constant packet commits"
+        );
+
+        serve_word(32'h320);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -748,9 +761,9 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 13 &&
-                status == 32'h0000_0010 &&
-                sp == 32'd32,
+                commit_count == 14 &&
+                status == 32'h2000_0010 &&
+                sp == 32'd0,
                 "blocked unclassified packet cannot mutate state"
             );
         end

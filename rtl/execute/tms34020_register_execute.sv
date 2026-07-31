@@ -54,9 +54,10 @@ module tms34020_register_execute (
     logic [31:0] addk_result;
     logic [3:0] addk_nczv;
     logic addk_write_enable;
-    logic [31:0] decrement_result;
-    logic [3:0] decrement_nczv;
-    logic decrement_write_enable;
+    logic [31:0] subk_source;
+    logic [31:0] subk_result;
+    logic [3:0] subk_nczv;
+    logic subk_write_enable;
 
     tms34020_decode decode (
         .first_word_i(first_word_i),
@@ -178,8 +179,10 @@ module tms34020_register_execute (
 
     always_comb begin
         addk_source = {27'd0, first_word_i[9:5]};
+        subk_source = {27'd0, first_word_i[9:5]};
         if (first_word_i[9:5] == 5'd0) begin
             addk_source = 32'd32;
+            subk_source = 32'd32;
         end
     end
 
@@ -193,14 +196,14 @@ module tms34020_register_execute (
         .register_write_enable_o(addk_write_enable)
     );
 
-    tms34020_binary_arithmetic decrement (
+    tms34020_binary_arithmetic subk (
         .operation_i(TMS34020_BINARY_SUB),
-        .source_i(32'd1),
+        .source_i(subk_source),
         .destination_i(destination_i),
         .carry_or_borrow_i(1'b0),
-        .result_o(decrement_result),
-        .status_nczv_o(decrement_nczv),
-        .register_write_enable_o(decrement_write_enable)
+        .result_o(subk_result),
+        .status_nczv_o(subk_nczv),
+        .register_write_enable_o(subk_write_enable)
     );
 
     always_comb begin
@@ -391,15 +394,15 @@ module tms34020_register_execute (
                     status_write_mask_o = 32'hF000_0000;
                 end
 
-                TMS20_OP_DEC: begin
+                TMS20_OP_SUBK: begin
                     supported_o = 1'b1;
                     source_index_o = first_word_i[3:0];
                     register_write_enable_o =
-                        decrement_write_enable;
-                    register_write_data_o = decrement_result;
+                        subk_write_enable;
+                    register_write_data_o = subk_result;
                     status_write_enable_o = 1'b1;
                     status_write_data_o =
-                        {decrement_nczv, 28'd0};
+                        {subk_nczv, 28'd0};
                     status_write_mask_o = 32'hF000_0000;
                 end
 
