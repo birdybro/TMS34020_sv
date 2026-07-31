@@ -79,6 +79,10 @@
 - Independent PUTST model semantics with complete A/B/shared-SP source-to-ST
   transfer, source preservation, all-zero/all-one/mixed patterns, and the
   primary-documented three-state count.
+- Synthesizable PUTST register-source routing and full-width masked ST commit,
+  with ordinary A/shared-SP ordered dependencies, cache-fed execution, and a
+  runtime assertion requiring status-only, nonredirecting ownership. The
+  three-state architectural retirement remains unimplemented.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -182,6 +186,11 @@
 
 ### Verified
 
+- PUTST passes direct leaf, ordered commit, and cache/fetch-to-commit tests with
+  exact full-width data/mask and no register writeback. The scalar runtime SVA
+  set grows to thirteen. Affected warning-free Cyclone V analyses use 8,491
+  leaf and 5,131 scalar diagnostic logic cells; no formal proof, fitted area,
+  or timing claim is made.
 - The 116-case independent model suite covers bounded semantics for all 72
   currently extracted forms, including PUTST full-width transfer and timing.
   This is not coverage of the unextracted ISA or RTL retirement timing.

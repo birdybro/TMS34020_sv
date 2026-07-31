@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 48 one-word, four
+asserted only when its declared length matches one of the 49 one-word, four
 two-word, or eight three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -23,7 +23,8 @@ register, status, or redirect event.
 Supported operations are:
 
 - NOP, ABS, NEG, NEGB, NOT;
-- CLRC, DINT, EINT, GETST, SETF, EXGF, SEXT, ZEXT, ADDK/INC, SUBK/DEC, MOVK,
+- CLRC, DINT, EINT, GETST, PUTST, SETF, EXGF, SEXT, ZEXT, ADDK/INC, SUBK/DEC,
+  MOVK,
   SETC;
 - ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPK, BTST.K, BTST.R, LMO, and RMO;
 - AND, ANDN, OR, and XOR;
@@ -60,7 +61,7 @@ the general registers on reset; TI leaves them uninitialized. Source: TI
 
 ## Verification
 
-`make rtl-leaf-tests` executes fifty-nine ordered state-commit sequences plus
+`make rtl-leaf-tests` executes sixty ordered state-commit sequences plus
 direct combinational instruction checks. The suite verifies prior-state
 dependency, A/B selection, shared A15/B15 SP aliasing, partial ST masks,
 register-plus-status updates on one edge, nondestructive CMP/CMPI, every SUBK
@@ -79,9 +80,11 @@ destination access, SETF selected-bank-only status writes, and SEXT/ZEXT
 field-bank selection, partial status writes, and shared-SP destinations, EXGF
 atomic register/selected-bank exchange through ordinary A and shared-SP
 destinations in both field banks,
+PUTST full-width status replacement from a dependent ordinary A register and
+the B-file shared-SP alias,
 state-neutral NOP, GETPC into a B register, EXGPC old-value capture and aligned
 redirect through an A register and shared SP, and rejection of an otherwise
-decoded but unsupported PUTST or BLMOVE word. Two runtime assertions additionally
+decoded but unsupported BLMOVE word. Two runtime assertions additionally
 check mutual exclusion between execution owners and require every redirect to
 be accepted and aligned. The
 testbench requires the explicit marker

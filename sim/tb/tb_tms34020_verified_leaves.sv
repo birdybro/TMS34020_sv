@@ -2468,8 +2468,25 @@ module tb_tms34020_verified_leaves;
         );
         check_register_execute(
             16'h01A0, 32'hA5C3_5A3C, 32'd0, 32'hF000_0FFF,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only PUTST cannot enter register execute"
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'hA5C3_5A3C, 32'hFFFF_FFFF,
+            "register execute PUTST A-file full-status write"
+        );
+        check_condition(
+            !execute_register_file &&
+            execute_source_index == 4'd0,
+            "register execute PUTST A-file source selector"
+        );
+        check_register_execute(
+            16'h01BF, 32'hFFFF_FFFF, 32'd0, 32'h0000_0010,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'hFFFF_FFFF, 32'hFFFF_FFFF,
+            "register execute PUTST B-file shared-SP full-status write"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd15,
+            "register execute PUTST B-file shared-SP source selector"
         );
         check_register_execute(
             16'hD505, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
@@ -2793,13 +2810,6 @@ module tb_tms34020_verified_leaves;
             "register commit rejects unsupported BLMOVE"
         );
         commit_register_instruction(
-            16'h01A0, 1'b0,
-            1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'd1,
-            "register commit rejects decode-only PUTST"
-        );
-        commit_register_instruction(
             16'h0300, 1'b1,
             1'b0, 1'b0, 4'd0, 32'd0,
             1'b0, 32'd0, 32'd0,
@@ -3091,6 +3101,20 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'd0, 32'h0000_003F,
             32'h9000_0C00, 32'h0000_0010,
             "register commit EXGF field zero ordinary A register"
+        );
+        commit_register_instruction(
+            16'h01A5, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h0000_003D, 32'hFFFF_FFFF,
+            32'h0000_003D, 32'h0000_0010,
+            "register commit PUTST reads dependent ordinary A register"
+        );
+        commit_register_instruction(
+            16'h01BF, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h0000_0010, 32'hFFFF_FFFF,
+            32'h0000_0010, 32'h0000_0010,
+            "register commit PUTST reads B-file shared SP"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");

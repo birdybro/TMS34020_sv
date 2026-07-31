@@ -73,7 +73,8 @@ ST. The same encoding, operation, and three-state summary appear in the
 TMS34010 guide; this compatibility evidence does not establish general timing
 equivalence between the processors. Sources: TMS34020 User's Guide printed
 pp.13-216 and 15-7; TMS34010 User's Guide printed p.12-229 and its instruction
-summary.
+summary. The independent model reports three states. The bounded RTL implements
+the full-width state update but not this retirement schedule.
 
 BLMOVE is labeled only `complex instruction` on its instruction page and in
 the chapter-15 table. The guide states that B7 decrements as the move proceeds

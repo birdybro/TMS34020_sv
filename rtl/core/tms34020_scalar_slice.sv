@@ -334,6 +334,16 @@ module tms34020_scalar_slice (
                 !commit_pc_redirect_enable;
     endproperty
 
+    property p_putst_commit_has_only_full_status_write;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            packet_opcode_id_o == TMS20_OP_PUTST
+            |-> !register_write_enable_o &&
+                status_write_enable_o &&
+                status_write_mask_o == 32'hFFFF_FFFF &&
+                !commit_pc_redirect_enable;
+    endproperty
+
     assert property (p_only_supported_packets_commit);
     assert property (p_blocked_packet_cannot_write);
     assert property (p_commit_is_single_pulse);
@@ -354,6 +364,7 @@ module tms34020_scalar_slice (
     );
     assert property (p_field_extension_commit_is_atomic);
     assert property (p_field_exchange_commit_is_atomic);
+    assert property (p_putst_commit_has_only_full_status_write);
 `endif
 
 endmodule

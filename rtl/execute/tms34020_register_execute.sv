@@ -743,6 +743,14 @@ module tms34020_register_execute (
                     register_write_data_o = status_i;
                 end
 
+                TMS20_OP_PUTST: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = source_i;
+                    status_write_mask_o = 32'hFFFF_FFFF;
+                end
+
                 TMS20_OP_ADDK: begin
                     supported_o = 1'b1;
                     source_index_o = first_word_i[3:0];

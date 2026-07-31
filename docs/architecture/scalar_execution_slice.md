@@ -2,10 +2,10 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 60 register/status operations already verified against their
+execution path for 61 register/status operations already verified against their
 individual TI instruction pages:
 
-- NOP, CLRC, DINT, EINT, SETC, and GETST;
+- NOP, CLRC, DINT, EINT, SETC, GETST, and PUTST;
 - ABS, NEG, NEGB, and NOT;
 - ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, ADDK/INC, SUBK/DEC, and MOVK; and
 - AND, ANDN, OR, XOR, BTST.K, BTST.R, SETF, EXGF, SEXT, ZEXT, CMPK, LMO, RMO,
@@ -39,7 +39,7 @@ enable. A supported packet therefore commits at most once. For an ordinary
 instruction or GETPC, the frontend then receives a sequential completion
 handshake. EXGPC instead holds its aligned old-register target across the
 commit-to-completion boundary and presents that redirect with the completion
-handshake. Twelve scalar runtime assertions check that only supported packets
+handshake. Thirteen scalar runtime assertions check that only supported packets
 commit, blocked packets cannot assert state writes, a commit cannot remain
 asserted on the next FPGA clock, and EXGPC committed and pending redirect
 targets stay identified and aligned; shift commits must assert atomic register
@@ -49,10 +49,18 @@ write their destination and all four NCZV bits; BTST.K/R commits must suppress
 the register write and update only Z; SETF must suppress the register write and
 write only its selected six-bit status bank; SEXT/ZEXT must atomically write
 their destination and exact partial status mask; EXGF must atomically write its
-destination and only its selected six-bit status bank. Two additional
+destination and only its selected six-bit status bank; PUTST must write all ST
+bits without register writeback or redirect. Two additional
 assertions in
 the commit owner check execution-owner exclusion and committed redirect
 alignment.
+
+PUTST commits only a full-width status write: the selected A/B source port
+supplies all 32 data bits, register writeback is suppressed, and the mask is
+`FFFFFFFFh`. A dedicated scalar assertion also forbids a redirect on that
+commit. The serialized acceptance edge is not the instruction's documented
+three-machine-state retirement. Source: TI *TMS34020 User's Guide*, August
+1990, printed pp.4-2..4-3, 13-216, and 15-7.
 
 Decoded instructions outside the verified scalar set and unclassified packets
 remain presented with `packet_blocked_o=1`. They are neither consumed nor
@@ -136,9 +144,7 @@ EINT -> SETC -> GETST B2 -> LMO B2,B2 -> DINT
 The test observes every accepted PC/opcode, register and status write intent,
 post-edge ST/SP state, and dependent result. It then verifies that decoded
 one-word BLMOVE remains stable for three clocks with no commit, register write,
-status write, or state change. A separate reset verifies the same noncommit
-contract for newly decoded PUTST before its status-write semantics are owned.
-A separate sequence commits ORI, a dependent
+status write, or state change. A separate sequence commits ORI, a dependent
 XORI, and ANDNI from complete fetched packets; executes two dependent ADDXYI
 packets with independent half arithmetic and full NCZV replacement; executes
 dependent ADDI.W, ADDI.L, and sign-extending ADDI.W packets with full NCZV
@@ -163,7 +169,8 @@ register state. The bit tests update only Z and do not modify their destination.
 That sequence then sets field bank zero to size 16, zero-extends the dependent
 A1 value, sign-extends the result, and performs dependent EXGF exchanges through
 both banks, checking the register result and selected-bank status mask at every
-commit.
+commit. It finally commits PUTST from the dependent A0 value and checks exact
+full-width ST replacement without register writeback.
 The direct-PC checks prove ordering and target selection, not the documented
 one- and two-machine-state timings. The
 earlier INC and DEC spellings exercise the canonical
@@ -177,8 +184,8 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 5,060 logic cells,
-1,399 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
+Synthesis for this composition. The diagnostic wrapper uses 5,131 logic cells,
+1,414 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,
 TimeQuest, full-core utilization, or a timing-closure result.

@@ -70,7 +70,9 @@ remains `TMS20-0029`/`TMS20-0030`.
 - Z-only replacement preserving N/C/V;
 - isolated IE set and C clear;
 - isolated SETF updates of both six-bit field banks, followed by SEXT/ZEXT
-  consumers with preservation of unowned status fields.
+  consumers with preservation of unowned status fields; and
+- PUTST full-width replacement from ordinary and shared-SP sources, including
+  exact data and `FFFFFFFFh` ownership masks.
 
 The module is also included in warning-free Cyclone V leaf Analysis &
 Synthesis.
@@ -86,18 +88,17 @@ shared SP. The RTL exposes simultaneous register and selected-bank masked write
 intents; its FPGA commit edge is not evidence for EXGF's documented one- or
 two-machine-state timing.
 
-The independent model verifies PUTST as a complete 32-bit source-to-ST copy
-from both files and shared SP, with the documented three-state count. Mixed
-reserved-bit patterns are tested at the architectural-model boundary; this is
-not silicon readback evidence. The RTL path remains noncommitting pending its
-separate state-write owner.
+The independent model and bounded RTL verify PUTST as a complete 32-bit
+source-to-ST copy from both files and shared SP. Mixed reserved-bit patterns
+are tested at the architectural-model and RTL write-intent boundaries; this is
+not silicon readback evidence. The model reports the documented three-state
+count, while the serialized RTL commit edge is not architectural timing.
 
 ## Incomplete behavior
 
 The following are not yet implemented:
 
-- classified PUTST full-status semantics are not yet owned by RTL, and its
-  three-state retirement is not implemented there; PUSHST and POPST
+- PUTST's three-state RTL retirement is not implemented; PUSHST and POPST
   semantics/sequencing also remain, as does EXGF architectural retirement
   timing;
 - retirement/timing and interrupt-recognition ordering for the model and
