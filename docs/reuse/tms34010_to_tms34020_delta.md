@@ -105,6 +105,14 @@ Entry-state logic may be shared only after independent verification; the
 TMS34010 sequencer cannot. Sources: TMS34020 guide printed pp.13-253..13-255;
 TMS34010 guide printed pp.12-253..12-254.
 
+RETS retains its `0960h`/`FFE0h` object form and visible old-SP read,
+`32 + 16N` bit-address increment, PC redirect, and status preservation. Its
+timing does not carry over: the TMS34020 specifies 5/6 states for aligned and
+unaligned old SP, while the TMS34010 publishes minimum 7/9. Decode and semantic
+fixtures are compatibility candidates; the upstream stack/bus state machine
+is reference-only. Source: TMS34020 User's Guide printed p.13-220; TMS34010
+User's Guide printed p.12-232 and Appendix A p.A-16.
+
 ## Cache and internal parallelism
 
 The cache changes the observable memory trace and execution timing, so it cannot

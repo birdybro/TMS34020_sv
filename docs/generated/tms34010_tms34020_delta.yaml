@@ -546,6 +546,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 TRAP and Figure 13-12, printed pp.13-253..13-255", "TI-TMS34010-UG-1988 TRAP, printed pp.12-253..12-254"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Stack/vector bus-fault, retry, dynamic-width, and page-mode decomposition remains pending."]
+    },
+    {
+      "feature": "rets_instruction_timing",
+      "tms34010_behavior": "RETS has the same 0960h/FFE0h encoding, old-SP 32-bit PC pop, 32+16N bit-address SP increment, and unaffected ST, but publishes minimum 7 aligned and 9 unaligned machine states.",
+      "tms34020_behavior": "RETS preserves the visible behavior and encoding but takes 5 machine states when the old SP stack-read address is 32-bit aligned and 6 otherwise.",
+      "rtl_impact": "Share only verified decode and architectural state semantics; a TMS34020 memory/redirect sequencer must own the stack read, completion ordering, and 5/6-state schedule.",
+      "test_impact": "All 32 N values, aligned/unaligned old SP, PC alignment, SP wrap, unchanged ST/registers, exact read trace, waits, 16/32-bit targets, page mode, fault/retry, and exact retirement timing.",
+      "source_citation": ["TI-TMS34020-UG-1990 RETS, printed p.13-220", "TI-TMS34010-UG-1988 RETS, printed p.12-232 and Appendix A p.A-16"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["External stack-read fault/retry, width conversion, page-mode eligibility, and physical-cycle decomposition remain pending."]
     }
   ]
 }

@@ -105,6 +105,7 @@ class Tms34020Model:
             "POPST": self._execute_popst,
             "PUSHST": self._execute_pushst,
             "PUTST": self._execute_putst,
+            "RETS": self._execute_rets,
             "ADDK": self._execute_addk,
             "SUBK": self._execute_subk,
             "MOVK": self._execute_movk,
@@ -692,6 +693,33 @@ class Tms34020Model:
             "dynamic-width, and page-mode behavior pending"
         )
         return 2
+
+    def _execute_rets(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        old_sp = self.state.sp
+        return_pc = self.state.memory.read_bits(old_sp, 32)
+        argument_words = words[0] & 0x1F
+        self.state.pc = return_pc & 0xFFFF_FFF0
+        self.state.sp = (
+            old_sp + 32 + argument_words * 16
+        ) & MASK32
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "data_read",
+                "purpose": "return_subroutine_pc",
+                "bit_address": old_sp,
+                "width": 32,
+                "value": return_pc,
+            }
+        )
+        self._active_trace.notes.append(
+            "successful atomic RETS abstraction; stack-read fault, retry, "
+            "dynamic-width, page-mode, and redirect timing pending"
+        )
+        return 5 if old_sp & 0x1F == 0 else 6
 
     def _execute_addk(
         self, instruction: Instruction, words: list[int]

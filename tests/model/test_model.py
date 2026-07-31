@@ -2616,6 +2616,84 @@ class ExecutionTests(unittest.TestCase):
         )
         self.assertIn("fault, retry", event.notes[-1])
 
+    def test_rets_all_argument_counts_pop_pc_and_increment_sp(self) -> None:
+        for argument_words in range(32):
+            for old_sp, expected_states in (
+                (0x8000_0000, 5),
+                (0x8000_0007, 6),
+            ):
+                with self.subTest(
+                    argument_words=argument_words,
+                    old_sp=f"{old_sp:08X}",
+                ):
+                    model = Tms34020Model()
+                    model.load_program(
+                        [0x0960 | argument_words],
+                        bit_address=0x0000_0080,
+                    )
+                    model.state.sp = old_sp
+                    model.state.st = 0xF123_4567
+                    model.state.write_reg("A", 3, 0xCAFE_BABE)
+                    model.state.memory.write_bits(
+                        old_sp, 32, 0x1234_567F
+                    )
+
+                    event = model.step()
+
+                    expected_sp = (
+                        old_sp + 32 + argument_words * 16
+                    ) & 0xFFFF_FFFF
+                    self.assertEqual(model.state.pc, 0x1234_5670)
+                    self.assertEqual(model.state.sp, expected_sp)
+                    self.assertEqual(model.state.st, 0xF123_4567)
+                    self.assertEqual(
+                        model.state.read_reg("A", 3), 0xCAFE_BABE
+                    )
+                    self.assertEqual(
+                        event.machine_states, expected_states
+                    )
+                    self.assertEqual(
+                        event.transactions[-1],
+                        {
+                            "class": "data_read",
+                            "purpose": "return_subroutine_pc",
+                            "bit_address": old_sp,
+                            "width": 32,
+                            "value": 0x1234_567F,
+                        },
+                    )
+                    self.assertEqual(
+                        event.register_writes,
+                        [{
+                            "file": "SP",
+                            "index": 15,
+                            "old": old_sp,
+                            "new": expected_sp,
+                        }],
+                    )
+                    self.assertIn(
+                        "successful atomic RETS abstraction",
+                        event.notes[-1],
+                    )
+
+    def test_rets_unaligned_stack_read_and_sp_wrap(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x097F], bit_address=0x0000_0080)
+        model.state.sp = 0xFFFF_FFF7
+        model.state.st = 0xA5C3_5A3C
+        model.state.memory.write_bits(
+            0xFFFF_FFF7, 32, 0xFFFF_FFFF
+        )
+
+        event = model.step()
+
+        self.assertEqual(model.state.pc, 0xFFFF_FFF0)
+        self.assertEqual(model.state.sp, 0x0000_0207)
+        self.assertEqual(model.state.st, 0xA5C3_5A3C)
+        self.assertEqual(event.machine_states, 6)
+        self.assertEqual(event.next_pc, 0xFFFF_FFF0)
+        self.assertEqual(event.status_before, event.status_after)
+
     def test_jump_primary_examples_align_register_target(self) -> None:
         for source, expected_pc in (
             (0x0000_1EE0, 0x0000_1EE0),

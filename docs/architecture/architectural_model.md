@@ -19,7 +19,7 @@ Implemented:
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
-  EXGPC, GETPC, GETST, JACC, JR.L, JUMP, POPST, PUSHST, PUTST,
+  EXGPC, GETPC, GETST, JACC, JR.L, JUMP, POPST, PUSHST, PUTST, RETS,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -31,7 +31,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 83 of 84 currently extracted database forms. REV is
+These handlers cover 84 of 85 currently extracted database forms. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
 verified. A directed test proves that attempting REV raises
@@ -48,6 +48,14 @@ predecrements, report 10/12 aligned/unaligned states, and align the fetched
 target PC. This is an instruction-boundary success abstraction; stack/vector
 fault, retry, width, page, and pin transactions remain unmodeled. Source:
 TMS34020 User's Guide, printed pp.13-253..13-255.
+
+RETS reads a 32-bit return PC at old SP, aligns the redirected PC, and advances
+SP by `32 + 16N` bit addresses without changing ST. All 32 encoded argument
+counts, aligned and unaligned old SP, exact read traces, PC alignment, and SP
+wrap are tested. The model reports TI's 5/6-state alignment cases. This is an
+instruction-boundary success abstraction; stack-read width, page mode, waits,
+faults, retries, and redirect pipeline timing remain unmodeled. Source:
+TMS34020 User's Guide, printed p.13-220.
 
 JACC tests cover all 16 condition codes, a taken case for every code and a
 false case for every conditional code, low-word/high-word target assembly,
@@ -214,6 +222,10 @@ split. The vector-entry formula follows both TI vector-map figures and its
 worked examples rather than contradictory prose; see
 `docs/architecture/interrupts.md` and RSC-0016. Stack/vector faults and retries
 are not modeled.
+RETS independently covers every unsigned argument count, aligned/unaligned old
+SP, PC low-nibble alignment, SP wrap, unchanged ST and general registers, and
+one exact 32-bit stack-read transaction. External bus decomposition and
+fault/retry remain absent.
 BLMOVE validates all four S/D alignment modes, performs a bit-exact successful
 non-overlapping copy, advances B0/SADDR and B2/DADDR by the original B7/DYDX,
 clears B7, and preserves ST. It emits one abstract block transaction and
@@ -429,6 +441,8 @@ source/destination selection, conversion-field boundaries, hidden writes,
 VLCOL full-width/field-size-independent successful special-cycle traces,
 TRAPL primary vector examples, signed extremes, stack order, ST/PC changes,
 aligned/unaligned timing, and vector-target alignment,
+all RETS argument counts, both stack alignment cases, exact PC-pop traces,
+redirect alignment, SP wrap, and status preservation,
 all BLMOVE S/D modes, alignment guards, zero/self/wrapping ranges, abstract
 transactions, overlap refusal, and final B0/B2/B7/ST state;
 IDLE claim boundaries, no mutation on unclassified instructions, and

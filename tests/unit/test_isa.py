@@ -229,6 +229,8 @@ class IsaTests(unittest.TestCase):
             0x0080: ("MWAIT", 1),
             0x0900: ("TRAP", 1),
             0x091F: ("TRAP", 1),
+            0x0960: ("RETS", 1),
+            0x097F: ("RETS", 1),
             0x0C00: ("ADDXYI", 3),
             0x0C1E: ("ADDXYI", 3),
             0x00F0: ("BLMOVE", 1),
@@ -273,8 +275,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 25874)
-        self.assertEqual(unclassified, 65536 - 25874)
+        self.assertEqual(matched, 25906)
+        self.assertEqual(unclassified, 65536 - 25906)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -335,6 +337,34 @@ class IsaTests(unittest.TestCase):
             "does not save PC/ST or change SP",
             instruction.metadata["pipeline_interactions"][0],
         )
+
+    def test_rets_records_stack_increment_and_alignment_timing(self) -> None:
+        for word in range(0x0960, 0x0980):
+            with self.subTest(word=f"{word:04X}"):
+                decoded = self.database.decode(word)
+                self.assertIsNotNone(decoded)
+                self.assertEqual(decoded.mnemonic, "RETS")
+        instruction = self.database.decode(0x0960)
+        self.assertEqual(instruction.opcode_mask, 0xFFE0)
+        self.assertEqual(instruction.opcode_value, 0x0960)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+        self.assertEqual(
+            instruction.metadata["immediate_fields"][0][
+                "stack_increment_bits"
+            ],
+            "32 + 16*N",
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "alignment_cases",
+                "aligned_machine_states": 5,
+                "unaligned_machine_states": 6,
+                "alignment_address": "old SP stack-read address",
+            },
+        )
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
         lmo = self.database.decode(0x6A00)

@@ -62,6 +62,16 @@ All architecturally loaded instruction addresses are word aligned. An RTL
 redirect must explicitly clear target bits `[3:0]`; it must not rely on a
 software convention.
 
+`RETS [N]` returns through a 32-bit PC value read at old SP. It then advances
+SP by `32 + 16N` bit addresses, where unsigned `N` is 0–31 and the omitted
+assembler operand defaults to zero. The loaded PC obeys the same low-nibble
+alignment rule, while ST is unchanged. The TMS34020 takes 5 states for a
+long-word-aligned old SP and 6 otherwise. Source: User's Guide `RETS`, printed
+p.13-220 and §4.2 p.4-4. The independent model implements this successful
+instruction boundary for every N and both alignment cases. RTL decode is
+present, but execution remains blocked until stack-read completion can be
+coupled atomically to SP and direct-PC commit with fault/retry support.
+
 TRAPL obtains its target indirectly through a 32-bit vector-table entry. For
 signed 16-bit trap number `N`, Figure 6-1 and Figure 13-13 place that entry at
 `FFFF_FFE0h - (sign_extend(N) << 5)`, modulo `2^32`. The conflicting prose

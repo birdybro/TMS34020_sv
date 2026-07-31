@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 84 page-verified encoding records and covers 25,874 of 65,536
+slice contains 85 page-verified encoding records and covers 25,906 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -16,6 +16,7 @@ first words without collisions:
 | NOP | `0300h` | 1 | p.13-180 |
 | REV | `0020h`, mask `FFE0h` | 1 | p.13-221 |
 | TRAP | `0900h`, mask `FFE0h` | 1 | pp.13-253..13-255 |
+| RETS | `0960h`, mask `FFE0h` | 1 | p.13-220 |
 | ABS | `0380h`, mask `FFE0h` | 1 | p.13-32 |
 | NEG | `03A0h`, mask `FFE0h` | 1 | p.13-178 |
 | NEGB | `03C0h`, mask `FFE0h` | 1 | p.13-179 |
@@ -148,6 +149,18 @@ numbers and both alignment classes. RTL remains noncommitting until the memory,
 fault/retry, and entry sequencer own this operation. Sources: TMS34020 User's
 Guide printed pp.13-253..13-255; TMS34010 User's Guide printed
 pp.12-253..12-254.
+
+RETS embeds an unsigned argument-word discard count 0–31 in bits `[4:0]` of
+the `0960h`/`FFE0h` form. It reads the 32-bit return PC at old SP, redirects
+to that address with the architectural low-nibble alignment rule, then sets SP
+to `old SP + 32 + 16N` bit addresses without changing ST. The TMS34020 takes
+5 states for an aligned old-SP stack address and 6 otherwise; the compatible
+TMS34010 form publishes minimum 7/9 states and pinned MAME charges a fixed 7.
+The independent model covers all 32 N values, both alignment classes, PC
+alignment, SP wrap, and exact read traces. RTL only decodes the form and proves
+noncommit pending stack-read ownership. Sources: TMS34020 User's Guide printed
+p.13-220 and §4.2 p.4-4; TMS34010 User's Guide printed p.12-232 and Appendix A
+p.A-16.
 
 JUMP reads an A/B register or the shared-SP alias, clears target bits `[3:0]`,
 and redirects PC in two machine states without changing ST. Its

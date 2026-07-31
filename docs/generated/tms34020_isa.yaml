@@ -3,7 +3,7 @@
   "format_note": "JSON subset of YAML 1.2. This is an incomplete primary-source extraction, not an instruction-completeness claim.",
   "coverage": {
     "status": "INCOMPLETE_PRIMARY_EXTRACTION",
-    "entry_count": 84,
+    "entry_count": 85,
     "first_word_space": 65536,
     "unmatched_first_words_are_reserved": false,
     "next_source_range": "TI-TMS34020-UG-1990 chapter 13 summary and alphabetical reference",
@@ -12,7 +12,8 @@
       "ISA-DISC-0002-fixed-low-bits",
       "ISA-DISC-0003-EXGF-F1-timing",
       "ISA-DISC-0004-REV-device-value",
-      "ISA-DISC-0005-TRAP-timing"
+      "ISA-DISC-0005-TRAP-timing",
+      "ISA-DISC-0006-RETS-timing"
     ]
   },
   "instructions": [
@@ -3166,6 +3167,43 @@
       "bus_32_effects": "native 32-bit stack writes/vector fetch when aligned; exact timing pending",
       "page_mode_effects": "may affect consecutive stack writes and vector fetch; exact timing pending",
       "source_citations": ["TI-TMS34020-UG-1990 TRAP and Figure 13-12, printed pp.13-253..13-255", "TI-TMS34010-UG-1988 TRAP, printed pp.12-253..12-254"],
+      "compatible_with_tms34010": true,
+      "confidence": "VERIFIED_PRIMARY"
+    },
+    {
+      "mnemonic": "RETS",
+      "aliases": [],
+      "instruction_length_words": 1,
+      "opcode_mask": "0xFFE0",
+      "opcode_value": "0x0960",
+      "operand_fields": [
+        {"name": "argument_words", "word": 0, "lsb": 0, "width": 5, "encoding": "unsigned N in the range 0..31; omitted assembler operand defaults to zero"}
+      ],
+      "register_file": "SP implied",
+      "immediate_fields": [
+        {"name": "N", "word": 0, "lsb": 0, "width": 5, "signed": false, "stack_increment_bits": "32 + 16*N"}
+      ],
+      "condition_fields": [],
+      "addressing_modes": ["stack_postincrement", "immediate_argument_discard_count"],
+      "source_registers": ["SP"],
+      "destination_registers": ["PC", "SP"],
+      "status_bits_read": [],
+      "status_bits_written": [],
+      "undefined_status_bits": [],
+      "memory_transactions": ["read 32-bit return PC from the old SP address"],
+      "graphics_register_dependencies": [],
+      "cache_interactions": ["the single instruction word and redirected target are fetched through the instruction cache"],
+      "pipeline_interactions": ["read return PC at old SP, then set SP to old SP + 32 + 16*N and redirect to the aligned popped PC"],
+      "interruptibility": "at instruction completion after the successful stack read",
+      "restartability": "stack-read fault/retry and continuation checkpoint require chapter 6/8 extraction",
+      "bus_fault_behavior": "stack-read fault and retry behavior requires chapter 6/8 extraction",
+      "documented_cycles": {"kind": "alignment_cases", "aligned_machine_states": 5, "unaligned_machine_states": 6, "alignment_address": "old SP stack-read address"},
+      "cache_hit_cycles": "5 machine states for a 32-bit-aligned old SP; 6 otherwise",
+      "cache_miss_cycles": "target instruction refill is subsequent execution; RETS instruction refill and stack-read latency compose with the documented case",
+      "bus_16_effects": "splits the 32-bit stack read; exact timing pending",
+      "bus_32_effects": "native 32-bit stack read when aligned; exact timing pending",
+      "page_mode_effects": "stack-read page eligibility and timing pending",
+      "source_citations": ["TI-TMS34020-UG-1990 RETS, printed p.13-220", "TI-TMS34020-UG-1990 §4.2, printed p.4-4", "TI-TMS34010-UG-1988 RETS, printed p.12-232 and Appendix A p.A-16"],
       "compatible_with_tms34010": true,
       "confidence": "VERIFIED_PRIMARY"
     }

@@ -3,16 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest committed baseline: `ec56a801bd92619fc9fbd142437fc828ffaeb158`
-- Passing tests: foundation, reference/hash, delta, 34-case ISA sweep, 139 directed model
+- Latest committed baseline: `3848696fa326b599d09ae5a89d982329ba452439`
+- Passing tests: foundation, reference/hash, delta, 35-case ISA sweep, 141 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 83 of 84 currently extracted encoding forms have bounded
-  successful semantics. TRAP covers every vector, trap-zero no-save behavior,
+- Model status: 84 of 85 currently extracted encoding forms have bounded
+  successful semantics. RETS covers all 32 argument counts, both old-SP
+  alignment classes, exact stack reads, PC alignment, SP wrap, unchanged ST,
+  and 5/6-state cases. TRAP covers every vector, trap-zero no-save behavior,
   aligned/unaligned stack frames, wrap/alignment, and 7/10/12-state cases. REV
   is decoded but atomically rolls back as unsupported
   until a physical-device profile supplies an evidence-backed complete result.
@@ -58,7 +60,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 84-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 85-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 52 one-word instructions, with externally gated one-edge
@@ -93,6 +95,9 @@
   TRAP 0 and 31 decode but remain explicitly noncommitting in the RTL router;
   the model's successful entry semantics do not bypass absent stack/vector
   ownership, fault/retry state, or physical timing.
+  RETS 0 and 31 likewise decode but remain explicitly noncommitting until a
+  stack-read transaction owner can couple memory completion, SP update, and
+  direct-PC redirect without violating retry idempotence.
   CLR requires no duplicate execution opcode: the existing XOR path decodes
   all 32 same-register alias words, routes equal source/destination selectors,
   clears the selected A/B/shared-SP register, sets Z, and preserves N/C/V.
@@ -148,9 +153,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 8,773 logic cells
+  warnings; the current decoder-bearing leaf wrapper uses 8,792 logic cells
   and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 406, 784, and 5,236 logic cells;
+  the fetch, frontend, and scalar wrappers use 416, 788, and 5,286 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

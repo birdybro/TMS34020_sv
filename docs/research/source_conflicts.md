@@ -427,3 +427,25 @@
   TRAP timing. Confidence: `VERIFIED_PRIMARY` for the instruction-boundary
   state and three timing cases; `UNKNOWN` for unimplemented physical-cycle
   decomposition.
+
+## RSC-0023: pinned MAME applies TMS34010 RETS timing to TMS34020
+
+- Status: resolved secondary-reference timing defect; instruction-boundary
+  success modeled, physical stack-read timing still pending
+- Primary TMS34020 evidence: TI *TMS34020 User's Guide*, August 1990, RETS,
+  printed p.13-220 specifies 5 machine states when the old-SP stack-read
+  address is 32-bit aligned and 6 otherwise. It reads a 32-bit PC at old SP,
+  increments SP by `32 + 16N` bit addresses, and preserves ST.
+- Compatibility evidence: TI *TMS34010 User's Guide*, 1988, RETS, printed
+  p.12-232 and Appendix A p.A-16 specifies the same `0960h`/`FFE0h` object form
+  and visible state but minimum 7 aligned and 9 unaligned machine states.
+- Secondary conflict: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 1874–1885 shares one handler
+  between device classes and charges 7 cycles without an alignment case.
+- Decision: follow the TMS34020's 5/6 instruction-boundary cases in the
+  independent model. Keep RETS noncommitting in RTL until a TMS34020-owned
+  stack-read, redirect, fault/retry, and timing sequencer exists. MAME remains
+  useful for visible-state comparison but is not a RETS timing oracle.
+  Confidence: `VERIFIED_PRIMARY` for encoding, visible state, and documented
+  timing cases; `UNKNOWN` for the external-cycle decomposition.

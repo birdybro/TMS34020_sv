@@ -4,6 +4,12 @@
 
 ### Added
 
+- Primary-page-verified RETS `0960h`/`FFE0h` metadata and independent model
+  semantics for all 32 argument counts, aligned/unaligned old SP, exact
+  return-PC reads, PC alignment, SP wrap, complete status preservation, and
+  documented 5/6-state cases.
+- Direct RTL noncommit guards for RETS 0 and 31 pending a real stack-read,
+  redirect-completion, and fault/retry owner.
 - Primary-page-verified TRAP `0900h`/`FFE0h` metadata plus an independent model
   covering all 32 vectors, trap-zero no-save behavior, aligned/unaligned stack
   frames, exact transaction traces, PC wrap/alignment, complete ST replacement,
@@ -261,6 +267,9 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 84 to 85 records and from
+  25,874 to 25,906 uniquely classified first words without treating remaining
+  unmatched words as reserved.
 - Factored the model's successful atomic TRAP/TRAPL boundary through one
   independently tested stack/vector helper while retaining their different
   immediates, trap-zero rule, instruction lengths, and traces.
@@ -306,6 +315,13 @@
 
 ### Verified
 
+- The 35-case ISA suite, 55-entry delta ledger, and 141-case model suite pass.
+  RETS exercises every N value and both stack-alignment cases, while direct RTL
+  guards prove decoded RETS packets cannot mutate register or status state.
+  All decoder-bearing Cyclone V smoke targets pass with zero errors/warnings:
+  leaf 8,792, fetch 416, frontend 788, and scalar 5,286 logic cells. These are
+  bounded instruction-state and synthesis-portability results, not physical
+  stack timing, fit, or TimeQuest evidence.
 - The 34-case ISA suite, 54-entry delta ledger, and 139-case model suite pass.
   Every TRAP vector and both stack-alignment classes are covered, and prior
   TRAPL cases still pass after helper extraction. All decoder-bearing Cyclone V
@@ -795,6 +811,9 @@
 
 ### Documentation
 
+- Documented RETS state and timing compatibility, the TMS34010 7/9 versus
+  TMS34020 5/6 delta, pinned MAME's fixed-7 discrepancy (RSC-0023), and the
+  boundary between model success and absent RTL stack-read ownership.
 - Documented the TRAP vector map, reset exception, stack frame, timing delta,
   pinned MAME 16-cycle discrepancy (RSC-0022), and the explicit boundary
   between model success semantics and absent physical memory/fault ownership.
@@ -871,6 +890,9 @@
 
 ### Known Issues
 
+- RETS has instruction-boundary model semantics only. RTL execution, external
+  stack-read decomposition, waits, dynamic width, page mode, faults, retries,
+  and exact redirect/machine-state timing remain unimplemented.
 - TRAP has instruction-boundary model semantics only. RTL execution, external
   stack/vector transaction decomposition, waits, dynamic width, page mode,
   bus faults, retries, and exact pin/machine-state timing remain unimplemented.

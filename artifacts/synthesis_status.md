@@ -9,9 +9,9 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 8,773 logic cells after synthesis, 2,048 registers,
+- Analysis resources: 8,792 logic cells after synthesis, 2,048 registers,
   127 pins, 0 block-memory bits, 0 DSP blocks, and 0 PLLs
-- Scope: generated 84-entry partial decoder, A/B/SP register file, masked ST state,
+- Scope: generated 85-entry partial decoder, A/B/SP register file, masked ST state,
   instruction semantic leaves including pitch conversion, decoder-controlled
   register-execution and direct-PC intents, and externally gated state commit
   for 69 register/status/direct-PC instructions, including CMPXY, JAcc and long JRcc,
@@ -51,9 +51,9 @@
 
 - Command: `make quartus-fetch-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 406 logic cells, 175 registers, 74 pins, 0 block-memory
+- Analysis resources: 416 logic cells, 175 registers, 74 pins, 0 block-memory
   bits, 0 DSP blocks, and 0 PLLs
-- Scope: generated 84-entry partial decoder, aligned instruction-start cursor,
+- Scope: generated 85-entry partial decoder, aligned instruction-start cursor,
   one-to-five-word packet storage, per-word cache classifications, decoupled
   cache/packet/completion handshakes, sequential/redirect selection, abort
   discard/reload, and an observability-only wrapper
@@ -67,7 +67,7 @@
 
 - Command: `make quartus-frontend-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 784 logic cells, 373 registers, 82 pins, 4,096
+- Analysis resources: 788 logic cells, 373 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`
@@ -81,7 +81,7 @@
 
 - Command: `make quartus-scalar-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 5,236 logic cells, 1,414 registers, 82 pins, 4,096
+- Analysis resources: 5,286 logic cells, 1,414 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`

@@ -101,6 +101,12 @@ The model covers both alignment classes and the documented visible/hidden state
 counts. It does not model stack faults, retries, waits, dynamic bus sizing, page
 mode, or partial external writes.
 
+RETS is also covered at the independent-model boundary. All 32 encodings
+preserve the complete ST value while reading the return PC and advancing SP;
+both TMS34020 5/6-state stack-alignment cases are tested. RETS remains blocked
+in RTL pending stack-read and direct-PC ownership. Source: User's Guide RETS,
+printed p.13-220.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

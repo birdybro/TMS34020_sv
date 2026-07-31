@@ -70,6 +70,15 @@ TMS34010 User's Guide printed pp.12-253..12-254. The model reports the three
 instruction-boundary cases; physical stack/vector waits, width conversion,
 faults, and retries remain absent.
 
+RETS takes 5 states when the old-SP address used for its 32-bit return-PC read
+is long-word aligned and 6 otherwise. The compatible TMS34010 instruction
+instead publishes minimum 7/9 aligned/unaligned states, while pinned MAME
+charges a fixed 7 cycles to both devices. Sources: TMS34020 User's Guide RETS,
+printed p.13-220; TMS34010 User's Guide RETS, printed p.12-232 and Appendix A
+p.A-16. The model reports the two instruction-boundary cases; external
+stack-read waits, dynamic width, page mode, faults, retries, and redirect
+pipeline timing remain absent.
+
 EXGF takes one state when exchanging FS0/FE0 (`F=0`) and two states when
 exchanging FS1/FE1 (`F=1`). This is a TMS34020 timing distinction: the
 TMS34010 guide lists one cache-hit state for EXGF without a field-bank split,
