@@ -37,8 +37,11 @@
 - A hash-pinned 1988 TMS34010 User's Guide for primary compatibility
   cross-checks without treating it as a TMS34020 timing authority.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
-  guides, generated decode, independent boundary fixtures, and a model
-  rollback guard while execution remains intentionally unsupported.
+  guides, generated decode, independent boundary fixtures, and a
+  pre-implementation model rollback guard.
+- Independent LMO architectural-model semantics with all five TI result rows,
+  Z-only status updates, same-register prewrite behavior, B-file selection,
+  and shared-SP source/destination coverage.
 - Primary-page-verified ABS, NEG, NEGB, and NOT ISA/model/RTL semantics with
   explicit partial status-write masks and every TI example row as a test.
 - Primary-page-verified ADD, ADDC, SUB, SUBB, and CMP decode/model/RTL
@@ -174,9 +177,12 @@
   errors and zero warnings.
 - Expanded the collision-free ISA slice to 63 entries covering 20,176 first
   words. LMO's complete `6A00h`–`6BFFh` range decodes as a one-word,
-  TMS34010-compatible instruction and remains blocked at execution boundaries.
-  Decoder-only Cyclone V requalification reports 7,620 leaf, 381 fetch, 760
-  frontend, and 4,563 scalar diagnostic logic cells with zero errors/warnings.
+  TMS34010-compatible instruction and remains blocked at RTL execution
+  boundaries. Decoder-only Cyclone V requalification reports 7,620 leaf, 381
+  fetch, 760 frontend, and 4,563 scalar diagnostic logic cells with zero
+  errors/warnings.
+- All 63 currently extracted forms now have bounded successful model semantics;
+  this remains partial-extraction coverage and is not instruction completeness.
 - Verilator verifies the bounded cache's successful refill/bypass path, refill
   ordering, lookup classifications, delayed present-bit commit, four-segment
   LRU behavior, controls, and backpressure. Quartus synthesizes it with zero

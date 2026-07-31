@@ -24,14 +24,11 @@ Implemented:
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
-  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, SETCSP,
+  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 62 of the 63 currently extracted database forms. LMO is
-decoded but intentionally raises `UnsupportedInstruction`; a directed test
-proves that the failed step restores processor, cache, trace, and PC state.
-This is coverage of the current partial extraction, not instruction
-completeness.
+These handlers cover all 63 currently extracted database forms. This is
+coverage of the current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -59,7 +56,11 @@ records its architecturally visible 16-bit internal-I/O write in the transaction
 trace and schedules the one hidden write state shown by TI's `2 (1)` timing.
 Subsequent modeled execution states overlap outstanding hidden writes, while
 MWAIT drains them. RMO returns the least-significant set-bit number and changes
-only Z.
+only Z. LMO returns the number of leading zero bits for a nonzero source,
+returns zero for a zero source, and likewise changes only Z. Its same-file
+source is captured before the destination write, including when `Rs == Rd`;
+A15/B15 use the shared SP state. Source: TI *TMS34020 User's Guide*, August
+1990, printed p.13-147.
 SETCDP, SETCMP, and SETCSP read B3/DPTCH, B11/MPTCH, and B1/SPTCH,
 respectively. They generate the documented 16-bit one's-complement shift
 fields in CONVDP, CONVMP, or CONVSP for one- and two-power pitches, use zero

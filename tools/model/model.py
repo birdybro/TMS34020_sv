@@ -138,6 +138,7 @@ class Tms34020Model:
             "CMPK": self._execute_cmpk,
             "EXGPS": self._execute_exgps,
             "GETPS": self._execute_getps,
+            "LMO": self._execute_lmo,
             "RMO": self._execute_rmo,
             "RPIX": self._execute_rpix,
             "SETCDP": self._execute_setcdp,
@@ -1273,6 +1274,19 @@ class Tms34020Model:
         source = (words[0] >> 5) & 0xF
         value = self.state.read_reg(register_file, source)
         result = 0 if value == 0 else (value & -value).bit_length() - 1
+        self.state.write_reg(register_file, destination, result)
+        self._set_status_bit(Z_BIT, value == 0)
+        return 1
+
+    def _execute_lmo(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source, destination = (
+            self._decode_source_destination(words[0])
+        )
+        value = self.state.read_reg(register_file, source)
+        result = 0 if value == 0 else 32 - value.bit_length()
         self.state.write_reg(register_file, destination, result)
         self._set_status_bit(Z_BIT, value == 0)
         return 1

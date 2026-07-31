@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -50,17 +49,6 @@ class StateTests(unittest.TestCase):
 
 
 class ExecutionTests(unittest.TestCase):
-    def test_decoded_lmo_is_unsupported_and_rolls_back(self) -> None:
-        model = Tms34020Model()
-        model.load_program([0x6A01])
-        model.state.write_reg("A", 0, 0x08000000)
-        before = model.snapshot()
-
-        with self.assertRaises(UnsupportedInstruction):
-            model.step()
-
-        self.assertEqual(model.snapshot(), before)
-
     def test_nop_advances_bit_addressed_pc(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0300], bit_address=0x20000)
@@ -1411,6 +1399,53 @@ class ExecutionTests(unittest.TestCase):
                     0xD000_0000,
                 )
                 self.assertEqual(event.machine_states, 1)
+
+    def test_lmo_primary_examples_and_only_updates_z(self) -> None:
+        cases = (
+            (0x00000000, 0x00000000, 1),
+            (0x00000001, 0x0000001F, 0),
+            (0x00000010, 0x0000001B, 0),
+            (0x08000000, 0x00000004, 0),
+            (0x80000000, 0x00000000, 0),
+        )
+        for source, expected, expected_z in cases:
+            with self.subTest(source=f"{source:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x6A01])
+                model.state.write_reg("A", 0, source)
+                model.state.write_reg("A", 1, 0xDEAD_BEEF)
+                model.state.st = 0xD123_4567
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 29) & 1, expected_z
+                )
+                self.assertEqual(
+                    model.state.st & 0xDFFF_FFFF,
+                    0xD123_4567,
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_lmo_same_register_b_file_and_shared_sp_hazards(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x6A00, 0x6A53, 0x6BF4, 0x6A5F])
+        model.state.write_reg("A", 0, 0x00000010)
+        model.state.write_reg("B", 2, 0x00000010)
+        model.state.sp = 0x80000000
+
+        same_register = model.step()
+        self.assertEqual(model.state.read_reg("A", 0), 27)
+        self.assertEqual(same_register.machine_states, 1)
+
+        b_file = model.step()
+        self.assertEqual(model.state.read_reg("B", 3), 27)
+
+        sp_source = model.step()
+        self.assertEqual(model.state.read_reg("B", 4), 0)
+        self.assertEqual(model.state.sp, 0x80000000)
+
+        sp_destination = model.step()
+        self.assertEqual(model.state.sp, 27)
 
     def test_mwait_consumes_abstract_pending_write_states(self) -> None:
         model = Tms34020Model()

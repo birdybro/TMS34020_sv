@@ -11,17 +11,16 @@
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 62 of 63 currently extracted encoding forms have bounded
+- Model status: all 63 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
-  SLA/SLL/SRA/SRL constant/register forms, SETCDP/SETCMP/SETCSP, bounded
+  SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
   BLMOVE, and successful TRAPL/VLCOL forms;
   fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
   replay, including GETPC/EXGPC sequential-PC, redirect, alignment, A/B, and
   shared-SP behavior. The extracted ISA is far from complete; BLMOVE overlap,
-  continuation/timing, LMO execution, non-cache fault/retry, and full
-  ISA/interfaces remain
+  continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
   (`TMS20-0006`, `TMS20-0007`)
 - RTL status: generated 63-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX and
