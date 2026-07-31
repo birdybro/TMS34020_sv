@@ -10,6 +10,7 @@ core, sequencer, pipeline, cache, memory controller, or pin interface.
 |---|---|---|
 | `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 24 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
+| `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
 | `rtl/execute/tms34020_cmpk.sv` | Encoded-zero-means-32 subtraction and N/C/Z/V compare results without register modification | TI *TMS34020 User's Guide*, August 1990, CMPK, printed p.13-83 |
@@ -50,6 +51,9 @@ Verilator. It checks:
 - all six legal RPIX sizes and their documented state counts;
 - rejection of an unsupported pixel size;
 - independent A/B storage and the shared A15/B15 stack-pointer alias.
+- ST reset/priority, documented bit layout and reserved mask, full flag
+  replacement, partial flag preservation, isolated IE set, and isolated C
+  clear.
 
 The testbench must emit `PASS: tms34020 verified leaf RTL`; simulator exit
 status alone is not accepted.
@@ -65,8 +69,8 @@ full-core qualification.
 
 ## Explicitly absent
 
-There is no instruction fetch or execution sequencer, architectural status
-register, writeback path, interrupt logic, cache, memory access, page mode,
+There is no instruction fetch or execution sequencer, instruction-controlled
+status/writeback path, interrupt logic, cache, memory access, page mode,
 bus-fault/retry, host interface, multiprocessor interface, coprocessor
 interface, display subsystem, original-pin bus, or game wrapper. The instruction
 modules are combinational semantic leaves; their presence does not mean any

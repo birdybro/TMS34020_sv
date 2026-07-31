@@ -72,6 +72,11 @@ module tb_tms34020_verified_leaves;
     logic [31:0] register_read1_data;
     logic [31:0] sp;
 
+    logic status_write_enable;
+    logic [31:0] status_write_data;
+    logic [31:0] status_write_mask;
+    logic [31:0] status_value;
+
     tms34020_decode decode_dut (
         .first_word_i(decode_word),
         .valid_o(decode_valid),
@@ -155,6 +160,15 @@ module tb_tms34020_verified_leaves;
         .read1_index_i(register_read1_index),
         .read1_data_o(register_read1_data),
         .sp_o(sp)
+    );
+
+    tms34020_status status_dut (
+        .clk_i(clk),
+        .reset_i(reset),
+        .write_enable_i(status_write_enable),
+        .write_data_i(status_write_data),
+        .write_mask_i(status_write_mask),
+        .status_o(status_value)
     );
 
     always #5 clk = ~clk;
@@ -257,6 +271,18 @@ module tb_tms34020_verified_leaves;
         register_write_enable = 1'b0;
     endtask
 
+    task automatic write_status(
+        input logic [31:0] write_data,
+        input logic [31:0] write_mask
+    );
+        status_write_data = write_data;
+        status_write_mask = write_mask;
+        status_write_enable = 1'b1;
+        @(posedge clk);
+        #1;
+        status_write_enable = 1'b0;
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
@@ -285,6 +311,9 @@ module tb_tms34020_verified_leaves;
         register_read0_index = 4'd0;
         register_read1_file = 1'b1;
         register_read1_index = 4'd0;
+        status_write_enable = 1'b0;
+        status_write_data = 32'd0;
+        status_write_mask = 32'd0;
 
         repeat (2) @(posedge clk);
         reset = 1'b0;
@@ -299,8 +328,52 @@ module tb_tms34020_verified_leaves;
                         TMS34020_ST_Z_BIT == 29 &&
                         TMS34020_ST_V_BIT == 28,
                         "status bit positions");
+        check_condition(
+            TMS34020_ST_IE_BIT == 21 &&
+            TMS34020_ST_SS_BIT == 22 &&
+            TMS34020_ST_IX_BIT == 25 &&
+            TMS34020_ST_BF_BIT == 26,
+            "status control and fault bit positions"
+        );
         check_condition(TMS34020_ST_RESET == 32'h0000_0010,
                         "status reset constant");
+        check_condition(
+            TMS34020_ST_RESERVED_MASK == 32'h099F_F000,
+            "status reserved-bit mask"
+        );
+        check_condition(status_value == 32'h0000_0010,
+                        "status state reset value");
+
+        write_status(32'hF000_0000, 32'hF000_0000);
+        check_condition(status_value == 32'hF000_0010,
+                        "status full NCZV update");
+        write_status(32'h2000_0000, 32'hB000_0000);
+        check_condition(status_value == 32'h6000_0010,
+                        "status partial NZV update preserves C");
+        write_status(32'd0, 32'h2000_0000);
+        check_condition(status_value == 32'h4000_0010,
+                        "status Z-only update preserves NCV");
+        write_status(32'h0020_0000, 32'h0020_0000);
+        check_condition(status_value == 32'h4020_0010,
+                        "status IE set without collateral changes");
+        write_status(32'd0, 32'h4000_0000);
+        check_condition(status_value == 32'h0020_0010,
+                        "status carry clear without collateral changes");
+
+        status_write_enable = 1'b1;
+        status_write_data = 32'hFFFF_FFFF;
+        status_write_mask = 32'hFFFF_FFFF;
+        reset = 1'b1;
+        @(posedge clk);
+        #1;
+        check_condition(status_value == 32'h0000_0010,
+                        "status reset dominates masked write");
+        reset = 1'b0;
+        status_write_enable = 1'b0;
+        @(posedge clk);
+        #1;
+        check_condition(status_value == 32'h0000_0010,
+                        "status holds without write enable");
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
         check_decode(16'h0080, TMS20_OP_MWAIT, 3'd1, "MWAIT exact decode");

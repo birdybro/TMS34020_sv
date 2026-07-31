@@ -7,10 +7,11 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 1,989 logic cells after synthesis, 992 registers,
+- Analysis resources: 2,033 logic cells after synthesis, 1,024 registers,
   127 pins, 0 block-memory bits, 0 DSP blocks, and 0 PLLs
-- Scope: generated partial decoder, A/B/SP register file, fifteen instruction
-  semantic leaves, and an observability-only synthesis wrapper
+- Scope: generated partial decoder, A/B/SP register file, masked ST state,
+  fifteen instruction semantic leaves, and an observability-only synthesis
+  wrapper
 - Fit/placement/routing: not run
 - TimeQuest/setup/hold: not run; no timing-closure claim
 - CDC: no architectural crossings exist in this leaf slice; full CDC audit not

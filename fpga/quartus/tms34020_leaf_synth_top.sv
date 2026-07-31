@@ -43,6 +43,7 @@ module tms34020_leaf_synth_top (
     logic register_read_file;
     logic [3:0] register_read_index;
     logic [31:0] second_register_data;
+    logic [31:0] status_value;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -58,6 +59,7 @@ module tms34020_leaf_synth_top (
         register_data ^
         second_register_data ^
         sp ^
+        status_value ^
         {27'd0, binary_nczv, binary_register_write_enable} ^
         {1'd0, unary_nczv, unary_status_write_mask,
          add_nczv, compare_nczv, rmo_z, decode_valid, decoded_id,
@@ -146,6 +148,15 @@ module tms34020_leaf_synth_top (
         .read1_index_i(register_read_index),
         .read1_data_o(second_register_data),
         .sp_o(sp)
+    );
+
+    tms34020_status status (
+        .clk_i(clk_i),
+        .reset_i(reset_i),
+        .write_enable_i(write_enable_i),
+        .write_data_i(immediate_i),
+        .write_mask_i(operand_i),
+        .status_o(status_value)
     );
 
 endmodule

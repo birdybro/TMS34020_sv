@@ -38,6 +38,8 @@
   explicit partial status-write masks and every TI example row as a test.
 - Primary-page-verified ADD, ADDC, SUB, SUBB, and CMP decode/model/RTL
   semantics with explicit 33-bit carry, borrow, and overflow handling.
+- A primary-cited 32-bit ST state owner with verified reset, documented field
+  constants, reserved-bit mask, and partial masked updates.
 
 ### Changed
 
