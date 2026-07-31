@@ -95,6 +95,10 @@ class IsaTests(unittest.TestCase):
             0x1800: ("MOVK", 1),
             0x1820: ("MOVK", 1),
             0x1BFF: ("MOVK", 1),
+            0x09C0: ("MOVI.W", 2),
+            0x09DF: ("MOVI.W", 2),
+            0x09E0: ("MOVI.L", 3),
+            0x09FF: ("MOVI.L", 3),
             0x4000: ("ADD", 1),
             0x41FF: ("ADD", 1),
             0x4200: ("ADDC", 1),
@@ -174,8 +178,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 9808)
-        self.assertEqual(unclassified, 65536 - 9808)
+        self.assertEqual(matched, 9872)
+        self.assertEqual(unclassified, 65536 - 9872)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -279,6 +283,24 @@ class IsaTests(unittest.TestCase):
         self.assertEqual(immediate["width"], 5)
         self.assertFalse(immediate["signed"])
         self.assertEqual(immediate["zero_encoding"], 32)
+
+    def test_movi_forms_record_width_status_and_alignment(self) -> None:
+        short = self.database.decode(0x09C0)
+        long = self.database.decode(0x09E0)
+        self.assertEqual(short.metadata["aliases"], ["MOVI"])
+        self.assertEqual(long.metadata["aliases"], ["MOVI"])
+        self.assertEqual(short.metadata["immediate_fields"][0]["width"], 16)
+        self.assertTrue(short.metadata["immediate_fields"][0]["signed"])
+        self.assertEqual(long.metadata["immediate_fields"][0]["width"], 32)
+        self.assertTrue(long.metadata["immediate_fields"][0]["signed"])
+        for instruction in (short, long):
+            self.assertEqual(
+                instruction.metadata["status_bits_written"],
+                ["N", "Z", "V"],
+            )
+            self.assertNotIn(
+                "C", instruction.metadata["status_bits_written"]
+            )
 
 
 if __name__ == "__main__":

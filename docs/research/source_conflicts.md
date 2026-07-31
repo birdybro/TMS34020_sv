@@ -172,3 +172,23 @@
   DEC as the conditional K=1 alias, and decode `1420h`–`143Fh` as SUBK. This
   replaces the earlier narrow DEC-only extraction without changing its
   semantics. Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0012: MOVI.W status labels contradict its examples
+
+- Status: resolved internal instruction-page error
+- Conflicting primary text: TI *TMS34020 User's Guide*, August 1990, MOVI
+  16-bit form, printed p.13-167, says Z is unaffected and V becomes one when
+  the moved data is zero.
+- Resolving primary evidence: every zero-valued example on that same page
+  prints `NCZV=0x10`, which means Z=1 and V=0. The adjacent 32-bit MOVI form on
+  printed p.13-168 explicitly defines Z as the zero indicator and V as zero.
+  The programmer's-model status definition in §4.1, printed pp.4-2..4-3,
+  assigns the conventional zero and overflow meanings to Z and V.
+- Corroboration: the pinned TMS34010 baseline sets the MOVI.W and MOVI.L
+  writeback mask to N/Z/V in `rtl/core/tms34010_decode.sv` lines 541–575 at
+  commit `94a258e80a07ceb4303ce0b99818df832e96007f`. Pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e` clears and recomputes N/Z/V for
+  both forms in `src/devices/cpu/tms34010/34010ops.hxx` lines 1079–1099.
+- Decision: both MOVI forms update N and Z from the moved result, clear V, and
+  preserve C. The contradictory p.13-167 labels remain recorded here and are
+  covered by directed zero-result tests. Confidence: `VERIFIED_PRIMARY`.

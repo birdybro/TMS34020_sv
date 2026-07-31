@@ -271,6 +271,13 @@
   packet commits K=32 without changing live status. Warning-free Quartus
   requalification reports 5,915 leaf and 3,747 scalar logic cells; the unchanged
   fetch/frontend wrappers remain 347 and 721 logic cells.
+- Extracted MOVI.W and MOVI.L from TI printed pp.13-167..13-168. The 47-record
+  database covers 9,872 first words, and 70 model tests cover all published
+  rows, short sign extension, A/B/shared-SP selection, C preservation, the
+  resolved Z/V behavior, and aligned/unaligned long timing. Complete decoded
+  MOVI packets remain blocked at this extraction-only RTL checkpoint.
+  Warning-free Quartus reports 5,926 leaf, 363 fetch, 734 frontend, and 3,751
+  scalar logic cells.
 
 ### Documentation
 
@@ -325,6 +332,9 @@
 - Recorded RSC-0009 for the SUBI.L example row that prints `NCZV=0001` despite
   a zero, non-overflowing result; the model follows the page's flag definitions
   and its other zero-result rows (`0010`).
+- Recorded RSC-0012 for the MOVI.W page's swapped Z/V prose. The implementation
+  follows that page's examples, the adjacent MOVI.L definition, and §4.1:
+  result-derived N/Z, preserved C, and cleared V.
 
 ### Integration
 

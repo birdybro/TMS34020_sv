@@ -92,6 +92,8 @@ class Tms34020Model:
             "ADDK": self._execute_addk,
             "SUBK": self._execute_subk,
             "MOVK": self._execute_movk,
+            "MOVI.W": self._execute_movi_word,
+            "MOVI.L": self._execute_movi_long,
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
@@ -492,6 +494,41 @@ class Tms34020Model:
         constant = encoded_constant or 32
         self.state.write_reg(register_file, index, constant)
         return 1
+
+    def _execute_immediate_move(
+        self,
+        words: list[int],
+        long_form: bool,
+    ) -> int:
+        register_file, index = self._decode_destination(words[0])
+        if long_form:
+            result = words[1] | (words[2] << 16)
+        else:
+            result = words[1]
+            if result & 0x8000:
+                result |= 0xFFFF_0000
+
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, False)
+
+        if not long_form:
+            return 2
+        immediate_address = (self.state.pc - 32) & MASK32
+        return 2 if immediate_address & 0x1F == 0 else 3
+
+    def _execute_movi_word(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_move(words, False)
+
+    def _execute_movi_long(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_move(words, True)
 
     def _execute_setc(
         self, instruction: Instruction, words: list[int]

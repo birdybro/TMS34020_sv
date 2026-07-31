@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 45 page-verified encoding records and covers 9,808 of 65,536
+slice contains 47 page-verified encoding records and covers 9,872 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -25,6 +25,8 @@ first words without collisions:
 | ADDK / INC alias when K=1 | `1000h`, mask `FC00h` | 1 | pp.13-37, 13-134 |
 | SUBK / DEC alias when K=1 | `1400h`, mask `FC00h` | 1 | pp.13-94, 13-245 |
 | MOVK | `1800h`, mask `FC00h` | 1 | p.13-169 |
+| MOVI.W / MOVI | `09C0h`, mask `FFE0h` | 2 | p.13-167 |
+| MOVI.L / MOVI | `09E0h`, mask `FFE0h` | 3 | p.13-168 |
 | SETC | `0DE0h` | 1 | p.13-226 |
 | ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
@@ -92,6 +94,14 @@ MOVK uses the adjacent `000110 KKKKK R DDDD` encoding and the same unsigned
 1–31/encoded-zero-means-32 K mapping. It zero-extends that constant into the
 selected A/B destination, leaves every ST bit unaffected, and takes one
 documented machine state. Sources: printed p.13-169 and timing-table p.15-6.
+
+The `.W` and `.L` MOVI form names distinguish the sign-extended 16-bit and
+full 32-bit object encodings; TI uses `MOVI` for both. Both forms update N and
+Z from the moved result, preserve C, and clear V. Printed p.13-167 incorrectly
+labels Z unaffected and V as the zero indicator, but its own examples, the
+adjacent long-form definition, and §4.1 show the reverse. This resolution is
+preserved in `docs/research/source_conflicts.md` RSC-0012 rather than silently
+correcting the source.
 
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database

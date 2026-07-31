@@ -1039,6 +1039,26 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "decoded but unsupported register execute instruction"
         );
+        execute_first_word = 16'h09C0;
+        execute_packet_length = 3'd2;
+        execute_immediate = 32'h0000_8000;
+        #1;
+        check_condition(
+            !execute_supported &&
+            !execute_register_write_enable &&
+            !execute_status_write_enable,
+            "complete MOVI.W remains unsupported at extraction checkpoint"
+        );
+        execute_first_word = 16'h09E0;
+        execute_packet_length = 3'd3;
+        execute_immediate = 32'h8000_0000;
+        #1;
+        check_condition(
+            !execute_supported &&
+            !execute_register_write_enable &&
+            !execute_status_write_enable,
+            "complete MOVI.L remains unsupported at extraction checkpoint"
+        );
         check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
@@ -1473,6 +1493,14 @@ module tb_tms34020_verified_leaves;
                      "MOVK encoded-zero decode");
         check_decode(16'h1BFF, TMS20_OP_MOVK, 3'd1,
                      "MOVK upper-bound decode");
+        check_decode(16'h09C0, TMS20_OP_MOVI_W, 3'd2,
+                     "MOVI.W lower-bound decode");
+        check_decode(16'h09DF, TMS20_OP_MOVI_W, 3'd2,
+                     "MOVI.W upper-bound decode");
+        check_decode(16'h09E0, TMS20_OP_MOVI_L, 3'd3,
+                     "MOVI.L lower-bound decode");
+        check_decode(16'h09FF, TMS20_OP_MOVI_L, 3'd3,
+                     "MOVI.L upper-bound decode");
         check_decode(16'h41FF, TMS20_OP_ADD, 3'd1, "ADD masked decode");
         check_decode(16'h43FF, TMS20_OP_ADDC, 3'd1,
                      "ADDC masked decode");

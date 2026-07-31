@@ -161,6 +161,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0300: memory_word = 16'h101F;
                 32'h0000_0310: memory_word = 16'h140F;
                 32'h0000_0320: memory_word = 16'h1800;
+                32'h0000_0330: memory_word = 16'h09C0;
+                32'h0000_0340: memory_word = 16'h0000;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -760,6 +762,33 @@ module tb_tms34020_scalar_slice;
         apply_reset();
         load_pc(32'h330);
         serve_word(32'h330);
+        serve_word(32'h340);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_MOVI_W &&
+            packet_length_words == 3'd2 &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "complete MOVI.W packet remains blocked"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 0 &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0,
+                "blocked MOVI.W packet cannot mutate state"
+            );
+        end
+
+        apply_reset();
+        load_pc(32'h350);
+        serve_word(32'h350);
         wait (packet_blocked);
         check_condition(
             packet_valid &&

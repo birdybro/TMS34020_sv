@@ -465,6 +465,76 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(final.mnemonic, "MOVK")
         self.assertEqual(model.state.sp, 32)
 
+    def test_movi_word_primary_rows_and_status_resolution(self) -> None:
+        cases = (
+            (0x7FFF, 0x0000_7FFF, 0b0100),
+            (0x0001, 0x0000_0001, 0b0100),
+            (0x0000, 0x0000_0000, 0b0110),
+            (0xFFFF, 0xFFFF_FFFF, 0b1100),
+            (0x8000, 0xFFFF_8000, 0b1100),
+            (0x0000, 0x0000_0000, 0b0110),
+            (0x7FFF, 0x0000_7FFF, 0b0100),
+        )
+        for encoded, expected, expected_nczv in cases:
+            with self.subTest(encoded=f"{encoded:04X}"):
+                model = Tms34020Model()
+                model.load_program([0x09C0, encoded])
+                model.state.st = 0x5020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "MOVI.W")
+                self.assertEqual(model.state.read_reg("A", 0), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(model.state.st & 0x0FFF_FFFF, 0x0020_0010)
+                self.assertEqual(event.machine_states, 2)
+
+        b_file = Tms34020Model()
+        b_file.load_program([0x09D2, 0x8000])
+        b_file.step()
+        self.assertEqual(b_file.state.read_reg("B", 2), 0xFFFF_8000)
+
+    def test_movi_long_primary_rows_alignment_and_shared_sp(self) -> None:
+        values = (
+            0x7FFF_FFFF,
+            0x0000_8000,
+            0xFFFF_7FFF,
+            0x8000_0000,
+            0x0000_8000,
+            0xFFFF_FFFF,
+            0xFFFF_FFFF,
+            0x0000_0000,
+        )
+        for value in values:
+            with self.subTest(value=f"{value:08X}"):
+                model = Tms34020Model()
+                model.load_program(
+                    [0x09E0, value & 0xFFFF, value >> 16]
+                )
+                model.state.st = 0x5020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "MOVI.L")
+                self.assertEqual(model.state.read_reg("A", 0), value)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF,
+                    (
+                        (0b1000 if value & 0x8000_0000 else 0)
+                        | 0b0100
+                        | (0b0010 if value == 0 else 0)
+                    ),
+                )
+                self.assertEqual(model.state.st & 0x0FFF_FFFF, 0x0020_0010)
+                self.assertEqual(event.machine_states, 3)
+
+        aligned_sp = Tms34020Model()
+        aligned_sp.load_program(
+            [0x09FF, 0x5678, 0x1234],
+            bit_address=0x10,
+        )
+        aligned_event = aligned_sp.step()
+        self.assertEqual(aligned_sp.state.sp, 0x1234_5678)
+        self.assertEqual(aligned_event.machine_states, 2)
+
     def test_add_primary_examples(self) -> None:
         cases = (
             (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0b1100),
