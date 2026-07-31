@@ -3,17 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `aae3f05ded9b20885bad1dd61bd3ca0a0d1b45b9`
-- Passing tests: foundation, reference/hash, delta, 23-case ISA sweep, 113 directed model
+- Latest verified baseline commit: `05f4eed2742ee01db12d7f2d24e92760424b74c8`
+- Passing tests: foundation, reference/hash, delta, 23-case ISA sweep, 114 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 70 of 71 currently extracted encoding forms have bounded
-  successful semantics; EXGF remains atomic non-execution pending its
-  independent handler. Implemented coverage includes complete
+- Model status: all 71 currently extracted encoding forms have bounded
+  successful semantics. EXGF covers both primary rows, both field banks/files,
+  upper-register clearing, nonselected-ST preservation, shared SP, and the
+  bank-dependent state count. Other implemented coverage includes complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
   BLMOVE, and successful TRAPL/VLCOL forms;

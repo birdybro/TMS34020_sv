@@ -65,6 +65,10 @@
 - Primary-page-verified EXGF encoding, atomic field-bank/register exchange
   contract, conditional `F=0`/`F=1` TMS34020 timing, independent decode
   boundaries, and RSC-0019 for pinned MAME's field-one timing undercount.
+- Independent EXGF model semantics reproducing both published rows and
+  covering both field banks/files, ordinary/shared-SP destinations,
+  upper-register clearing, nonselected-ST preservation, and TI's one-/two-state
+  split.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -168,6 +172,9 @@
 
 ### Verified
 
+- The 114-case independent model suite covers bounded semantics for all 71
+  currently extracted forms, including EXGF's atomic two-owner exchange. This
+  is not coverage of the unextracted ISA or RTL retirement timing.
 - Expanded the collision-free ISA slice to 71 entries covering 23,056 first
   words. EXGF decodes across both field banks, A/B, and shared SP while
   remaining blocked and noncommitting in model/RTL at this extraction

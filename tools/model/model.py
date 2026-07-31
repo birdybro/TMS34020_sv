@@ -91,6 +91,7 @@ class Tms34020Model:
             "CLRC": self._execute_clrc,
             "DINT": self._execute_dint,
             "EINT": self._execute_eint,
+            "EXGF": self._execute_exgf,
             "EXGPC": self._execute_exgpc,
             "GETPC": self._execute_getpc,
             "GETST": self._execute_getst,
@@ -701,6 +702,24 @@ class Tms34020Model:
         field_bank = (first_word >> 9) & 1
         encoded_size = (self.state.st >> (field_bank * 6)) & 0x1F
         return encoded_size or 32
+
+    def _execute_exgf(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        first_word = words[0]
+        register_file, destination = self._decode_destination(first_word)
+        field_bank = (first_word >> 9) & 1
+        shift = field_bank * 6
+        mask = 0x3F << shift
+        register_before = self.state.read_reg(register_file, destination)
+        field_before = (self.state.st >> shift) & 0x3F
+        self.state.st = (
+            (self.state.st & ~mask)
+            | ((register_before & 0x3F) << shift)
+        ) & MASK32
+        self.state.write_reg(register_file, destination, field_before)
+        return field_bank + 1
 
     def _execute_setf(
         self, instruction: Instruction, words: list[int]

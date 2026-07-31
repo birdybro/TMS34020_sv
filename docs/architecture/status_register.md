@@ -77,11 +77,16 @@ boundary: the complete old ST is stored at the final predecremented SP before
 ST becomes `00000010h`. This does not add an RTL interrupt owner or establish
 faulted-stack behavior. Source: User's Guide TRAPL, printed pp.13-256..13-258.
 
+The model also verifies EXGF's atomic selected-bank exchange, upper-register
+clearing, nonselected-ST preservation, both register files, and shared SP.
+EXGF is not yet an RTL write owner.
+
 ## Incomplete behavior
 
 The following are not yet implemented:
 
-- PUTST, EXGF, PUSHST, and POPST semantics or sequencing;
+- PUTST, PUSHST, and POPST semantics or sequencing, plus EXGF RTL ownership
+  and retirement timing;
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;

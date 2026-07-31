@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1924,21 +1923,81 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_exgf_decode_checkpoint_rolls_back_atomically(self) -> None:
-        for opcode in (0xD500, 0xD51F, 0xD700, 0xD71F):
-            with self.subTest(opcode=f"{opcode:04X}"):
+    def test_exgf_primary_examples(self) -> None:
+        for field_bank, opcode, expected_status in (
+            (0, 0xD505, 0xF000_0FC0),
+            (1, 0xD705, 0xF000_003F),
+        ):
+            with self.subTest(field_bank=field_bank):
                 model = Tms34020Model()
-                model.load_program([opcode], bit_address=0x80)
+                model.load_program([opcode])
                 model.state.st = 0xF000_0FFF
-                model.state.write_reg(
-                    "B" if opcode & 0x10 else "A",
-                    opcode & 0xF,
-                    0xFFFF_FFC0,
-                )
-                before = model.snapshot()
-                with self.assertRaises(UnsupportedInstruction):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
+                model.state.write_reg("A", 5, 0xFFFF_FFC0)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 5), 0x3F)
+                self.assertEqual(model.state.st, expected_status)
+                self.assertEqual(event.mnemonic, "EXGF")
+                self.assertEqual(event.machine_states, field_bank + 1)
+
+    def test_exgf_all_banks_files_and_shared_sp(self) -> None:
+        initial_status = 0xB5A3_4A95
+        for field_bank in (0, 1):
+            for register_file, file_bit in (("A", 0), ("B", 1)):
+                for destination in (0, 14, 15):
+                    with self.subTest(
+                        field_bank=field_bank,
+                        register_file=register_file,
+                        destination=destination,
+                    ):
+                        opcode = (
+                            0xD500
+                            | (field_bank << 9)
+                            | (file_bit << 4)
+                            | destination
+                        )
+                        register_before = (
+                            0xA5C3_5A00
+                            | (field_bank << 5)
+                            | (file_bit << 4)
+                            | destination
+                        )
+                        shift = field_bank * 6
+                        mask = 0x3F << shift
+                        expected_register = (
+                            initial_status >> shift
+                        ) & 0x3F
+                        expected_status = (
+                            (initial_status & ~mask)
+                            | ((register_before & 0x3F) << shift)
+                        )
+
+                        model = Tms34020Model()
+                        model.load_program([opcode])
+                        model.state.st = initial_status
+                        model.state.write_reg(
+                            register_file,
+                            destination,
+                            register_before,
+                        )
+                        event = model.step()
+                        self.assertEqual(
+                            model.state.read_reg(
+                                register_file, destination
+                            ),
+                            expected_register,
+                        )
+                        self.assertEqual(model.state.st, expected_status)
+                        self.assertEqual(
+                            event.machine_states, field_bank + 1
+                        )
+                        if destination == 15:
+                            other_file = (
+                                "B" if register_file == "A" else "A"
+                            )
+                            self.assertEqual(
+                                model.state.read_reg(other_file, 15),
+                                expected_register,
+                            )
 
     def test_setf_primary_rows_and_masked_status_banks(self) -> None:
         cases = (

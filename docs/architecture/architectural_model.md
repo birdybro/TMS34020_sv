@@ -18,7 +18,7 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGPC, GETPC, GETST, ADDK/INC,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGF, EXGPC, GETPC, GETST, ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
@@ -29,10 +29,8 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 70 of 71 currently extracted database forms. EXGF remains
-an atomic non-execution boundary until its independent handler is implemented.
-This is coverage of a current partial extraction, not instruction
-completeness.
+These handlers cover all 71 currently extracted database forms. This is
+coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -69,6 +67,16 @@ Sources: TI *TMS34020 User's Guide*, August 1990, printed pp.13-230..13-232
 and 13-268, status layout pp.4-2..4-3, and timing summary pp.13-17..13-18;
 compatibility timing cross-check: TI *TMS34010 User's Guide*, 1988, printed
 pp.12-237..12-238 and 12-257.
+
+EXGF captures the selected six-bit FS/FE bank and the destination register's
+low six bits before atomically exchanging them. The register result is
+zero-extended, so its upper 26 bits clear; every nonselected ST bit is
+preserved. Directed tests reproduce both published rows and cover both banks,
+both register files, ordinary destinations, and shared SP. The model reports
+one state for `F=0` and two for `F=1`; RSC-0019 records pinned MAME's
+field-one undercount. Sources: TMS34020 User's Guide printed pp.13-111 and
+15-4; compatibility cross-check: TMS34010 User's Guide printed pp.12-17 and
+12-78.
 
 RPIX implements every
 legal PSIZE and the page-13-225 state counts. MWAIT exposes an abstract
