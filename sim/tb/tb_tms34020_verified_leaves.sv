@@ -35,8 +35,10 @@ module tb_tms34020_verified_leaves;
 
     logic [15:0] pc_execute_first_word;
     logic [2:0] pc_execute_packet_length;
+    logic [15:0] pc_execute_immediate;
     logic [31:0] pc_execute_sequential_next_pc;
     logic [31:0] pc_execute_destination;
+    logic [31:0] pc_execute_status;
     logic pc_execute_supported;
     logic pc_execute_register_write_enable;
     logic [31:0] pc_execute_register_write_data;
@@ -192,8 +194,10 @@ module tb_tms34020_verified_leaves;
     tms34020_pc_execute pc_execute_dut (
         .first_word_i(pc_execute_first_word),
         .packet_length_words_i(pc_execute_packet_length),
+        .immediate_word_i(pc_execute_immediate),
         .sequential_next_pc_i(pc_execute_sequential_next_pc),
         .destination_i(pc_execute_destination),
+        .status_i(pc_execute_status),
         .supported_o(pc_execute_supported),
         .register_write_enable_o(
             pc_execute_register_write_enable
@@ -622,8 +626,10 @@ module tb_tms34020_verified_leaves;
     task automatic check_pc_execute(
         input logic [15:0] first_word,
         input logic [2:0] packet_length,
+        input logic [15:0] immediate,
         input logic [31:0] sequential_next_pc,
         input logic [31:0] destination,
+        input logic [31:0] status,
         input logic expected_supported,
         input logic expected_register_write,
         input logic [31:0] expected_register_data,
@@ -633,8 +639,10 @@ module tb_tms34020_verified_leaves;
     );
         pc_execute_first_word = first_word;
         pc_execute_packet_length = packet_length;
+        pc_execute_immediate = immediate;
         pc_execute_sequential_next_pc = sequential_next_pc;
         pc_execute_destination = destination;
+        pc_execute_status = status;
         #1;
         check_condition(
             pc_execute_supported == expected_supported &&
@@ -1190,25 +1198,35 @@ module tb_tms34020_verified_leaves;
         #1;
     endtask
 
-    task automatic reject_complete_commit_packet(
+    task automatic commit_dsj_instruction(
         input logic [15:0] first_word,
-        input logic [2:0] packet_length,
-        input logic [31:0] immediate,
+        input logic [15:0] displacement,
+        input logic [31:0] sequential_next_pc,
+        input logic expected_register_write,
+        input logic [31:0] expected_register_data,
+        input logic expected_redirect,
+        input logic [31:0] expected_redirect_address,
         input logic [31:0] expected_status,
         input logic [31:0] expected_sp,
         input string message
     );
-        commit_packet_words = {immediate, first_word};
-        commit_packet_length = packet_length;
-        commit_sequential_next_pc = 32'h1234_5670;
+        commit_packet_words = {16'd0, displacement, first_word};
+        commit_packet_length = 3'd2;
+        commit_sequential_next_pc = sequential_next_pc;
         commit_valid = 1'b1;
         #1;
         check_condition(
-            !commit_supported &&
-            !commit_accepted &&
-            !commit_register_write_enable &&
+            commit_supported &&
+            commit_accepted &&
+            commit_register_write_enable ==
+                expected_register_write &&
+            commit_register_write_file == first_word[4] &&
+            commit_register_write_index == first_word[3:0] &&
+            commit_register_write_data == expected_register_data &&
             !commit_status_write_enable &&
-            !commit_pc_redirect_enable,
+            commit_pc_redirect_enable == expected_redirect &&
+            commit_pc_redirect_bit_address ==
+                expected_redirect_address,
             message
         );
         @(posedge clk);
@@ -1228,8 +1246,10 @@ module tb_tms34020_verified_leaves;
         decode_word = 16'd0;
         pc_execute_first_word = 16'd0;
         pc_execute_packet_length = 3'd1;
+        pc_execute_immediate = 16'd0;
         pc_execute_sequential_next_pc = 32'd0;
         pc_execute_destination = 32'd0;
+        pc_execute_status = 32'd0;
         add_destination = 32'd0;
         add_immediate = 32'd0;
         xy_operation = TMS34020_XY_ADD;
@@ -1914,43 +1934,85 @@ module tb_tms34020_verified_leaves;
             "register execute GETST operand selector"
         );
         check_pc_execute(
-            16'h0141, 3'd1, 32'h0000_1BE0,
-            32'hDEAD_BEEF,
+            16'h0141, 3'd1, 16'd0, 32'h0000_1BE0,
+            32'hDEAD_BEEF, 32'hA000_0010,
             1'b1, 1'b1, 32'h0000_1BE0,
             1'b0, 32'd0,
             "PC execute GETPC sequential address"
         );
         check_pc_execute(
-            16'h0132, 3'd1, 32'h0000_2090,
-            32'h1234_567F,
+            16'h0132, 3'd1, 16'd0, 32'h0000_2090,
+            32'h1234_567F, 32'hA000_0010,
             1'b1, 1'b1, 32'h0000_2090,
             1'b1, 32'h1234_5670,
             "PC execute EXGPC exchange and alignment"
         );
         check_pc_execute(
-            16'h017F, 3'd1, 32'h0000_2090,
-            32'h89AB_CDEF,
+            16'h017F, 3'd1, 16'd0, 32'h0000_2090,
+            32'h89AB_CDEF, 32'hA000_0010,
             1'b1, 1'b0, 32'd0,
             1'b1, 32'h89AB_CDE0,
             "PC execute JUMP redirect and alignment"
         );
         check_pc_execute(
-            16'h0D80, 3'd2, 32'h0000_20A0,
-            32'h0000_0002,
-            1'b0, 1'b0, 32'd0,
-            1'b0, 32'd0,
-            "PC execute blocks decoded DSJ before implementation"
+            16'h0D80, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'h0000_0002, 32'hA000_0010,
+            1'b1, 1'b1, 32'h0000_0001,
+            1'b1, 32'h0000_20C0,
+            "PC execute DSJ forward redirect"
         );
         check_pc_execute(
-            16'h0121, 3'd2, 32'h0000_2090,
-            32'h1234_567F,
+            16'h0D80, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'h0000_0001, 32'hA000_0010,
+            1'b1, 1'b1, 32'h0000_0000,
+            1'b0, 32'd0,
+            "PC execute DSJ decrement-to-zero skip"
+        );
+        check_pc_execute(
+            16'h0D80, 3'd2, 16'hFFFE, 32'h0000_20A0,
+            32'h0000_0000, 32'hA000_0010,
+            1'b1, 1'b1, 32'hFFFF_FFFF,
+            1'b1, 32'h0000_2080,
+            "PC execute DSJ wrapping decrement and backward redirect"
+        );
+        check_pc_execute(
+            16'h0DA0, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'h0000_0009, 32'h2000_0010,
+            1'b1, 1'b1, 32'h0000_0008,
+            1'b1, 32'h0000_20C0,
+            "PC execute DSJEQ enabled"
+        );
+        check_pc_execute(
+            16'h0DA0, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'h0000_0009, 32'h0000_0010,
+            1'b1, 1'b0, 32'd0,
+            1'b0, 32'd0,
+            "PC execute DSJEQ suppressed"
+        );
+        check_pc_execute(
+            16'h0DC0, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'h0000_0009, 32'h0000_0010,
+            1'b1, 1'b1, 32'h0000_0008,
+            1'b1, 32'h0000_20C0,
+            "PC execute DSJNE enabled"
+        );
+        check_pc_execute(
+            16'h0DC0, 3'd2, 16'h0002, 32'h0000_20A0,
+            32'h0000_0009, 32'h2000_0010,
+            1'b1, 1'b0, 32'd0,
+            1'b0, 32'd0,
+            "PC execute DSJNE suppressed"
+        );
+        check_pc_execute(
+            16'h0121, 3'd2, 16'd0, 32'h0000_2090,
+            32'h1234_567F, 32'hA000_0010,
             1'b0, 1'b0, 32'd0,
             1'b0, 32'd0,
             "PC execute rejects length mismatch"
         );
         check_pc_execute(
-            16'hFFFF, 3'd1, 32'h0000_2090,
-            32'h1234_567F,
+            16'hFFFF, 3'd1, 16'd0, 32'h0000_2090,
+            32'h1234_567F, 32'hA000_0010,
             1'b0, 1'b0, 32'd0,
             1'b0, 32'd0,
             "PC execute rejects unclassified word"
@@ -2930,20 +2992,62 @@ module tb_tms34020_verified_leaves;
             32'h0000_0010, 32'd1,
             "register commit rejects decode-only PUSHST"
         );
-        reject_complete_commit_packet(
-            16'h0D80, 3'd2, 32'h0000_0002,
-            32'h0000_0010, 32'd1,
-            "register commit rejects complete DSJ"
+        commit_dsj_instruction(
+            16'h0D9F, 16'h0002, 32'h0000_1000,
+            1'b1, 32'd0, 1'b0, 32'd0,
+            32'h0000_0010, 32'd0,
+            "register commit DSJ decrement-to-zero shared SP"
         );
-        reject_complete_commit_packet(
-            16'h0DA0, 3'd2, 32'h0000_FFFE,
-            32'h0000_0010, 32'd1,
-            "register commit rejects complete DSJEQ"
+        commit_dsj_instruction(
+            16'h0D9F, 16'hFFFE, 32'h0000_1000,
+            1'b1, 32'hFFFF_FFFF, 1'b1, 32'h0000_0FE0,
+            32'h0000_0010, 32'hFFFF_FFFF,
+            "register commit DSJ wrapping decrement and backward redirect"
         );
-        reject_complete_commit_packet(
-            16'h0DC0, 3'd2, 32'h0000_7FFF,
+        commit_dsj_instruction(
+            16'h0DAF, 16'h0002, 32'h0000_1000,
+            1'b0, 32'd0, 1'b0, 32'd0,
+            32'h0000_0010, 32'hFFFF_FFFF,
+            "register commit DSJEQ suppresses decrement when Z clear"
+        );
+        commit_register_instruction(
+            16'h4800, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h2000_0000, 32'hF000_0000,
+            32'h2000_0010, 32'hFFFF_FFFF,
+            "register commit prepares Z for DSJEQ"
+        );
+        commit_dsj_instruction(
+            16'h0DBF, 16'h0002, 32'h0000_1000,
+            1'b1, 32'hFFFF_FFFE, 1'b1, 32'h0000_1020,
+            32'h2000_0010, 32'hFFFF_FFFE,
+            "register commit DSJEQ enabled shared SP"
+        );
+        commit_dsj_instruction(
+            16'h0DCF, 16'h0002, 32'h0000_1000,
+            1'b0, 32'd0, 1'b0, 32'd0,
+            32'h2000_0010, 32'hFFFF_FFFE,
+            "register commit DSJNE suppresses decrement when Z set"
+        );
+        commit_immediate_move_instruction(
+            16'h09FF, 3'd3, 32'h0000_0009,
+            1'b1, 4'd15, 32'h0000_0009,
+            1'b0, 1'b0,
+            32'h0000_0010, 32'h0000_0009,
+            "register commit prepares clear Z and SP for DSJNE"
+        );
+        commit_dsj_instruction(
+            16'h0DDF, 16'h0002, 32'hFFFF_FFF0,
+            1'b1, 32'h0000_0008, 1'b1, 32'h0000_0010,
+            32'h0000_0010, 32'h0000_0008,
+            "register commit DSJNE enabled with PC wrap"
+        );
+        commit_immediate_move_instruction(
+            16'h09FF, 3'd3, 32'h0000_0001,
+            1'b1, 4'd15, 32'h0000_0001,
+            1'b0, 1'b0,
             32'h0000_0010, 32'd1,
-            "register commit rejects complete DSJNE"
+            "register commit restores shared SP after DSJ matrix"
         );
         commit_register_instruction(
             16'h0300, 1'b1,

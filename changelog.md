@@ -108,6 +108,15 @@
   semantics, two-/three-state cases, TMS34010 semantic compatibility, generated
   decode, complete range-boundary fixtures, atomic model rollback guards, and
   explicit RTL packet noncommit checks.
+- Independent DSJ/DSJEQ/DSJNE model execution covering all published rows,
+  enabled and suppressed conditions, zero/wrapping decrements, signed
+  displacement extremes, PC wrap, A/B/shared-SP selection, exact write traces,
+  complete status preservation, and documented two-/three-state cases.
+- Synthesizable DSJ-family execution ownership with a true 16-bit displacement
+  port, condition-controlled atomic destination write, status neutrality,
+  nonzero-result signed relative redirect, frontend target holding, integrated
+  A-file execution, shared-SP commit coverage, and two runtime safety
+  assertions. Architectural retirement timing remains unimplemented.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -213,12 +222,12 @@
 
 - Expanded the collision-free ISA slice to 78 entries covering 23,218 first
   words. All DSJ/DSJEQ/DSJNE range boundaries and the adjacent SETC boundary
-  pass the independent fixtures and 65,536-word sweep. The 123-case model suite
-  proves complete attempts roll back atomically, while leaf and scalar tests
-  prove the newly decoded packets cannot write registers/status or redirect
-  before an execution owner exists. All four decoder-bearing Cyclone V analyses
-  pass with zero errors/warnings at 8,553 leaf, 407 fetch, 772 frontend, and
-  5,086 scalar diagnostic logic cells; these are not fitted core-area or
+  pass the independent fixtures and 65,536-word sweep. The 126-case model suite
+  executes every primary DSJ-family row and edge case. Leaf and scalar tests
+  verify conditional decrement, status preservation, signed redirect targets,
+  decrement-to-zero suppression, wrap, and PC wrap. All four decoder-bearing
+  Cyclone V analyses pass with zero errors/warnings at 8,604 leaf, 407 fetch,
+  772 frontend, and 5,170 scalar diagnostic logic cells; these are not fitted core-area or
   timing-closure results.
 - The 122-case independent model suite covers bounded successful semantics for
   all 75 currently extracted forms. JUMP tests cover all primary target rows,

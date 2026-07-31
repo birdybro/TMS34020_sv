@@ -93,8 +93,10 @@ module tms34020_register_commit (
     tms34020_pc_execute pc_execute (
         .first_word_i(packet_words_i[15:0]),
         .packet_length_words_i(packet_length_words_i),
+        .immediate_word_i(packet_words_i[31:16]),
         .sequential_next_pc_i(sequential_next_pc_i),
         .destination_i(destination_data),
+        .status_i(status_o),
         .supported_o(pc_execute_supported),
         .register_write_enable_o(pc_register_write_intent),
         .register_write_data_o(pc_register_write_data),

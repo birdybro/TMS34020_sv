@@ -133,10 +133,12 @@ p.13-103, DSJEQ printed pp.13-104..13-105, and DSJNE printed
 pp.13-106..13-107. TMS34010 User's Guide printed pp.12-69..12-74 corroborates
 the encoding and visible semantics without authorizing timing-RTL reuse.
 
-The generated decoder recognizes all three complete ranges. Until independent
-execution semantics are implemented, the software model rolls back a complete
-attempt and the bounded RTL holds each complete packet blocked and
-state-neutral. The documented two-/three-state scheduling is also absent.
+The independent model reproduces every published input row, conditional
+suppression, signed displacement extremes, register-file/shared-SP selection,
+and PC wrap. The bounded RTL performs the same functional ordering and holds a
+taken target through frontend completion. Two runtime assertions require the
+conditioned decrement/redirect relationship and exact signed-word target.
+The RTL still lacks the documented two-/three-state scheduling.
 
 ## Reset entry
 

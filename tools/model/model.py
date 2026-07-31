@@ -90,6 +90,9 @@ class Tms34020Model:
             "NOT": self._execute_not,
             "CLRC": self._execute_clrc,
             "DINT": self._execute_dint,
+            "DSJ": self._execute_dsj_family,
+            "DSJEQ": self._execute_dsj_family,
+            "DSJNE": self._execute_dsj_family,
             "EINT": self._execute_eint,
             "EXGF": self._execute_exgf,
             "EXGPC": self._execute_exgpc,
@@ -506,6 +509,39 @@ class Tms34020Model:
         target = self.state.read_reg(register_file, index)
         self.state.pc = target & 0xFFFF_FFF0
         return 2
+
+    def _execute_dsj_family(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        condition = (
+            instruction.mnemonic == "DSJ"
+            or (
+                instruction.mnemonic == "DSJEQ"
+                and bool(self.state.st & (1 << Z_BIT))
+            )
+            or (
+                instruction.mnemonic == "DSJNE"
+                and not bool(self.state.st & (1 << Z_BIT))
+            )
+        )
+        if not condition:
+            return 2
+
+        register_file, index = self._decode_destination(words[0])
+        result = (
+            self.state.read_reg(register_file, index) - 1
+        ) & MASK32
+        self.state.write_reg(register_file, index, result)
+        if result == 0:
+            return 2
+
+        displacement = words[1]
+        if displacement & 0x8000:
+            displacement -= 0x1_0000
+        self.state.pc = (
+            self.state.pc + displacement * 16
+        ) & MASK32
+        return 3
 
     def _execute_putst(
         self, instruction: Instruction, words: list[int]

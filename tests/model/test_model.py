@@ -15,9 +15,10 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
+
+Z_BIT = 29
 
 
 def status_with_field_size(status: int, bank: int, width: int) -> int:
@@ -1924,17 +1925,146 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_dsj_family_is_atomic_until_semantics_are_implemented(self) -> None:
-        for opcode in (0x0D80, 0x0DA0, 0x0DC0):
-            with self.subTest(opcode=f"{opcode:04X}"):
+    def test_dsj_all_primary_register_rows_status_and_cycles(self) -> None:
+        for before, after, jump_taken in (
+            (9, 8, True),
+            (1, 0, False),
+            (0, 0xFFFF_FFFF, True),
+        ):
+            with self.subTest(before=before):
                 model = Tms34020Model()
-                model.load_program([opcode, 0xFFFF], bit_address=0x80)
-                model.state.write_reg("A", 0, 0x1234_5678)
-                model.state.st = 0xA000_0010
-                before = model.snapshot()
-                with self.assertRaises(UnsupportedInstruction):
-                    model.step()
-                self.assertEqual(model.snapshot(), before)
+                model.load_program([0x0D85, 0x0002], bit_address=0x80)
+                model.state.write_reg("A", 5, before)
+                model.state.st = 0xB5A3_4A95
+
+                event = model.step()
+
+                self.assertEqual(model.state.read_reg("A", 5), after)
+                self.assertEqual(model.state.st, 0xB5A3_4A95)
+                self.assertEqual(
+                    model.state.pc,
+                    0xC0 if jump_taken else 0xA0,
+                )
+                self.assertEqual(
+                    event.machine_states,
+                    3 if jump_taken else 2,
+                )
+                self.assertEqual(
+                    event.register_writes,
+                    [
+                        {
+                            "file": "A",
+                            "index": 5,
+                            "old": before,
+                            "new": after,
+                        }
+                    ],
+                )
+
+    def test_dsjeq_all_primary_condition_and_register_rows(self) -> None:
+        fixtures = (
+            (9, True, 8, True),
+            (1, True, 0, False),
+            (0, True, 0xFFFF_FFFF, True),
+            (9, False, 9, False),
+            (1, False, 1, False),
+            (0, False, 0, False),
+        )
+        for before, zero_set, after, jump_taken in fixtures:
+            with self.subTest(before=before, zero_set=zero_set):
+                model = Tms34020Model()
+                model.load_program([0x0DB2, 0xFFFE], bit_address=0x80)
+                model.state.write_reg("B", 2, before)
+                model.state.st = (
+                    0x9123_4567 | (1 << Z_BIT)
+                    if zero_set
+                    else 0x9123_4567 & ~(1 << Z_BIT)
+                )
+                status_before = model.state.st
+
+                event = model.step()
+
+                self.assertEqual(model.state.read_reg("B", 2), after)
+                self.assertEqual(model.state.st, status_before)
+                self.assertEqual(
+                    model.state.pc,
+                    0x80 if jump_taken else 0xA0,
+                )
+                self.assertEqual(
+                    event.machine_states,
+                    3 if jump_taken else 2,
+                )
+                self.assertEqual(
+                    len(event.register_writes),
+                    int(zero_set),
+                )
+
+    def test_dsjne_all_primary_condition_and_shared_sp_rows(self) -> None:
+        fixtures = (
+            (9, True, 9, False),
+            (1, True, 1, False),
+            (0, True, 0, False),
+            (9, False, 8, True),
+            (1, False, 0, False),
+            (0, False, 0xFFFF_FFFF, True),
+        )
+        for before, zero_set, after, jump_taken in fixtures:
+            with self.subTest(before=before, zero_set=zero_set):
+                model = Tms34020Model()
+                model.load_program([0x0DDF, 0x0002], bit_address=0x80)
+                model.state.sp = before
+                model.state.st = (
+                    0xC123_4567 | (1 << Z_BIT)
+                    if zero_set
+                    else 0xC123_4567 & ~(1 << Z_BIT)
+                )
+                status_before = model.state.st
+
+                event = model.step()
+
+                self.assertEqual(model.state.sp, after)
+                self.assertEqual(
+                    model.state.read_reg("A", 15), after
+                )
+                self.assertEqual(model.state.st, status_before)
+                self.assertEqual(
+                    model.state.pc,
+                    0xC0 if jump_taken else 0xA0,
+                )
+                self.assertEqual(
+                    event.machine_states,
+                    3 if jump_taken else 2,
+                )
+                self.assertEqual(
+                    len(event.register_writes),
+                    int(not zero_set),
+                )
+
+    def test_dsj_signed_displacement_and_pc_wrap(self) -> None:
+        forward = Tms34020Model()
+        forward.load_program([0x0D80, 0x7FFF], bit_address=0x80)
+        forward.state.write_reg("A", 0, 2)
+        forward_event = forward.step()
+        self.assertEqual(forward.state.pc, 0x0008_0090)
+        self.assertEqual(forward_event.machine_states, 3)
+
+        backward = Tms34020Model()
+        backward.load_program([0x0D80, 0x8000], bit_address=0x80)
+        backward.state.write_reg("A", 0, 2)
+        backward_event = backward.step()
+        self.assertEqual(backward.state.pc, 0xFFF8_00A0)
+        self.assertEqual(backward_event.machine_states, 3)
+
+        wrapping = Tms34020Model()
+        wrapping.load_program(
+            [0x0D80, 0x0001],
+            bit_address=0xFFFF_FFF0,
+        )
+        wrapping.state.write_reg("A", 0, 2)
+        wrapping_event = wrapping.step()
+        self.assertEqual(wrapping.state.pc, 0x20)
+        self.assertEqual(wrapping_event.next_pc, 0x20)
+        self.assertEqual(wrapping_event.machine_states, 3)
 
     def test_putst_primary_full_status_copy_and_timing(self) -> None:
         model = Tms34020Model()

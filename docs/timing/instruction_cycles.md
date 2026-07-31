@@ -82,8 +82,10 @@ suppresses both when Z is one. The TMS34010 instruction pages corroborate the
 visible semantics and encodings, but this project does not reuse its timing
 state machine. Sources: TMS34020 User's Guide printed pp.13-103..13-107 and
 timing table p.15-4; TMS34010 User's Guide printed pp.12-69..12-74 and its
-instruction summary. These state counts are extracted metadata only; neither
-the independent model nor RTL implements the DSJ family at this checkpoint.
+instruction summary. These state counts alone do not prove branch-pipeline
+timing. The independent model reports the two-/three-state instruction
+boundary cases. The bounded RTL implements functional conditional decrement
+and redirect ordering but not this retirement schedule.
 
 PUTST takes three machine states and copies the complete source register into
 ST. The same encoding, operation, and three-state summary appear in the

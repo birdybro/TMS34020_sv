@@ -4,8 +4,10 @@
 module tms34020_pc_execute (
     input  logic [15:0] first_word_i,
     input  logic [2:0]  packet_length_words_i,
+    input  logic [15:0] immediate_word_i,
     input  logic [31:0] sequential_next_pc_i,
     input  logic [31:0] destination_i,
+    input  logic [31:0] status_i,
 
     output logic        supported_o,
     output logic        register_write_enable_o,
@@ -19,6 +21,9 @@ module tms34020_pc_execute (
     logic decode_valid;
     tms34020_opcode_id_t opcode_id;
     logic [2:0] decoded_length_words;
+    logic [31:0] decrement_result;
+    logic [31:0] signed_displacement_bits;
+    logic dsj_condition;
 
     tms34020_decode decode (
         .first_word_i(first_word_i),
@@ -28,6 +33,22 @@ module tms34020_pc_execute (
     );
 
     always_comb begin
+        decrement_result = destination_i - 32'd1;
+        signed_displacement_bits = {
+            {12{immediate_word_i[15]}},
+            immediate_word_i,
+            4'd0
+        };
+        dsj_condition =
+            opcode_id == TMS20_OP_DSJ ||
+            (
+                opcode_id == TMS20_OP_DSJEQ &&
+                status_i[TMS34020_ST_Z_BIT]
+            ) ||
+            (
+                opcode_id == TMS20_OP_DSJNE &&
+                !status_i[TMS34020_ST_Z_BIT]
+            );
         supported_o = 1'b0;
         register_write_enable_o = 1'b0;
         register_write_data_o = 32'd0;
@@ -57,6 +78,22 @@ module tms34020_pc_execute (
                     redirect_enable_o = 1'b1;
                     redirect_bit_address_o =
                         destination_i & 32'hFFFF_FFF0;
+                end
+
+                TMS20_OP_DSJ,
+                TMS20_OP_DSJEQ,
+                TMS20_OP_DSJNE: begin
+                    supported_o = 1'b1;
+                    if (dsj_condition) begin
+                        register_write_enable_o = 1'b1;
+                        register_write_data_o = decrement_result;
+                        if (decrement_result != 32'd0) begin
+                            redirect_enable_o = 1'b1;
+                            redirect_bit_address_o =
+                                sequential_next_pc_i +
+                                signed_displacement_bits;
+                        end
+                    end
                 end
 
                 default: begin

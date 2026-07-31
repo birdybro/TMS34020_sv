@@ -18,8 +18,8 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGF, EXGPC, GETPC, GETST, JUMP,
-  POPST, PUSHST, PUTST,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, EINT, EXGF,
+  EXGPC, GETPC, GETST, JUMP, POPST, PUSHST, PUTST,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -31,10 +31,15 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 75 of the 78 currently extracted database forms. DSJ,
-DSJEQ, and DSJNE decode but deliberately raise `UnsupportedInstruction`; a
-directed test proves the complete model checkpoint rolls back. This is
+These handlers cover all 78 currently extracted database forms. This is
 coverage of a current partial extraction, not instruction completeness.
+
+DSJ/DSJEQ/DSJNE tests reproduce all 15 published example rows, both condition
+outcomes, decrement-to-zero suppression, zero-to-`FFFFFFFFh` wrap, signed
+forward/backward extremes, PC wrap, A/B files, shared SP, unchanged ST, exact
+register-write traces, and the documented two-/three-state instruction
+boundary cases. Sources: TI *TMS34020 User's Guide*, August 1990, printed
+pp.13-103..13-107.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages

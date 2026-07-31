@@ -186,7 +186,10 @@ module tms34020_scalar_slice (
                             packet_opcode_id_o == TMS20_OP_ADDI_W ||
                             packet_opcode_id_o == TMS20_OP_CMPI_W ||
                             packet_opcode_id_o == TMS20_OP_SUBI_W ||
-                            packet_opcode_id_o == TMS20_OP_MOVI_W
+                            packet_opcode_id_o == TMS20_OP_MOVI_W ||
+                            packet_opcode_id_o == TMS20_OP_DSJ ||
+                            packet_opcode_id_o == TMS20_OP_DSJEQ ||
+                            packet_opcode_id_o == TMS20_OP_DSJNE
                         )
                     ) ||
                     (
@@ -224,7 +227,10 @@ module tms34020_scalar_slice (
             |-> commit_accepted_o &&
                 (
                     packet_opcode_id_o == TMS20_OP_EXGPC ||
-                    packet_opcode_id_o == TMS20_OP_JUMP
+                    packet_opcode_id_o == TMS20_OP_JUMP ||
+                    packet_opcode_id_o == TMS20_OP_DSJ ||
+                    packet_opcode_id_o == TMS20_OP_DSJEQ ||
+                    packet_opcode_id_o == TMS20_OP_DSJNE
                 ) &&
                 commit_pc_redirect_bit_address[3:0] == 4'd0;
     endproperty
@@ -242,6 +248,56 @@ module tms34020_scalar_slice (
             |-> !register_write_enable_o &&
                 !status_write_enable_o &&
                 commit_pc_redirect_enable;
+    endproperty
+
+    property p_dsj_commit_has_conditioned_decrement_and_redirect;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            (
+                packet_opcode_id_o == TMS20_OP_DSJ ||
+                packet_opcode_id_o == TMS20_OP_DSJEQ ||
+                packet_opcode_id_o == TMS20_OP_DSJNE
+            )
+            |-> !status_write_enable_o &&
+                (
+                    register_write_enable_o ==
+                    (
+                        packet_opcode_id_o == TMS20_OP_DSJ ||
+                        (
+                            packet_opcode_id_o == TMS20_OP_DSJEQ &&
+                            status_o[TMS34020_ST_Z_BIT]
+                        ) ||
+                        (
+                            packet_opcode_id_o == TMS20_OP_DSJNE &&
+                            !status_o[TMS34020_ST_Z_BIT]
+                        )
+                    )
+                ) &&
+                (
+                    commit_pc_redirect_enable ==
+                    (
+                        register_write_enable_o &&
+                        register_write_data_o != 32'd0
+                    )
+                );
+    endproperty
+
+    property p_dsj_redirect_uses_signed_word_displacement;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            commit_pc_redirect_enable &&
+            (
+                packet_opcode_id_o == TMS20_OP_DSJ ||
+                packet_opcode_id_o == TMS20_OP_DSJEQ ||
+                packet_opcode_id_o == TMS20_OP_DSJNE
+            )
+            |-> commit_pc_redirect_bit_address ==
+                packet_sequential_next_pc +
+                {
+                    {12{packet_words_o[31]}},
+                    packet_words_o[31:16],
+                    4'd0
+                };
     endproperty
 
     property p_shift_commit_has_atomic_register_and_status_writes;
@@ -364,6 +420,12 @@ module tms34020_scalar_slice (
     );
     assert property (p_pending_redirect_stays_aligned);
     assert property (p_jump_commit_has_only_redirect);
+    assert property (
+        p_dsj_commit_has_conditioned_decrement_and_redirect
+    );
+    assert property (
+        p_dsj_redirect_uses_signed_word_displacement
+    );
     assert property (
         p_shift_commit_has_atomic_register_and_status_writes
     );

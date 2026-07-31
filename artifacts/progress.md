@@ -3,18 +3,19 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `f434a90b505586ac99986b7628cfd8f7ebc9c89a`
-- Passing tests: foundation, reference/hash, delta, 27-case ISA sweep, 123 directed model
+- Latest verified baseline commit: `61bf6c503ea046b2c33baec417e19b6af00d0366`
+- Passing tests: foundation, reference/hash, delta, 27-case ISA sweep, 126 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 75 of 78 currently extracted encoding forms have bounded
-  successful semantics. DSJ, DSJEQ, and DSJNE deliberately raise
-  `UnsupportedInstruction` and roll back their complete checkpoints until
-  independent semantics are implemented. JUMP covers all published targets, A/B/shared-SP
+- Model status: all 78 currently extracted encoding forms have bounded
+  successful semantics. DSJ, DSJEQ, and DSJNE reproduce all published rows,
+  both condition outcomes, zero and wrapping decrements, signed displacement
+  extremes, PC wrap, A/B/shared-SP selection, ST preservation, and two-/three-
+  state instruction-boundary cases. JUMP covers all published targets, A/B/shared-SP
   sources, alignment, source/status preservation, and two states.
   POPST/PUSHST cover full-width stack/status ordering,
   both alignment classes, hidden writes, wraparound, exact abstract
@@ -83,9 +84,11 @@
   writeback and passes a cache-fed dependency; its three-state architectural
   retirement is not implemented.
   JUMP functional redirect semantics pass, but its documented two-state
-  retirement is not implemented; complete DSJ/DSJEQ/DSJNE packets decode but
-  remain explicitly blocked and state-neutral; POPST and PUSHST remain blocked
-  and noncommitting pending memory-transaction ownership.
+  retirement is not implemented. DSJ/DSJEQ/DSJNE conditionally decrement
+  A/B/shared-SP destinations, preserve ST, and issue signed relative redirects
+  only for nonzero results; their documented two-/three-state retirement is not
+  implemented. POPST and PUSHST remain blocked and noncommitting pending
+  memory-transaction ownership.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -97,13 +100,13 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, fourteen scalar, and two commit-owner
+- Formal status: four cache, four fetch, sixteen scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,553 logic cells and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 407, 772, and 5,086 logic cells;
+  warnings; the leaf wrapper uses 8,604 logic cells and 2,048 registers, while
+  the fetch, frontend, and scalar wrappers use 407, 772, and 5,170 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

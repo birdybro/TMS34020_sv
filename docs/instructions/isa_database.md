@@ -117,10 +117,11 @@ neither decrements nor redirects. ST is unchanged. Each form takes two states
 without a redirect and three states with one. The TMS34010 guide documents the
 same visible semantics and encodings, but its timing is not reused. Sources:
 TMS34020 User's Guide printed pp.13-103..13-107 and TMS34010 User's Guide
-printed pp.12-69..12-74. At this extraction checkpoint all three forms decode,
-but the independent model deliberately raises `UnsupportedInstruction` and
-rolls back the complete checkpoint, while the RTL explicitly blocks their
-complete packets without register, status, or PC mutation.
+printed pp.12-69..12-74. The independent model executes all three forms and
+reports the documented two-/three-state cases. The bounded RTL conditions the
+atomic decrement on Z, preserves ST, and holds any signed relative redirect
+through frontend completion. Its serialized handshake is not the documented
+machine-state schedule.
 
 EXGF atomically exchanges the selected six-bit FS/FE status bank with the low
 six bits of an A/B/shared-SP destination and clears the register's upper
