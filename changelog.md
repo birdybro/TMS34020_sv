@@ -8,6 +8,9 @@
   layout, command surface, and machine-checkable foundation validation.
 - Honest progress, verification, synthesis, confidence, and game-integration
   status reports.
+- Reproducibly pinned TMS34010 reference, full initial module-level reuse
+  classification, empty copied-file provenance ledger, and reuse/core
+  architecture ADRs.
 
 ### Changed
 
@@ -23,6 +26,8 @@
 - The working directory is the existing clean `birdybro/TMS34020_sv` clone on
   `main`; no nested repository was created.
 - The requested TMS34010 baseline commit exists on its upstream `main` branch.
+- The baseline commit/tree metadata and MIT license are preserved; every
+  upstream RTL and simulation-model module is named in the reuse audit.
 
 ### Documentation
 

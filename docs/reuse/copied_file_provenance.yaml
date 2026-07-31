@@ -1,0 +1,7 @@
+schema_version: 1
+baseline:
+  repository: https://github.com/birdybro/TMS34010_sv.git
+  commit: 94a258e80a07ceb4303ce0b99818df832e96007f
+  license: MIT
+  copyright: Copyright (c) 2026 Kevin Coleman
+copied_files: []

@@ -1,0 +1,3 @@
+[submodule "third_party/TMS34010_sv_reference"]
+	path = third_party/TMS34010_sv_reference
+	url = https://github.com/birdybro/TMS34010_sv.git

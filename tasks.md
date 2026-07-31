@@ -8,10 +8,10 @@ follow-up may record the completing hash.
 
 | ID | Title | Status / priority | Dependencies | Source references | Acceptance criteria | Owner / modules | Named tests | Confidence | Unresolved questions | Commit |
 |---|---|---|---|---|---|---|---|---|---|---|
-| TMS20-0001 | Repository foundation | IMPLEMENTING / P0 | none | project specification | Required governance, layout, commands, validation, CI seed, and status reports exist; foundation tests pass | repository, `scripts/` | `foundation-check` | VERIFIED_PRIMARY | CI tool versions? | — |
+| TMS20-0001 | Repository foundation | COMPLETE / P0 | none | project specification | Required governance, layout, commands, validation, CI seed, and status reports exist; foundation tests pass | repository, `scripts/` | `foundation-check` | VERIFIED_PRIMARY | CI tool versions? | `22bd2bdb92f59a6fb571dd7d44716b88d1e8bcfc` |
 | TMS20-0002 | Reference acquisition | RESEARCHING / P0 | 0001 | TI catalog, archived TI publications | Manifest, lawful fetch/verify/report tools, hashes, revisions, authority, redistribution state, and missing-source report are reproducible | `docs/references`, `scripts/` | `reference-manifest-tests` | CORROBORATED | Complete errata/revision set? | — |
 | TMS20-0003 | Exact device identification | RESEARCHING / P0 | 0002 | SPVS004 revisions, SGUS057, board photos/schematics | Variant matrix covers every required category; actual Battletoads/Rev X markings are evidenced or explicitly unknown | device-scope docs | `device-matrix-schema`, `game-device-evidence` | UNKNOWN | Exact board markings and silicon revisions? | — |
-| TMS20-0004 | TMS34010 reuse audit | NOT STARTED / P0 | 0001 | pinned TMS34010 tree and license | Every upstream module/tool is classified; copied files have provenance and license; timing reuse is independently justified | `docs/reuse` | `reuse-audit-completeness` | PROVISIONAL | Which leaf RTL survives 34020 timing audit? | — |
+| TMS20-0004 | TMS34010 reuse audit | RESEARCHING / P0 | 0001 | pinned TMS34010 tree and license | Every upstream module/tool is classified; copied files have provenance and license; timing reuse is independently justified | `docs/reuse` | `reuse-audit-completeness` | PROVISIONAL | Which leaf RTL survives 34020 timing audit? | — |
 | TMS20-0005 | TMS34010/TMS34020 architectural delta | NOT STARTED / P0 | 0002,0004 | SPVU019, SPVS004D, pinned upstream | Human and YAML delta cover required feature list with RTL/test impact, citation, confidence, questions | `docs/reuse`, `docs/generated` | `delta-schema`, `delta-required-features` | UNKNOWN | First-silicon deltas beyond clock stretch? | — |
 | TMS20-0006 | ISA database | NOT STARTED / P0 | 0002,0005 | SPVU019 instruction chapters | Every documented legal/reserved encoding and required metadata is represented and schema-valid | `docs/generated/tms34020_isa.yaml`, `tools/isa` | `isa-schema`, `opcode-space-sweep` | UNKNOWN | Authoritative cycle cases? | — |
 | TMS20-0007 | Independent architectural model | NOT STARTED / P0 | 0006 | SPVU019, model ADR | Independent model covers all opcodes/state/interfaces, deterministic replay, traces, faults and cycles | `tools/model` | `model-unit`, `model-replay`, `model-full-isa` | UNKNOWN | Model cache/display abstraction boundary? | — |
@@ -53,7 +53,7 @@ follow-up may record the completing hash.
 
 ## Immediate work queue
 
-1. Finish TMS20-0001 with the foundation validator and first clean commit.
-2. Pin and inspect the TMS34010 baseline for TMS20-0004.
-3. Build the lawful reference manifest/tooling for TMS20-0002.
-4. Resolve device evidence and delta prerequisites before architectural RTL.
+1. Finish primary-source manifest/tooling for TMS20-0002.
+2. Resolve device evidence and delta prerequisites before architectural RTL.
+3. Map compatible upstream tests to TMS34020 instruction pages.
+4. Establish the ISA schema and independent hand-checked seed fixtures.
