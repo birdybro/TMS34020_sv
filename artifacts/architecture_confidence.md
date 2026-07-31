@@ -8,9 +8,9 @@
 | TMS34010/TMS34020 required-topic delta coverage | PROVISIONAL | 50 schema-checked entries; opcode/status/timing quantification pending |
 | Exact Battletoads silicon | UNKNOWN | 32 MHz fits both commercial original and A parts; marking unreadable |
 | Exact Revolution X silicon | INFERRED | 40 MHz board/driver evidence and commercial A-40 catalog option; marking unreadable |
-| ISA | PROVISIONAL | 38 primary-page-verified entries/6,608 first words; complete extraction pending |
-| Architectural model slice | PROVISIONAL | 32 page-verified instructions fetch through deterministic cache transaction/retry state; full ISA/interfaces absent |
-| Synthesizable RTL slice | PROVISIONAL | Generated 38-entry partial decoder, serialized cache/fetch frontend, A/B/SP and masked ST storage, common unary/binary/logical arithmetic, six TMS34020-specific semantic leaves, and a bounded fetch-to-commit path for 23 one-word plus four three-word immediate instructions pass directed Verilator and Cyclone V synthesis; other packets block and no architectural retirement timing or complete executable core exists |
+| ISA | PROVISIONAL | 40 primary-page-verified encoding records/6,672 first words; complete extraction pending |
+| Architectural model slice | PROVISIONAL | 34 page-verified encoding forms fetch through deterministic cache transaction/retry state; full ISA/interfaces absent |
+| Synthesizable RTL slice | PROVISIONAL | Generated 40-entry partial decoder, serialized cache/fetch frontend, A/B/SP and masked ST storage, common unary/binary/logical arithmetic, six TMS34020-specific semantic leaves, and a bounded fetch-to-commit path for 23 one-word plus four three-word immediate instructions pass directed Verilator and Cyclone V synthesis; ADDI remains blocked pending RTL qualification, other packets block, and no architectural retirement timing or complete executable core exists |
 | Cache organization | VERIFIED_PRIMARY | August 1990 guide chapters 5–6 and 8; directed model and bounded RTL cover native retry/fault semantics, while active-refill flush, CPU fault/interrupt state, bus-width/page/pin timing remain absent |
 | PC/control-flow boundary | VERIFIED_PRIMARY | Bit-address alignment/advance, redirect classes, reset vector, GETPC/EXGPC, IDLE and interrupt checkpoint rules are extracted with page citations |
 | Pipeline timing | PROVISIONAL | Primary guide establishes cache/execute/register/memory overlap, read blocking and hidden-write ordering; physical stage topology and complete timing cases remain unknown |

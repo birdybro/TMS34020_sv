@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains thirty-eight page-verified instructions and covers 6,608 of 65,536
+slice contains forty page-verified encoding records and covers 6,672 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -27,6 +27,8 @@ first words without collisions:
 | SETC | `0DE0h` | 1 | p.13-226 |
 | ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
+| ADDI.W / ADDI | `0B00h`, mask `FFE0h` | 2 | p.13-35 |
+| ADDI.L / ADDI | `0B20h`, mask `FFE0h` | 3 | p.13-36 |
 | SUB | `4400h`, mask `FE00h` | 1 | p.13-241 |
 | SUBB | `4600h`, mask `FE00h` | 1 | p.13-242 |
 | CMP | `4800h`, mask `FE00h` | 1 | p.13-80 |
@@ -57,6 +59,11 @@ also carries instruction length, operand layout, register selection, status
 reads/writes, memory transactions, graphics dependencies, cache/pipeline
 interaction, interrupt/restart/fault behavior, documented cycle cases,
 16/32-bit/page effects, compatibility, citations, and confidence.
+
+The `.W` and `.L` suffixes on the two ADDI records are canonical
+database encoding-form names. TI's source mnemonic remains `ADDI` in each
+record's aliases. The form names keep different first words, lengths, immediate
+widths, and timing cases unambiguous without inventing an opcode distinction.
 
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database

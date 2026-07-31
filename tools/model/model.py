@@ -94,6 +94,8 @@ class Tms34020Model:
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
+            "ADDI.W": self._execute_addi_word,
+            "ADDI.L": self._execute_addi_long,
             "SUB": self._execute_sub,
             "SUBB": self._execute_subb,
             "CMP": self._execute_cmp,
@@ -536,6 +538,51 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_binary_arithmetic(words, "ADDC")
+
+    def _execute_immediate_add(
+        self, words: list[int], long_form: bool
+    ) -> int:
+        register_file, index = self._decode_destination(words[0])
+        destination = self.state.read_reg(register_file, index)
+        if long_form:
+            source = words[1] | (words[2] << 16)
+        else:
+            source = words[1]
+            if source & 0x8000:
+                source |= 0xFFFF_0000
+
+        total = destination + source
+        result = total & MASK32
+        carry_out = (total >> 32) & 1
+        low_total = (
+            (destination & 0x7FFF_FFFF)
+            + (source & 0x7FFF_FFFF)
+        )
+        carry_into_sign = (low_total >> 31) & 1
+        overflow = carry_into_sign ^ carry_out
+
+        self.state.write_reg(register_file, index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, bool(carry_out))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, bool(overflow))
+
+        if not long_form:
+            return 2
+        immediate_address = (self.state.pc - 32) & MASK32
+        return 2 if immediate_address & 0x1F == 0 else 3
+
+    def _execute_addi_word(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_add(words, False)
+
+    def _execute_addi_long(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_immediate_add(words, True)
 
     def _execute_sub(
         self, instruction: Instruction, words: list[int]

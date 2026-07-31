@@ -198,6 +198,13 @@
   full NCZV replacement, A/B selection, shared-SP commit, and dependent fetched
   packet tests. Requalified Quartus wrappers report 5,681 leaf logic cells and
   3,598 scalar logic cells, with zero errors/warnings.
+- Extracted collision-free ADDI.W and ADDI.L records from TI printed
+  pp.13-35..13-36. The partial ISA now contains 40 records covering 6,672 first
+  words, and the independent model covers 34 forms with signed-word extension,
+  every TI example row, long-immediate alignment, A/B selection, and SP alias
+  tests.
+  Decoder-only requalification reports 5,685 leaf and 3,600 scalar logic cells
+  with zero Quartus errors/warnings; ADDI execution remains blocked in RTL.
 
 ### Documentation
 

@@ -495,6 +495,68 @@ class ExecutionTests(unittest.TestCase):
         model.step()
         self.assertEqual(model.state.read_reg("B", 2), 0x00000007)
 
+    def test_addi_word_sign_extension_flags_and_files(self) -> None:
+        cases = (
+            ("A", 0xFFFF_FFFF, 0x0001, 0x0000_0000, 0b0110),
+            ("B", 0xFFFF_FFFF, 0x0002, 0x0000_0001, 0b0100),
+            ("A", 0x7FFF_FFFF, 0x0001, 0x8000_0000, 0b1001),
+            ("B", 0x0000_0002, 0x0002, 0x0000_0004, 0b0000),
+            ("A", 0x0000_0002, 0x7FFF, 0x0000_8001, 0b0000),
+            ("B", 0xFFFF_FFF0, 0x0010, 0x0000_0000, 0b0110),
+            ("A", 0x0000_0020, 0xFFF0, 0x0000_0010, 0b0100),
+        )
+        for register_file, destination, immediate, result, nczv in cases:
+            file_bit = 0x10 if register_file == "B" else 0
+            with self.subTest(
+                register_file=register_file,
+                destination=f"{destination:08X}",
+                immediate=f"{immediate:04X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([0x0B00 | file_bit, immediate])
+                model.state.write_reg(register_file, 0, destination)
+                event = model.step()
+                self.assertEqual(model.state.read_reg(register_file, 0), result)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.mnemonic, "ADDI.W")
+                self.assertEqual(event.machine_states, 2)
+
+    def test_addi_long_primary_edges_and_alignment(self) -> None:
+        cases = (
+            (0x10, 0xFFFF_FFFF, 0xFFFF_FFFF, 0xFFFF_FFFE, 0b1100),
+            (0x00, 0xFFFF_FFFF, 0x8000_0000, 0x7FFF_FFFF, 0b0101),
+            (0x10, 0x7FFF_FFFF, 0x8000_0000, 0xFFFF_FFFF, 0b1000),
+            (0x00, 0x7FFF_FFFF, 0x0000_8000, 0x8000_7FFF, 0b1001),
+            (0x10, 0xFFFF_FFFF, 0x0000_0002, 0x0000_0001, 0b0100),
+        )
+        for start_address, destination, immediate, result, nczv in cases:
+            with self.subTest(
+                start_address=f"{start_address:08X}",
+                immediate=f"{immediate:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program(
+                    [0x0B20, immediate & 0xFFFF, immediate >> 16],
+                    bit_address=start_address,
+                )
+                model.state.write_reg("A", 0, destination)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), result)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.mnemonic, "ADDI.L")
+                self.assertEqual(
+                    event.machine_states,
+                    2 if start_address == 0x10 else 3,
+                )
+
+    def test_addi_long_destination_15_updates_shared_sp(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0B3F, 0x0002, 0x0000], bit_address=0x10)
+        model.state.sp = 0xFFFF_FFFF
+        model.step()
+        self.assertEqual(model.state.sp, 1)
+        self.assertEqual(model.state.read_reg("A", 15), 1)
+
     def test_logical_primary_examples_and_only_z_changes(self) -> None:
         cases = (
             (0x5000, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF),

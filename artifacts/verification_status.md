@@ -3,8 +3,8 @@
 | Area | Status | Evidence |
 |---|---|---|
 | Repository policy | Verified current scope | `foundation-check` |
-| ISA database | Partial: 38 entries/6,608 first words | `make isa-tests`; full decode remains `TMS20-0006` |
-| Architectural model | Partial: state/replay, 32 instructions, cache-integrated fetch | 52 directed `make model-tests` cases, including TI logical rows, 11 cache transaction cases and 5 fetch-integration cases; full model remains `TMS20-0007` |
+| ISA database | Partial: 40 encoding records/6,672 first words | `make isa-tests`; full decode remains `TMS20-0006` |
+| Architectural model | Partial: state/replay, 34 encoding forms, cache-integrated fetch | 55 directed `make model-tests` cases, including ADDI word/long forms, TI logical rows, 11 cache transaction cases and 5 fetch-integration cases; full model remains `TMS20-0007` |
 | RTL semantics | Partial leaves plus bounded scalar composition | Leaf/fetch/frontend suites cover decode, cache, packet and write-intent ordering; `make scalar-slice-tests` covers nine dependent one-word commits, complete ORI/XORI/ANDNI and dependent ADDXYI packet commits, blocked BLMOVE/unclassified noncommit, and eight cache-fed dependent commits after four refill reads; no timed retirement or complete executable core |
 | Timing | Functional PC/packet ordering only; machine-state timing not implemented | `TMS20-0013`; packet handshakes are explicitly not TMS34020 cycles |
 | Cache | Model plus bounded native-completion RTL leaf; full timing/pin/fault-controller path absent | 11 cache-unit plus 5 fetch-integration model tests; directed RTL matrix plus three seeds/396 fetches cover refill/lookup/LRU/controls/backpressure, retry/fault/abort, refill-state reset, data and present safety; full `TMS20-0012` remains |
