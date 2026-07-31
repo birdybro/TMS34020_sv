@@ -22,6 +22,7 @@ SOURCES = [
     ROOT / "rtl/execute/tms34020_xy_arithmetic.sv",
     ROOT / "rtl/execute/tms34020_addxyi.sv",
     ROOT / "rtl/execute/tms34020_binary_arithmetic.sv",
+    ROOT / "rtl/execute/tms34020_bit_test.sv",
     ROOT / "rtl/execute/tms34020_cmpk.sv",
     ROOT / "rtl/execute/tms34020_lmo.sv",
     ROOT / "rtl/execute/tms34020_logical.sv",

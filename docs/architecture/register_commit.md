@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 42 one-word, four
+asserted only when its declared length matches one of the 44 one-word, four
 two-word, or eight three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -24,7 +24,7 @@ Supported operations are:
 
 - NOP, ABS, NEG, NEGB, NOT;
 - CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK, SETC;
-- ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPK, LMO, and RMO;
+- ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPK, BTST.K, BTST.R, LMO, and RMO;
 - AND, ANDN, OR, and XOR;
 - MOVE, MOVX, MOVY, RL.K, RL.R, SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R;
 - GETPC and EXGPC;
@@ -72,6 +72,9 @@ constant/register rotate counts, RL C/Z replacement with N/V preservation,
 direct and two's-complement shift counts, arithmetic/logical fill, SLA
 overflow, the four shift-family status masks, LMO leading-zero results and
 Z-only status writes, including a commit sourced from shared SP,
+BTST.K complemented constant selection, BTST.R low-five-bit register selection,
+Z-only status writes with no destination write, and shared-SP count and
+destination access,
 state-neutral NOP, GETPC into a B register, EXGPC old-value capture and aligned
 redirect through an A register and shared SP, and rejection of an otherwise
 decoded but unsupported BLMOVE word. Two runtime assertions additionally

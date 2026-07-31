@@ -39,6 +39,7 @@ module tms34020_leaf_synth_top (
     logic [3:0] compare_nczv;
     logic [31:0] lmo_result;
     logic lmo_z;
+    logic bit_test_z;
     logic [31:0] rmo_result;
     logic rmo_z;
     logic [31:0] unary_result;
@@ -124,6 +125,7 @@ module tms34020_leaf_synth_top (
         {27'd0, binary_nczv, binary_register_write_enable} ^
         {28'd0, xy_nczv} ^
         {31'd0, lmo_z} ^
+        {31'd0, bit_test_z} ^
         {6'd0, unary_nczv, unary_status_write_mask,
          add_nczv, compare_nczv, rmo_z, decode_valid,
          decode_length, pixel_valid, pixel_states} ^
@@ -202,6 +204,12 @@ module tms34020_leaf_synth_top (
         .source_i(operand_i),
         .result_o(lmo_result),
         .status_z_o(lmo_z)
+    );
+
+    tms34020_bit_test bit_test (
+        .value_i(operand_i),
+        .bit_index_i(first_word_i[9:5]),
+        .status_z_o(bit_test_z)
     );
 
     tms34020_rmo rmo (

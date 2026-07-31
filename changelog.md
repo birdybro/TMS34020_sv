@@ -47,6 +47,10 @@
   rows, complemented constant recovery, upper-source-bit truncation, Z-only
   status changes, A/B, same-register, and shared-SP tests; RSC-0018 records and
   corrects the one example-table status digit that contradicts its operands.
+- A synthesizable BTST selected-bit leaf, complemented-constant and
+  low-five-bit register routing, Z-only atomic commit with no destination
+  write, shared-SP and dependent scalar tests, and a dedicated runtime safety
+  assertion.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -159,6 +163,14 @@
 - The 108-case independent model suite covers bounded semantics for all 67
   currently extracted forms. This remains coverage of a partial ISA
   extraction, not instruction completeness.
+- All 25 published BTST.K/R input rows pass through the independent RTL leaf,
+  with RSC-0018's contradictory printed status digit corrected from the
+  operands and definition. Register routing, atomic commit, and scalar
+  dependency tests cover constant complementation, upper-source-bit
+  truncation, A/B, same-register, and shared-SP cases. Warning-free Quartus
+  Cyclone V Analysis & Synthesis reports 8,068 leaf and 4,861 bounded-scalar
+  diagnostic logic cells; these are portability metrics, not fitted core area
+  or timing closure.
 - Expanded the collision-free ISA slice to 67 entries covering 22,736 first
   words. BTST.K/R decode across their complete primary-defined ranges while
   remaining atomically non-executable in RTL at this extraction checkpoint.
@@ -543,7 +555,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 42 one-word, four two-word, and eight
+  bounded scalar composition accepts only 44 one-word, four two-word, and eight
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

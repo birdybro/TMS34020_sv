@@ -84,6 +84,10 @@ module tb_tms34020_verified_leaves;
     logic [31:0] lmo_result;
     logic lmo_z;
 
+    logic [31:0] bit_test_value;
+    logic [4:0] bit_test_index;
+    logic bit_test_z;
+
     logic [31:0] rmo_source;
     logic [31:0] rmo_result;
     logic rmo_z;
@@ -248,6 +252,12 @@ module tb_tms34020_verified_leaves;
         .source_i(lmo_source),
         .result_o(lmo_result),
         .status_z_o(lmo_z)
+    );
+
+    tms34020_bit_test bit_test_dut (
+        .value_i(bit_test_value),
+        .bit_index_i(bit_test_index),
+        .status_z_o(bit_test_z)
     );
 
     tms34020_rmo rmo_dut (
@@ -924,6 +934,18 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_bit_test(
+        input logic [31:0] value,
+        input logic [4:0] bit_index,
+        input logic expected_z,
+        input string message
+    );
+        bit_test_value = value;
+        bit_test_index = bit_index;
+        #1;
+        check_condition(bit_test_z == expected_z, message);
+    endtask
+
     task automatic check_shift(
         input tms34020_shift_op_t operation,
         input logic [31:0] value,
@@ -1120,6 +1142,8 @@ module tb_tms34020_verified_leaves;
         pixel_size = 6'd0;
         compare_constant = 5'd0;
         lmo_source = 32'd0;
+        bit_test_value = 32'd0;
+        bit_test_index = 5'd0;
         rmo_source = 32'd0;
         rotate_value = 32'd0;
         rotate_count = 5'd0;
@@ -1183,6 +1207,84 @@ module tb_tms34020_verified_leaves;
         );
         check_condition(status_value == 32'h0000_0010,
                         "status state reset value");
+
+        check_bit_test(
+            32'h5555_5555, 5'd0, 1'b0, "BTST.K primary row 0"
+        );
+        check_bit_test(
+            32'h5555_5555, 5'd15, 1'b1, "BTST.K primary row 1"
+        );
+        check_bit_test(
+            32'h5555_5555, 5'd31, 1'b1, "BTST.K primary row 2"
+        );
+        check_bit_test(
+            32'hAAAA_AAAA, 5'd0, 1'b1, "BTST.K primary row 3"
+        );
+        check_bit_test(
+            32'hAAAA_AAAA, 5'd15, 1'b0, "BTST.K primary row 4"
+        );
+        check_bit_test(
+            32'hAAAA_AAAA, 5'd31, 1'b0, "BTST.K primary row 5"
+        );
+        check_bit_test(
+            32'hFFFF_FFFF, 5'd0, 1'b0, "BTST.K primary row 6"
+        );
+        check_bit_test(
+            32'hFFFF_FFFF, 5'd15, 1'b0, "BTST.K primary row 7"
+        );
+        check_bit_test(
+            32'hFFFF_FFFF, 5'd31, 1'b0, "BTST.K primary row 8"
+        );
+        check_bit_test(
+            32'd0, 5'd0, 1'b1, "BTST.K primary row 9"
+        );
+        check_bit_test(
+            32'd0, 5'd15, 1'b1, "BTST.K primary row 10"
+        );
+        check_bit_test(
+            32'd0, 5'd31, 1'b1, "BTST.K primary row 11"
+        );
+
+        check_bit_test(
+            32'h5555_5555, 5'd0, 1'b0, "BTST.R primary row 0"
+        );
+        check_bit_test(
+            32'h5555_5555, 5'd15, 1'b1, "BTST.R primary row 1"
+        );
+        check_bit_test(
+            32'h5555_5555, 5'd31, 1'b1, "BTST.R primary row 2"
+        );
+        check_bit_test(
+            32'hAAAA_AAAA, 5'd0, 1'b1, "BTST.R primary row 3"
+        );
+        check_bit_test(
+            32'hAAAA_AAAA, 5'd15, 1'b0, "BTST.R primary row 4"
+        );
+        check_bit_test(
+            32'hAAAA_AAAA, 5'd31, 1'b0, "BTST.R primary row 5"
+        );
+        check_bit_test(
+            32'hFFFF_7FFF, 5'd15, 1'b1,
+            "BTST.R corrected contradictory primary row 6"
+        );
+        check_bit_test(
+            32'hFFFF_FFFF, 5'd0, 1'b0, "BTST.R primary row 7"
+        );
+        check_bit_test(
+            32'hFFFF_FFFF, 5'd15, 1'b0, "BTST.R primary row 8"
+        );
+        check_bit_test(
+            32'hFFFF_FFFF, 5'd31, 1'b0, "BTST.R primary row 9"
+        );
+        check_bit_test(
+            32'd0, 5'd0, 1'b1, "BTST.R primary row 10"
+        );
+        check_bit_test(
+            32'd0, 5'd15, 1'b1, "BTST.R primary row 11"
+        );
+        check_bit_test(
+            32'd0, 5'd31, 1'b1, "BTST.R primary row 12"
+        );
 
         check_rotate_left(
             32'hF000_0000, 5'd0, 32'hF000_0000, 1'b0, 1'b0,
@@ -2238,13 +2340,46 @@ module tb_tms34020_verified_leaves;
         );
         check_register_execute(
             16'h1FE0, 32'd0, 32'h5555_5555, 32'hD020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only BTST.K cannot enter register execute"
+            1'b1, 1'b0, 32'd0, 1'b1, 32'd0, 32'h2000_0000,
+            "register execute BTST.K recovers complemented bit zero"
+        );
+        check_condition(
+            !execute_register_file &&
+            execute_source_index == 4'd0 &&
+            execute_destination_index == 4'd0,
+            "register execute BTST.K destination selector"
         );
         check_register_execute(
             16'h4A20, 32'd15, 32'h5555_5555, 32'hD020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only BTST.R cannot enter register execute"
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'h2000_0000, 32'h2000_0000,
+            "register execute BTST.R uses source low five bits"
+        );
+        check_condition(
+            !execute_register_file &&
+            execute_source_index == 4'd1 &&
+            execute_destination_index == 4'd0,
+            "register execute BTST.R A-file selectors"
+        );
+        check_register_execute(
+            16'h4A30, 32'hFFFF_FF8F, 32'hFFFF_7FFF,
+            32'hD020_001F,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'h2000_0000, 32'h2000_0000,
+            "register execute BTST.R ignores source upper bits"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd1 &&
+            execute_destination_index == 4'd0,
+            "register execute BTST.R B-file selectors"
+        );
+        check_register_execute(
+            16'h4A42, 32'h8000_001F, 32'h8000_001F,
+            32'hF020_001F,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'd0, 32'h2000_0000,
+            "register execute BTST.R same-register operands"
         );
         check_xy_register_execute(
             16'hE020, 32'h0001_0002, 32'h0003_0004,
@@ -2416,18 +2551,18 @@ module tb_tms34020_verified_leaves;
             "register commit LMO reads shared SP"
         );
         commit_register_instruction(
-            16'h1FE0, 1'b0,
+            16'h4BE1, 1'b1,
             1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'd1,
-            "register commit rejects decode-only BTST.K"
+            1'b1, 32'h2000_0000, 32'h2000_0000,
+            32'h2000_0010, 32'd1,
+            "register commit BTST.R reads shared-SP count"
         );
         commit_register_instruction(
-            16'h4A20, 1'b0,
+            16'h1FFF, 1'b1,
             1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
+            1'b1, 32'd0, 32'h2000_0000,
             32'h0000_0010, 32'd1,
-            "register commit rejects decode-only BTST.R"
+            "register commit BTST.K reads shared-SP destination"
         );
         commit_register_instruction(
             16'h00F0, 1'b0,

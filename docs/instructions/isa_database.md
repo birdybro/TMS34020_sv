@@ -104,8 +104,11 @@ object-code and semantic compatibility, but reports older timing cases;
 compatibility does not assert equal timing. At the current model checkpoint the
 independent model executes both forms and tests all 25 published input rows,
 with the single contradictory p.13-47 status digit resolved in RSC-0018. The
-RTL still decodes but blocks both forms from execution and commit pending its
-own implementation checkpoint.
+RTL executes both forms through an independent bit-test leaf, the register
+router, atomic Z-only commit, and the bounded scalar slice. Directed RTL tests
+cover all 25 primary input rows, complemented constant recovery, low-five-bit
+register counts with upper-bit truncation, A/B selection, same-register
+operands, shared-SP access, and dependent commits.
 
 ADDXY and SUBXY operate on the X and Y 16-bit halves independently, without
 carry or borrow propagation between halves. ADDXY derives N from X-result

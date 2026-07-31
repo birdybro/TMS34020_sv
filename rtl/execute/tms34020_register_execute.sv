@@ -64,6 +64,8 @@ module tms34020_register_execute (
     logic [31:0] rotate_result;
     logic rotate_c;
     logic rotate_z;
+    logic [4:0] bit_test_index;
+    logic bit_test_z;
     tms34020_shift_op_t shift_operation;
     logic [4:0] shift_count;
     logic [31:0] shift_result;
@@ -254,6 +256,19 @@ module tms34020_register_execute (
         .result_o(rotate_result),
         .status_c_o(rotate_c),
         .status_z_o(rotate_z)
+    );
+
+    always_comb begin
+        bit_test_index = source_i[4:0];
+        if (opcode_id == TMS20_OP_BTST_K) begin
+            bit_test_index = ~first_word_i[9:5];
+        end
+    end
+
+    tms34020_bit_test bit_test (
+        .value_i(destination_i),
+        .bit_index_i(bit_test_index),
+        .status_z_o(bit_test_z)
     );
 
     always_comb begin
@@ -565,6 +580,21 @@ module tms34020_register_execute (
                         28'd0
                     };
                     status_write_mask_o = 32'h6000_0000;
+                end
+
+                TMS20_OP_BTST_K,
+                TMS20_OP_BTST_R: begin
+                    supported_o = 1'b1;
+                    if (opcode_id == TMS20_OP_BTST_K) begin
+                        source_index_o = first_word_i[3:0];
+                    end
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = {
+                        2'd0,
+                        bit_test_z,
+                        29'd0
+                    };
+                    status_write_mask_o = 32'h2000_0000;
                 end
 
                 TMS20_OP_SLA_K,

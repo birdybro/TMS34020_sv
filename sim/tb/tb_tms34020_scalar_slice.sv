@@ -1081,34 +1081,23 @@ module tb_tms34020_scalar_slice;
             "four dependent MOVK and XY arithmetic commits"
         );
 
-        apply_reset();
-        load_pc(32'h540);
-        serve_word(32'h540);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_BTST_K &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable &&
-            status == TMS34020_ST_RESET,
-            "decode-only BTST.K remains atomically blocked"
+        serve_and_commit(
+            32'h540, TMS20_OP_BTST_K,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'd0, 32'h2000_0000,
+            32'h1000_0010, 32'd0,
+            "scalar BTST.K tests dependent ADDXY destination"
         );
-
-        apply_reset();
-        load_pc(32'h550);
-        serve_word(32'h550);
-        wait (packet_blocked);
+        serve_and_commit(
+            32'h550, TMS20_OP_BTST_R,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h2000_0000, 32'h2000_0000,
+            32'h3000_0010, 32'd0,
+            "scalar BTST.R uses dependent SUBXY count"
+        );
         check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_BTST_R &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable &&
-            status == TMS34020_ST_RESET,
-            "decode-only BTST.R remains atomically blocked"
+            commit_count == 6,
+            "six dependent MOVK, XY arithmetic, and BTST commits"
         );
 
         apply_reset();
