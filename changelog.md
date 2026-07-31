@@ -103,6 +103,11 @@
   low-nibble alignment, state-neutral commit, held frontend redirection, an
   EXGPC-to-GETPC-to-JUMP scalar dependency test, and a redirect-only runtime
   assertion. The documented two-state retirement remains unimplemented.
+- Primary-page-verified DSJ, DSJEQ, and DSJNE encodings, signed 16-bit word
+  displacements, condition-controlled decrement and relative redirect
+  semantics, two-/three-state cases, TMS34010 semantic compatibility, generated
+  decode, complete range-boundary fixtures, atomic model rollback guards, and
+  explicit RTL packet noncommit checks.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -206,6 +211,15 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 78 entries covering 23,218 first
+  words. All DSJ/DSJEQ/DSJNE range boundaries and the adjacent SETC boundary
+  pass the independent fixtures and 65,536-word sweep. The 123-case model suite
+  proves complete attempts roll back atomically, while leaf and scalar tests
+  prove the newly decoded packets cannot write registers/status or redirect
+  before an execution owner exists. All four decoder-bearing Cyclone V analyses
+  pass with zero errors/warnings at 8,553 leaf, 407 fetch, 772 frontend, and
+  5,086 scalar diagnostic logic cells; these are not fitted core-area or
+  timing-closure results.
 - The 122-case independent model suite covers bounded successful semantics for
   all 75 currently extracted forms. JUMP tests cover all primary target rows,
   A/B/shared-SP selection, alignment, preservation, and timing; this is not a

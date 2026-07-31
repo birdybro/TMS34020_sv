@@ -3,7 +3,7 @@
   "format_note": "JSON subset of YAML 1.2. This is an incomplete primary-source extraction, not an instruction-completeness claim.",
   "coverage": {
     "status": "INCOMPLETE_PRIMARY_EXTRACTION",
-    "entry_count": 75,
+    "entry_count": 78,
     "first_word_space": 65536,
     "unmatched_first_words_are_reserved": false,
     "next_source_range": "TI-TMS34020-UG-1990 chapter 13 summary and alphabetical reference",
@@ -2763,6 +2763,124 @@
       "page_mode_effects": "special-cycle timing defined separately from ordinary page mode",
       "source_citations": ["TI-TMS34020-UG-1990 VLCOL, printed pp.13-264..13-265", "TI-TMS34020-UG-1990 §8.12.3, printed p.8-38"],
       "compatible_with_tms34010": false,
+      "confidence": "VERIFIED_PRIMARY"
+    },
+    {
+      "mnemonic": "DSJ",
+      "aliases": [],
+      "instruction_length_words": 2,
+      "opcode_mask": "0xFFE0",
+      "opcode_value": "0x0D80",
+      "operand_fields": [
+        {"name": "register_file", "word": 0, "lsb": 4, "width": 1, "encoding": "0=A,1=B"},
+        {"name": "destination", "word": 0, "lsb": 0, "width": 4, "encoding": "Rd; 15=SP alias"}
+      ],
+      "register_file": "destination selected by first-word bit 4",
+      "immediate_fields": [
+        {"name": "offset", "width": 16, "signed": true, "word_order": ["second_word"], "scale_bit_addresses": 16, "base": "PC after the two-word instruction"}
+      ],
+      "condition_fields": [],
+      "addressing_modes": ["register_direct", "pc_relative"],
+      "source_registers": ["Rd old value", "PC after the two-word instruction"],
+      "destination_registers": ["Rd", "PC if decremented Rd is nonzero"],
+      "status_bits_read": [],
+      "status_bits_written": [],
+      "undefined_status_bits": [],
+      "memory_transactions": [],
+      "graphics_register_dependencies": [],
+      "cache_interactions": ["both instruction words fetched through the instruction cache"],
+      "pipeline_interactions": ["decrement Rd modulo 2^32; redirect to sequential PC plus signed offset times 16 only when the decremented value is nonzero"],
+      "interruptibility": "at the instruction boundary after the decrement and optional redirect",
+      "restartability": "not_applicable",
+      "bus_fault_behavior": "instruction/refill fault before execute; no data access",
+      "documented_cycles": {"kind": "cases", "cases": [{"when": "no jump", "machine_states": 2}, {"when": "jump", "machine_states": 3}]},
+      "cache_hit_cycles": "2 machine states when no jump, 3 when jump",
+      "cache_miss_cycles": "instruction refill latency plus the documented taken/not-taken case",
+      "bus_16_effects": "instruction refill timing only",
+      "bus_32_effects": "instruction refill timing only",
+      "page_mode_effects": "instruction refill timing only",
+      "source_citations": ["TI-TMS34020-UG-1990 DSJ, printed p.13-103", "TI-TMS34010-UG-1988 DSJ, printed pp.12-69..12-70"],
+      "compatible_with_tms34010": true,
+      "confidence": "VERIFIED_PRIMARY"
+    },
+    {
+      "mnemonic": "DSJEQ",
+      "aliases": [],
+      "instruction_length_words": 2,
+      "opcode_mask": "0xFFE0",
+      "opcode_value": "0x0DA0",
+      "operand_fields": [
+        {"name": "register_file", "word": 0, "lsb": 4, "width": 1, "encoding": "0=A,1=B"},
+        {"name": "destination", "word": 0, "lsb": 0, "width": 4, "encoding": "Rd; 15=SP alias"}
+      ],
+      "register_file": "destination selected by first-word bit 4",
+      "immediate_fields": [
+        {"name": "offset", "width": 16, "signed": true, "word_order": ["second_word"], "scale_bit_addresses": 16, "base": "PC after the two-word instruction"}
+      ],
+      "condition_fields": [
+        {"name": "execute_decrement", "source": "ST.Z", "condition": "Z=1"}
+      ],
+      "addressing_modes": ["register_direct", "pc_relative"],
+      "source_registers": ["ST.Z", "Rd old value when Z=1", "PC after the two-word instruction"],
+      "destination_registers": ["Rd when Z=1", "PC when Z=1 and decremented Rd is nonzero"],
+      "status_bits_read": ["Z"],
+      "status_bits_written": [],
+      "undefined_status_bits": [],
+      "memory_transactions": [],
+      "graphics_register_dependencies": [],
+      "cache_interactions": ["both instruction words fetched through the instruction cache"],
+      "pipeline_interactions": ["if Z=1, decrement Rd modulo 2^32 and redirect to sequential PC plus signed offset times 16 only when the decremented value is nonzero; if Z=0, do not write Rd or redirect"],
+      "interruptibility": "at the instruction boundary after the conditional decrement and optional redirect",
+      "restartability": "not_applicable",
+      "bus_fault_behavior": "instruction/refill fault before execute; no data access",
+      "documented_cycles": {"kind": "cases", "cases": [{"when": "no jump", "machine_states": 2}, {"when": "jump", "machine_states": 3}]},
+      "cache_hit_cycles": "2 machine states when no jump, 3 when jump",
+      "cache_miss_cycles": "instruction refill latency plus the documented taken/not-taken case",
+      "bus_16_effects": "instruction refill timing only",
+      "bus_32_effects": "instruction refill timing only",
+      "page_mode_effects": "instruction refill timing only",
+      "source_citations": ["TI-TMS34020-UG-1990 DSJEQ, printed pp.13-104..13-105", "TI-TMS34010-UG-1988 DSJEQ, printed pp.12-70..12-72"],
+      "compatible_with_tms34010": true,
+      "confidence": "VERIFIED_PRIMARY"
+    },
+    {
+      "mnemonic": "DSJNE",
+      "aliases": [],
+      "instruction_length_words": 2,
+      "opcode_mask": "0xFFE0",
+      "opcode_value": "0x0DC0",
+      "operand_fields": [
+        {"name": "register_file", "word": 0, "lsb": 4, "width": 1, "encoding": "0=A,1=B"},
+        {"name": "destination", "word": 0, "lsb": 0, "width": 4, "encoding": "Rd; 15=SP alias"}
+      ],
+      "register_file": "destination selected by first-word bit 4",
+      "immediate_fields": [
+        {"name": "offset", "width": 16, "signed": true, "word_order": ["second_word"], "scale_bit_addresses": 16, "base": "PC after the two-word instruction"}
+      ],
+      "condition_fields": [
+        {"name": "execute_decrement", "source": "ST.Z", "condition": "Z=0"}
+      ],
+      "addressing_modes": ["register_direct", "pc_relative"],
+      "source_registers": ["ST.Z", "Rd old value when Z=0", "PC after the two-word instruction"],
+      "destination_registers": ["Rd when Z=0", "PC when Z=0 and decremented Rd is nonzero"],
+      "status_bits_read": ["Z"],
+      "status_bits_written": [],
+      "undefined_status_bits": [],
+      "memory_transactions": [],
+      "graphics_register_dependencies": [],
+      "cache_interactions": ["both instruction words fetched through the instruction cache"],
+      "pipeline_interactions": ["if Z=0, decrement Rd modulo 2^32 and redirect to sequential PC plus signed offset times 16 only when the decremented value is nonzero; if Z=1, do not write Rd or redirect"],
+      "interruptibility": "at the instruction boundary after the conditional decrement and optional redirect",
+      "restartability": "not_applicable",
+      "bus_fault_behavior": "instruction/refill fault before execute; no data access",
+      "documented_cycles": {"kind": "cases", "cases": [{"when": "no jump", "machine_states": 2}, {"when": "jump", "machine_states": 3}]},
+      "cache_hit_cycles": "2 machine states when no jump, 3 when jump",
+      "cache_miss_cycles": "instruction refill latency plus the documented taken/not-taken case",
+      "bus_16_effects": "instruction refill timing only",
+      "bus_32_effects": "instruction refill timing only",
+      "page_mode_effects": "instruction refill timing only",
+      "source_citations": ["TI-TMS34020-UG-1990 DSJNE, printed pp.13-106..13-107", "TI-TMS34010-UG-1988 DSJNE, printed pp.12-72..12-74"],
+      "compatible_with_tms34010": true,
       "confidence": "VERIFIED_PRIMARY"
     }
   ]

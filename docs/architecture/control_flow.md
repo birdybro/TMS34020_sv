@@ -115,6 +115,29 @@ This proves functional ordering in the serialized FPGA handshake only; it does
 not reproduce GETPC's documented one machine state, EXGPC's two machine states,
 JUMP's two machine states, or speculative pipeline overlap.
 
+## Decrement-and-jump instructions
+
+`DSJ`, `DSJEQ`, and `DSJNE` occupy the adjacent `0D80h`, `0DA0h`, and `0DC0h`
+ranges with mask `FFE0h`; each is followed by a signed 16-bit word
+displacement. `DSJ` always decrements its selected A/B/shared-SP register.
+`DSJEQ` does so only when Z is one, and `DSJNE` only when Z is zero. If the
+operation is enabled and the modulo-`2^32` decrement result is nonzero, the PC
+becomes:
+
+`PC_after_extension + (sign_extend(displacement) << 4)`
+
+Otherwise execution continues at `PC_after_extension`. ST is never changed.
+The nonredirect and redirect cases take two and three machine states,
+respectively. Sources: TI *TMS34020 User's Guide*, August 1990, DSJ printed
+p.13-103, DSJEQ printed pp.13-104..13-105, and DSJNE printed
+pp.13-106..13-107. TMS34010 User's Guide printed pp.12-69..12-74 corroborates
+the encoding and visible semantics without authorizing timing-RTL reuse.
+
+The generated decoder recognizes all three complete ranges. Until independent
+execution semantics are implemented, the software model rolls back a complete
+attempt and the bounded RTL holds each complete packet blocked and
+state-neutral. The documented two-/three-state scheduling is also absent.
+
 ## Reset entry
 
 Reset does not define an ordinary fixed PC reset value. In self-bootstrap mode,

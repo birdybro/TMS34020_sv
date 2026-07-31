@@ -68,6 +68,11 @@ remain presented with `packet_blocked_o=1`. They are neither consumed nor
 treated as illegal instructions, because the architectural exception and other
 execution behavior are not yet implemented.
 
+This includes complete two-word DSJ, DSJEQ, and DSJNE packets at the current
+extraction boundary. Directed tests require them to remain stable and forbid
+register, status, or redirect events until their decrement/condition/relative-PC
+owner is implemented.
+
 For ANDNI/ORI/XORI, ADDXYI, ADDI.L, CMPI.L, and SUBI.L, the packet owner supplies
 extension word 1 as the low half and word 2 as the high half of the immediate.
 ADDI.W sign-extends extension word 1. CMPI.W/L and SUBI.W/L first complement

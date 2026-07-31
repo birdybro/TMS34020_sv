@@ -83,6 +83,12 @@ class IsaTests(unittest.TestCase):
             0x0320: ("CLRC", 1),
             0x0360: ("DINT", 1),
             0x0D60: ("EINT", 1),
+            0x0D80: ("DSJ", 2),
+            0x0D9F: ("DSJ", 2),
+            0x0DA0: ("DSJEQ", 2),
+            0x0DBF: ("DSJEQ", 2),
+            0x0DC0: ("DSJNE", 2),
+            0x0DDF: ("DSJNE", 2),
             0x0DE0: ("SETC", 1),
             0x0120: ("EXGPC", 1),
             0x013F: ("EXGPC", 1),
@@ -250,8 +256,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 23122)
-        self.assertEqual(unclassified, 65536 - 23122)
+        self.assertEqual(matched, 23218)
+        self.assertEqual(unclassified, 65536 - 23218)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -424,6 +430,47 @@ class IsaTests(unittest.TestCase):
         self.assertTrue(jump_a.metadata["compatible_with_tms34010"])
         self.assertEqual(self.database.decode(0x015F).mnemonic, "GETPC")
         self.assertEqual(self.database.decode(0x0180).mnemonic, "GETST")
+
+    def test_dsj_family_records_conditional_decrement_redirect_contract(self) -> None:
+        cases = (
+            (0x0D80, "DSJ", []),
+            (0x0DA0, "DSJEQ", ["Z"]),
+            (0x0DC0, "DSJNE", ["Z"]),
+        )
+        expected_cycles = {
+            "kind": "cases",
+            "cases": [
+                {"when": "no jump", "machine_states": 2},
+                {"when": "jump", "machine_states": 3},
+            ],
+        }
+        for opcode, mnemonic, status_reads in cases:
+            with self.subTest(mnemonic=mnemonic):
+                instruction = self.database.decode(opcode)
+                self.assertIsNotNone(instruction)
+                self.assertEqual(instruction.mnemonic, mnemonic)
+                self.assertEqual(instruction.length_words, 2)
+                self.assertEqual(
+                    instruction.metadata["status_bits_read"],
+                    status_reads,
+                )
+                self.assertEqual(
+                    instruction.metadata["status_bits_written"],
+                    [],
+                )
+                self.assertEqual(
+                    instruction.metadata["documented_cycles"],
+                    expected_cycles,
+                )
+                offset = instruction.metadata["immediate_fields"][0]
+                self.assertEqual(offset["width"], 16)
+                self.assertTrue(offset["signed"])
+                self.assertEqual(offset["scale_bit_addresses"], 16)
+                self.assertTrue(
+                    instruction.metadata["compatible_with_tms34010"]
+                )
+        self.assertIsNone(self.database.decode(0x0D7F))
+        self.assertEqual(self.database.decode(0x0DE0).mnemonic, "SETC")
 
     def test_stack_status_forms_record_ordering_and_alignment_timing(self) -> None:
         popst = self.database.decode(0x01C0)

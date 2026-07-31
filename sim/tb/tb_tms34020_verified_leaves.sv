@@ -1190,6 +1190,38 @@ module tb_tms34020_verified_leaves;
         #1;
     endtask
 
+    task automatic reject_complete_commit_packet(
+        input logic [15:0] first_word,
+        input logic [2:0] packet_length,
+        input logic [31:0] immediate,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {immediate, first_word};
+        commit_packet_length = packet_length;
+        commit_sequential_next_pc = 32'h1234_5670;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            !commit_supported &&
+            !commit_accepted &&
+            !commit_register_write_enable &&
+            !commit_status_write_enable &&
+            !commit_pc_redirect_enable,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
+    endtask
+
     initial begin
         clk = 1'b0;
         reset = 1'b1;
@@ -1903,6 +1935,13 @@ module tb_tms34020_verified_leaves;
             "PC execute JUMP redirect and alignment"
         );
         check_pc_execute(
+            16'h0D80, 3'd2, 32'h0000_20A0,
+            32'h0000_0002,
+            1'b0, 1'b0, 32'd0,
+            1'b0, 32'd0,
+            "PC execute blocks decoded DSJ before implementation"
+        );
+        check_pc_execute(
             16'h0121, 3'd2, 32'h0000_2090,
             32'h1234_567F,
             1'b0, 1'b0, 32'd0,
@@ -2543,6 +2582,19 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "decode-only JUMP cannot enter register execute"
         );
+        execute_first_word = 16'h0D80;
+        execute_packet_length = 3'd2;
+        execute_immediate = 32'h0000_FFFE;
+        execute_source = 32'd0;
+        execute_destination = 32'h1234_5678;
+        execute_status = 32'hA000_0010;
+        #1;
+        check_condition(
+            !execute_supported &&
+            !execute_register_write_enable &&
+            !execute_status_write_enable,
+            "complete DSJ cannot enter register execute"
+        );
         check_register_execute(
             16'hD505, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
             1'b1, 1'b1, 32'h0000_003F, 1'b1,
@@ -2878,6 +2930,21 @@ module tb_tms34020_verified_leaves;
             32'h0000_0010, 32'd1,
             "register commit rejects decode-only PUSHST"
         );
+        reject_complete_commit_packet(
+            16'h0D80, 3'd2, 32'h0000_0002,
+            32'h0000_0010, 32'd1,
+            "register commit rejects complete DSJ"
+        );
+        reject_complete_commit_packet(
+            16'h0DA0, 3'd2, 32'h0000_FFFE,
+            32'h0000_0010, 32'd1,
+            "register commit rejects complete DSJEQ"
+        );
+        reject_complete_commit_packet(
+            16'h0DC0, 3'd2, 32'h0000_7FFF,
+            32'h0000_0010, 32'd1,
+            "register commit rejects complete DSJNE"
+        );
         commit_register_instruction(
             16'h0300, 1'b1,
             1'b0, 1'b0, 4'd0, 32'd0,
@@ -3209,6 +3276,18 @@ module tb_tms34020_verified_leaves;
                      "DINT exact decode");
         check_decode(16'h0D60, TMS20_OP_EINT, 3'd1,
                      "EINT exact decode");
+        check_decode(16'h0D80, TMS20_OP_DSJ, 3'd2,
+                     "DSJ A-file lower-bound decode");
+        check_decode(16'h0D9F, TMS20_OP_DSJ, 3'd2,
+                     "DSJ B-file shared-SP decode");
+        check_decode(16'h0DA0, TMS20_OP_DSJEQ, 3'd2,
+                     "DSJEQ A-file lower-bound decode");
+        check_decode(16'h0DBF, TMS20_OP_DSJEQ, 3'd2,
+                     "DSJEQ B-file shared-SP decode");
+        check_decode(16'h0DC0, TMS20_OP_DSJNE, 3'd2,
+                     "DSJNE A-file lower-bound decode");
+        check_decode(16'h0DDF, TMS20_OP_DSJNE, 3'd2,
+                     "DSJNE B-file shared-SP decode");
         check_decode(16'h0DE0, TMS20_OP_SETC, 3'd1,
                      "SETC exact decode");
         check_decode(16'h019F, TMS20_OP_GETST, 3'd1,

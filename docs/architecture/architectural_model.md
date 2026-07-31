@@ -31,7 +31,9 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 75 currently extracted database forms. This is
+These handlers cover 75 of the 78 currently extracted database forms. DSJ,
+DSJEQ, and DSJNE decode but deliberately raise `UnsupportedInstruction`; a
+directed test proves the complete model checkpoint rolls back. This is
 coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset

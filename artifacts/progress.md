@@ -3,16 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `bec7b4efa8f700eb6a2763bd2a262f81ea55b38c`
-- Passing tests: foundation, reference/hash, delta, 26-case ISA sweep, 122 directed model
+- Latest verified baseline commit: `f434a90b505586ac99986b7628cfd8f7ebc9c89a`
+- Passing tests: foundation, reference/hash, delta, 27-case ISA sweep, 123 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 75 currently extracted encoding forms have bounded
-  successful semantics. JUMP covers all published targets, A/B/shared-SP
+- Model status: 75 of 78 currently extracted encoding forms have bounded
+  successful semantics. DSJ, DSJEQ, and DSJNE deliberately raise
+  `UnsupportedInstruction` and roll back their complete checkpoints until
+  independent semantics are implemented. JUMP covers all published targets, A/B/shared-SP
   sources, alignment, source/status preservation, and two states.
   POPST/PUSHST cover full-width stack/status ordering,
   both alignment classes, hidden writes, wraparound, exact abstract
@@ -38,7 +40,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 75-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 78-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 50 one-word instructions, with externally gated one-edge
@@ -81,8 +83,9 @@
   writeback and passes a cache-fed dependency; its three-state architectural
   retirement is not implemented.
   JUMP functional redirect semantics pass, but its documented two-state
-  retirement is not implemented; POPST and PUSHST remain blocked and
-  noncommitting pending memory-transaction ownership.
+  retirement is not implemented; complete DSJ/DSJEQ/DSJNE packets decode but
+  remain explicitly blocked and state-neutral; POPST and PUSHST remain blocked
+  and noncommitting pending memory-transaction ownership.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -99,8 +102,8 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,547 logic cells and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 401, 769, and 5,157 logic cells;
+  warnings; the leaf wrapper uses 8,553 logic cells and 2,048 registers, while
+  the fetch, frontend, and scalar wrappers use 407, 772, and 5,086 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

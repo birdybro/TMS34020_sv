@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 75 page-verified encoding records and covers 23,122 of 65,536
+slice contains 78 page-verified encoding records and covers 23,218 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -51,6 +51,9 @@ first words without collisions:
 | MOVX | `EC00h`, mask `FE00h` | 1 | p.13-170 |
 | MOVY | `EE00h`, mask `FE00h` | 1 | p.13-171 |
 | SETC | `0DE0h` | 1 | p.13-226 |
+| DSJ | `0D80h`, mask `FFE0h` | 2 | p.13-103 |
+| DSJEQ | `0DA0h`, mask `FFE0h` | 2 | pp.13-104..13-105 |
+| DSJNE | `0DC0h`, mask `FFE0h` | 2 | pp.13-106..13-107 |
 | ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
 | ADDXY | `E000h`, mask `FE00h` | 1 | p.13-38 |
@@ -100,8 +103,24 @@ TMS34010 guide gives the same encoding and programmer-visible operation, so
 semantic compatibility is primary-verified without treating the TMS34010
 pipeline as reusable. Sources: TMS34020 User's Guide printed p.13-141 and
 §4.2 p.4-4; TMS34010 User's Guide printed p.12-98 and its instruction summary.
-The independent model implements the successful redirect boundary; RTL remains
-nonexecuting pending verified redirect ownership.
+The independent model implements the successful redirect boundary. The bounded
+RTL implements the same aligned redirect without a register or status write;
+the documented two-state retirement is not implemented.
+
+DSJ, DSJEQ, and DSJNE each consume a signed 16-bit **word** displacement in
+their second word. When the instruction's decrement condition is true, the
+selected A/B/shared-SP register is decremented modulo `2^32`; a nonzero result
+redirects to the sequential address after the second word plus the
+sign-extended displacement shifted left four. DSJEQ performs that operation
+only when Z is one, and DSJNE only when Z is zero. A suppressed condition
+neither decrements nor redirects. ST is unchanged. Each form takes two states
+without a redirect and three states with one. The TMS34010 guide documents the
+same visible semantics and encodings, but its timing is not reused. Sources:
+TMS34020 User's Guide printed pp.13-103..13-107 and TMS34010 User's Guide
+printed pp.12-69..12-74. At this extraction checkpoint all three forms decode,
+but the independent model deliberately raises `UnsupportedInstruction` and
+rolls back the complete checkpoint, while the RTL explicitly blocks their
+complete packets without register, status, or PC mutation.
 
 EXGF atomically exchanges the selected six-bit FS/FE status bank with the low
 six bits of an A/B/shared-SP destination and clears the register's upper

@@ -128,7 +128,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0090: memory_word = 16'h00F0;
                 32'h0000_00A0: memory_word = 16'h01C0;
                 32'h0000_00B0: memory_word = 16'h01E0;
-                32'h0000_00C0: memory_word = 16'h0160;
+                32'h0000_00C0: memory_word = 16'h0D80;
+                32'h0000_00D0: memory_word = 16'hFFFE;
                 32'h0000_0100: memory_word = 16'h0BA0;
                 32'h0000_0110: memory_word = 16'h5678;
                 32'h0000_0120: memory_word = 16'h1234;
@@ -777,6 +778,35 @@ module tb_tms34020_scalar_slice;
                 status == TMS34020_ST_RESET &&
                 sp == 32'd0,
                 "blocked PUSHST packet cannot mutate state"
+            );
+        end
+
+        apply_reset();
+        load_pc(32'hC0);
+        serve_word(32'hC0);
+        serve_word(32'hD0);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_DSJ &&
+            packet_length_words == 3'd2 &&
+            packet_words[31:0] == {16'hFFFE, 16'h0D80} &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "complete decoded DSJ packet is blocked"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 0 &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0 &&
+                packet_start_pc == 32'hC0,
+                "blocked DSJ packet cannot mutate or redirect state"
             );
         end
 
