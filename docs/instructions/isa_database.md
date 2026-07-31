@@ -73,7 +73,7 @@ first words without collisions:
 | AND | `5000h`, mask `FE00h` | 1 | p.13-40 |
 | ANDN | `5200h`, mask `FE00h` | 1 | p.13-42 |
 | OR | `5400h`, mask `FE00h` | 1 | p.13-182 |
-| XOR | `5600h`, mask `FE00h` | 1 | p.13-266 |
+| XOR / CLR when Rs=Rd | `5600h`, mask `FE00h` | 1 | pp.13-57, 13-266 |
 | ANDNI / ANDI alias | `0B80h`, mask `FFE0h` | 3 | pp.13-41, 13-43 |
 | ORI | `0BA0h`, mask `FFE0h` | 3 | p.13-183 |
 | XORI | `0BC0h`, mask `FFE0h` | 3 | p.13-267 |
@@ -98,6 +98,17 @@ also carries instruction length, operand layout, register selection, status
 reads/writes, memory transactions, graphics dependencies, cache/pipeline
 interaction, interrupt/restart/fault behavior, documented cycle cases,
 16/32-bit/page effects, compatibility, citations, and confidence.
+
+`CLR Rd` is the documented alternate mnemonic for `XOR Rd,Rd`, not a separate
+decode range. Its instruction word repeats the same four-bit register number
+in source bits `[8:5]` and destination bits `[3:0]`; bit 4 selects the shared
+A/B file for both fields. Consequently only the 32 same-number words in the
+existing `5600h`/`FE00h` XOR range are CLR spellings. Mismatched words such as
+`5620h` remain ordinary XOR operations. The TMS34020 guide specifies one
+machine state, a zero destination, Z set, and N/C/V unchanged; the TMS34010
+guide gives the same encoding and visible behavior but different clock-count
+notation. Sources: TMS34020 User's Guide printed pp.13-57 and 13-266;
+TMS34010 User's Guide printed p.12-51.
 
 JUMP reads an A/B register or the shared-SP alias, clears target bits `[3:0]`,
 and redirects PC in two machine states without changing ST. Its

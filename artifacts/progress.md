@@ -3,8 +3,8 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `db0bb13ec3a3b7bcd31af2a1142bfa8c1a36e811`
-- Passing tests: foundation, reference/hash, delta, 30-case ISA sweep, 133 directed model
+- Latest verified baseline commit: `f83b25146dbfebbd40d55dc6a85c0f1fd20ac87a`
+- Passing tests: foundation, reference/hash, delta, 31-case ISA sweep, 134 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
@@ -37,6 +37,9 @@
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
   BLMOVE, and successful TRAPL/VLCOL forms;
+  CLR is represented canonically as XOR with equal source/destination fields
+  and covers every A/B register encoding, shared SP, Z-only status change, and
+  the primary one-state case;
   fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
   replay, including GETPC/EXGPC sequential-PC, redirect, alignment, A/B, and
@@ -76,6 +79,9 @@
   ADDXY/SUBXY use a shared independent-half arithmetic leaf, replace NCZV,
   and pass all 25 primary example rows plus A/B, same-register, shared-SP, and
   dependent scalar-commit tests.
+  CLR requires no duplicate execution opcode: the existing XOR path decodes
+  all 32 same-register alias words, routes equal source/destination selectors,
+  clears the selected A/B/shared-SP register, sets Z, and preserves N/C/V.
   BTST.K/R use an independent selected-bit leaf, recover complemented constant
   or low-five-bit register counts, preserve the destination, and update only Z;
   all 25 primary input rows plus A/B, same-register, shared-SP, and dependent

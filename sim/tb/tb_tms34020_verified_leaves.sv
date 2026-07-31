@@ -2127,6 +2127,30 @@ module tb_tms34020_verified_leaves;
             32'h2000_0000, 32'h2000_0000,
             "register execute XOR only writes zero"
         );
+        for (int unsigned file_index = 0; file_index < 2; file_index++) begin
+            for (int unsigned register_index = 0;
+                register_index < 16; register_index++) begin
+                check_register_execute(
+                    {
+                        7'b0101011,
+                        register_index[3:0],
+                        file_index[0],
+                        register_index[3:0]
+                    },
+                    32'hA5A5_5A5A, 32'hA5A5_5A5A,
+                    32'hD000_0010,
+                    1'b1, 1'b1, 32'd0, 1'b1,
+                    32'h2000_0000, 32'h2000_0000,
+                    "register execute CLR same-register XOR alias"
+                );
+                check_condition(
+                    execute_register_file == file_index[0] &&
+                    execute_source_index == register_index[3:0] &&
+                    execute_destination_index == register_index[3:0],
+                    "register execute CLR alias selectors"
+                );
+            end
+        end
         check_register_execute(
             16'h3400, 32'd0, 32'd32, 32'd0,
             1'b1, 1'b0, 32'd0, 1'b1,

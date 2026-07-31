@@ -1303,6 +1303,34 @@ class ExecutionTests(unittest.TestCase):
                 )
                 self.assertEqual(event.machine_states, 1)
 
+    def test_clr_alias_all_registers_and_primary_status_contract(self) -> None:
+        values = (0xFFFF_FFFF, 0x0000_0001, 0x8000_0000, 0xAAAA_AAAA)
+        for register_file, file_bit in (("A", 0x0000), ("B", 0x0010)):
+            for register_index in range(16):
+                value = values[register_index % len(values)]
+                opcode = (
+                    0x5600
+                    | file_bit
+                    | (register_index << 5)
+                    | register_index
+                )
+                with self.subTest(
+                    register_file=register_file,
+                    register_index=register_index,
+                    opcode=f"{opcode:04X}",
+                ):
+                    model = Tms34020Model()
+                    model.load_program([opcode])
+                    model.state.write_reg(register_file, register_index, value)
+                    model.state.st = 0xD000_0010
+                    event = model.step()
+                    self.assertEqual(
+                        model.state.read_reg(register_file, register_index), 0
+                    )
+                    self.assertEqual(model.state.st, 0xF000_0010)
+                    self.assertEqual(event.mnemonic, "XOR")
+                    self.assertEqual(event.machine_states, 1)
+
     def test_immediate_logical_primary_examples_flags_and_alignment(self) -> None:
         cases = (
             (0x0B80, 0xFFFFFFFF, 0xFFFFFFFF, 0x00000000),

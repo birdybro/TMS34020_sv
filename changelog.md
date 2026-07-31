@@ -4,6 +4,11 @@
 
 ### Added
 
+- Primary-page-verified CLR alias metadata and independent tests establishing
+  that exactly the 32 same-number source/destination words in the existing XOR
+  range spell CLR. The model and RTL tests cover every A/B register encoding,
+  shared SP, one-state behavior, zero result, Z set, and N/C/V preservation
+  without creating a colliding decoder entry.
 - Repository governance, stable milestone backlog, contribution policy, project
   layout, command surface, and machine-checkable foundation validation.
 - Honest progress, verification, synthesis, confidence, and game-integration
@@ -793,7 +798,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 44 one-word, four two-word, and eight
+  bounded scalar composition accepts only 51 one-word, eight two-word, and nine
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

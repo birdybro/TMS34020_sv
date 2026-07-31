@@ -791,7 +791,7 @@
     },
     {
       "mnemonic": "XOR",
-      "aliases": [],
+      "aliases": ["CLR when source and destination register numbers are equal"],
       "instruction_length_words": 1,
       "opcode_mask": "0xFE00",
       "opcode_value": "0x5600",
@@ -822,7 +822,11 @@
       "bus_16_effects": "instruction refill timing only",
       "bus_32_effects": "instruction refill timing only",
       "page_mode_effects": "instruction refill timing only",
-      "source_citations": ["TI-TMS34020-UG-1990 XOR, printed p.13-266"],
+      "source_citations": [
+        "TI-TMS34020-UG-1990 CLR alias, printed p.13-57",
+        "TI-TMS34020-UG-1990 XOR, printed p.13-266",
+        "TI-TMS34010-UG-1988 CLR alias, printed p.12-51"
+      ],
       "compatible_with_tms34010": true,
       "confidence": "VERIFIED_PRIMARY"
     },

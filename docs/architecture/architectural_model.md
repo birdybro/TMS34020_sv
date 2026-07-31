@@ -289,11 +289,15 @@ SP. `CMPI.W` and `CMPI.L` are database form names; TI uses `CMPI` for both.
 Source: the same guide, printed pp.13-81..13-82 and timing-table p.15-4.
 
 The register and immediate logical families implement AND/ANDN/OR/XOR and
-ANDNI/ORI/XORI while changing only Z. ANDI is the documented assembler alias
-for ANDNI and complements its requested operand in the two extension words.
+ANDNI/ORI/XORI while changing only Z. CLR is the documented XOR alias when
+the source and destination register-number fields are equal; the model retains
+the canonical XOR trace mnemonic and exhaustively checks all 32 A/B encodings,
+including both encodings of the shared SP alias. ANDI is the documented
+assembler alias for ANDNI and complements its requested operand in the two
+extension words.
 The model executes the encoded ANDNI operation and counts two states when the
 first extension word is long-word aligned and three otherwise. Sources: TI
-*TMS34020 User's Guide*, August 1990, printed pp.13-40..13-43,
+*TMS34020 User's Guide*, August 1990, printed pp.13-40..13-43, 13-57,
 13-182..13-183, 13-266..13-267, and timing-table pp.15-3, 15-7, and 15-9.
 The ORI page's duplicated “aligned” wording is resolved in
 `docs/research/source_conflicts.md` RSC-0006.

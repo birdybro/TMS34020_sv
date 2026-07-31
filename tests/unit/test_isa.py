@@ -736,6 +736,30 @@ class IsaTests(unittest.TestCase):
         immediate = andni.metadata["immediate_fields"][0]
         self.assertIn("ones-complement", immediate["alias_encoding"])
 
+    def test_clr_is_the_constrained_xor_same_register_alias(self) -> None:
+        xor = self.database.decode(0x5600)
+        self.assertIsNotNone(xor)
+        self.assertEqual(xor.mnemonic, "XOR")
+        self.assertEqual(
+            xor.metadata["aliases"],
+            ["CLR when source and destination register numbers are equal"],
+        )
+        for register_file_bit in (0x0000, 0x0010):
+            for register_index in range(16):
+                with self.subTest(
+                    register_file_bit=register_file_bit,
+                    register_index=register_index,
+                ):
+                    clr_word = (
+                        0x5600
+                        | register_file_bit
+                        | (register_index << 5)
+                        | register_index
+                    )
+                    self.assertIs(self.database.decode(clr_word), xor)
+        self.assertIs(self.database.decode(0x5620), xor)
+        self.assertNotEqual((0x5620 >> 5) & 0xF, 0x5620 & 0xF)
+
     def test_addi_encoding_forms_retain_ti_mnemonic_and_widths(self) -> None:
         short = self.database.decode(0x0B00)
         long = self.database.decode(0x0B20)
