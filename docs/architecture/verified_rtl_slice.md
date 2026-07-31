@@ -13,16 +13,17 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent and EXGPC sequential-PC write plus aligned old-register redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, EXGPC printed p.13-112 and GETPC printed p.13-130 |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
-| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit and direct-PC redirect event for 44 one-word operations, two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W, and complete three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets; GETPC/EXGPC consume the packet's sequential PC and EXGPC captures the old destination before writeback; unsupported or length-mismatched packets cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1, EXGPC printed p.13-112, GETPC printed p.13-130, and the individual instruction pages cited for `tms34020_register_execute` |
-| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for 56 verified scalar operations, including ADDXY/SUBXY, BTST.K/R, LMO, all eight scalar shift forms, and a held EXGPC completion redirect; decoded unsupported and unclassified packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for the execution leaves |
+| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit and direct-PC redirect event for 47 one-word operations, two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W, and complete three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets; GETPC/EXGPC consume the packet's sequential PC and EXGPC captures the old destination before writeback; unsupported or length-mismatched packets cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1, EXGPC printed p.13-112, GETPC printed p.13-130, and the individual instruction pages cited for `tms34020_register_execute` |
+| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for 59 verified scalar operations, including SETF/SEXT/ZEXT, ADDXY/SUBXY, BTST.K/R, LMO, all eight scalar shift forms, and a held EXGPC completion redirect; decoded unsupported and unclassified packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for the execution leaves |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
 | `rtl/execute/tms34020_bit_test.sv` | Selected-bit test producing Z when the selected destination bit is zero; register and status ownership remain in the execution router | TI *TMS34020 User's Guide*, August 1990, BTST constant/register printed pp.13-46..13-47 |
+| `rtl/execute/tms34020_field_extend.sv` | Right-justified 1–32-bit zero/sign extension with encoded-zero size 32 and result-derived N/Z | TI *TMS34020 User's Guide*, August 1990, SEXT printed p.13-232 and ZEXT printed p.13-268 |
 | `rtl/execute/tms34020_cmpk.sv` | Encoded-zero-means-32 subtraction and N/C/Z/V compare results without register modification | TI *TMS34020 User's Guide*, August 1990, CMPK, printed p.13-83 |
 | `rtl/execute/tms34020_lmo.sv` | Leading-zero count in the range 0–31 and zero-source Z result | TI *TMS34020 User's Guide*, August 1990, LMO, printed p.13-147 |
 | `rtl/execute/tms34020_logical.sv` | AND, ANDN, OR, and XOR register results plus Z; N/C/V remain outside the write mask | TI *TMS34020 User's Guide*, August 1990, printed pp.13-40, 13-42, 13-182, and 13-266 |
-| `rtl/execute/tms34020_register_execute.sv` | Packet-length-checked independent source/destination file selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK, MOVI.W/L, MOVE, MOVX, MOVY, RL.K/R, BTST.K/R, SLA.K/R, SLL.K/R, SRA.K/R, SRL.K/R, SETC, ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPI.W/L, CMPK, LMO, RMO, AND, ANDN, OR, XOR, ANDNI, ORI, XORI, ADDXYI, ADDI.W/L, and SUBI.W/L | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-47, 13-58, 13-80..13-83, 13-94..13-95, 13-109, 13-132, 13-134, 13-147, 13-158, 13-167..13-183, 13-222..13-246, and 13-266..13-267 |
+| `rtl/execute/tms34020_register_execute.sv` | Packet-length-checked independent source/destination file selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, SETF, SEXT, ZEXT, ADDK/INC, SUBK/DEC, MOVK, MOVI.W/L, MOVE, MOVX, MOVY, RL.K/R, BTST.K/R, SLA.K/R, SLL.K/R, SRA.K/R, SRL.K/R, SETC, ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPI.W/L, CMPK, LMO, RMO, AND, ANDN, OR, XOR, ANDNI, ORI, XORI, ADDXYI, ADDI.W/L, and SUBI.W/L | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-47, 13-58, 13-80..13-83, 13-94..13-95, 13-109, 13-132, 13-134, 13-147, 13-158, 13-167..13-183, 13-222..13-246, and 13-266..13-268 |
 | `rtl/execute/tms34020_rotate_left.sv` | 32-bit rotate-left result for counts 0–31, count-zero C clearing, last-bit-out C, and result-derived Z | TI *TMS34020 User's Guide*, August 1990, RL, printed pp.13-222..13-223 |
 | `rtl/execute/tms34020_shift.sv` | SLA/SLL/SRA/SRL results for counts 0–31, arithmetic or zero fill, count-zero C clearing, last-bit-out C, instruction-specific N/C/Z/V write masks, and SLA sign-change overflow | TI *TMS34020 User's Guide*, August 1990, printed pp.13-233..13-240 |
 | `rtl/execute/tms34020_rmo.sv` | Least-significant set-bit index and Z result | TI *TMS34020 User's Guide*, August 1990, RMO, printed p.13-224 |
@@ -54,8 +55,9 @@ Verilator. It checks:
 - every currently extracted decoder entry, including masked register/mode
   encodings and instruction-word count;
 - complete SETF/SEXT/ZEXT field-bank, register-file, field-size, and extension
-  decode boundaries, plus explicit register-execution rejection without state
-  write pending their semantic implementation;
+  decode boundaries; all 32 encoded field sizes in the extension leaf; the
+  published result rows; exact selected-bank, N/Z, and Z-only ST masks; A/B
+  routing; shared-SP commit; and dependent scalar execution;
 - ADDXY and SUBXY base/end decode boundaries, all 16 published ADDXY result and
   flag rows, all nine published SUBXY result and comparison-flag rows,
   same-register read-before-write, A/B file selectors, shared-SP source and
@@ -145,8 +147,9 @@ Verilator. It checks:
   count-zero carry clearing and dependent register-count selection, GETPC to a
   B register, and EXGPC through both an A register and shared SP. These
   checks also include dependent ADDXY/SUBXY register commits, shared-SP
-  source/destination commits, and BTST.K/R commits that read shared SP and
-  change only Z. They prove that
+  source/destination commits, BTST.K/R commits that read shared SP and change
+  only Z, and SETF/SEXT/ZEXT commits through both field banks and shared SP.
+  They prove that
   compare suppresses register writes and that a later operation observes the
   preceding committed register/ST state; they do not assign an architectural
   cycle count to the commit edge. Encoded-zero ADDK, SUBK, and MOVK checks prove
@@ -203,17 +206,17 @@ ST preservation, complete MOVI.W/MOVI.L packet commits, dependent MOVX/MOVY
 packet commits, dependent A-to-B and B-to-A MOVE packet commits,
 dependent RL.K then source-counted RL.R commits, LMO against the preceding
 shift result, BTST.K/R against dependent ADDXY/SUBXY results with no register
-write, GETPC sequential-PC capture,
+write, a dependent SETF-to-ZEXT-to-SEXT sequence, GETPC sequential-PC capture,
 all eight SLA/SLL/SRA/SRL forms in a dependent sequence with preserved versus
 replaced status fields,
 EXGPC atomic register exchange and aligned nonsequential completion redirect,
 a GETPC at that redirect target, unclassified-word noncommit, and
 a cache-enabled pass that feeds eight dependent commits, including LMO after
-GETST, from exactly four refill long-word reads. Eleven runtime assertions across
+GETST, from exactly four refill long-word reads. Thirteen runtime assertions across
 the scalar and commit
 owners constrain acceptance, blocked writes, single-pulse commit, mutually
-exclusive execution ownership, atomic LMO/shift/XY writes, Z-only BTST writes,
-and aligned
+exclusive execution ownership, atomic LMO/shift/XY/field-extension writes,
+Z-only BTST writes, selected-bank-only SETF writes, and aligned
 committed/pending redirects. These
 FPGA handshakes are not architectural cycle evidence.
 
@@ -224,7 +227,7 @@ data paths, unary, binary, and logical arithmetic, LMO, RMO, and RPIX timing out
 observable. It also keeps every output of the register-execution router
 observable and instantiates the commit composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 8,067 logic-cell/2,021-register resource count is not a core-area
+so its 8,383 logic-cell/2,021-register resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -246,7 +249,7 @@ bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 4,804 logic cells, 1,387 registers,
+composition with zero errors/warnings to 5,033 logic cells, 1,387 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

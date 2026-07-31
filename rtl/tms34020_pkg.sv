@@ -14,6 +14,10 @@ package tms34020_pkg;
     localparam int unsigned TMS34020_ST_SS_BIT = 22;
     localparam int unsigned TMS34020_ST_IX_BIT = 25;
     localparam int unsigned TMS34020_ST_BF_BIT = 26;
+    localparam int unsigned TMS34020_ST_FS0_LSB = 0;
+    localparam int unsigned TMS34020_ST_FE0_BIT = 5;
+    localparam int unsigned TMS34020_ST_FS1_LSB = 6;
+    localparam int unsigned TMS34020_ST_FE1_BIT = 11;
     localparam logic [31:0] TMS34020_ST_RESET = 32'h0000_0010;
     localparam logic [31:0] TMS34020_ST_RESERVED_MASK =
         32'h099F_F000;

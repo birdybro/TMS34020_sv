@@ -58,6 +58,10 @@
 - Independent SETF/SEXT/ZEXT model semantics with all 32 encoded sizes in both
   field banks, the published result rows, exact instruction-owned ST updates,
   A/B destinations, shared-SP aliasing, and TMS34020-specific state counts.
+- A synthesizable 1–32-bit field-extension leaf, SETF selected-bank status
+  intents, SEXT/ZEXT register and partial-status commit, both field banks,
+  shared-SP coverage, a dependent scalar sequence, and two runtime safety
+  assertions.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -161,6 +165,11 @@
 
 ### Verified
 
+- SETF/SEXT/ZEXT pass the warning-free leaf and scalar Verilator regressions
+  across all encoded sizes, both status banks, A/B/shared-SP routing, and
+  ordered state dependencies. Affected Cyclone V Analysis & Synthesis passes
+  with zero errors/warnings at 8,383 leaf and 5,033 bounded-scalar diagnostic
+  logic cells; these are not fitted area or timing-closure results.
 - The 112-case independent model suite covers bounded semantics for all 70
   currently extracted forms. SETF/SEXT/ZEXT are checked over every encoded
   size and both field banks without claiming coverage of the unextracted ISA.

@@ -46,6 +46,8 @@ updates such as:
 - ABS writing N/Z/V while preserving C;
 - NOT writing only Z;
 - arithmetic instructions writing all N/C/Z/V;
+- SETF writing only FS0/FE0 or FS1/FE1;
+- SEXT writing N/Z and ZEXT writing only Z;
 - SETC and CLRC changing only C;
 - EINT and DINT changing only IE.
 
@@ -63,7 +65,9 @@ remains `TMS20-0029`/`TMS20-0030`.
 - full N/C/Z/V replacement;
 - N/Z/V replacement preserving C;
 - Z-only replacement preserving N/C/V;
-- isolated IE set and C clear.
+- isolated IE set and C clear;
+- isolated SETF updates of both six-bit field banks, followed by SEXT/ZEXT
+  consumers with preservation of unowned status fields.
 
 The module is also included in warning-free Cyclone V leaf Analysis &
 Synthesis.
@@ -77,7 +81,7 @@ faulted-stack behavior. Source: User's Guide TRAPL, printed pp.13-256..13-258.
 
 The following are not yet implemented:
 
-- PUTST, SETF, EXGF, PUSHST, and POPST semantics or sequencing;
+- PUTST, EXGF, PUSHST, and POPST semantics or sequencing;
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;

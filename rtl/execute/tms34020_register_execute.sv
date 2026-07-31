@@ -66,6 +66,10 @@ module tms34020_register_execute (
     logic rotate_z;
     logic [4:0] bit_test_index;
     logic bit_test_z;
+    logic [4:0] field_size_encoded;
+    logic [31:0] field_extension_result;
+    logic field_extension_n;
+    logic field_extension_z;
     tms34020_shift_op_t shift_operation;
     logic [4:0] shift_count;
     logic [31:0] shift_result;
@@ -269,6 +273,24 @@ module tms34020_register_execute (
         .value_i(destination_i),
         .bit_index_i(bit_test_index),
         .status_z_o(bit_test_z)
+    );
+
+    always_comb begin
+        field_size_encoded =
+            status_i[TMS34020_ST_FS0_LSB +: 5];
+        if (first_word_i[9]) begin
+            field_size_encoded =
+                status_i[TMS34020_ST_FS1_LSB +: 5];
+        end
+    end
+
+    tms34020_field_extend field_extend (
+        .value_i(destination_i),
+        .encoded_size_i(field_size_encoded),
+        .sign_extend_i(opcode_id == TMS20_OP_SEXT),
+        .result_o(field_extension_result),
+        .status_n_o(field_extension_n),
+        .status_z_o(field_extension_z)
     );
 
     always_comb begin
@@ -595,6 +617,51 @@ module tms34020_register_execute (
                         29'd0
                     };
                     status_write_mask_o = 32'h2000_0000;
+                end
+
+                TMS20_OP_SETF: begin
+                    supported_o = 1'b1;
+                    status_write_enable_o = 1'b1;
+                    if (first_word_i[9]) begin
+                        status_write_data_o = {
+                            20'd0,
+                            first_word_i[5:0],
+                            6'd0
+                        };
+                        status_write_mask_o = 32'h0000_0FC0;
+                    end else begin
+                        status_write_data_o = {
+                            26'd0,
+                            first_word_i[5:0]
+                        };
+                        status_write_mask_o = 32'h0000_003F;
+                    end
+                end
+
+                TMS20_OP_SEXT,
+                TMS20_OP_ZEXT: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = field_extension_result;
+                    status_write_enable_o = 1'b1;
+                    if (opcode_id == TMS20_OP_SEXT) begin
+                        status_write_data_o = {
+                            field_extension_n,
+                            1'b0,
+                            field_extension_z,
+                            1'b0,
+                            28'd0
+                        };
+                        status_write_mask_o = 32'hA000_0000;
+                    end else begin
+                        status_write_data_o = {
+                            2'd0,
+                            field_extension_z,
+                            29'd0
+                        };
+                        status_write_mask_o = 32'h2000_0000;
+                    end
                 end
 
                 TMS20_OP_SLA_K,

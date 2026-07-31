@@ -189,6 +189,9 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0530: memory_word = 16'hE201;
                 32'h0000_0540: memory_word = 16'h1FE0;
                 32'h0000_0550: memory_word = 16'h4A20;
+                32'h0000_0560: memory_word = 16'h0570;
+                32'h0000_0570: memory_word = 16'h0521;
+                32'h0000_0580: memory_word = 16'h0501;
                 32'h2468_ACF0: memory_word = 16'h0154;
                 default: memory_word = 16'hFFFF;
             endcase
@@ -1098,6 +1101,31 @@ module tb_tms34020_scalar_slice;
         check_condition(
             commit_count == 6,
             "six dependent MOVK, XY arithmetic, and BTST commits"
+        );
+        serve_and_commit(
+            32'h560, TMS20_OP_SETF,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h0000_0030, 32'h0000_003F,
+            32'h3000_0030, 32'd0,
+            "scalar SETF updates only field-parameter bank zero"
+        );
+        serve_and_commit(
+            32'h570, TMS20_OP_ZEXT,
+            1'b1, 1'b0, 4'd1, 32'h0000_FFFF,
+            1'b1, 32'd0, 32'h2000_0000,
+            32'h1000_0030, 32'd0,
+            "scalar ZEXT observes SETF size and dependent SUBXY result"
+        );
+        serve_and_commit(
+            32'h580, TMS20_OP_SEXT,
+            1'b1, 1'b0, 4'd1, 32'hFFFF_FFFF,
+            1'b1, 32'h8000_0000, 32'hA000_0000,
+            32'h9000_0030, 32'd0,
+            "scalar SEXT observes preceding ZEXT result"
+        );
+        check_condition(
+            commit_count == 9,
+            "nine dependent field, XY arithmetic, and bit-test commits"
         );
 
         apply_reset();

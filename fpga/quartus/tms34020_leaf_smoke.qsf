@@ -14,6 +14,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_xy_
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_addxyi.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_binary_arithmetic.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_bit_test.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_field_extend.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_cmpk.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_lmo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_logical.sv

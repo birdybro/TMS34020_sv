@@ -11,6 +11,7 @@ module tb_tms34020_verified_leaves;
     integer rotate_index;
     integer shift_index;
     integer shift_step;
+    integer field_size_index;
     integer pitch_first_power;
     integer pitch_second_power;
     logic [15:0] constant_opcode;
@@ -18,6 +19,9 @@ module tb_tms34020_verified_leaves;
     logic [31:0] expected_shift;
     logic expected_shift_c;
     logic expected_shift_v;
+    logic [31:0] expected_field_mask;
+    logic [31:0] expected_field_zero;
+    logic [31:0] expected_field_sign;
     logic shift_original_sign;
     logic [31:0] pitch_value;
     logic [15:0] pitch_conversion;
@@ -87,6 +91,13 @@ module tb_tms34020_verified_leaves;
     logic [31:0] bit_test_value;
     logic [4:0] bit_test_index;
     logic bit_test_z;
+
+    logic [31:0] field_extension_value;
+    logic [4:0] field_extension_size;
+    logic field_extension_sign;
+    logic [31:0] field_extension_result;
+    logic field_extension_n;
+    logic field_extension_z;
 
     logic [31:0] rmo_source;
     logic [31:0] rmo_result;
@@ -258,6 +269,15 @@ module tb_tms34020_verified_leaves;
         .value_i(bit_test_value),
         .bit_index_i(bit_test_index),
         .status_z_o(bit_test_z)
+    );
+
+    tms34020_field_extend field_extend_dut (
+        .value_i(field_extension_value),
+        .encoded_size_i(field_extension_size),
+        .sign_extend_i(field_extension_sign),
+        .result_o(field_extension_result),
+        .status_n_o(field_extension_n),
+        .status_z_o(field_extension_z)
     );
 
     tms34020_rmo rmo_dut (
@@ -946,6 +966,25 @@ module tb_tms34020_verified_leaves;
         check_condition(bit_test_z == expected_z, message);
     endtask
 
+    task automatic check_field_extension(
+        input logic [31:0] value,
+        input logic [4:0] encoded_size,
+        input logic sign_extend,
+        input logic [31:0] expected_result,
+        input string message
+    );
+        field_extension_value = value;
+        field_extension_size = encoded_size;
+        field_extension_sign = sign_extend;
+        #1;
+        check_condition(
+            field_extension_result == expected_result &&
+            field_extension_n == expected_result[31] &&
+            field_extension_z == (expected_result == 32'd0),
+            message
+        );
+    endtask
+
     task automatic check_shift(
         input tms34020_shift_op_t operation,
         input logic [31:0] value,
@@ -1144,6 +1183,9 @@ module tb_tms34020_verified_leaves;
         lmo_source = 32'd0;
         bit_test_value = 32'd0;
         bit_test_index = 5'd0;
+        field_extension_value = 32'd0;
+        field_extension_size = 5'd0;
+        field_extension_sign = 1'b0;
         rmo_source = 32'd0;
         rotate_value = 32'd0;
         rotate_count = 5'd0;
@@ -1198,6 +1240,13 @@ module tb_tms34020_verified_leaves;
             TMS34020_ST_IX_BIT == 25 &&
             TMS34020_ST_BF_BIT == 26,
             "status control and fault bit positions"
+        );
+        check_condition(
+            TMS34020_ST_FS0_LSB == 0 &&
+            TMS34020_ST_FE0_BIT == 5 &&
+            TMS34020_ST_FS1_LSB == 6 &&
+            TMS34020_ST_FE1_BIT == 11,
+            "status field-parameter positions"
         );
         check_condition(TMS34020_ST_RESET == 32'h0000_0010,
                         "status reset constant");
@@ -1285,6 +1334,85 @@ module tb_tms34020_verified_leaves;
         check_bit_test(
             32'd0, 5'd31, 1'b1, "BTST.R primary row 12"
         );
+
+        check_field_extension(
+            32'h0000_8000, 5'd17, 1'b1, 32'h0000_8000,
+            "SEXT primary size seventeen"
+        );
+        check_field_extension(
+            32'h0000_8000, 5'd16, 1'b1, 32'hFFFF_8000,
+            "SEXT primary size sixteen"
+        );
+        check_field_extension(
+            32'h0000_8000, 5'd15, 1'b1, 32'd0,
+            "SEXT primary size fifteen"
+        );
+        check_field_extension(
+            32'hFFFF_FFFF, 5'd0, 1'b0, 32'hFFFF_FFFF,
+            "ZEXT primary size thirty-two"
+        );
+        check_field_extension(
+            32'hFFFF_FFFF, 5'd31, 1'b0, 32'h7FFF_FFFF,
+            "ZEXT primary size thirty-one"
+        );
+        check_field_extension(
+            32'hFFFF_FFFF, 5'd1, 1'b0, 32'd1,
+            "ZEXT primary size one"
+        );
+        check_field_extension(
+            32'hFFFF_0000, 5'd16, 1'b0, 32'd0,
+            "ZEXT primary zero result"
+        );
+
+        for (
+            field_size_index = 0;
+            field_size_index < 32;
+            field_size_index = field_size_index + 1
+        ) begin
+            expected_field_mask = 32'hFFFF_FFFF;
+            if (field_size_index != 0) begin
+                expected_field_mask =
+                    32'hFFFF_FFFF >>
+                    (32 - field_size_index);
+            end
+            field_extension_value = 32'hA5A5_5A5A;
+            if (field_size_index == 0) begin
+                field_extension_value =
+                    field_extension_value | 32'h8000_0000;
+            end else begin
+                field_extension_value =
+                    field_extension_value |
+                    (32'd1 << (field_size_index - 1));
+            end
+            expected_field_zero =
+                field_extension_value & expected_field_mask;
+            expected_field_sign = expected_field_zero;
+            if (
+                field_size_index == 0
+                ? expected_field_zero[31]
+                : (
+                    expected_field_zero &
+                    (32'd1 << (field_size_index - 1))
+                ) != 32'd0
+            ) begin
+                expected_field_sign =
+                    expected_field_zero | ~expected_field_mask;
+            end
+            check_field_extension(
+                field_extension_value,
+                field_size_index[4:0],
+                1'b0,
+                expected_field_zero,
+                "ZEXT all encoded sizes"
+            );
+            check_field_extension(
+                field_extension_value,
+                field_size_index[4:0],
+                1'b1,
+                expected_field_sign,
+                "SEXT all encoded sizes"
+            );
+        end
 
         check_rotate_left(
             32'hF000_0000, 5'd0, 32'hF000_0000, 1'b0, 1'b0,
@@ -2339,19 +2467,62 @@ module tb_tms34020_verified_leaves;
             "unclassified register execute instruction"
         );
         check_register_execute(
-            16'h0500, 32'd0, 32'h0000_8000, 32'h0000_0010,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only SEXT cannot enter register execute"
-        );
-        check_register_execute(
-            16'h0520, 32'd0, 32'hFFFF_0000, 32'h0000_0010,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only ZEXT cannot enter register execute"
-        );
-        check_register_execute(
             16'h0540, 32'd0, 32'd0, 32'hF020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only SETF cannot enter register execute"
+            1'b1, 1'b0, 32'd0, 1'b1, 32'd0, 32'h0000_003F,
+            "register execute SETF field zero size thirty-two"
+        );
+        check_register_execute(
+            16'h0760, 32'd0, 32'd0, 32'hF020_001F,
+            1'b1, 1'b0, 32'd0, 1'b1,
+            32'h0000_0800, 32'h0000_0FC0,
+            "register execute SETF field one sign-extension"
+        );
+        check_register_execute(
+            16'h0500, 32'd0, 32'h0000_8000, 32'hF020_0011,
+            1'b1, 1'b1, 32'h0000_8000, 1'b1,
+            32'd0, 32'hA000_0000,
+            "register execute SEXT field zero size seventeen"
+        );
+        check_condition(
+            !execute_register_file &&
+            execute_source_index == 4'd0 &&
+            execute_destination_index == 4'd0,
+            "register execute SEXT field-zero A-file selector"
+        );
+        check_register_execute(
+            16'h0712, 32'd0, 32'h0000_8000, 32'h7020_041F,
+            1'b1, 1'b1, 32'hFFFF_8000, 1'b1,
+            32'h8000_0000, 32'hA000_0000,
+            "register execute SEXT field one B-file size sixteen"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd2 &&
+            execute_destination_index == 4'd2,
+            "register execute SEXT field-one B-file selector"
+        );
+        check_register_execute(
+            16'h0520, 32'd0, 32'hFFFF_0000, 32'hD020_0010,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h2000_0000, 32'h2000_0000,
+            "register execute ZEXT field zero zero result"
+        );
+        check_register_execute(
+            16'h0520, 32'd0, 32'hFFFF_FFFF, 32'hD020_0000,
+            1'b1, 1'b1, 32'hFFFF_FFFF, 1'b1,
+            32'd0, 32'h2000_0000,
+            "register execute ZEXT size thirty-two leaves N unowned"
+        );
+        check_register_execute(
+            16'h073F, 32'd0, 32'hFFFF_FF80, 32'hD020_021F,
+            1'b1, 1'b1, 32'h0000_0080, 1'b1,
+            32'd0, 32'h2000_0000,
+            "register execute ZEXT field one shared SP"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_destination_index == 4'd15,
+            "register execute ZEXT B15 shared-SP selector"
         );
         check_register_execute(
             16'h1FE0, 32'd0, 32'h5555_5555, 32'hD020_001F,
@@ -2815,6 +2986,48 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'h3000_0000, 32'hF000_0000,
             32'h3000_0010, 32'h0000_FFFD,
             "register commit SUBXY updates shared SP destination"
+        );
+        commit_register_instruction(
+            16'h0570, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h0000_0030, 32'h0000_003F,
+            32'h3000_0030, 32'h0000_FFFD,
+            "register commit SETF selects field zero size sixteen"
+        );
+        commit_register_instruction(
+            16'h053F, 1'b1,
+            1'b1, 1'b1, 4'd15, 32'h0000_FFFD,
+            1'b1, 32'd0, 32'h2000_0000,
+            32'h1000_0030, 32'h0000_FFFD,
+            "register commit ZEXT field zero shared SP"
+        );
+        commit_register_instruction(
+            16'h051F, 1'b1,
+            1'b1, 1'b1, 4'd15, 32'hFFFF_FFFD,
+            1'b1, 32'h8000_0000, 32'hA000_0000,
+            32'h9000_0030, 32'hFFFF_FFFD,
+            "register commit SEXT field zero shared SP"
+        );
+        commit_register_instruction(
+            16'h0750, 1'b1,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b1, 32'h0000_0400, 32'h0000_0FC0,
+            32'h9000_0430, 32'hFFFF_FFFD,
+            "register commit SETF selects field one size sixteen"
+        );
+        commit_register_instruction(
+            16'h073F, 1'b1,
+            1'b1, 1'b1, 4'd15, 32'h0000_FFFD,
+            1'b1, 32'd0, 32'h2000_0000,
+            32'h9000_0430, 32'h0000_FFFD,
+            "register commit ZEXT field one shared SP"
+        );
+        commit_register_instruction(
+            16'h071F, 1'b1,
+            1'b1, 1'b1, 4'd15, 32'hFFFF_FFFD,
+            1'b1, 32'h8000_0000, 32'hA000_0000,
+            32'h9000_0430, 32'hFFFF_FFFD,
+            "register commit SEXT field one shared SP"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");
