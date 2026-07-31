@@ -153,12 +153,17 @@ module tms34020_scalar_slice (
                 (
                     packet_length_words_o == 3'd1 ||
                     (
+                        packet_length_words_o == 3'd2 &&
+                        packet_opcode_id_o == TMS20_OP_ADDI_W
+                    ) ||
+                    (
                         packet_length_words_o == 3'd3 &&
                         (
                             packet_opcode_id_o == TMS20_OP_ANDNI ||
                             packet_opcode_id_o == TMS20_OP_ORI ||
                             packet_opcode_id_o == TMS20_OP_XORI ||
-                            packet_opcode_id_o == TMS20_OP_ADDXYI
+                            packet_opcode_id_o == TMS20_OP_ADDXYI ||
+                            packet_opcode_id_o == TMS20_OP_ADDI_L
                         )
                     )
                 );

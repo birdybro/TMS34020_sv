@@ -58,7 +58,7 @@ TimeQuest, cycle accuracy, or a complete-core area result.
 ## Downstream composition
 
 `scalar_execution_slice.md` documents the bounded consumer that accepts 23
-page-verified one-word register/status operations plus the three-word
-ANDNI/ORI/XORI and ADDXYI operations. Other multiword, control-flow, faulted,
-and interrupting operations remain noncommitting until their individual
-ordering is implemented and tested.
+page-verified one-word register/status operations plus two-word ADDI.W and
+three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L operations. Other multiword,
+control-flow, faulted, and interrupting operations remain noncommitting until
+their individual ordering is implemented and tested.

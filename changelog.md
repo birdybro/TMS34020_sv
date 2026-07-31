@@ -81,9 +81,10 @@
   for the bounded instruction-fetch slice.
 - A portable cache/fetch frontend with native memory and fault controls, plus
   integrated Verilator and Cyclone V synthesis qualification.
-- A bounded scalar composition that admits 23 verified one-word packets plus
-  complete ANDNI/ORI/XORI and ADDXYI packets to A/B/SP and ST commit and
-  exposes every other packet as blocked.
+- A bounded scalar composition that admits 23 verified one-word packets,
+  complete two-word ADDI.W, and complete three-word
+  ANDNI/ORI/XORI/ADDXYI/ADDI.L packets to A/B/SP and ST commit and exposes
+  every other packet as blocked.
 - Self-checking scalar-composition and warning-enforcing Cyclone V synthesis
   commands.
 
@@ -204,7 +205,13 @@
   every TI example row, long-immediate alignment, A/B selection, and SP alias
   tests.
   Decoder-only requalification reports 5,685 leaf and 3,600 scalar logic cells
-  with zero Quartus errors/warnings; ADDI execution remains blocked in RTL.
+  with zero Quartus errors/warnings; ADDI execution was still blocked at that
+  extraction checkpoint.
+- ADDI.W and ADDI.L now pass complete-packet gating, word sign extension,
+  32-bit addition, full NCZV replacement, A/B selection, shared-SP commit,
+  incomplete-packet rejection, and dependent mixed-length fetched-packet
+  tests. Requalified Quartus wrappers report 5,850 leaf logic cells and 3,696
+  scalar logic cells with zero errors/warnings.
 
 ### Documentation
 
@@ -253,7 +260,7 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
-- Documented the exact 27-operation scalar admission set, blocked-packet
+- Documented the exact 29-operation scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
 
@@ -265,8 +272,8 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 23 one-word and four three-word
-  immediate operations, and every other packet blocks. There is no
+  bounded scalar composition accepts only 23 one-word, one two-word, and five
+  three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain

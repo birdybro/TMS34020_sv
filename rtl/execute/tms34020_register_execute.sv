@@ -42,6 +42,10 @@ module tms34020_register_execute (
     logic immediate_logical_z;
     logic [31:0] addxyi_result;
     logic [3:0] addxyi_nczv;
+    logic [31:0] immediate_add_source;
+    logic [31:0] immediate_add_result;
+    logic [3:0] immediate_add_nczv;
+    logic immediate_add_write_enable;
     tms34020_binary_op_t increment_decrement_operation;
     logic [31:0] increment_decrement_result;
     logic [3:0] increment_decrement_nczv;
@@ -122,6 +126,26 @@ module tms34020_register_execute (
         .status_c_o(addxyi_nczv[2]),
         .status_z_o(addxyi_nczv[1]),
         .status_v_o(addxyi_nczv[0])
+    );
+
+    always_comb begin
+        immediate_add_source = immediate_i;
+        if (opcode_id == TMS20_OP_ADDI_W) begin
+            immediate_add_source = {
+                {16{immediate_i[15]}},
+                immediate_i[15:0]
+            };
+        end
+    end
+
+    tms34020_binary_arithmetic immediate_add (
+        .operation_i(TMS34020_BINARY_ADD),
+        .source_i(immediate_add_source),
+        .destination_i(destination_i),
+        .carry_or_borrow_i(1'b0),
+        .result_o(immediate_add_result),
+        .status_nczv_o(immediate_add_nczv),
+        .register_write_enable_o(immediate_add_write_enable)
     );
 
     always_comb begin
@@ -257,6 +281,19 @@ module tms34020_register_execute (
                     register_write_data_o = addxyi_result;
                     status_write_enable_o = 1'b1;
                     status_write_data_o = {addxyi_nczv, 28'd0};
+                    status_write_mask_o = 32'hF000_0000;
+                end
+
+                TMS20_OP_ADDI_W,
+                TMS20_OP_ADDI_L: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o =
+                        immediate_add_write_enable;
+                    register_write_data_o = immediate_add_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o =
+                        {immediate_add_nczv, 28'd0};
                     status_write_mask_o = 32'hF000_0000;
                 end
 

@@ -140,8 +140,8 @@ area estimate nor fit/TimeQuest timing evidence.
 
 - Cache and fetch are composed in `tms34020_frontend`. The downstream bounded
   `tms34020_scalar_slice` connects 23 verified one-word operations and the
-  three-word ANDNI/ORI/XORI and ADDXYI operations to register/ST commit; every
-  other packet remains blocked.
+  two-word ADDI.W and three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L operations to
+  register/ST commit; every other packet remains blocked.
 - No reset-vector memory transaction or host-halt controller exists.
 - No branch instruction, interrupt, illegal-opcode trap, or bus-fault
   continuation controller drives completion.

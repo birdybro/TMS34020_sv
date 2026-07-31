@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `968368863a059b5542dfbaf32b463cce2ac5c65f`
+- Latest commit: `7142729e6c078dfa9856cc03b37eac3f65e6ebc5`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 55 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -21,10 +21,10 @@
   ordered-state tests; standalone native-completion cache lookup/refill RTL;
   an integrated serialized cache/instruction-packet frontend with explicit
   completion and abort/reload; and a bounded fetch-to-commit path for those 23
-  one-word operations plus complete ANDNI/ORI/XORI and ADDXYI packets.
-  ADDI packets and all other unsupported packets block. There is no
-  architectural completion timing or complete executable processor core
-  (`TMS20-0009`–`TMS20-0011`)
+  one-word operations plus complete two-word ADDI.W and three-word
+  ANDNI/ORI/XORI/ADDXYI/ADDI.L packets. All other unsupported packets block.
+  There is no architectural completion timing or complete executable
+  processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
   current-cycle fault/retry contracts are covered by the model and bounded RTL;
   RTL covers lookup/refill/LRU, CD/idle-CF, delayed P commit, backpressure,
@@ -39,7 +39,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 3,600 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 3,696 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
@@ -50,5 +50,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: qualify both extracted ADDI forms through complete-packet RTL
-  execution without adding undocumented retirement timing
+- Next task: extract the next common scalar family from its primary instruction
+  pages before extending model or RTL behavior

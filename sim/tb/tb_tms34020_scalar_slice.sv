@@ -141,6 +141,13 @@ module tb_tms34020_scalar_slice;
                 32'h0000_01C0: memory_word = 16'h0C00;
                 32'h0000_01D0: memory_word = 16'hFFFF;
                 32'h0000_01E0: memory_word = 16'h0001;
+                32'h0000_01F0: memory_word = 16'h0B00;
+                32'h0000_0200: memory_word = 16'h0001;
+                32'h0000_0210: memory_word = 16'h0B20;
+                32'h0000_0220: memory_word = 16'h0000;
+                32'h0000_0230: memory_word = 16'h7FFF;
+                32'h0000_0240: memory_word = 16'h0B00;
+                32'h0000_0250: memory_word = 16'hFFFF;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -164,6 +171,58 @@ module tb_tms34020_scalar_slice;
         if (!condition) begin
             $display("FAIL: %s", message);
             $fatal(1);
+        end
+    endtask
+
+    task automatic serve_addi_and_commit(
+        input logic [31:0] expected_pc,
+        input tms34020_opcode_id_t expected_opcode,
+        input logic [2:0] expected_length,
+        input logic [31:0] expected_register_data,
+        input logic [3:0] expected_nczv,
+        input logic [31:0] expected_status,
+        input string message
+    );
+        begin
+            serve_word(expected_pc);
+            serve_word(expected_pc + 32'd16);
+            if (expected_length == 3'd3) begin
+                serve_word(expected_pc + 32'd32);
+            end
+            wait (commit_accepted);
+            check_condition(
+                packet_valid &&
+                packet_supported &&
+                !packet_blocked &&
+                packet_opcode_id == expected_opcode &&
+                packet_length_words == expected_length &&
+                packet_start_pc == expected_pc &&
+                packet_words[15:0] == memory_word(expected_pc) &&
+                packet_words[31:16] ==
+                    memory_word(expected_pc + 32'd16) &&
+                (
+                    expected_length == 3'd2 ||
+                    packet_words[47:32] ==
+                        memory_word(expected_pc + 32'd32)
+                ) &&
+                packet_words[79:48] == 32'd0 &&
+                register_write_enable &&
+                !register_write_file &&
+                register_write_index == 4'd0 &&
+                register_write_data == expected_register_data &&
+                status_write_enable &&
+                status_write_data == {expected_nczv, 28'd0} &&
+                status_write_mask == 32'hF000_0000,
+                message
+            );
+            @(posedge clk);
+            #1;
+            check_condition(
+                !commit_accepted &&
+                status == expected_status &&
+                sp == 32'd0,
+                message
+            );
         end
     endtask
 
@@ -551,7 +610,27 @@ module tb_tms34020_scalar_slice;
             "five three-word packet commits"
         );
 
-        serve_word(32'h1F0);
+        serve_addi_and_commit(
+            32'h1F0, TMS20_OP_ADDI_W, 3'd2,
+            32'h0001_0000, 4'b0000, 32'h0000_0010,
+            "scalar ADDI.W packet commit"
+        );
+        serve_addi_and_commit(
+            32'h210, TMS20_OP_ADDI_L, 3'd3,
+            32'h8000_0000, 4'b1001, 32'h9000_0010,
+            "scalar ADDI.L observes ADDI.W"
+        );
+        serve_addi_and_commit(
+            32'h240, TMS20_OP_ADDI_W, 3'd2,
+            32'h7FFF_FFFF, 4'b0101, 32'h5000_0010,
+            "scalar ADDI.W sign extension"
+        );
+        check_condition(
+            commit_count == 8,
+            "eight multiword packet commits"
+        );
+
+        serve_word(32'h260);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
@@ -568,8 +647,8 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 5 &&
-                status == 32'h3000_0010 &&
+                commit_count == 8 &&
+                status == 32'h5000_0010 &&
                 sp == 32'd0,
                 "blocked unclassified packet cannot mutate state"
             );
