@@ -78,6 +78,16 @@
       "unresolved_questions": ["Which common instructions have changed or newly defined status effects?"]
     },
     {
+      "feature": "field_parameter_instruction_timing",
+      "tms34010_behavior": "SETF reports 1,4 machine-state cases for field bank 0 and 2,5 for field bank 1; SEXT reports 3,6; ZEXT reports 1,4.",
+      "tms34020_behavior": "SETF is one machine state, SEXT is two machine states, and ZEXT is one machine state while retaining compatible field-bank selection and architectural results.",
+      "rtl_impact": "Share verified field-size primitives only; the TMS34020 sequencer must use its own SETF/SEXT/ZEXT state counts and status-write boundaries.",
+      "test_impact": "Check both field banks, sizes 1 through 32, A/B/shared-SP destinations, partial ST updates, and TMS34020-specific state counts without importing TMS34010 timing.",
+      "source_citation": ["TI-TMS34020-UG-1990 SETF printed pp.13-230..13-231 and summary p.13-17", "TI-TMS34020-UG-1990 SEXT printed p.13-232", "TI-TMS34020-UG-1990 ZEXT printed p.13-268", "TI-TMS34010-UG-1988 SETF printed p.12-237, SEXT p.12-238, and ZEXT p.12-257"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": []
+    },
+    {
       "feature": "instruction_cache",
       "tms34010_behavior": "Comparison table gives 256 bytes; the pinned FPGA reference deliberately omits a silicon cache.",
       "tms34020_behavior": "Mandatory 512-byte instruction cache holding 128 long words or 256 instruction words.",

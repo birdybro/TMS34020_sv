@@ -1,6 +1,6 @@
 # TMS34010 to TMS34020 architectural delta
 
-Status: required-topic coverage is complete in the 50-entry generated ledger;
+Status: required-topic coverage is complete in the 64-entry generated ledger;
 instruction-by-instruction and cycle-by-cycle quantification is still in
 progress under `TMS20-0005` and `TMS20-0006`.
 
@@ -70,6 +70,14 @@ The generated ledger deliberately marks the complete removed/redefined opcode
 list and exact common-instruction status delta `UNKNOWN`. Those fields can move
 to `VERIFIED_PRIMARY` only when the ISA extraction and independent fixtures
 exist.
+
+The first instruction-specific timing delta is now quantified for the
+field-parameter family. TMS34020 SETF, SEXT, and ZEXT take one, two, and one
+machine states, respectively. The 1988 TMS34010 guide reports SETF cases of
+`1,4` for field bank 0 and `2,5` for field bank 1, SEXT `3,6`, and ZEXT `1,4`.
+Compatible encodings and results therefore do not authorize reuse of the older
+sequencer. Sources: TMS34020 guide printed pp.13-230..13-232 and 13-268;
+TMS34010 guide printed pp.12-237..12-238 and 12-257.
 
 ## Cache and internal parallelism
 

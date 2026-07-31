@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 67 page-verified encoding records and covers 22,736 of 65,536
+slice contains 70 page-verified encoding records and covers 22,992 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -32,6 +32,9 @@ first words without collisions:
 | RL.R / RL register | `6800h`, mask `FE00h` | 1 | p.13-223 |
 | BTST.K / BTST constant | `1C00h`, mask `FC00h` | 1 | p.13-46 |
 | BTST.R / BTST register | `4A00h`, mask `FE00h` | 1 | p.13-47 |
+| SETF | `0540h`, mask `FDC0h` | 1 | pp.13-230..13-231 |
+| SEXT | `0500h`, mask `FDE0h` | 1 | p.13-232 |
+| ZEXT | `0520h`, mask `FDE0h` | 1 | p.13-268 |
 | SLA.K / SLA constant | `2000h`, mask `FC00h` | 1 | p.13-233 |
 | SLA.R / SLA register | `6000h`, mask `FE00h` | 1 | p.13-234 |
 | SLL.K / SLL constant | `2400h`, mask `FC00h` | 1 | p.13-235 |
@@ -109,6 +112,20 @@ router, atomic Z-only commit, and the bounded scalar slice. Directed RTL tests
 cover all 25 primary input rows, complemented constant recovery, low-five-bit
 register counts with upper-bit truncation, A/B selection, same-register
 operands, shared-SP access, and dependent commits.
+
+SETF embeds a five-bit field size, field-extension bit, and field-bank
+selector. Size zero encodes 32 bits; F selects either the FS0/FE0 or FS1/FE1
+six-bit ST bank, and the other 26 ST bits remain unchanged. SEXT and ZEXT select
+FS0 or FS1 with the same F bit and operate on a right-justified field in an
+A/B/SP destination. SEXT sign-extends and replaces N/Z in two TMS34020 machine
+states; ZEXT zero-extends and replaces only Z in one state. SETF itself takes
+one state. Sources: TMS34020 guide printed pp.4-2..4-3, 13-230..13-232, and
+13-268. The 1988 TMS34010 guide printed pp.12-237..12-238 and 12-257 confirms
+compatible encodings and results but documents different timing; this is
+recorded as the first quantified instruction-specific timing delta. At this
+extraction checkpoint the independent model rolls all three forms back as
+unsupported, and the RTL decoder classifies their complete encoding ranges
+while register execution rejects them without state writes.
 
 ADDXY and SUBXY operate on the X and Y 16-bit halves independently, without
 carry or borrow propagation between halves. ADDXY derives N from X-result

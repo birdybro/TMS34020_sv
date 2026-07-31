@@ -51,6 +51,10 @@
   low-five-bit register routing, Z-only atomic commit with no destination
   write, shared-SP and dependent scalar tests, and a dedicated runtime safety
   assertion.
+- Primary-page-verified SETF, SEXT, and ZEXT encodings, field-bank/size/status
+  metadata, TMS34020 state counts, independent boundary fixtures, exact model
+  rollback guards, and explicit RTL noncommit checks. A quantified delta
+  records that the compatible TMS34010 instructions have different timing.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -171,6 +175,14 @@
   Cyclone V Analysis & Synthesis reports 8,068 leaf and 4,861 bounded-scalar
   diagnostic logic cells; these are portability metrics, not fitted core area
   or timing closure.
+- Expanded the collision-free ISA slice to 70 entries covering 22,992 first
+  words. SETF/SEXT/ZEXT decode across both field banks, A/B destinations, all
+  encoded field sizes, and both extension modes while remaining atomically
+  non-executable in the model and RTL at this extraction checkpoint. All four
+  decoder-bearing Quartus Cyclone V Analysis & Synthesis smokes pass with zero
+  errors/warnings: 8,067 leaf, 392 fetch, 766 frontend, and 4,804 scalar
+  diagnostic logic cells. These are analysis-only portability metrics, not
+  fitted core area or timing closure.
 - Expanded the collision-free ISA slice to 67 entries covering 22,736 first
   words. BTST.K/R decode across their complete primary-defined ranges while
   remaining atomically non-executable in RTL at this extraction checkpoint.

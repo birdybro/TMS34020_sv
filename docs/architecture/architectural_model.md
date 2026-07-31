@@ -29,7 +29,9 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 67 currently extracted database forms. This is
+These handlers cover 67 of the 70 currently extracted database forms. SETF,
+SEXT, and ZEXT are deliberately decoded but rejected with exact state/cache
+rollback until their independent field-bank semantics are implemented. This is
 coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset

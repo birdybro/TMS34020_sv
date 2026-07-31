@@ -2339,6 +2339,21 @@ module tb_tms34020_verified_leaves;
             "unclassified register execute instruction"
         );
         check_register_execute(
+            16'h0500, 32'd0, 32'h0000_8000, 32'h0000_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only SEXT cannot enter register execute"
+        );
+        check_register_execute(
+            16'h0520, 32'd0, 32'hFFFF_0000, 32'h0000_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only ZEXT cannot enter register execute"
+        );
+        check_register_execute(
+            16'h0540, 32'd0, 32'd0, 32'hF020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only SETF cannot enter register execute"
+        );
+        check_register_execute(
             16'h1FE0, 32'd0, 32'h5555_5555, 32'hD020_001F,
             1'b1, 1'b0, 32'd0, 1'b1, 32'd0, 32'h2000_0000,
             "register execute BTST.K recovers complemented bit zero"
@@ -2855,6 +2870,30 @@ module tb_tms34020_verified_leaves;
                      "BTST.K lower-bound decode");
         check_decode(16'h1FFF, TMS20_OP_BTST_K, 3'd1,
                      "BTST.K upper-bound decode");
+        check_decode(16'h0500, TMS20_OP_SEXT, 3'd1,
+                     "SEXT field-0 A0 decode");
+        check_decode(16'h051F, TMS20_OP_SEXT, 3'd1,
+                     "SEXT field-0 B15 decode");
+        check_decode(16'h0700, TMS20_OP_SEXT, 3'd1,
+                     "SEXT field-1 A0 decode");
+        check_decode(16'h071F, TMS20_OP_SEXT, 3'd1,
+                     "SEXT field-1 B15 decode");
+        check_decode(16'h0520, TMS20_OP_ZEXT, 3'd1,
+                     "ZEXT field-0 A0 decode");
+        check_decode(16'h053F, TMS20_OP_ZEXT, 3'd1,
+                     "ZEXT field-0 B15 decode");
+        check_decode(16'h0720, TMS20_OP_ZEXT, 3'd1,
+                     "ZEXT field-1 A0 decode");
+        check_decode(16'h073F, TMS20_OP_ZEXT, 3'd1,
+                     "ZEXT field-1 B15 decode");
+        check_decode(16'h0540, TMS20_OP_SETF, 3'd1,
+                     "SETF field-0 zero-extension size-32 decode");
+        check_decode(16'h057F, TMS20_OP_SETF, 3'd1,
+                     "SETF field-0 sign-extension size-31 decode");
+        check_decode(16'h0740, TMS20_OP_SETF, 3'd1,
+                     "SETF field-1 zero-extension size-32 decode");
+        check_decode(16'h077F, TMS20_OP_SETF, 3'd1,
+                     "SETF field-1 sign-extension size-31 decode");
         check_decode(16'h4A00, TMS20_OP_BTST_R, 3'd1,
                      "BTST.R lower-bound decode");
         check_decode(16'h4BFF, TMS20_OP_BTST_R, 3'd1,

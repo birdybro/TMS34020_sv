@@ -3,15 +3,15 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `7ec840ac19df6e0ea9c209a7bccf3a5c61aedc7c`
-- Passing tests: foundation, reference/hash, delta, 21-case ISA sweep, 108 directed model
+- Latest verified baseline commit: `fe0f003824b30fa51e3d2514bf41b08ff1b9b089`
+- Passing tests: foundation, reference/hash, delta, 22-case ISA sweep, 109 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 67 currently extracted encoding forms have bounded
+- Model status: 67 of 70 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
@@ -24,9 +24,11 @@
   BLMOVE overlap,
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain.
   BTST.K/R cover every primary input row with RSC-0018's one contradictory
-  status digit corrected, plus A/B, same-register, and shared-SP cases
-  (`TMS20-0006`, `TMS20-0007`)
-- RTL status: generated 67-entry partial decode, A/B/SP and masked ST state,
+  status digit corrected, plus A/B, same-register, and shared-SP cases.
+  Newly extracted SETF/SEXT/ZEXT decode but roll state and cache back exactly
+  while their independent semantic implementation is pending
+  (`TMS20-0006`, `TMS20-0007`).
+- RTL status: generated 70-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 44 one-word instructions, with externally gated one-edge
@@ -71,8 +73,8 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,068 logic cells and 2,021 registers, while
-  the fetch, frontend, and scalar wrappers use 393, 765, and 4,861 logic cells;
+  warnings; the leaf wrapper uses 8,067 logic cells and 2,021 registers, while
+  the fetch, frontend, and scalar wrappers use 392, 766, and 4,804 logic cells;
   the scalar wrapper has 1,387 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
@@ -84,5 +86,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: extract the next scalar instruction family from primary pages and
-  add independent decode, model, RTL, commit, and synthesis evidence
+- Next task: implement independent SETF/SEXT/ZEXT model semantics for both field
+  banks, all encoded field sizes, partial status updates, and published rows

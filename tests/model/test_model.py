@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1916,6 +1917,18 @@ class ExecutionTests(unittest.TestCase):
         with self.assertRaises(UnclassifiedEncoding):
             model.step()
         self.assertEqual(model.snapshot(), before)
+
+    def test_extracted_field_parameter_forms_roll_back_until_implemented(
+        self,
+    ) -> None:
+        for opcode in (0x0540, 0x0500, 0x0520):
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model(ProcessorState.randomized(opcode))
+                model.load_program([opcode], bit_address=0x2000)
+                before = model.snapshot()
+                with self.assertRaises(UnsupportedInstruction):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
 
     def test_btst_constant_primary_examples(self) -> None:
         cases = (

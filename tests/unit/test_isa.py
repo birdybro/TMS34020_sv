@@ -103,6 +103,18 @@ class IsaTests(unittest.TestCase):
             0x1E00: ("BTST.K", 1),
             0x1FE0: ("BTST.K", 1),
             0x1FFF: ("BTST.K", 1),
+            0x0500: ("SEXT", 1),
+            0x051F: ("SEXT", 1),
+            0x0700: ("SEXT", 1),
+            0x071F: ("SEXT", 1),
+            0x0520: ("ZEXT", 1),
+            0x053F: ("ZEXT", 1),
+            0x0720: ("ZEXT", 1),
+            0x073F: ("ZEXT", 1),
+            0x0540: ("SETF", 1),
+            0x057F: ("SETF", 1),
+            0x0740: ("SETF", 1),
+            0x077F: ("SETF", 1),
             0x09C0: ("MOVI.W", 2),
             0x09DF: ("MOVI.W", 2),
             0x09E0: ("MOVI.L", 3),
@@ -221,8 +233,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 22736)
-        self.assertEqual(unclassified, 65536 - 22736)
+        self.assertEqual(matched, 22992)
+        self.assertEqual(unclassified, 65536 - 22992)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -287,6 +299,45 @@ class IsaTests(unittest.TestCase):
             self.assertTrue(
                 instruction.metadata["compatible_with_tms34010"]
             )
+
+    def test_field_parameter_forms_record_banks_status_and_timing(self) -> None:
+        setf = self.database.decode(0x0760)
+        sext0 = self.database.decode(0x0500)
+        sext1 = self.database.decode(0x0700)
+        zext0 = self.database.decode(0x0520)
+        zext1 = self.database.decode(0x0720)
+
+        self.assertEqual(setf.mnemonic, "SETF")
+        self.assertEqual(
+            setf.metadata["status_bits_written"],
+            ["FS0", "FE0", "FS1", "FE1"],
+        )
+        self.assertEqual(
+            setf.metadata["immediate_fields"][0]["zero_encoding"], 32
+        )
+        self.assertEqual(
+            setf.metadata["documented_cycles"],
+            {"kind": "fixed", "machine_states": 1},
+        )
+
+        for instruction, mnemonic, states, status_bits in (
+            (sext0, "SEXT", 2, ["N", "Z"]),
+            (sext1, "SEXT", 2, ["N", "Z"]),
+            (zext0, "ZEXT", 1, ["Z"]),
+            (zext1, "ZEXT", 1, ["Z"]),
+        ):
+            with self.subTest(opcode=instruction.opcode_value):
+                self.assertEqual(instruction.mnemonic, mnemonic)
+                self.assertEqual(
+                    instruction.metadata["status_bits_written"], status_bits
+                )
+                self.assertEqual(
+                    instruction.metadata["documented_cycles"],
+                    {"kind": "fixed", "machine_states": states},
+                )
+                self.assertTrue(
+                    instruction.metadata["compatible_with_tms34010"]
+                )
 
     def test_shift_forms_record_direct_and_twos_complement_counts(self) -> None:
         direct_constant = self.database.decode(0x20E1)
