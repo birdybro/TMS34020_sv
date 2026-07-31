@@ -14,7 +14,7 @@ Implemented:
 - verified reset-vector low-nibble loading into CONFIG and PC alignment;
 - deterministic randomized state;
 - program loading, single stepping, JSON snapshot/replay, and checkpoint traces;
-- NOP, IDLE entry, MWAIT, ADDXYI, and RPIX.
+- NOP, IDLE entry, MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -26,6 +26,21 @@ legal PSIZE and the page-13-225 state counts. MWAIT exposes an abstract
 pending-write-state input so its minimum/remaining-state timing can be tested.
 IDLE enters the documented wait state but does not yet model interrupt
 recognition/completion, so it explicitly makes aggregate timing incomplete.
+
+CMPK implements the encoded-zero-means-32 constant and nondestructive
+subtraction flags. EXGPS and GETPS use the internal PSIZE register; EXGPS
+records its architecturally visible 16-bit internal-I/O write in the transaction
+trace and schedules the one hidden write state shown by TI's `2 (1)` timing.
+Subsequent modeled execution states overlap outstanding hidden writes, while
+MWAIT drains them. RMO returns the least-significant set-bit number and changes
+only Z.
+Sources: TI *TMS34020 User's Guide*, August 1990, printed pp.13-83, 13-113,
+13-131, and 13-224; hidden-cycle definition on printed p.15-1.
+
+Where TI says PSIZE is assumed to be one of 1, 2, 4, 8, 16, or 32, the model
+raises `ModelError` for any other current value. That is a verification guard,
+not a claim that physical silicon traps or otherwise behaves the same way for
+an undocumented PSIZE value.
 
 Decoded BLMOVE, SETCDP, SETCMP, SETCSP, TRAPL, and VLCOL entries intentionally
 raise `UnsupportedInstruction` without changing state. Their presence in the
@@ -61,6 +76,7 @@ make model-tests
 
 Directed tests cover SP aliasing, crossing bit memory, reset vector handling,
 seed reproducibility, instruction PC increments, ADDXYI edge behavior and
-flags, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT pending states,
-IDLE claim boundaries, no mutation on unsupported instructions, and
-snapshot/replay equivalence.
+flags, CMPK constants/flags, PSIZE get/exchange, RMO zero/bit-position cases,
+all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT pending states, IDLE claim
+boundaries, no mutation on unsupported instructions, and snapshot/replay
+equivalence.

@@ -27,6 +27,24 @@ module tb_tms34020_verified_leaves;
     logic pixel_valid;
     logic [3:0] pixel_states;
 
+    logic [4:0] compare_constant;
+    logic [31:0] compare_result;
+    logic compare_n;
+    logic compare_c;
+    logic compare_z;
+    logic compare_v;
+
+    logic [31:0] rmo_source;
+    logic [31:0] rmo_result;
+    logic rmo_z;
+
+    logic [15:0] pixel_size_register;
+    logic [15:0] pixel_size_value;
+    logic pixel_size_exchange;
+    logic [31:0] pixel_size_register_result;
+    logic pixel_size_write_enable;
+    logic [15:0] pixel_size_write_data;
+
     logic register_write_enable;
     logic register_write_file;
     logic [3:0] register_write_index;
@@ -62,6 +80,31 @@ module tb_tms34020_verified_leaves;
         .result_o(pixel_result),
         .valid_o(pixel_valid),
         .machine_states_o(pixel_states)
+    );
+
+    tms34020_cmpk cmpk_dut (
+        .destination_i(add_destination),
+        .encoded_constant_i(compare_constant),
+        .compare_result_o(compare_result),
+        .status_n_o(compare_n),
+        .status_c_o(compare_c),
+        .status_z_o(compare_z),
+        .status_v_o(compare_v)
+    );
+
+    tms34020_rmo rmo_dut (
+        .source_i(rmo_source),
+        .result_o(rmo_result),
+        .status_z_o(rmo_z)
+    );
+
+    tms34020_pixel_size_ops pixel_size_ops_dut (
+        .register_low_i(pixel_size_register),
+        .psize_i(pixel_size_value),
+        .exchange_i(pixel_size_exchange),
+        .register_result_o(pixel_size_register_result),
+        .psize_write_enable_o(pixel_size_write_enable),
+        .psize_write_data_o(pixel_size_write_data)
     );
 
     tms34020_regfile regfile_dut (
@@ -143,6 +186,11 @@ module tb_tms34020_verified_leaves;
         add_immediate = 32'd0;
         pixel = 32'd0;
         pixel_size = 6'd0;
+        compare_constant = 5'd0;
+        rmo_source = 32'd0;
+        pixel_size_register = 16'd0;
+        pixel_size_value = 16'd0;
+        pixel_size_exchange = 1'b0;
         register_write_enable = 1'b0;
         register_write_file = 1'b0;
         register_write_index = 4'd0;
@@ -185,6 +233,12 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h0C1E, TMS20_OP_ADDXYI, 3'd3,
                      "ADDXYI masked decode");
         check_decode(16'h029E, TMS20_OP_RPIX, 3'd1, "RPIX masked decode");
+        check_decode(16'h37FF, TMS20_OP_CMPK, 3'd1, "CMPK masked decode");
+        check_decode(16'h02BF, TMS20_OP_EXGPS, 3'd1,
+                     "EXGPS masked decode");
+        check_decode(16'h02DF, TMS20_OP_GETPS, 3'd1,
+                     "GETPS masked decode");
+        check_decode(16'h7BFF, TMS20_OP_RMO, 3'd1, "RMO masked decode");
 
         decode_word = 16'h080E;
         #1;
@@ -205,6 +259,53 @@ module tb_tms34020_verified_leaves;
         check_condition(add_result == 32'h8001_8000, "ADDXYI sign cases");
         check_condition({add_n, add_c, add_z, add_v} == 4'b0101,
                "ADDXYI sign-derived flags");
+
+        add_destination = 32'd0;
+        compare_constant = 5'd0;
+        #1;
+        check_condition(compare_result == 32'hFFFF_FFE0,
+                        "CMPK encoded zero means 32");
+        check_condition({compare_n, compare_c, compare_z, compare_v} ==
+                        4'b1100,
+                        "CMPK borrow flags");
+
+        add_destination = 32'h8000_0000;
+        compare_constant = 5'd1;
+        #1;
+        check_condition(compare_result == 32'h7FFF_FFFF,
+                        "CMPK subtraction result");
+        check_condition({compare_n, compare_c, compare_z, compare_v} ==
+                        4'b0001,
+                        "CMPK signed overflow");
+
+        rmo_source = 32'd0;
+        #1;
+        check_condition(rmo_z && rmo_result == 32'd0, "RMO zero source");
+        rmo_source = 32'h8000_0000;
+        #1;
+        check_condition(!rmo_z && rmo_result == 32'd31, "RMO bit 31");
+        rmo_source = 32'h0800_0010;
+        #1;
+        check_condition(!rmo_z && rmo_result == 32'd4, "RMO rightmost bit");
+
+        pixel_size_register = 16'h0001;
+        pixel_size_value = 16'd8;
+        pixel_size_exchange = 1'b0;
+        #1;
+        check_condition(
+            pixel_size_register_result == 32'd8 &&
+            !pixel_size_write_enable &&
+            pixel_size_write_data == 16'd0,
+            "GETPS data path"
+        );
+        pixel_size_exchange = 1'b1;
+        #1;
+        check_condition(
+            pixel_size_register_result == 32'd8 &&
+            pixel_size_write_enable &&
+            pixel_size_write_data == 16'd1,
+            "EXGPS exchange data path"
+        );
 
         pixel = 32'h89AB_CDEF;
         check_pixel_replicate(6'd1, 32'hFFFF_FFFF, 4'd8, "RPIX size 1");

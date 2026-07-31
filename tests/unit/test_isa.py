@@ -80,6 +80,14 @@ class IsaTests(unittest.TestCase):
             0x00F3: ("BLMOVE", 1),
             0x0280: ("RPIX", 1),
             0x029E: ("RPIX", 1),
+            0x3400: ("CMPK", 1),
+            0x37FF: ("CMPK", 1),
+            0x02A0: ("EXGPS", 1),
+            0x02BF: ("EXGPS", 1),
+            0x02C0: ("GETPS", 1),
+            0x02DF: ("GETPS", 1),
+            0x7A00: ("RMO", 1),
+            0x7BFF: ("RMO", 1),
             0x0273: ("SETCDP", 1),
             0x02FB: ("SETCMP", 1),
             0x0251: ("SETCSP", 1),
@@ -96,14 +104,15 @@ class IsaTests(unittest.TestCase):
 
     def test_nearby_reserved_or_other_words_do_not_alias_fixed_opcodes(self) -> None:
         for word in (0x0041, 0x0081, 0x0250, 0x0252, 0x0272, 0x0274,
-                     0x02FA, 0x02FC, 0x0301, 0x080E, 0x081F, 0x0A01):
+                     0x02FA, 0x02FC, 0x0301, 0x080E, 0x081F, 0x0A01,
+                     0x33FF, 0x3800, 0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 76)
-        self.assertEqual(unclassified, 65536 - 76)
+        self.assertEqual(matched, 1676)
+        self.assertEqual(unclassified, 65536 - 1676)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:

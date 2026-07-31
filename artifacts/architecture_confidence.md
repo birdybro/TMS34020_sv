@@ -8,9 +8,9 @@
 | TMS34010/TMS34020 required-topic delta coverage | PROVISIONAL | 50 schema-checked entries; opcode/status/timing quantification pending |
 | Exact Battletoads silicon | UNKNOWN | 32 MHz fits both commercial original and A parts; marking unreadable |
 | Exact Revolution X silicon | INFERRED | 40 MHz board/driver evidence and commercial A-40 catalog option; marking unreadable |
-| ISA | PROVISIONAL | 11 primary-page-verified entries/76 first words; complete extraction pending |
-| Architectural model slice | PROVISIONAL | 5 page-verified instructions and deterministic state/replay; cache/full ISA absent |
-| Synthesizable RTL slice | PROVISIONAL | Generated 11-entry partial decoder, A/B/SP storage, and ADDXYI/RPIX leaves pass directed Verilator and Cyclone V synthesis; no sequencer/core |
+| ISA | PROVISIONAL | 15 primary-page-verified entries/1,676 first words; complete extraction pending |
+| Architectural model slice | PROVISIONAL | 9 page-verified instructions and deterministic state/replay; cache/full ISA absent |
+| Synthesizable RTL slice | PROVISIONAL | Generated 15-entry partial decoder, A/B/SP storage, and six TMS34020-specific semantic leaves pass directed Verilator and Cyclone V synthesis; no sequencer/core |
 | Cache organization | VERIFIED_PRIMARY | August 1990 guide Chapter 5 |
 | Pipeline timing | UNKNOWN | Detailed timing-case extraction pending |
 | Memory/bus timing | PROVISIONAL | A clock-stretch cases identified; complete phase extraction pending |

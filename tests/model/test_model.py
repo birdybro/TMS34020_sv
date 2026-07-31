@@ -107,6 +107,77 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
+    def test_cmpk_constant_encoding_flags_and_nondestructive_register(self) -> None:
+        cases = (
+            (0x3440, 2, 0b0010),
+            (0x3400, 0, 0b1100),
+            (0x3420, 0x80000000, 0b0001),
+        )
+        for opcode, value, expected_nczv in cases:
+            with self.subTest(opcode=f"{opcode:04X}", value=f"{value:08X}"):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.write_reg("A", 0, value)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), value)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_exgps_exchanges_low_word_with_psize(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x02A0])
+        model.state.write_reg("A", 0, 0x12340001)
+        model.state.write_io(PSIZE_ADDRESS, 8)
+        status_before = model.state.st
+        event = model.step()
+        self.assertEqual(model.state.read_reg("A", 0), 8)
+        self.assertEqual(model.state.read_io(PSIZE_ADDRESS), 1)
+        self.assertEqual(model.state.st, status_before)
+        self.assertEqual(event.machine_states, 2)
+        self.assertEqual(model.state.pending_write_states, 1)
+        self.assertEqual(
+            event.transactions,
+            [{
+                "class": "internal_io_write",
+                "bit_address": PSIZE_ADDRESS,
+                "width": 16,
+                "value": 1,
+            }],
+        )
+        model.load_program([0x0300], bit_address=model.state.pc)
+        model.step()
+        self.assertEqual(model.state.pending_write_states, 0)
+
+    def test_getps_zero_extends_into_selected_register(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x02D2])
+        model.state.write_reg("B", 2, 0xFFFF_FFFF)
+        model.state.write_io(PSIZE_ADDRESS, 16)
+        event = model.step()
+        self.assertEqual(model.state.read_reg("B", 2), 16)
+        self.assertEqual(event.machine_states, 2)
+
+    def test_rmo_finds_lsb_and_only_updates_z(self) -> None:
+        cases = ((0, 0, 1), (0x80000000, 31, 0), (0x08000010, 4, 0))
+        for source, expected, expected_z in cases:
+            with self.subTest(source=f"{source:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x7A01])
+                model.state.write_reg("A", 0, source)
+                model.state.st = 0xD000_0010
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 29) & 1, expected_z
+                )
+                self.assertEqual(
+                    model.state.st & 0xD000_0000,
+                    0xD000_0000,
+                )
+                self.assertEqual(event.machine_states, 1)
+
     def test_mwait_consumes_abstract_pending_write_states(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0080])

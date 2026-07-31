@@ -74,9 +74,14 @@ class Tms34020Model:
             "IDLE": self._execute_idle,
             "MWAIT": self._execute_mwait,
             "ADDXYI": self._execute_addxyi,
+            "CMPK": self._execute_cmpk,
+            "EXGPS": self._execute_exgps,
+            "GETPS": self._execute_getps,
+            "RMO": self._execute_rmo,
             "RPIX": self._execute_rpix,
         }
         self._active_trace: StepTrace | None = None
+        self._new_hidden_write_states = 0
 
     @property
     def supported_mnemonics(self) -> tuple[str, ...]:
@@ -130,6 +135,7 @@ class Tms34020Model:
         ]
         before_registers = self._register_snapshot()
         status_before = self.state.st
+        pending_write_states_before = self.state.pending_write_states
         default_next_pc = (
             start_pc + instruction.length_words * 16
         ) & MASK32
@@ -145,6 +151,7 @@ class Tms34020Model:
             status_after=status_before,
         )
         self._active_trace = event
+        self._new_hidden_write_states = 0
         try:
             event.machine_states = handler(instruction, words)
         except Exception:
@@ -158,6 +165,14 @@ class Tms34020Model:
         if event.machine_states is None:
             self.state.timing_complete = False
         else:
+            if instruction.mnemonic != "MWAIT":
+                self.state.pending_write_states = (
+                    max(
+                        0,
+                        pending_write_states_before - event.machine_states,
+                    )
+                    + self._new_hidden_write_states
+                )
             self.state.machine_states += event.machine_states
         self.trace.append(event)
         return event
@@ -249,15 +264,81 @@ class Tms34020Model:
         immediate_address = (self.state.pc - 32) & MASK32
         return 2 if immediate_address & 0x1F == 0 else 3
 
+    def _execute_cmpk(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        value = self.state.read_reg(register_file, index)
+        encoded_constant = (words[0] >> 5) & 0x1F
+        constant = encoded_constant or 32
+        result = (value - constant) & MASK32
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(C_BIT, value < constant)
+        self._set_status_bit(Z_BIT, result == 0)
+        overflow = bool(
+            (value ^ constant) & (value ^ result) & 0x8000_0000
+        )
+        self._set_status_bit(V_BIT, overflow)
+        return 1
+
+    def _execute_exgps(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        old_register = self.state.read_reg(register_file, index)
+        old_psize = self._read_legal_psize()
+        self.state.write_reg(register_file, index, old_psize)
+        self.state.write_io(PSIZE_ADDRESS, old_register & 0xFFFF)
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "internal_io_write",
+                "bit_address": PSIZE_ADDRESS,
+                "width": 16,
+                "value": old_register & 0xFFFF,
+            }
+        )
+        self._new_hidden_write_states = 1
+        self._active_trace.notes.append(
+            "one hidden PSIZE write state remains after EXGPS"
+        )
+        return 2
+
+    def _execute_getps(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        self.state.write_reg(register_file, index, self._read_legal_psize())
+        return 2
+
+    def _execute_rmo(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, destination = self._decode_destination(words[0])
+        source = (words[0] >> 5) & 0xF
+        value = self.state.read_reg(register_file, source)
+        result = 0 if value == 0 else (value & -value).bit_length() - 1
+        self.state.write_reg(register_file, destination, result)
+        self._set_status_bit(Z_BIT, value == 0)
+        return 1
+
+    def _read_legal_psize(self) -> int:
+        pixel_size = self.state.read_io(PSIZE_ADDRESS)
+        if pixel_size not in (1, 2, 4, 8, 16, 32):
+            raise ModelError(f"illegal/unmodeled PSIZE {pixel_size}")
+        return pixel_size
+
     def _execute_rpix(
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
         register_file, index = self._decode_destination(words[0])
-        pixel_size = self.state.read_io(PSIZE_ADDRESS)
+        pixel_size = self._read_legal_psize()
         cycles = {32: 2, 16: 4, 8: 5, 4: 6, 2: 7, 1: 8}
-        if pixel_size not in cycles:
-            raise ModelError(f"illegal/unmodeled PSIZE {pixel_size}")
         old_value = self.state.read_reg(register_file, index)
         mask = MASK32 if pixel_size == 32 else (1 << pixel_size) - 1
         pixel = old_value & mask

@@ -16,7 +16,11 @@ typedef enum logic [3:0] {
     TMS20_OP_VLCOL = 4'd8,
     TMS20_OP_BLMOVE = 4'd9,
     TMS20_OP_ADDXYI = 4'd10,
-    TMS20_OP_RPIX = 4'd11
+    TMS20_OP_EXGPS = 4'd11,
+    TMS20_OP_GETPS = 4'd12,
+    TMS20_OP_RPIX = 4'd13,
+    TMS20_OP_RMO = 4'd14,
+    TMS20_OP_CMPK = 4'd15
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -74,8 +78,24 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_ADDXYI;
                 decoded.length_words = 3'd3;
             end
+            16'b00000010101?????: begin
+                decoded.opcode_id = TMS20_OP_EXGPS;
+                decoded.length_words = 3'd1;
+            end
+            16'b00000010110?????: begin
+                decoded.opcode_id = TMS20_OP_GETPS;
+                decoded.length_words = 3'd1;
+            end
             16'b00000010100?????: begin
                 decoded.opcode_id = TMS20_OP_RPIX;
+                decoded.length_words = 3'd1;
+            end
+            16'b0111101?????????: begin
+                decoded.opcode_id = TMS20_OP_RMO;
+                decoded.length_words = 3'd1;
+            end
+            16'b001101??????????: begin
+                decoded.opcode_id = TMS20_OP_CMPK;
                 decoded.length_words = 3'd1;
             end
             default: begin

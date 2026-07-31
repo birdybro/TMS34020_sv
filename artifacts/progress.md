@@ -3,15 +3,16 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `0a6b55c677a81f175d669120d85b1a304041b4b1`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 14 directed model
+- Latest commit: `30d741d32a5b863a39287b28c0464e43453a8df0`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 18 directed model
   cases, warning-free Verilator lint, verified RTL leaf simulation, and
   warning-free Quartus Cyclone V leaf Analysis & Synthesis
 - Failing tests: none observed
-- Model status: independent state/replay plus 5 of 11 extracted instructions;
+- Model status: independent state/replay plus 9 of 15 extracted instructions;
   full ISA/cache/interfaces not implemented (`TMS20-0007`)
-- RTL status: generated partial decode, A/B/SP register file, ADDXYI and RPIX
-  semantic leaves; no executable processor core (`TMS20-0009`–`TMS20-0011`)
+- RTL status: generated partial decode, A/B/SP register file, and
+  ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX semantic leaves; no executable processor
+  core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: not implemented (`TMS20-0012`)
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: not implemented (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)

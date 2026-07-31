@@ -24,12 +24,14 @@
   first words.
 - An independent bit-addressed architectural-model slice with A/B/SP aliasing,
   reset-vector handling, deterministic randomized state and replay, traces, and
-  verified NOP/IDLE/MWAIT/ADDXYI/RPIX execution.
+  verified NOP/IDLE/MWAIT/ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX execution.
 - A generated partial SystemVerilog decoder, dual-read A/B/SP register file,
   ADDXYI arithmetic leaf, RPIX replication/timing leaf, and a self-checking
   Verilator testbench with an explicit pass marker.
 - A Cyclone V leaf-only Quartus project and warning-enforcing Analysis &
   Synthesis runner.
+- Primary-page-verified CMPK, EXGPS, GETPS, and RMO ISA entries, model
+  execution, generated decode, RTL semantic leaves, and directed tests.
 
 ### Changed
 
@@ -42,6 +44,8 @@
   partially committed checkpoint.
 - The Quartus qualification digest now keeps ADDXYI flags and both register-file
   read ports observable through synthesis.
+- The model now carries EXGPS's documented hidden PSIZE write state and
+  overlaps it with subsequent execution states.
 
 ### Verified
 
@@ -56,9 +60,10 @@
   reset disabled, with no unsupported ISA or subsystem differences asserted.
 - Verified the documented commercial 32 MHz options and the A-only commercial
   40 MHz option; exact production-game top markings remain explicitly unknown.
-- Verified all 11 currently extracted decoder entries, ADDXYI leaf semantics,
-  all legal RPIX replication sizes/state counts, and A/B/SP aliasing with
-  Verilator.
+- Verified the initial 11 decoder entries, ADDXYI leaf semantics, all legal
+  RPIX replication sizes/state counts, and A/B/SP aliasing with Verilator.
+- Expanded the collision-free ISA slice to 15 entries covering 1,676 first
+  words and verified all current generated decoder entries in RTL.
 - Quartus Prime Lite 17.0.2 Cyclone V Analysis & Synthesis passes for the
   implemented leaf slice with zero errors and zero warnings. This is not a
   fitter or timing-closure result.
