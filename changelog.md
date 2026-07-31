@@ -395,6 +395,16 @@
   representative bit patterns also match a separate iterative overflow oracle.
   All 62 currently extracted forms now have bounded successful model semantics;
   this is not a complete-ISA or cycle-accuracy claim.
+- Added a portable SLA/SLL/SRA/SRL RTL leaf and routed all eight constant and
+  register forms through atomic register/ST commit. Directed Verilator checks
+  cover every published result row, all 32 SLA counts against an iterative
+  oracle, count encoding, fill, status masks, selectors, packet rejection, and
+  an eight-operation dependency chain. A sixteenth runtime assertion requires
+  atomic shift register/status writes without redirect.
+- Warning-free Cyclone V Analysis & Synthesis now reports 7,548 leaf and 4,491
+  scalar-wrapper logic cells, with the scalar cache still using 4,096
+  block-memory bits. These are diagnostic synthesis results, not fit,
+  TimeQuest, or core-area qualification.
 
 ### Documentation
 
@@ -452,7 +462,7 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
-- Documented the current 43-operation scalar admission set, blocked-packet
+- Documented the current 51-operation scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
 - Recorded RSC-0009 for the SUBI.L example row that prints `NCZV=0001` despite
@@ -470,7 +480,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 31 one-word, four two-word, and eight
+  bounded scalar composition accepts only 39 one-word, four two-word, and eight
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

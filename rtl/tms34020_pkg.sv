@@ -41,6 +41,13 @@ package tms34020_pkg;
     } tms34020_logical_op_t;
 
     typedef enum logic [1:0] {
+        TMS34020_SHIFT_SLA = 2'd0,
+        TMS34020_SHIFT_SLL = 2'd1,
+        TMS34020_SHIFT_SRA = 2'd2,
+        TMS34020_SHIFT_SRL = 2'd3
+    } tms34020_shift_op_t;
+
+    typedef enum logic [1:0] {
         TMS34020_CACHE_HIT             = 2'd0,
         TMS34020_CACHE_SEGMENT_MISS    = 2'd1,
         TMS34020_CACHE_SUBSEGMENT_MISS = 2'd2,

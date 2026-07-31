@@ -59,6 +59,11 @@ module tms34020_register_execute (
     logic [31:0] rotate_result;
     logic rotate_c;
     logic rotate_z;
+    tms34020_shift_op_t shift_operation;
+    logic [4:0] shift_count;
+    logic [31:0] shift_result;
+    logic [3:0] shift_nczv;
+    logic [3:0] shift_status_write_mask;
     logic [31:0] constant_value;
     logic [31:0] addk_result;
     logic [3:0] addk_nczv;
@@ -223,6 +228,60 @@ module tms34020_register_execute (
         .result_o(rotate_result),
         .status_c_o(rotate_c),
         .status_z_o(rotate_z)
+    );
+
+    always_comb begin
+        shift_operation = TMS34020_SHIFT_SLA;
+        shift_count = first_word_i[9:5];
+
+        unique case (opcode_id)
+            TMS20_OP_SLA_R: begin
+                shift_operation = TMS34020_SHIFT_SLA;
+                shift_count = source_i[4:0];
+            end
+
+            TMS20_OP_SLL_K: begin
+                shift_operation = TMS34020_SHIFT_SLL;
+            end
+
+            TMS20_OP_SLL_R: begin
+                shift_operation = TMS34020_SHIFT_SLL;
+                shift_count = source_i[4:0];
+            end
+
+            TMS20_OP_SRA_K: begin
+                shift_operation = TMS34020_SHIFT_SRA;
+                shift_count = 5'd0 - first_word_i[9:5];
+            end
+
+            TMS20_OP_SRA_R: begin
+                shift_operation = TMS34020_SHIFT_SRA;
+                shift_count = 5'd0 - source_i[4:0];
+            end
+
+            TMS20_OP_SRL_K: begin
+                shift_operation = TMS34020_SHIFT_SRL;
+                shift_count = 5'd0 - first_word_i[9:5];
+            end
+
+            TMS20_OP_SRL_R: begin
+                shift_operation = TMS34020_SHIFT_SRL;
+                shift_count = 5'd0 - source_i[4:0];
+            end
+
+            default: begin
+                shift_operation = TMS34020_SHIFT_SLA;
+            end
+        endcase
+    end
+
+    tms34020_shift shift (
+        .operation_i(shift_operation),
+        .value_i(destination_i),
+        .count_i(shift_count),
+        .result_o(shift_result),
+        .status_nczv_o(shift_nczv),
+        .status_write_mask_o(shift_status_write_mask)
     );
 
     always_comb begin
@@ -470,6 +529,29 @@ module tms34020_register_execute (
                         28'd0
                     };
                     status_write_mask_o = 32'h6000_0000;
+                end
+
+                TMS20_OP_SLA_K,
+                TMS20_OP_SLA_R,
+                TMS20_OP_SLL_K,
+                TMS20_OP_SLL_R,
+                TMS20_OP_SRA_K,
+                TMS20_OP_SRA_R,
+                TMS20_OP_SRL_K,
+                TMS20_OP_SRL_R: begin
+                    supported_o = 1'b1;
+                    if (opcode_id == TMS20_OP_SLA_K ||
+                        opcode_id == TMS20_OP_SLL_K ||
+                        opcode_id == TMS20_OP_SRA_K ||
+                        opcode_id == TMS20_OP_SRL_K) begin
+                        source_index_o = first_word_i[3:0];
+                    end
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = shift_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = {shift_nczv, 28'd0};
+                    status_write_mask_o =
+                        {shift_status_write_mask, 28'd0};
                 end
 
                 TMS20_OP_RMO: begin

@@ -2,13 +2,14 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 43 register/status operations already verified against their
+execution path for 51 register/status operations already verified against their
 individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
 - ABS, NEG, NEGB, and NOT;
 - ADD, ADDC, SUB, SUBB, CMP, ADDK/INC, SUBK/DEC, and MOVK; and
 - AND, ANDN, OR, XOR, CMPK, RMO, MOVE, MOVX, MOVY, RL.K, and RL.R; plus
+- SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R; plus
 - GETPC and EXGPC; plus
 - the three-word ANDNI, ORI, and XORI immediate-logical family; and
 - the three-word ADDXYI immediate XY operation; plus
@@ -36,10 +37,11 @@ enable. A supported packet therefore commits at most once. For an ordinary
 instruction or GETPC, the frontend then receives a sequential completion
 handshake. EXGPC instead holds its aligned old-register target across the
 commit-to-completion boundary and presents that redirect with the completion
-handshake. Five scalar runtime assertions check that only supported packets
+handshake. Six scalar runtime assertions check that only supported packets
 commit, blocked packets cannot assert state writes, a commit cannot remain
 asserted on the next FPGA clock, and EXGPC committed and pending redirect
-targets stay identified and aligned. Two additional assertions in the commit
+targets stay identified and aligned; shift commits must assert atomic register
+and status writes without redirect. Two additional assertions in the commit
 owner check execution-owner exclusion and committed redirect alignment.
 
 Decoded instructions outside the verified scalar set and unclassified packets
@@ -69,6 +71,12 @@ RL.K rotates its destination by the embedded five-bit count. RL.R uses the
 low five bits of a same-file source register as its count. Both write C from
 the last bit rotated out (and clear C for count zero), derive Z from the
 result, and preserve N/V.
+SLA/SLL use direct left-shift counts from either the object word or a same-file
+source register. SRA/SRL take the five-bit two's complement of that encoded
+field or source value to recover the right-shift count. SLA replaces NCZV and
+detects any new-sign or shifted-bit disagreement with the original sign; SLL
+and SRL replace only C/Z; SRA replaces N/C/Z and preserves V. The scalar
+handshake does not yet implement SLA's documented three machine states.
 GETPC writes the packet's sequential next address to its selected A/B
 destination without changing ST. EXGPC captures the old destination as an
 aligned redirect before atomically replacing that register with the sequential
@@ -105,7 +113,10 @@ after reset, commits a zero MOVI.W and a dependent MOVI.L to shared SP, followed
 by MOVX and MOVY packets that read shared SP and observe the prior half-register
 commit; then commits a cross-file A0-to-B1 MOVE followed by a dependent
 B1-to-A2 MOVE; then commits RL.K against A2 followed by a dependent RL.R whose
-count comes from the newly rotated A2 value. The sequence then executes GETPC,
+count comes from the newly rotated A2 value. It next executes all eight
+SLA/SLL/SRA/SRL forms as a dependency chain, checking direct and
+two's-complement counts, arithmetic/logical fill, overflow, and partial status
+preservation. The sequence then executes GETPC,
 EXGPC to the prior A0 value, and GETPC at the redirected address before a
 separate unclassified packet remains blocked without changing that sequence.
 The direct-PC checks prove ordering and target selection, not the documented
@@ -120,7 +131,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 4,167 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 4,491 logic cells,
 1,386 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

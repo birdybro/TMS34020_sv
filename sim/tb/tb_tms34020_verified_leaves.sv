@@ -9,10 +9,16 @@ module tb_tms34020_verified_leaves;
     logic reset;
     integer constant_index;
     integer rotate_index;
+    integer shift_index;
+    integer shift_step;
     integer pitch_first_power;
     integer pitch_second_power;
     logic [15:0] constant_opcode;
     logic [31:0] expected_rotate;
+    logic [31:0] expected_shift;
+    logic expected_shift_c;
+    logic expected_shift_v;
+    logic shift_original_sign;
     logic [31:0] pitch_value;
     logic [15:0] pitch_conversion;
     logic [2:0] pitch_visible_states;
@@ -77,6 +83,13 @@ module tb_tms34020_verified_leaves;
     logic [31:0] rotate_result;
     logic rotate_c;
     logic rotate_z;
+
+    tms34020_shift_op_t shift_operation;
+    logic [31:0] shift_value;
+    logic [4:0] shift_count;
+    logic [31:0] shift_result;
+    logic [3:0] shift_nczv;
+    logic [3:0] shift_status_write_mask;
 
     tms34020_unary_op_t unary_operation;
     logic [31:0] unary_destination;
@@ -225,6 +238,15 @@ module tb_tms34020_verified_leaves;
         .result_o(rotate_result),
         .status_c_o(rotate_c),
         .status_z_o(rotate_z)
+    );
+
+    tms34020_shift shift_dut (
+        .operation_i(shift_operation),
+        .value_i(shift_value),
+        .count_i(shift_count),
+        .result_o(shift_result),
+        .status_nczv_o(shift_nczv),
+        .status_write_mask_o(shift_status_write_mask)
     );
 
     tms34020_unary unary_dut (
@@ -829,6 +851,27 @@ module tb_tms34020_verified_leaves;
         );
     endtask
 
+    task automatic check_shift(
+        input tms34020_shift_op_t operation,
+        input logic [31:0] value,
+        input logic [4:0] count,
+        input logic [31:0] expected_result,
+        input logic [3:0] expected_nczv,
+        input logic [3:0] expected_status_write_mask,
+        input string message
+    );
+        shift_operation = operation;
+        shift_value = value;
+        shift_count = count;
+        #1;
+        check_condition(
+            shift_result == expected_result &&
+            shift_nczv == expected_nczv &&
+            shift_status_write_mask == expected_status_write_mask,
+            message
+        );
+    endtask
+
     task automatic check_pitch_conversion(
         input logic [31:0] pitch,
         input logic [15:0] expected_conversion,
@@ -1003,6 +1046,9 @@ module tb_tms34020_verified_leaves;
         rmo_source = 32'd0;
         rotate_value = 32'd0;
         rotate_count = 5'd0;
+        shift_operation = TMS34020_SHIFT_SLA;
+        shift_value = 32'd0;
+        shift_count = 5'd0;
         pitch_value = 32'd0;
         unary_operation = TMS34020_UNARY_ABS;
         unary_destination = 32'd0;
@@ -1102,6 +1148,193 @@ module tb_tms34020_verified_leaves;
                 (rotate_index == 0) ? 1'b0 : expected_rotate[0],
                 1'b0,
                 "RL every five-bit count"
+            );
+        end
+
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'h3333_3333, 5'd0, 32'h3333_3333,
+            4'b0000, 4'b1111, "SLA primary count-zero positive"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'hCCCC_CCCC, 5'd0, 32'hCCCC_CCCC,
+            4'b1000, 4'b1111, "SLA primary count-zero negative"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'hCCCC_CCCC, 5'd1, 32'h9999_9998,
+            4'b1100, 4'b1111, "SLA primary count one"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'h3333_3333, 5'd2, 32'hCCCC_CCCC,
+            4'b1001, 4'b1111, "SLA primary positive overflow"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'hCCCC_CCCC, 5'd2, 32'h3333_3330,
+            4'b0101, 4'b1111, "SLA primary negative overflow"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'hCCCC_CCCC, 5'd3, 32'h6666_6660,
+            4'b0001, 4'b1111, "SLA primary shifted-bit overflow"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'hCCCC_CCCC, 5'd5, 32'h9999_9980,
+            4'b1101, 4'b1111, "SLA primary count five"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'hCCCC_CCCC, 5'd30, 32'd0,
+            4'b0111, 4'b1111, "SLA primary count thirty"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'hCCCC_CCCC, 5'd31, 32'd0,
+            4'b0011, 4'b1111, "SLA primary count thirty-one"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLA,
+            32'd0, 5'd31, 32'd0,
+            4'b0010, 4'b1111, "SLA primary zero count thirty-one"
+        );
+
+        check_shift(
+            TMS34020_SHIFT_SLL,
+            32'd0, 5'd0, 32'd0,
+            4'b0010, 4'b0110, "SLL primary zero"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLL,
+            32'h8888_8888, 5'd0, 32'h8888_8888,
+            4'b0000, 4'b0110, "SLL primary count zero"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLL,
+            32'h8888_8888, 5'd1, 32'h1111_1110,
+            4'b0100, 4'b0110, "SLL primary count one"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLL,
+            32'h8888_8888, 5'd4, 32'h8888_8880,
+            4'b0000, 4'b0110, "SLL primary count four"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLL,
+            32'hFFFF_FFFC, 5'd30, 32'd0,
+            4'b0110, 4'b0110, "SLL primary count thirty"
+        );
+        check_shift(
+            TMS34020_SHIFT_SLL,
+            32'hFFFF_FFFC, 5'd31, 32'd0,
+            4'b0010, 4'b0110, "SLL primary count thirty-one"
+        );
+
+        check_shift(
+            TMS34020_SHIFT_SRA,
+            32'd0, 5'd0, 32'd0,
+            4'b0010, 4'b1110, "SRA primary zero"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRA,
+            32'hFFFF_0000, 5'd0, 32'hFFFF_0000,
+            4'b1000, 4'b1110, "SRA primary count zero negative"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRA,
+            32'h7FFF_0000, 5'd8, 32'h007F_FF00,
+            4'b0000, 4'b1110, "SRA primary positive count eight"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRA,
+            32'hFFFF_0000, 5'd8, 32'hFFFF_FF00,
+            4'b1000, 4'b1110, "SRA primary sign extension"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRA,
+            32'h7FFF_0000, 5'd30, 32'h0000_0001,
+            4'b0100, 4'b1110, "SRA primary count thirty"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRA,
+            32'h7FFF_0000, 5'd31, 32'd0,
+            4'b0110, 4'b1110, "SRA primary positive count thirty-one"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRA,
+            32'hFFFF_0000, 5'd31, 32'hFFFF_FFFF,
+            4'b1100, 4'b1110, "SRA primary negative count thirty-one"
+        );
+
+        check_shift(
+            TMS34020_SHIFT_SRL,
+            32'd0, 5'd0, 32'd0,
+            4'b0010, 4'b0110, "SRL primary zero"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRL,
+            32'h7FFF_FFFF, 5'd0, 32'h7FFF_FFFF,
+            4'b0000, 4'b0110, "SRL primary count zero nonzero"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRL,
+            32'h7FFF_FFFF, 5'd1, 32'h3FFF_FFFF,
+            4'b0100, 4'b0110, "SRL primary count one"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRL,
+            32'h7FFF_0000, 5'd8, 32'h007F_FF00,
+            4'b0000, 4'b0110, "SRL primary count eight"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRL,
+            32'h7FFF_0000, 5'd30, 32'h0000_0001,
+            4'b0100, 4'b0110, "SRL primary count thirty"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRL,
+            32'h7FFF_0000, 5'd31, 32'd0,
+            4'b0110, 4'b0110, "SRL primary carry count thirty-one"
+        );
+        check_shift(
+            TMS34020_SHIFT_SRL,
+            32'h3FFF_0000, 5'd31, 32'd0,
+            4'b0010, 4'b0110, "SRL primary clear carry count thirty-one"
+        );
+
+        for (shift_index = 0;
+             shift_index < 32;
+             shift_index = shift_index + 1) begin
+            expected_shift = 32'hA5C3_0F96;
+            expected_shift_c = 1'b0;
+            expected_shift_v = 1'b0;
+            shift_original_sign = expected_shift[31];
+            for (shift_step = 0;
+                 shift_step < shift_index;
+                 shift_step = shift_step + 1) begin
+                expected_shift_c = expected_shift[31];
+                expected_shift = {expected_shift[30:0], 1'b0};
+                if (expected_shift_c != shift_original_sign ||
+                    expected_shift[31] != shift_original_sign) begin
+                    expected_shift_v = 1'b1;
+                end
+            end
+            check_shift(
+                TMS34020_SHIFT_SLA,
+                32'hA5C3_0F96,
+                shift_index[4:0],
+                expected_shift,
+                {
+                    expected_shift[31],
+                    expected_shift_c,
+                    expected_shift == 32'd0,
+                    expected_shift_v
+                },
+                4'b1111,
+                "SLA every five-bit count iterative oracle"
             );
         end
 
@@ -1633,6 +1866,86 @@ module tb_tms34020_verified_leaves;
             execute_source_index == 4'd15 &&
             execute_destination_index == 4'd15,
             "register execute RL.R shared-SP selectors"
+        );
+        check_register_execute(
+            16'h2041, 32'd0, 32'h3333_3333, 32'hF020_001F,
+            1'b1, 1'b1, 32'hCCCC_CCCC, 1'b1,
+            32'h9000_0000, 32'hF000_0000,
+            "register execute SLA.K direct count"
+        );
+        check_condition(
+            !execute_register_file &&
+            !execute_destination_register_file &&
+            execute_source_index == 4'd1 &&
+            execute_destination_index == 4'd1,
+            "register execute SLA.K reads destination only"
+        );
+        check_register_execute(
+            16'h6022, 32'd5, 32'hCCCC_CCCC, 32'h0020_001F,
+            1'b1, 1'b1, 32'h9999_9980, 1'b1,
+            32'hD000_0000, 32'hF000_0000,
+            "register execute SLA.R source count"
+        );
+        check_condition(
+            !execute_register_file &&
+            !execute_destination_register_file &&
+            execute_source_index == 4'd1 &&
+            execute_destination_index == 4'd2,
+            "register execute SLA.R selectors"
+        );
+        check_register_execute(
+            16'h27C1, 32'd0, 32'hFFFF_FFFC, 32'h9020_001F,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h6000_0000, 32'h6000_0000,
+            "register execute SLL.K direct count"
+        );
+        check_register_execute(
+            16'h6273, 32'd4, 32'd4, 32'h9020_001F,
+            1'b1, 1'b1, 32'h0000_0040, 1'b1,
+            32'd0, 32'h6000_0000,
+            "register execute SLL.R same-register pre-write count"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_destination_register_file &&
+            execute_source_index == 4'd3 &&
+            execute_destination_index == 4'd3,
+            "register execute SLL.R B-file selectors"
+        );
+        check_register_execute(
+            16'h2B01, 32'd0, 32'hFFFF_0000, 32'h1020_001F,
+            1'b1, 1'b1, 32'hFFFF_FF00, 1'b1,
+            32'h8000_0000, 32'hE000_0000,
+            "register execute SRA.K two's-complement count"
+        );
+        check_register_execute(
+            16'h6401, 32'hFFFF_FFF8, 32'h7FFF_0000,
+            32'h1020_001F,
+            1'b1, 1'b1, 32'h007F_FF00, 1'b1,
+            32'd0, 32'hE000_0000,
+            "register execute SRA.R negated source low five bits"
+        );
+        check_register_execute(
+            16'h2C21, 32'd0, 32'h7FFF_0000, 32'h9020_001F,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h6000_0000, 32'h6000_0000,
+            "register execute SRL.K two's-complement count"
+        );
+        check_register_execute(
+            16'h6601, 32'hFFFF_FFE1, 32'h7FFF_0000,
+            32'h9020_001F,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h6000_0000, 32'h6000_0000,
+            "register execute SRL.R negated source low five bits"
+        );
+        execute_first_word = 16'h2041;
+        execute_packet_length = 3'd2;
+        #1;
+        check_condition(
+            !execute_supported &&
+            !execute_register_write_enable &&
+            !execute_status_write_enable,
+            "incorrect-length SLA.K cannot enter register execute"
         );
         check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,

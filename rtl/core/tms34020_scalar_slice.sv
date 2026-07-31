@@ -232,11 +232,32 @@ module tms34020_scalar_slice (
             |-> completion_redirect_bit_address_q[3:0] == 4'd0;
     endproperty
 
+    property p_shift_commit_has_atomic_register_and_status_writes;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            (
+                packet_opcode_id_o == TMS20_OP_SLA_K ||
+                packet_opcode_id_o == TMS20_OP_SLA_R ||
+                packet_opcode_id_o == TMS20_OP_SLL_K ||
+                packet_opcode_id_o == TMS20_OP_SLL_R ||
+                packet_opcode_id_o == TMS20_OP_SRA_K ||
+                packet_opcode_id_o == TMS20_OP_SRA_R ||
+                packet_opcode_id_o == TMS20_OP_SRL_K ||
+                packet_opcode_id_o == TMS20_OP_SRL_R
+            )
+            |-> register_write_enable_o &&
+                status_write_enable_o &&
+                !commit_pc_redirect_enable;
+    endproperty
+
     assert property (p_only_supported_packets_commit);
     assert property (p_blocked_packet_cannot_write);
     assert property (p_commit_is_single_pulse);
     assert property (p_exgpc_commit_captures_aligned_redirect);
     assert property (p_pending_redirect_stays_aligned);
+    assert property (
+        p_shift_commit_has_atomic_register_and_status_writes
+    );
 `endif
 
 endmodule

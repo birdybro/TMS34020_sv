@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified commit before this model extension: `ca116e89e774620192d49921306828b6228b0b71`
+- Latest verified commit before this RTL extension: `a8e2eaed59fa23c41683748273b6884a038b84fc`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 100 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -25,20 +25,21 @@
 - RTL status: generated 62-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
-  write intents for 31 one-word instructions, with externally gated one-edge
+  write intents for 39 one-word instructions, with externally gated one-edge
   state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
   complete ST preservation, and RL.K/RL.R C/Z replacement with N/V
-  preservation; standalone native-completion cache lookup/refill RTL;
+  preservation, plus all eight SLA/SLL/SRA/SRL forms with direct or
+  two's-complement count recovery and instruction-specific status masks;
+  standalone native-completion cache lookup/refill RTL;
   a dedicated GETPC/EXGPC direct-PC leaf, an integrated serialized
   cache/instruction-packet frontend with explicit completion and abort/reload;
-  and a bounded fetch-to-commit path for those 31
+  and a bounded fetch-to-commit path for those 39
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
   GETPC consumes the packet sequential PC, while EXGPC atomically writes that
-  address and redirects to the aligned old destination. The eight shift forms
-  now decode but remain blocked with all other unsupported packets. MOVI.W
+  address and redirects to the aligned old destination. MOVI.W
   sign-extends its extension word; both MOVI forms
   replace N/Z/V while preserving C.
   There is no architectural completion timing or
@@ -52,12 +53,12 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, five scalar, and two commit-owner
+- Formal status: four cache, four fetch, six scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 4,167 logic cells, 1,386 registers, and
+  warnings; the scalar wrapper uses 4,491 logic cells, 1,386 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
@@ -68,5 +69,5 @@
   history
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
-- Next task: implement and independently verify the eight extracted scalar
-  shift forms in the bounded RTL path
+- Next task: extract and independently fixture the next primary-source scalar
+  instruction family before extending model and RTL

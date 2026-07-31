@@ -172,8 +172,16 @@ module tb_tms34020_scalar_slice;
                 32'h0000_03B0: memory_word = 16'h4E32;
                 32'h0000_03C0: memory_word = 16'h3082;
                 32'h0000_03D0: memory_word = 16'h6840;
-                32'h0000_03E0: memory_word = 16'h0153;
-                32'h0000_03F0: memory_word = 16'h0120;
+                32'h0000_03E0: memory_word = 16'h2022;
+                32'h0000_03F0: memory_word = 16'h6202;
+                32'h0000_0400: memory_word = 16'h2B02;
+                32'h0000_0410: memory_word = 16'h6602;
+                32'h0000_0420: memory_word = 16'h6002;
+                32'h0000_0430: memory_word = 16'h2422;
+                32'h0000_0440: memory_word = 16'h6402;
+                32'h0000_0450: memory_word = 16'h2C22;
+                32'h0000_0460: memory_word = 16'h0153;
+                32'h0000_0470: memory_word = 16'h0120;
                 32'h2468_ACF0: memory_word = 16'h0154;
                 default: memory_word = 16'hFFFF;
             endcase
@@ -905,29 +913,90 @@ module tb_tms34020_scalar_slice;
         );
 
         serve_and_commit(
-            32'h3E0, TMS20_OP_GETPC,
-            1'b1, 1'b1, 4'd3, 32'h0000_03F0,
-            1'b0, 32'd0, 32'd0,
+            32'h3E0, TMS20_OP_SLA_K,
+            1'b1, 1'b0, 4'd2, 32'h468A_CF02,
+            1'b1, 32'd0, 32'hF000_0000,
             32'h0000_0010, 32'h1234_5678,
+            "scalar SLA.K shifts prior rotated destination"
+        );
+        serve_and_commit(
+            32'h3F0, TMS20_OP_SLL_R,
+            1'b1, 1'b0, 4'd2, 32'hCF02_0000,
+            1'b1, 32'd0, 32'h6000_0000,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar SLL.R uses prior A0 low-five count"
+        );
+        serve_and_commit(
+            32'h400, TMS20_OP_SRA_K,
+            1'b1, 1'b0, 4'd2, 32'hFFCF_0200,
+            1'b1, 32'h8000_0000, 32'hE000_0000,
+            32'h8000_0010, 32'h1234_5678,
+            "scalar SRA.K sign-extends and preserves V"
+        );
+        serve_and_commit(
+            32'h410, TMS20_OP_SRL_R,
+            1'b1, 1'b0, 4'd2, 32'h0000_FFCF,
+            1'b1, 32'd0, 32'h6000_0000,
+            32'h8000_0010, 32'h1234_5678,
+            "scalar SRL.R preserves N while shifting logically"
+        );
+        serve_and_commit(
+            32'h420, TMS20_OP_SLA_R,
+            1'b1, 1'b0, 4'd2, 32'hFFCF_0000,
+            1'b1, 32'h9000_0000, 32'hF000_0000,
+            32'h9000_0010, 32'h1234_5678,
+            "scalar SLA.R detects sign overflow"
+        );
+        serve_and_commit(
+            32'h430, TMS20_OP_SLL_K,
+            1'b1, 1'b0, 4'd2, 32'hFF9E_0000,
+            1'b1, 32'h4000_0000, 32'h6000_0000,
+            32'hD000_0010, 32'h1234_5678,
+            "scalar SLL.K preserves N and V"
+        );
+        serve_and_commit(
+            32'h440, TMS20_OP_SRA_R,
+            1'b1, 1'b0, 4'd2, 32'hFFFF_FF9E,
+            1'b1, 32'h8000_0000, 32'hE000_0000,
+            32'h9000_0010, 32'h1234_5678,
+            "scalar SRA.R uses two's-complement source count"
+        );
+        serve_and_commit(
+            32'h450, TMS20_OP_SRL_K,
+            1'b1, 1'b0, 4'd2, 32'h0000_0001,
+            1'b1, 32'h4000_0000, 32'h6000_0000,
+            32'hD000_0010, 32'h1234_5678,
+            "scalar SRL.K uses two's-complement object count"
+        );
+        check_condition(
+            commit_count == 16,
+            "sixteen move, rotate, and shift packet commits"
+        );
+
+        serve_and_commit(
+            32'h460, TMS20_OP_GETPC,
+            1'b1, 1'b1, 4'd3, 32'h0000_0470,
+            1'b0, 32'd0, 32'd0,
+            32'hD000_0010, 32'h1234_5678,
             "scalar GETPC uses packet sequential address"
         );
         serve_and_commit(
-            32'h3F0, TMS20_OP_EXGPC,
-            1'b1, 1'b0, 4'd0, 32'h0000_0400,
+            32'h470, TMS20_OP_EXGPC,
+            1'b1, 1'b0, 4'd0, 32'h0000_0480,
             1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'h1234_5678,
+            32'hD000_0010, 32'h1234_5678,
             "scalar EXGPC commits sequential PC before redirect"
         );
         serve_and_commit(
             32'h2468_ACF0, TMS20_OP_GETPC,
             1'b1, 1'b1, 4'd4, 32'h2468_AD00,
             1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'h1234_5678,
+            32'hD000_0010, 32'h1234_5678,
             "scalar EXGPC redirect reaches GETPC target"
         );
         check_condition(
-            commit_count == 11,
-            "eleven move, rotate, and direct-PC packet commits"
+            commit_count == 19,
+            "nineteen move, rotate, shift, and direct-PC packet commits"
         );
 
         serve_word(32'h2468_AD00);
@@ -947,10 +1016,10 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 11 &&
-                status == 32'h0000_0010 &&
+                commit_count == 19 &&
+                status == 32'hD000_0010 &&
                 sp == 32'h1234_5678,
-                "blocked packet cannot mutate rotate sequence"
+                "blocked packet cannot mutate shift sequence"
             );
         end
 
