@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 80 page-verified encoding records and covers 25,282 of 65,536
+slice contains 81 page-verified encoding records and covers 25,298 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -22,6 +22,7 @@ first words without collisions:
 | DINT | `0360h` | 1 | p.13-95 |
 | EINT | `0D60h` | 1 | p.13-109 |
 | JUMP | `0160h`, mask `FFE0h` | 1 | p.13-141 |
+| JACC / JAcondition | `C080h`, mask `F0FFh` | 3 | pp.13-135..13-136 |
 | JR.L / long JRcc | `C000h`, mask `F0FFh` | 2 | pp.13-139..13-140 |
 | GETST | `0180h`, mask `FFE0h` | 1 | p.13-132 |
 | PUTST | `01A0h`, mask `FFE0h` | 1 | p.13-216 |
@@ -109,6 +110,17 @@ The independent model implements the successful redirect boundary. The bounded
 RTL implements the same aligned redirect without a register or status write;
 the documented two-state retirement is not implemented.
 
+The extracted JAcc form has exact first word
+`1100_CCCC_1000_0000`, followed by the absolute address low word and high
+word. A satisfied condition loads the assembled 32-bit address into PC with
+bits `[3:0]` forced to zero; a false condition falls through after all three
+words. It reads N/C/Z/V, changes no status or register, and takes three/four
+machine states for false/taken cases. Sources: TMS34020 User's Guide,
+`JAcondition`, printed pp.13-135..13-136 and timing table p.15-5. The TMS34010
+guide printed pp.12-92..12-93 establishes semantic/object compatibility but
+has different timing. At this extraction checkpoint the decoder and packet
+fetch classify JACC, while model and RTL execution owners reject it atomically.
+
 The extracted long `JRcc` form has first word
 `1100_CCCC_0000_0000` and a signed 16-bit word displacement in its second
 word. Its target is the sequential address after that word plus the
@@ -121,10 +133,11 @@ JR reference, printed pp.13-139..13-140; timing table p.15-5. The TMS34010
 guide printed pp.12-96..12-97 confirms the encoding and visible semantics but
 publishes different timing, so no TMS34010 timing machine is reused.
 
-Only the exact 16 long first words are classified at this checkpoint. The
+The exact 16 long-JR first words and 16 JAcc first words are classified. The
 remaining `CcodeXXh` space is deliberately unclassified until the short
-eight-bit `JRcc` form can be represented while reserving `XX=00h` for the long
-form and `XX=80h` for `JAcc`. The independent model executes all 16 long
+eight-bit `JRcc` form can be represented while excluding `XX=00h` and
+`XX=80h`; RSC-0020 records the primary-source range ambiguity. The independent
+model executes all 16 long
 conditions, preserves ST/registers, applies signed displacement extremes and
 PC wrap, and reports the documented two-/three-state instruction-boundary
 cases. Bounded RTL direct, commit, and cache-fed tests exercise predicate-false

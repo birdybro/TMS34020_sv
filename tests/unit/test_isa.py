@@ -98,6 +98,9 @@ class IsaTests(unittest.TestCase):
             0xC100: ("JR.L", 2),
             0xC800: ("JR.L", 2),
             0xCF00: ("JR.L", 2),
+            0xC080: ("JACC", 3),
+            0xC780: ("JACC", 3),
+            0xCF80: ("JACC", 3),
             0x0120: ("EXGPC", 1),
             0x013F: ("EXGPC", 1),
             0x0140: ("GETPC", 1),
@@ -254,7 +257,7 @@ class IsaTests(unittest.TestCase):
         for word in (0x0041, 0x0081, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
-                     0x0FFF, 0xBFFF, 0xC001, 0xC080, 0xCFFF, 0xD000,
+                     0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF, 0xD000,
                      0x0AFF, 0x0C20,
                      0x5800,
                      0x79FF, 0x7C00,
@@ -264,8 +267,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 25282)
-        self.assertEqual(unclassified, 65536 - 25282)
+        self.assertEqual(matched, 25298)
+        self.assertEqual(unclassified, 65536 - 25298)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -557,7 +560,51 @@ class IsaTests(unittest.TestCase):
         )
         self.assertTrue(instruction.metadata["compatible_with_tms34010"])
         self.assertIsNone(self.database.decode(0xC001))
-        self.assertIsNone(self.database.decode(0xC080))
+        self.assertEqual(self.database.decode(0xC080).mnemonic, "JACC")
+
+    def test_jacc_records_all_conditions_absolute_target_and_timing(
+        self,
+    ) -> None:
+        forms = [
+            self.database.decode(0xC080 | (code << 8))
+            for code in range(16)
+        ]
+        self.assertTrue(all(instruction is forms[0] for instruction in forms))
+        instruction = forms[0]
+        self.assertEqual(instruction.mnemonic, "JACC")
+        self.assertEqual(instruction.length_words, 3)
+        self.assertEqual(instruction.opcode_mask, 0xF0FF)
+        self.assertEqual(
+            instruction.metadata["status_bits_read"],
+            ["N", "C", "Z", "V"],
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+        conditions = instruction.metadata["condition_fields"][0]["codes"]
+        self.assertEqual(set(conditions), set("0123456789ABCDEF"))
+        self.assertEqual(conditions["0"], "true")
+        self.assertEqual(conditions["7"], "(N == V) && !Z")
+        self.assertEqual(conditions["F"], "!N")
+        address = instruction.metadata["immediate_fields"][0]
+        self.assertEqual(address["width"], 32)
+        self.assertFalse(address["signed"])
+        self.assertEqual(address["word_order"], ["low_16", "high_16"])
+        self.assertEqual(
+            address["alignment"],
+            "PC bits 3:0 are hardwired to zero",
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "cases",
+                "cases": [
+                    {"when": "no jump", "machine_states": 3},
+                    {"when": "jump", "machine_states": 4},
+                ],
+            },
+        )
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+        self.assertEqual(self.database.decode(0xC000).mnemonic, "JR.L")
+        self.assertIsNone(self.database.decode(0xC081))
 
     def test_stack_status_forms_record_ordering_and_alignment_timing(self) -> None:
         popst = self.database.decode(0x01C0)

@@ -185,7 +185,9 @@ EINT -> SETC -> GETST B2 -> LMO B2,B2 -> DINT
 The test observes every accepted PC/opcode, register and status write intent,
 post-edge ST/SP state, and dependent result. It then verifies that decoded
 one-word BLMOVE remains stable for three clocks with no commit, register write,
-status write, or state change. A separate sequence commits ORI, a dependent
+status write, or state change. A complete three-word JACC packet likewise
+remains blocked and state-neutral pending direct-PC ownership. A separate
+sequence commits ORI, a dependent
 XORI, and ANDNI from complete fetched packets; executes two dependent ADDXYI
 packets with independent half arithmetic and full NCZV replacement; executes
 dependent ADDI.W, ADDI.L, and sign-extending ADDI.W packets with full NCZV
@@ -234,7 +236,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 5,242 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 5,268 logic cells,
 1,414 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

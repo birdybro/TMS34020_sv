@@ -31,8 +31,10 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 80 currently extracted database forms. This is
-coverage of a current partial extraction, not instruction completeness.
+These handlers cover 80 of the 81 currently extracted database forms. JACC is
+decoded but deliberately raises `UnsupportedInstruction` and rolls back the
+complete model/cache snapshot until its functional owner is implemented. This
+is coverage of a current partial extraction, not instruction completeness.
 
 JR.L tests cover all 16 condition codes, a taken case for every code and a
 false case for every conditional code, signed `+1`, `+32767`, `-32768`, and

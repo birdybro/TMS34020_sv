@@ -115,6 +115,25 @@ This proves functional ordering in the serialized FPGA handshake only; it does
 not reproduce GETPC's documented one machine state, EXGPC's two machine states,
 JUMP's two machine states, or speculative pipeline overlap.
 
+## Conditional absolute jumps
+
+`JAcondition`/JAcc uses the exact first-word form
+`1100_CCCC_1000_0000`, followed by the absolute address low 16 bits and then
+high 16 bits. It evaluates the same 16 condition codes listed below for
+`JRcc`. A true condition loads `{third_word, second_word}` into PC with bits
+`[3:0]` forced to zero; a false condition continues at the sequential address
+after all three words. Registers and ST are unchanged. The false/taken cases
+require three/four machine states. Sources: TI *TMS34020 User's Guide*, August
+1990, `JAcondition` printed pp.13-135..13-136 and timing table p.15-5.
+
+The 1988 TMS34010 guide printed pp.12-92..12-93 gives the same encoding and
+programmer-visible operation but different alignment-dependent state cases.
+That establishes semantic/object compatibility without making its timing
+sequencer reusable. The generated decoder now classifies all 16 exact
+`C?80h` first words and assembles their three-word packets. The independent
+model, direct-PC owner, commit path, and scalar slice deliberately reject the
+complete packet until functional execution is implemented.
+
 ## Conditional relative jumps
 
 The long `JRcc` first word is `1100_CCCC_0000_0000`, followed by a signed
@@ -150,10 +169,11 @@ printed pp.13-27 and 13-138, long JR reference printed pp.13-139..13-140, and
 timing table p.15-5. TMS34010 User's Guide printed pp.12-96..12-97 gives the
 same object format and visible behavior but materially different timing.
 
-The current generated decoder classifies only the exact 16 long-form first
-words (`C?00h`). Short `JRcc` and `JAcc` share the surrounding `CcodeXXh`
-region, so they remain unclassified pending an explicit exclusion-capable
-decode representation. The independent model implements all 16 long-form
+The current generated decoder classifies the exact 16 long-form first words
+(`C?00h`) and the exact 16 JAcc words (`C?80h`). Short `JRcc` occupies the
+remaining surrounding `CcodeXXh` region but remains unclassified pending an
+explicit exclusion-capable decode representation and resolution of RSC-0020.
+The independent model implements all 16 long-form
 conditions, both possible outcomes, signed displacement extremes, PC wrap,
 complete ST/register preservation, and two-/three-state instruction-boundary
 counts. The bounded RTL evaluates the same predicates with a shared

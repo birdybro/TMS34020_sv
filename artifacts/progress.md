@@ -3,16 +3,17 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `184f7c9e548e58170ac892ee436cf3a20065a848`
-- Passing tests: foundation, reference/hash, delta, 29-case ISA sweep, 131 directed model
+- Latest verified baseline commit: `faadaabd6547e67745b582016139e4cc7ba75b4b`
+- Passing tests: foundation, reference/hash, delta, 30-case ISA sweep, 132 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 80 currently extracted encoding forms have bounded
-  successful semantics. Long JRcc covers all 16 conditions, every possible
+- Model status: 80 of 81 currently extracted encoding forms have bounded
+  successful semantics. JACC is decoded as a three-word packet but rolls back
+  atomically pending execution ownership. Long JRcc covers all 16 conditions, every possible
   false outcome, signed extremes, PC wrap, exact trace fields, complete state
   preservation, and two-/three-state cases. DSJS covers every published row, direction/magnitude
   endpoints, instruction-range endpoints, PC wrap, A/B/shared-SP, exact writes,
@@ -46,7 +47,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 80-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 81-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 51 one-word instructions, with externally gated one-edge
@@ -57,7 +58,7 @@
   preservation, plus all eight SLA/SLL/SRA/SRL forms with direct or
   two's-complement count recovery and instruction-specific status masks;
   standalone native-completion cache lookup/refill RTL;
-  a dedicated GETPC/EXGPC/JUMP direct-PC leaf, an integrated serialized
+  a dedicated GETPC/EXGPC/JUMP/JR.L direct-PC leaf, an integrated serialized
   cache/instruction-packet frontend with explicit completion and abort/reload;
   and a bounded fetch-to-commit path for those 51
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
@@ -88,7 +89,8 @@
   PUTST replaces all 32 ST bits from an A/B/shared-SP source without register
   writeback and passes a cache-fed dependency; its three-state architectural
   retirement is not implemented.
-  Long JRcc evaluates all 16 NCZV predicates through a shared combinational
+  Complete JACC packets are decoded/fetched but remain blocked without writes
+  or redirects at this extraction checkpoint. Long JRcc evaluates all 16 NCZV predicates through a shared combinational
   condition function, preserves registers and ST, and holds a signed
   extension-word redirect when true or completes sequentially when false.
   Direct tests exhaust all 256 condition/status combinations and signed/PC-wrap
@@ -120,8 +122,8 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,679 logic cells and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 410, 778, and 5,242 logic cells;
+  warnings; the leaf wrapper uses 8,659 logic cells and 2,048 registers, while
+  the fetch, frontend, and scalar wrappers use 411, 785, and 5,268 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

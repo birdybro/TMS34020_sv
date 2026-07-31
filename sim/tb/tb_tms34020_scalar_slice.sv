@@ -135,6 +135,9 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0C10: memory_word = 16'h0002;
                 32'h0000_0D00: memory_word = 16'hC800;
                 32'h0000_0D10: memory_word = 16'h0002;
+                32'h0000_0E00: memory_word = 16'hC080;
+                32'h0000_0E10: memory_word = 16'h5678;
+                32'h0000_0E20: memory_word = 16'h1234;
                 32'h0000_0100: memory_word = 16'h0BA0;
                 32'h0000_0110: memory_word = 16'h5678;
                 32'h0000_0120: memory_word = 16'h1234;
@@ -930,6 +933,35 @@ module tb_tms34020_scalar_slice;
             commit_count == 1,
             "JR.C false path falls through sequentially"
         );
+
+        apply_reset();
+        load_pc(32'hE00);
+        serve_word(32'hE00);
+        serve_word(32'hE10);
+        serve_word(32'hE20);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_JACC &&
+            packet_length_words == 3'd3 &&
+            packet_words[47:0] ==
+                {16'h1234, 16'h5678, 16'hC080} &&
+            !register_write_enable &&
+            !status_write_enable,
+            "complete JACC packet is blocked before implementation"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 0 &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0,
+                "blocked JACC packet cannot mutate scalar state"
+            );
+        end
 
         apply_reset();
         load_pc(32'h100);

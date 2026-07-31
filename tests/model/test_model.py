@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1923,6 +1924,20 @@ class ExecutionTests(unittest.TestCase):
         before = model.snapshot()
         with self.assertRaises(UnclassifiedEncoding):
             model.step()
+        self.assertEqual(model.snapshot(), before)
+
+    def test_jacc_is_decoded_but_rolls_back_before_model_ownership(self) -> None:
+        model = Tms34020Model()
+        model.load_program(
+            [0xC080, 0x5678, 0x1234],
+            bit_address=0x80,
+        )
+        model.state.st = 0xF5A3_4A95
+        before = model.snapshot()
+
+        with self.assertRaises(UnsupportedInstruction):
+            model.step()
+
         self.assertEqual(model.snapshot(), before)
 
     def test_jr_long_all_condition_outcomes_status_and_cycles(self) -> None:

@@ -113,11 +113,17 @@
   range interpretation, two-/three-state timing, TMS34010 semantic
   compatibility, complete boundary fixtures, atomic model rollback guards, and
   explicit RTL packet noncommit checks.
+- Primary-page-verified JAcc encoding with all 16 exact `C?80h` first words,
+  low-word/high-word absolute target assembly, forced PC alignment,
+  three-/four-state timing, TMS34010 semantic compatibility with different
+  timing, exhaustive decode boundaries, and atomic model/direct/commit/
+  cache-fed RTL nonexecution guards. RSC-0020 records the short-JR range text
+  conflict at the `80h` escape.
 - Primary-page-verified long JRcc encoding with all 16 condition predicates,
   signed 16-bit word displacement, two-/three-state timing, TMS34010 semantic
   compatibility and distinct timing, exact `C?00h` decode, independent
   fixtures, atomic model rollback, and direct/commit/cache-fed RTL noncommit
-  guards. Short JRcc and JAcc remain deliberately unclassified pending an
+  guards. Short JRcc remains deliberately unclassified pending an
   exclusion-capable decode representation.
 - Independent DSJS model execution covering every published row, both
   directions, zero/max magnitudes, instruction-range endpoints, PC wrap,
@@ -250,6 +256,14 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 81 entries covering 25,298 first
+  words. The 30-case ISA suite checks all JAcc/long-JR condition words and the
+  adjacent short-JR exclusion across the complete 65,536-word sweep; the
+  132-case model suite retains exact unsupported rollback for JACC. Verilator
+  lint and direct/cache-fed nonexecution guards pass. All affected Cyclone V
+  analyses pass with zero warnings at 8,659 leaf, 411 fetch, 785 frontend, and
+  5,268 scalar logic cells. This is classification and nonexecution evidence,
+  not JACC semantics or timing.
 - The 131-case independent model suite now has bounded successful semantics for
   all 80 currently extracted forms. JR.L tests independently cover every
   condition outcome and signed target boundary. Functional RTL tests separately

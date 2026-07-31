@@ -3,7 +3,7 @@
   "format_note": "JSON subset of YAML 1.2. This is an incomplete primary-source extraction, not an instruction-completeness claim.",
   "coverage": {
     "status": "INCOMPLETE_PRIMARY_EXTRACTION",
-    "entry_count": 80,
+    "entry_count": 81,
     "first_word_space": 65536,
     "unmatched_first_words_are_reserved": false,
     "next_source_range": "TI-TMS34020-UG-1990 chapter 13 summary and alphabetical reference",
@@ -2920,6 +2920,70 @@
       "bus_32_effects": "instruction refill timing only",
       "page_mode_effects": "instruction refill timing only",
       "source_citations": ["TI-TMS34020-UG-1990 DSJS, printed p.13-108", "TI-TMS34020-UG-1990 instruction summary, printed p.13-12 and timing table p.15-4", "TI-TMS34010-UG-1988 DSJS, printed pp.12-74..12-75"],
+      "compatible_with_tms34010": true,
+      "confidence": "VERIFIED_PRIMARY"
+    },
+    {
+      "mnemonic": "JACC",
+      "aliases": ["JAUC", "JAP", "JALS", "JAYLE", "JAHI", "JAYGT", "JALT", "JAXLE", "JAGE", "JAXGT", "JALE", "JAGT", "JAC", "JALO", "JAB", "JAYN", "JANC", "JAHS", "JANB", "JAYNN", "JAZ", "JAEQ", "JAYZ", "JANZ", "JANE", "JAYNZ", "JAV", "JAXN", "JANV", "JAXNN", "JAN", "JAXZ", "JANN", "JAXNZ"],
+      "instruction_length_words": 3,
+      "opcode_mask": "0xF0FF",
+      "opcode_value": "0xC080",
+      "operand_fields": [
+        {"name": "condition_code", "word": 0, "lsb": 8, "width": 4, "encoding": "Table 13-2 / printed p.13-136"},
+        {"name": "address_low", "word": 1, "lsb": 0, "width": 16, "encoding": "16 LSBs of the absolute bit address"},
+        {"name": "address_high", "word": 2, "lsb": 0, "width": 16, "encoding": "16 MSBs of the absolute bit address"}
+      ],
+      "register_file": "none",
+      "immediate_fields": [
+        {"name": "address", "width": 32, "signed": false, "word_order": ["low_16", "high_16"], "alignment": "PC bits 3:0 are hardwired to zero"}
+      ],
+      "condition_fields": [
+        {
+          "name": "condition_code",
+          "word": 0,
+          "lsb": 8,
+          "width": 4,
+          "codes": {
+            "0": "true",
+            "1": "!N && !Z",
+            "2": "C || Z",
+            "3": "!C && !Z",
+            "4": "N != V",
+            "5": "N == V",
+            "6": "(N != V) || Z",
+            "7": "(N == V) && !Z",
+            "8": "C",
+            "9": "!C",
+            "A": "Z",
+            "B": "!Z",
+            "C": "V",
+            "D": "!V",
+            "E": "N",
+            "F": "!N"
+          }
+        }
+      ],
+      "addressing_modes": ["absolute_immediate"],
+      "source_registers": ["ST.N", "ST.C", "ST.Z", "ST.V"],
+      "destination_registers": ["PC if the selected condition is true"],
+      "status_bits_read": ["N", "C", "Z", "V"],
+      "status_bits_written": [],
+      "undefined_status_bits": [],
+      "memory_transactions": [],
+      "graphics_register_dependencies": [],
+      "cache_interactions": ["all three instruction words fetched through the instruction cache"],
+      "pipeline_interactions": ["evaluate the first-word condition code from the preinstruction NCZV status; if true, load the absolute address from the low-word/high-word extension pair with PC bits 3:0 forced to zero; otherwise continue sequentially"],
+      "interruptibility": "at the instruction boundary after the condition decision and optional redirect",
+      "restartability": "not_applicable",
+      "bus_fault_behavior": "instruction/refill fault before execute; no data access",
+      "documented_cycles": {"kind": "cases", "cases": [{"when": "no jump", "machine_states": 3}, {"when": "jump", "machine_states": 4}]},
+      "cache_hit_cycles": "3 machine states when no jump, 4 when jump",
+      "cache_miss_cycles": "instruction refill latency plus the documented taken/not-taken case",
+      "bus_16_effects": "instruction refill timing only",
+      "bus_32_effects": "instruction refill timing only",
+      "page_mode_effects": "instruction refill timing only",
+      "source_citations": ["TI-TMS34020-UG-1990 JAcondition, printed pp.13-135..13-136", "TI-TMS34020-UG-1990 timing table, printed p.15-5", "TI-TMS34010-UG-1988 JAcc, printed pp.12-92..12-93"],
       "compatible_with_tms34010": true,
       "confidence": "VERIFIED_PRIMARY"
     },

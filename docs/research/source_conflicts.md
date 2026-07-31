@@ -352,3 +352,25 @@
   Semantics remain object-code compatible with the TMS34010. No current RTL
   handshake is assigned either architectural count. Confidence:
   `VERIFIED_PRIMARY`.
+
+## RSC-0020: short JR range text includes the JAcc escape encoding
+
+- Status: unresolved primary encoding-domain ambiguity; exact long-JR and JAcc
+  forms classified independently
+- Conflicting primary text: TI *TMS34020 User's Guide*, August 1990,
+  short `JRcondition`, printed p.13-137, describes an eight-bit signed word
+  offset and calls its assembler range “±128 words (excluding 0).” An offset
+  byte of `80h`, however, makes the exact first word `Ccode80h`.
+- Resolving boundary evidence: `JAcondition`, printed p.13-135, assigns
+  `Ccode80h` to the three-word absolute conditional jump for every condition
+  code. The long relative form on printed p.13-139 separately assigns
+  `Ccode00h`. The 1988 TMS34010 guide printed pp.12-92..12-94 gives the same
+  exact JAcc encoding and describes the short-relative range as ±127 words,
+  excluding zero.
+- Decision: classify all 16 exact `C?80h` words as JACC and all 16 exact
+  `C?00h` words as JR.L. Leave the remaining short-relative domain
+  unclassified until another TMS34020 primary source, assembler behavior, or
+  hardware test establishes whether any nonzero byte other than `80h` is
+  illegal. In particular, do not let a broad short-JR mask shadow JACC.
+  Confidence: `VERIFIED_PRIMARY` for the exact JACC/JR.L forms and `UNKNOWN`
+  for the remaining hardware-domain exclusion policy.
