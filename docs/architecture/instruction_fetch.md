@@ -138,8 +138,8 @@ area estimate nor fit/TimeQuest timing evidence.
 
 ## Explicit exclusions
 
-- Cache and fetch are not yet instantiated together in a processor frontend.
-- No opcode packet is connected to register execution or state commit.
+- Cache and fetch are composed in `tms34020_frontend`, but no opcode packet is
+  connected to register execution or state commit.
 - No reset-vector memory transaction or host-halt controller exists.
 - No branch instruction, interrupt, illegal-opcode trap, or bus-fault
   continuation controller drives completion.

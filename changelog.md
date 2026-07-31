@@ -79,6 +79,8 @@
   invalid-word isolation, explicit completion gating, and abort-to-reload.
 - Self-checking Verilator and warning-enforcing Cyclone V synthesis commands
   for the bounded instruction-fetch slice.
+- A portable cache/fetch frontend with native memory and fault controls, plus
+  integrated Verilator and Cyclone V synthesis qualification.
 
 ### Changed
 
@@ -171,6 +173,10 @@
   backpressure tests plus four runtime assertions; Quartus synthesizes the
   diagnostic wrapper to 343 logic cells and 174 registers with zero
   errors/warnings.
+- The integrated frontend passes cold-refill, cache-hit extension, bypass
+  retry, fault-abort, PC-reload, and cache-preservation tests; Quartus retains
+  4,096 block-memory bits and reports 709 logic cells/372 registers with zero
+  errors/warnings.
 
 ### Documentation
 
@@ -217,6 +223,8 @@
 - Documented the implemented packet-fetch signals, state progression,
   assertions, test evidence, synthesis boundary, and explicit lack of
   fetch/execute overlap or cycle qualification.
+- Documented the composed cache/fetch path, native completion coverage, and
+  remaining execution/timing boundary.
 
 ### Integration
 
@@ -226,10 +234,10 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  serialized RTL packet fetch is not connected to the standalone cache or
-  externally gated state commit, and no composition forms an executable core.
-  There is no timed retirement, pin-level completion decoder, CPU fault
-  controller, overlapped pipeline, or subsystem integration.
+  serialized RTL cache/fetch frontend is not connected to externally gated
+  state commit, and no composition forms an executable core. There is no timed
+  retirement, pin-level completion decoder, CPU fault controller, overlapped
+  pipeline, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

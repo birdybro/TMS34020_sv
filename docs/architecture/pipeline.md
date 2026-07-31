@@ -53,8 +53,8 @@ clock and explicit clock enables:
   not an arbitrarily advanced fetch cursor.
 
 The existing `tms34020_register_commit` block verifies atomic A/B/SP and ST
-write intent only. The existing cache verifies a bounded instruction-word
-transaction. Neither currently proves the ordering between those blocks.
+write intent only. `tms34020_frontend` now verifies cache-to-packet ordering,
+including retry and abort, but no packet is connected to execution or commit.
 
 ## Portable implementation decomposition
 
@@ -88,7 +88,7 @@ serializes one instruction packet and waits for explicit completion, so it does
 not implement the zero-overhead cache-hit overlap. Later timing work may add
 buffering or overlap only when tests preserve the same packet, redirect, fault,
 and commit invariants. Its signal contract is documented in
-`instruction_fetch.md`.
+`instruction_fetch.md`; its cache composition is documented in `frontend.md`.
 
 ## Initial instruction-packet contract
 

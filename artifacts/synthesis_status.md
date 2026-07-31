@@ -59,3 +59,17 @@
   timing-closure result
 - Qualification claim: warning-free Cyclone V Analysis & Synthesis for only the
   named serialized fetch slice
+
+## Composed cache/fetch frontend smoke
+
+- Command: `make quartus-frontend-smoke`
+- Result: Analysis & Synthesis successful, 0 errors, 0 warnings
+- Analysis resources: 709 logic cells, 372 registers, 82 pins, 4,096
+  block-memory bits, 0 DSP blocks, and 0 PLLs
+- Memory inference: the integrated cache retains one portable 128×32 dual-port
+  RAM mapped to `altsyncram`
+- Scope: cache, packet assembler, generated decode, native completion/fault
+  handshakes, PC load/completion, and observability wrapper
+- Fit/placement/routing and TimeQuest: not run; no timing-closure claim
+- Qualification claim: warning-free Analysis & Synthesis for only the serialized
+  cache/fetch composition

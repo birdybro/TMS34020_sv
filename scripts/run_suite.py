@@ -22,6 +22,7 @@ SUITES = {
     "model": ("IMPLEMENTED", "TMS20-0007"),
     "rtl-leaf": ("IMPLEMENTED", "TMS20-0009/TMS20-0010"),
     "fetch": ("IMPLEMENTED", "TMS20-0013 bounded packet slice"),
+    "frontend": ("IMPLEMENTED", "TMS20-0012/TMS20-0013 integration"),
     "decode": ("NOT_IMPLEMENTED", "TMS20-0006"),
     "instruction": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0010"),
     "compatibility": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0031"),
@@ -41,6 +42,7 @@ SUITES = {
     "quartus-leaf-smoke": ("IMPLEMENTED", "TMS20-0034"),
     "quartus-cache-smoke": ("IMPLEMENTED", "TMS20-0012/TMS20-0034"),
     "quartus-fetch-smoke": ("IMPLEMENTED", "TMS20-0013/TMS20-0034"),
+    "quartus-frontend-smoke": ("IMPLEMENTED", "TMS20-0012/TMS20-0013/TMS20-0034"),
     "battletoads": ("NOT_IMPLEMENTED", "TMS20-0037"),
     "revx": ("NOT_IMPLEMENTED", "TMS20-0040"),
 }
@@ -187,6 +189,11 @@ def fetch() -> None:
     print("PASS: bounded instruction-packet fetch RTL slice")
 
 
+def frontend() -> None:
+    run([sys.executable, "scripts/run_frontend_tests.py"])
+    print("PASS: bounded cache/fetch frontend integration")
+
+
 def cache() -> None:
     run([sys.executable, "scripts/run_cache_rtl_tests.py"])
     run([sys.executable, "scripts/run_cache_random_tests.py"])
@@ -209,6 +216,10 @@ def quartus_cache_smoke() -> None:
 
 def quartus_fetch_smoke() -> None:
     run([sys.executable, "scripts/run_quartus_fetch_smoke.py"])
+
+
+def quartus_frontend_smoke() -> None:
+    run([sys.executable, "scripts/run_quartus_frontend_smoke.py"])
 
 
 def doctor() -> None:
@@ -252,7 +263,7 @@ def list_suites() -> None:
     print("  make doctor             report required and optional tools")
     for name, (status, task) in SUITES.items():
         target = f"{name}-tests" if name in {
-            "delta", "isa", "model", "rtl-leaf", "fetch", "decode", "instruction", "compatibility", "cache",
+            "delta", "isa", "model", "rtl-leaf", "fetch", "frontend", "decode", "instruction", "compatibility", "cache",
             "memory", "graphics", "video", "host", "fault", "coprocessor",
         } else name
         print(f"  make {target:18} {status:15} {task}")
@@ -296,6 +307,8 @@ def main() -> None:
         rtl_leaf()
     elif args.suite == "fetch":
         fetch()
+    elif args.suite == "frontend":
+        frontend()
     elif args.suite == "cache":
         cache()
     elif args.suite == "fault":
@@ -306,6 +319,8 @@ def main() -> None:
         quartus_cache_smoke()
     elif args.suite == "quartus-fetch-smoke":
         quartus_fetch_smoke()
+    elif args.suite == "quartus-frontend-smoke":
+        quartus_frontend_smoke()
 
 
 if __name__ == "__main__":

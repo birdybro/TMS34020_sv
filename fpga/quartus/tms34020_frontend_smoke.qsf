@@ -1,0 +1,15 @@
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSEBA6U23I7
+set_global_assignment -name TOP_LEVEL_ENTITY tms34020_frontend_synth_top
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY ../../build/quartus_frontend_smoke
+set_global_assignment -name SEARCH_PATH ../../../rtl
+
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/tms34020_pkg.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_decode.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/cache/tms34020_icache.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_instruction_fetch.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_frontend.sv
+set_global_assignment -name SYSTEMVERILOG_FILE tms34020_frontend_synth_top.sv
+
+set_global_assignment -name SDC_FILE tms34020_frontend_smoke.sdc
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 16
