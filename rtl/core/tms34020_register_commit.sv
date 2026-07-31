@@ -24,7 +24,8 @@ module tms34020_register_commit (
     output logic [31:0] sp_o
 );
 
-    logic register_file;
+    logic source_register_file;
+    logic destination_register_file;
     logic [3:0] source_index;
     logic [3:0] destination_index;
     logic [31:0] source_data;
@@ -42,10 +43,10 @@ module tms34020_register_commit (
         .write_file_i(register_write_file_o),
         .write_index_i(register_write_index_o),
         .write_data_i(register_write_data_o),
-        .read0_file_i(register_file),
+        .read0_file_i(source_register_file),
         .read0_index_i(source_index),
         .read0_data_o(source_data),
-        .read1_file_i(register_file),
+        .read1_file_i(destination_register_file),
         .read1_index_i(destination_index),
         .read1_data_o(destination_data),
         .sp_o(sp_o)
@@ -68,7 +69,8 @@ module tms34020_register_commit (
         .destination_i(destination_data),
         .status_i(status_o),
         .supported_o(supported_o),
-        .register_file_o(register_file),
+        .source_register_file_o(source_register_file),
+        .destination_register_file_o(destination_register_file),
         .source_index_o(source_index),
         .destination_index_o(destination_index),
         .register_write_enable_o(register_write_intent),
@@ -82,7 +84,7 @@ module tms34020_register_commit (
         commit_accepted_o = commit_i && supported_o;
         register_write_enable_o =
             commit_accepted_o && register_write_intent;
-        register_write_file_o = register_file;
+        register_write_file_o = destination_register_file;
         register_write_index_o = destination_index;
         register_write_data_o = register_write_data;
         status_write_enable_o =

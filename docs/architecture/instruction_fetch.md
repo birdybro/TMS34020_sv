@@ -139,7 +139,7 @@ area estimate nor fit/TimeQuest timing evidence.
 ## Explicit exclusions
 
 - Cache and fetch are composed in `tms34020_frontend`. The downstream bounded
-  `tms34020_scalar_slice` connects 26 verified one-word operations and the
+  `tms34020_scalar_slice` connects 27 verified one-word operations and the
   two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and three-word
   ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L operations to register/ST commit;
   every other packet remains blocked.

@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `8d75c94bf1a4cf1d9f92ac71aa0cda4108789c7a`
+- Latest commit: `854412048abb87367ed12ae22506f8ffe7227bee`
 - Passing tests: foundation, reference/hash, delta, ISA sweep, 74 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -17,15 +17,16 @@
   replay; full ISA/interfaces remain (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX
-  semantic leaves, and decoder-controlled register/ST write intents for 26
+  semantic leaves, and decoder-controlled register/ST write intents for 27
   one-word instructions, with externally gated one-edge state commit and
-  ordered-state tests, including MOVX/MOVY half-register merges with complete
-  ST preservation; standalone native-completion cache lookup/refill RTL;
+  ordered-state tests, including same-file and cross-file MOVE with N/Z/V
+  replacement and C preservation and MOVX/MOVY half-register merges with
+  complete ST preservation; standalone native-completion cache lookup/refill RTL;
   an integrated serialized cache/instruction-packet frontend with explicit
-  completion and abort/reload; and a bounded fetch-to-commit path for those 26
+  completion and abort/reload; and a bounded fetch-to-commit path for those 27
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets. All
-  other unsupported packets, including decoded cross-file MOVE, block. MOVI.W
+  other unsupported packets block. MOVI.W
   sign-extends its extension word;
   both MOVI forms replace N/Z/V while preserving C.
   There is no architectural completion timing or
@@ -44,7 +45,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 3,836 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 3,830 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored

@@ -46,6 +46,7 @@ module tms34020_leaf_synth_top (
     logic [31:0] status_value;
     logic execute_supported;
     logic execute_register_file;
+    logic execute_destination_register_file;
     logic [3:0] execute_source_index;
     logic [3:0] execute_destination_index;
     logic execute_register_write_enable;
@@ -92,7 +93,8 @@ module tms34020_leaf_synth_top (
          commit_register_write_enable, commit_register_write_file,
          commit_register_write_index} ^
         {31'd0, commit_status_write_enable} ^
-        {20'd0, execute_supported, execute_register_file,
+        {19'd0, execute_supported, execute_register_file,
+         execute_destination_register_file,
          execute_source_index, execute_destination_index,
          execute_register_write_enable, execute_status_write_enable} ^
         {27'd0, binary_nczv, binary_register_write_enable} ^
@@ -202,7 +204,10 @@ module tms34020_leaf_synth_top (
         .destination_i(operand_i),
         .status_i(status_value),
         .supported_o(execute_supported),
-        .register_file_o(execute_register_file),
+        .source_register_file_o(execute_register_file),
+        .destination_register_file_o(
+            execute_destination_register_file
+        ),
         .source_index_o(execute_source_index),
         .destination_index_o(execute_destination_index),
         .register_write_enable_o(execute_register_write_enable),

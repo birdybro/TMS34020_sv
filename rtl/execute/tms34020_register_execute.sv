@@ -9,7 +9,8 @@ module tms34020_register_execute (
     input  logic [31:0] destination_i,
     input  logic [31:0] status_i,
     output logic        supported_o,
-    output logic        register_file_o,
+    output logic        source_register_file_o,
+    output logic        destination_register_file_o,
     output logic [3:0]  source_index_o,
     output logic [3:0]  destination_index_o,
     output logic        register_write_enable_o,
@@ -234,7 +235,8 @@ module tms34020_register_execute (
 
     always_comb begin
         supported_o = 1'b0;
-        register_file_o = first_word_i[4];
+        source_register_file_o = first_word_i[4];
+        destination_register_file_o = first_word_i[4];
         source_index_o = first_word_i[8:5];
         destination_index_o = first_word_i[3:0];
         register_write_enable_o = 1'b0;
@@ -413,6 +415,23 @@ module tms34020_register_execute (
                     supported_o = 1'b1;
                     register_write_enable_o = 1'b1;
                     register_write_data_o = register_half_move_result;
+                end
+
+                TMS20_OP_MOVE: begin
+                    supported_o = 1'b1;
+                    destination_register_file_o =
+                        first_word_i[4] ^ first_word_i[9];
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = source_i;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = {
+                        source_i[31],
+                        1'b0,
+                        source_i == 32'd0,
+                        1'b0,
+                        28'd0
+                    };
+                    status_write_mask_o = 32'hB000_0000;
                 end
 
                 TMS20_OP_RMO: begin

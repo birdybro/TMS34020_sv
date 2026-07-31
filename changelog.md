@@ -303,6 +303,12 @@
   same-file RTL operand interface explicitly blocks MOVE at this extraction
   checkpoint. Warning-free Quartus reports 6,048 leaf, 359 fetch, 732 frontend,
   and 3,836 scalar logic cells.
+- Routed full-register MOVE through independent source/destination file
+  selectors and atomic state commit. Directed RTL covers same-file operation,
+  both cross-file directions, shared SP, all primary result classes, dependent
+  A-to-B/B-to-A commits, N/Z/V replacement, and C preservation. Warning-free
+  Quartus requalification reports 6,037 leaf and 3,830 scalar logic cells; the
+  generated decode, fetch, and frontend hardware are unchanged.
 
 ### Documentation
 
@@ -369,7 +375,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 26 one-word, four two-word, and eight
+  bounded scalar composition accepts only 27 one-word, four two-word, and eight
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

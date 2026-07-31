@@ -93,6 +93,7 @@ module tb_tms34020_verified_leaves;
     logic [31:0] execute_status;
     logic execute_supported;
     logic execute_register_file;
+    logic execute_destination_register_file;
     logic [3:0] execute_source_index;
     logic [3:0] execute_destination_index;
     logic execute_register_write_enable;
@@ -226,7 +227,10 @@ module tb_tms34020_verified_leaves;
         .destination_i(execute_destination),
         .status_i(execute_status),
         .supported_o(execute_supported),
-        .register_file_o(execute_register_file),
+        .source_register_file_o(execute_register_file),
+        .destination_register_file_o(
+            execute_destination_register_file
+        ),
         .source_index_o(execute_source_index),
         .destination_index_o(execute_destination_index),
         .register_write_enable_o(execute_register_write_enable),
@@ -1203,6 +1207,7 @@ module tb_tms34020_verified_leaves;
         );
         check_condition(
             execute_register_file &&
+            execute_destination_register_file &&
             execute_source_index == 4'd0 &&
             execute_destination_index == 4'd1,
             "register execute MOVY B-file selectors"
@@ -1214,14 +1219,65 @@ module tb_tms34020_verified_leaves;
         );
         check_condition(
             execute_register_file &&
+            execute_destination_register_file &&
             execute_source_index == 4'd15 &&
             execute_destination_index == 4'd2,
             "register execute MOVX shared-SP source selector"
         );
         check_register_execute(
+            16'h4C01, 32'h0000_FFFF, 32'hABCD_EF01, 32'h5020_0010,
+            1'b1, 1'b1, 32'h0000_FFFF, 1'b1, 32'd0, 32'hB000_0000,
+            "register execute MOVE A to A positive"
+        );
+        check_register_execute(
+            16'h4C01, 32'd0, 32'hABCD_EF01, 32'h5020_0010,
+            1'b1, 1'b1, 32'd0, 1'b1,
+            32'h2000_0000, 32'hB000_0000,
+            "register execute MOVE A to A zero"
+        );
+        check_register_execute(
+            16'h4C01, 32'hFFFF_FFFF, 32'hABCD_EF01, 32'h5020_0010,
+            1'b1, 1'b1, 32'hFFFF_FFFF, 1'b1,
+            32'h8000_0000, 32'hB000_0000,
+            "register execute MOVE A to A negative"
+        );
+        check_register_execute(
             16'h4E01, 32'h1234_5678, 32'hABCD_EF01, 32'hF020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decoded cross-file MOVE remains unsupported"
+            1'b1, 1'b1, 32'h1234_5678, 1'b1, 32'd0, 32'hB000_0000,
+            "register execute MOVE A to B"
+        );
+        check_condition(
+            !execute_register_file &&
+            execute_destination_register_file &&
+            execute_source_index == 4'd0 &&
+            execute_destination_index == 4'd1,
+            "register execute MOVE A-to-B selectors"
+        );
+        check_register_execute(
+            16'h4E11, 32'h89AB_CDEF, 32'hABCD_EF01, 32'h7020_001F,
+            1'b1, 1'b1, 32'h89AB_CDEF, 1'b1,
+            32'h8000_0000, 32'hB000_0000,
+            "register execute MOVE B to A"
+        );
+        check_condition(
+            execute_register_file &&
+            !execute_destination_register_file &&
+            execute_source_index == 4'd0 &&
+            execute_destination_index == 4'd1,
+            "register execute MOVE B-to-A selectors"
+        );
+        check_register_execute(
+            16'h4FFF, 32'hCAFE_BABE, 32'hCAFE_BABE, 32'h7020_001F,
+            1'b1, 1'b1, 32'hCAFE_BABE, 1'b1,
+            32'h8000_0000, 32'hB000_0000,
+            "register execute cross-file MOVE shared SP"
+        );
+        check_condition(
+            execute_register_file &&
+            !execute_destination_register_file &&
+            execute_source_index == 4'd15 &&
+            execute_destination_index == 4'd15,
+            "register execute cross-file MOVE shared-SP selectors"
         );
         check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
@@ -1451,6 +1507,20 @@ module tb_tms34020_verified_leaves;
             1'b0, 32'd0, 32'd0,
             32'h6000_0010, 32'd0,
             "register commit MOVY observes prior MOVX"
+        );
+        commit_register_instruction(
+            16'h4E01, 1'b1,
+            1'b1, 1'b1, 4'd1, 32'hFFFF_FFFF,
+            1'b1, 32'h8000_0000, 32'hB000_0000,
+            32'hC000_0010, 32'd0,
+            "register commit MOVE A0 to B1"
+        );
+        commit_register_instruction(
+            16'h4E32, 1'b1,
+            1'b1, 1'b0, 4'd2, 32'hFFFF_FFFF,
+            1'b1, 32'h8000_0000, 32'hB000_0000,
+            32'hC000_0010, 32'd0,
+            "register commit MOVE B1 to A2"
         );
         commit_register_instruction(
             16'h0380, 1'b1,

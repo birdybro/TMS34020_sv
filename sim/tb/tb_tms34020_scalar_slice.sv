@@ -169,6 +169,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0380: memory_word = 16'hEDE0;
                 32'h0000_0390: memory_word = 16'hEFE0;
                 32'h0000_03A0: memory_word = 16'h4E01;
+                32'h0000_03B0: memory_word = 16'h4E32;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -860,35 +861,28 @@ module tb_tms34020_scalar_slice;
             "four immediate and half-move packet commits"
         );
 
-        apply_reset();
-        load_pc(32'h3A0);
-        serve_word(32'h3A0);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_MOVE &&
-            packet_length_words == 3'd1 &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "complete cross-file MOVE packet remains blocked"
+        serve_and_commit(
+            32'h3A0, TMS20_OP_MOVE,
+            1'b1, 1'b1, 4'd1, 32'h1234_5678,
+            1'b1, 32'd0, 32'hB000_0000,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar MOVE crosses A0 to B1"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0,
-                "blocked MOVE packet cannot mutate state"
-            );
-        end
+        serve_and_commit(
+            32'h3B0, TMS20_OP_MOVE,
+            1'b1, 1'b0, 4'd2, 32'h1234_5678,
+            1'b1, 32'd0, 32'hB000_0000,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar MOVE observes B1 and crosses to A2"
+        );
+        check_condition(
+            commit_count == 6,
+            "six immediate, half-move, and full-move packet commits"
+        );
 
         apply_reset();
-        load_pc(32'h3B0);
-        serve_word(32'h3B0);
+        load_pc(32'h3C0);
+        serve_word(32'h3C0);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
