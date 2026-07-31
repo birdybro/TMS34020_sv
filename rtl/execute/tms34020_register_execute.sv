@@ -53,6 +53,7 @@ module tms34020_register_execute (
     logic [31:0] immediate_move_result;
     logic immediate_move_n;
     logic immediate_move_z;
+    logic [31:0] register_half_move_result;
     logic [31:0] constant_value;
     logic [31:0] addk_result;
     logic [3:0] addk_nczv;
@@ -189,6 +190,19 @@ module tms34020_register_execute (
         end
         immediate_move_n = immediate_move_result[31];
         immediate_move_z = immediate_move_result == 32'd0;
+    end
+
+    always_comb begin
+        register_half_move_result = {
+            destination_i[31:16],
+            source_i[15:0]
+        };
+        if (opcode_id == TMS20_OP_MOVY) begin
+            register_half_move_result = {
+                source_i[31:16],
+                destination_i[15:0]
+            };
+        end
     end
 
     always_comb begin
@@ -392,6 +406,13 @@ module tms34020_register_execute (
                         28'd0
                     };
                     status_write_mask_o = 32'hB000_0000;
+                end
+
+                TMS20_OP_MOVX,
+                TMS20_OP_MOVY: begin
+                    supported_o = 1'b1;
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = register_half_move_result;
                 end
 
                 TMS20_OP_RMO: begin

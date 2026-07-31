@@ -1177,14 +1177,46 @@ module tb_tms34020_verified_leaves;
             "register execute MOVI.L B-file zero"
         );
         check_register_execute(
-            16'hEC01, 32'h1234_5678, 32'hFFFF_FFFF, 32'hF020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decoded MOVX remains unsupported at extraction checkpoint"
+            16'hEC01, 32'h0000_0000, 32'hFFFF_FFFF, 32'hF020_001F,
+            1'b1, 1'b1, 32'hFFFF_0000, 1'b0, 32'd0, 32'd0,
+            "register execute MOVX zero source"
         );
         check_register_execute(
-            16'hEE01, 32'h1234_5678, 32'hFFFF_FFFF, 32'hF020_001F,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decoded MOVY remains unsupported at extraction checkpoint"
+            16'hEC01, 32'h1234_5678, 32'h0000_0000, 32'hF020_001F,
+            1'b1, 1'b1, 32'h0000_5678, 1'b0, 32'd0, 32'd0,
+            "register execute MOVX low-half merge"
+        );
+        check_register_execute(
+            16'hEC01, 32'hFFFF_FFFF, 32'h0000_0000, 32'hF020_001F,
+            1'b1, 1'b1, 32'h0000_FFFF, 1'b0, 32'd0, 32'd0,
+            "register execute MOVX negative source"
+        );
+        check_register_execute(
+            16'hEE01, 32'h0000_0000, 32'hFFFF_FFFF, 32'hF020_001F,
+            1'b1, 1'b1, 32'h0000_FFFF, 1'b0, 32'd0, 32'd0,
+            "register execute MOVY zero source"
+        );
+        check_register_execute(
+            16'hEE11, 32'h1234_5678, 32'h0000_0000, 32'hF020_001F,
+            1'b1, 1'b1, 32'h1234_0000, 1'b0, 32'd0, 32'd0,
+            "register execute MOVY B-file high-half merge"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd0 &&
+            execute_destination_index == 4'd1,
+            "register execute MOVY B-file selectors"
+        );
+        check_register_execute(
+            16'hEDF2, 32'h1234_5678, 32'hABCD_EF01, 32'hF020_001F,
+            1'b1, 1'b1, 32'hABCD_5678, 1'b0, 32'd0, 32'd0,
+            "register execute MOVX shared-SP source selector"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd15 &&
+            execute_destination_index == 4'd2,
+            "register execute MOVX shared-SP source selector"
         );
         check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
@@ -1400,6 +1432,20 @@ module tb_tms34020_verified_leaves;
             1'b1, 4'd15, 32'd0,
             1'b0, 1'b1, 32'h6000_0010, 32'd0,
             "register commit MOVI.L updates shared SP and preserves carry"
+        );
+        commit_register_instruction(
+            16'hEC01, 1'b1,
+            1'b1, 1'b0, 4'd1, 32'h0000_FFFF,
+            1'b0, 32'd0, 32'd0,
+            32'h6000_0010, 32'd0,
+            "register commit MOVX preserves destination Y and ST"
+        );
+        commit_register_instruction(
+            16'hEE01, 1'b1,
+            1'b1, 1'b0, 4'd1, 32'hFFFF_FFFF,
+            1'b0, 32'd0, 32'd0,
+            32'h6000_0010, 32'd0,
+            "register commit MOVY observes prior MOVX"
         );
         commit_register_instruction(
             16'h0380, 1'b1,

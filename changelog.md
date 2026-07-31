@@ -290,6 +290,12 @@
   operation, and complete ST preservation. The decoded instructions remain
   blocked at this extraction-only RTL checkpoint. Warning-free Quartus reports
   5,939 leaf, 361 fetch, 740 frontend, and 3,792 scalar logic cells.
+- Routed MOVX/MOVY through the register executor and atomic state commit.
+  Directed RTL verifies low/high half replacement, retained destination halves,
+  same-file A/B selectors, shared-SP source selection, dependent packet
+  execution, and complete ST preservation. Warning-free Quartus
+  requalification reports 6,071 leaf and 3,865 scalar logic cells; the
+  generated decode, fetch, and frontend hardware are unchanged.
 
 ### Documentation
 
@@ -356,7 +362,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 24 one-word, four two-word, and eight
+  bounded scalar composition accepts only 26 one-word, four two-word, and eight
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

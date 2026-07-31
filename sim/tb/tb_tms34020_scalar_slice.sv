@@ -166,7 +166,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0350: memory_word = 16'h09FF;
                 32'h0000_0360: memory_word = 16'h5678;
                 32'h0000_0370: memory_word = 16'h1234;
-                32'h0000_0380: memory_word = 16'hEC01;
+                32'h0000_0380: memory_word = 16'hEDE0;
+                32'h0000_0390: memory_word = 16'hEFE0;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -839,35 +840,28 @@ module tb_tms34020_scalar_slice;
             "two immediate-move packet commits"
         );
 
-        apply_reset();
-        load_pc(32'h380);
-        serve_word(32'h380);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_MOVX &&
-            packet_length_words == 3'd1 &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "complete MOVX packet remains blocked"
+        serve_and_commit(
+            32'h380, TMS20_OP_MOVX,
+            1'b1, 1'b0, 4'd0, 32'h0000_5678,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar MOVX merges shared-SP X into A0"
         );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0,
-                "blocked MOVX packet cannot mutate state"
-            );
-        end
+        serve_and_commit(
+            32'h390, TMS20_OP_MOVY,
+            1'b1, 1'b0, 4'd0, 32'h1234_5678,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'h1234_5678,
+            "scalar MOVY observes MOVX and shared-SP Y"
+        );
+        check_condition(
+            commit_count == 4,
+            "four immediate and half-move packet commits"
+        );
 
         apply_reset();
-        load_pc(32'h390);
-        serve_word(32'h390);
+        load_pc(32'h3A0);
+        serve_word(32'h3A0);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
