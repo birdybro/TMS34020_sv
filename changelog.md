@@ -359,6 +359,12 @@
   The regenerated 54-entry RTL decode passes the complete implemented
   regression and warning-free Cyclone V leaf/fetch/frontend/scalar synthesis;
   model execution and RTL redirect ownership remain separate follow-on work.
+- Implemented independent GETPC and EXGPC model behavior using the
+  instruction-boundary sequential PC rather than cache-fetch state. The
+  90-test model suite covers TI's published rows, both register files, shared
+  SP, low-nibble target alignment, status preservation, one-/two-state counts,
+  and trace next-PC values. All 54 currently extracted forms now have bounded
+  successful model semantics; this remains a partial-ISA claim only.
 
 ### Documentation
 

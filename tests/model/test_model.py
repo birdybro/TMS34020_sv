@@ -314,6 +314,60 @@ class ExecutionTests(unittest.TestCase):
                 self.assertEqual(model.state.st, status)
                 self.assertEqual(event.machine_states, 1)
 
+    def test_getpc_primary_rows_files_shared_sp_and_status(self) -> None:
+        cases = (
+            (0x0000_1BD0, 0x0141, "A", 1),
+            (0x0000_1C10, 0x0141, "A", 1),
+            (0x1234_5600, 0x0152, "B", 2),
+            (0xFFFF_FFE0, 0x014F, "A", 15),
+        )
+        for start_pc, opcode, register_file, index in cases:
+            with self.subTest(
+                start_pc=f"{start_pc:08X}",
+                opcode=f"{opcode:04X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=start_pc)
+                model.state.st = 0xF020_001F
+                event = model.step()
+                expected_pc = (start_pc + 16) & 0xFFFF_FFFF
+                self.assertEqual(event.mnemonic, "GETPC")
+                self.assertEqual(
+                    model.state.read_reg(register_file, index),
+                    expected_pc,
+                )
+                self.assertEqual(model.state.pc, expected_pc)
+                self.assertEqual(event.next_pc, expected_pc)
+                self.assertEqual(event.machine_states, 1)
+                self.assertEqual(model.state.st, 0xF020_001F)
+
+    def test_exgpc_primary_rows_files_shared_sp_and_alignment(self) -> None:
+        cases = (
+            (0x0121, "A", 1, 0x0000_1C10, 0x0000_1C10),
+            (0x0121, "A", 1, 0x0000_1C50, 0x0000_1C50),
+            (0x0132, "B", 2, 0x1234_567F, 0x1234_5670),
+            (0x013F, "B", 15, 0xFFFF_FFFF, 0xFFFF_FFF0),
+        )
+        for opcode, register_file, index, old_register, expected_pc in cases:
+            with self.subTest(
+                opcode=f"{opcode:04X}",
+                old_register=f"{old_register:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=0x0000_2080)
+                model.state.write_reg(register_file, index, old_register)
+                model.state.st = 0x9020_0015
+                event = model.step()
+                self.assertEqual(event.mnemonic, "EXGPC")
+                self.assertEqual(
+                    model.state.read_reg(register_file, index),
+                    0x0000_2090,
+                )
+                self.assertEqual(model.state.pc, expected_pc)
+                self.assertEqual(event.next_pc, expected_pc)
+                self.assertEqual(event.machine_states, 2)
+                self.assertEqual(model.state.st, 0x9020_0015)
+
     def test_addk_primary_examples(self) -> None:
         cases = (
             (1, 0xFFFFFFFF, 0x00000000, 0b0110),

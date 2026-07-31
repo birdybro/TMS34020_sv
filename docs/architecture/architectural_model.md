@@ -18,8 +18,8 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK,
-  MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, EXGPC, GETPC, GETST, ADDK/INC,
+  SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
@@ -36,6 +36,15 @@ legal PSIZE and the page-13-225 state counts. MWAIT exposes an abstract
 pending-write-state input so its minimum/remaining-state timing can be tested.
 IDLE enters the documented wait state but does not yet model interrupt
 recognition/completion, so it explicitly makes aggregate timing incomplete.
+
+GETPC writes the single-word instruction's sequential `PC'` to the selected
+A/B register or shared SP without changing status. EXGPC first captures the
+old selected-register value, writes the same sequential `PC'` to that
+destination, and redirects PC to the captured value with bits `[3:0]` cleared.
+The handlers use the instruction-boundary PC established by `step()`, not an
+instruction-cache fetch cursor, and report the documented one- and two-state
+counts. Source: TI *TMS34020 User's Guide*, August 1990, printed pp.13-112 and
+13-130; PC alignment and increment rules in §4.2, printed p.4-4.
 
 CMPK implements the encoded-zero-means-32 constant and nondestructive
 subtraction flags. EXGPS and GETPS use the internal PSIZE register; EXGPS
@@ -240,8 +249,10 @@ all TI CMPI rows, complemented object words, nondestructive A/B/SP behavior,
 lower-ST preservation, and short/long alignment timing;
 all TI register/immediate logical example rows, ANDI encoded-complement
 behavior, aligned and unaligned immediate timing,
-CLRC/SETC preservation, DINT/EINT IE changes, complete GETST transfer, all TI
-ADDK and INC-alias example rows, all SUBK and DEC-alias example rows,
+CLRC/SETC preservation, DINT/EINT IE changes, GETPC/EXGPC primary rows,
+A/B/shared-SP selection, sequential-PC exchange, redirect alignment and status
+preservation, complete GETST transfer, all TI ADDK and INC-alias example rows,
+all SUBK and DEC-alias example rows,
 every SUBK constant, every MOVK constant, encoded-zero/B/SP cases for all three
 constant families, complete MOVK status preservation, all published MOVI
 short/long rows, sign extension, C preservation, the resolved Z/V behavior,

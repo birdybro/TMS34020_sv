@@ -91,6 +91,8 @@ class Tms34020Model:
             "CLRC": self._execute_clrc,
             "DINT": self._execute_dint,
             "EINT": self._execute_eint,
+            "EXGPC": self._execute_exgpc,
+            "GETPC": self._execute_getpc,
             "GETST": self._execute_getst,
             "ADDK": self._execute_addk,
             "SUBK": self._execute_subk,
@@ -447,6 +449,25 @@ class Tms34020Model:
         del instruction, words
         self._set_status_bit(IE_BIT, True)
         return 3
+
+    def _execute_exgpc(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        old_register = self.state.read_reg(register_file, index)
+        sequential_pc = self.state.pc
+        self.state.write_reg(register_file, index, sequential_pc)
+        self.state.pc = old_register & 0xFFFF_FFF0
+        return 2
+
+    def _execute_getpc(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        self.state.write_reg(register_file, index, self.state.pc)
+        return 1
 
     def _execute_getst(
         self, instruction: Instruction, words: list[int]
