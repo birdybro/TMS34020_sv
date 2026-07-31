@@ -22,6 +22,9 @@
 - The first primary-page-verified ISA database slice, deterministic query
   library, independent opcode fixtures, and a collision sweep across all 65,536
   first words.
+- An independent bit-addressed architectural-model slice with A/B/SP aliasing,
+  reset-vector handling, deterministic randomized state and replay, traces, and
+  verified NOP/IDLE/MWAIT/ADDXYI/RPIX execution.
 
 ### Changed
 
@@ -30,7 +33,8 @@
 
 ### Fixed
 
-- None.
+- Model instruction errors roll back PC and all other state instead of leaving a
+  partially committed checkpoint.
 
 ### Verified
 

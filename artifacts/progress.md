@@ -2,11 +2,12 @@
 
 - Current milestone: device/delta research and architecture extraction
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `a31dfb5ffc2f72671274821b1e3230117381f91c`
+- Latest commit: `2400f4019fae4b61272bafbb16cb5914bd52eecb`
 - Passing tests: foundation, reference-manifest/hash, reuse-audit, and
   device-scope/delta schema and required-feature coverage checks
 - Failing tests: none observed
-- Model status: not implemented (`TMS20-0007`)
+- Model status: independent state/replay plus 5 of 11 extracted instructions;
+  full ISA/cache/interfaces not implemented (`TMS20-0007`)
 - RTL status: not implemented (`TMS20-0009`, `TMS20-0010`)
 - Cache status: not implemented (`TMS20-0012`)
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)

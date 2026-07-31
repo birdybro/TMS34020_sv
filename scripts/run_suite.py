@@ -19,7 +19,7 @@ SUITES = {
     "references": ("IMPLEMENTED", "TMS20-0002"),
     "delta": ("IMPLEMENTED", "TMS20-0005"),
     "isa": ("IMPLEMENTED", "TMS20-0006"),
-    "model": ("NOT_IMPLEMENTED", "TMS20-0007"),
+    "model": ("IMPLEMENTED", "TMS20-0007"),
     "decode": ("NOT_IMPLEMENTED", "TMS20-0006"),
     "instruction": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0010"),
     "compatibility": ("NOT_IMPLEMENTED", "TMS20-0009/TMS20-0031"),
@@ -137,6 +137,22 @@ def isa() -> None:
     print("PASS: extracted ISA schema, fixtures, and partial 65,536-word sweep")
 
 
+def model() -> None:
+    run(
+        [
+            sys.executable,
+            "-m",
+            "unittest",
+            "discover",
+            "-s",
+            "tests/model",
+            "-p",
+            "test_*.py",
+        ]
+    )
+    print("PASS: independent architectural-model verified slice")
+
+
 def doctor() -> None:
     required = ("git", "make", "python3")
     optional = (
@@ -216,6 +232,8 @@ def main() -> None:
         delta()
     elif args.suite == "isa":
         isa()
+    elif args.suite == "model":
+        model()
 
 
 if __name__ == "__main__":

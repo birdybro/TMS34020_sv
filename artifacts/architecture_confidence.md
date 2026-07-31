@@ -9,6 +9,7 @@
 | Exact Battletoads silicon | UNKNOWN | 32 MHz fits both commercial original and A parts; marking unreadable |
 | Exact Revolution X silicon | INFERRED | 40 MHz board/driver evidence and commercial A-40 catalog option; marking unreadable |
 | ISA | PROVISIONAL | 11 primary-page-verified entries/76 first words; complete extraction pending |
+| Architectural model slice | PROVISIONAL | 5 page-verified instructions and deterministic state/replay; cache/full ISA absent |
 | Cache organization | VERIFIED_PRIMARY | August 1990 guide Chapter 5 |
 | Pipeline timing | UNKNOWN | Detailed timing-case extraction pending |
 | Memory/bus timing | PROVISIONAL | A clock-stretch cases identified; complete phase extraction pending |
