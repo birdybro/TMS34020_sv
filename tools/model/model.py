@@ -119,6 +119,7 @@ class Tms34020Model:
             "OR": self._execute_or,
             "XOR": self._execute_xor,
             "ANDNI": self._execute_andni,
+            "BLMOVE": self._execute_blmove,
             "ORI": self._execute_ori,
             "XORI": self._execute_xori,
             "IDLE": self._execute_idle,
@@ -910,6 +911,79 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_immediate_logical(words, "ANDNI")
+
+    def _execute_blmove(
+        self, instruction: Instruction, words: list[int]
+    ) -> None:
+        del instruction
+        source_unaligned = (words[0] >> 1) & 1
+        destination_unaligned = words[0] & 1
+        source_address = self.state.read_reg("B", 0)
+        destination_address = self.state.read_reg("B", 2)
+        bit_count = self.state.read_reg("B", 7)
+
+        if source_unaligned == 0 and source_address & 0x1F:
+            raise ModelError(
+                "BLMOVE S=0 requires 32-bit-aligned B0/SADDR"
+            )
+        if destination_unaligned == 0 and destination_address & 0x1F:
+            raise ModelError(
+                "BLMOVE D=0 requires 32-bit-aligned B2/DADDR"
+            )
+        ranges_overlap = (
+            bit_count != 0
+            and source_address != destination_address
+            and (
+                (
+                    (destination_address - source_address) & MASK32
+                ) < bit_count
+                or (
+                    (source_address - destination_address) & MASK32
+                ) < bit_count
+            )
+        )
+        if ranges_overlap:
+            raise ModelError(
+                "overlapping BLMOVE ranges are outside the verified model"
+            )
+
+        offset = 0
+        while offset < bit_count:
+            width = min(32, bit_count - offset)
+            value = self.state.memory.read_bits(
+                (source_address + offset) & MASK32,
+                width,
+            )
+            self.state.memory.write_bits(
+                (destination_address + offset) & MASK32,
+                width,
+                value,
+            )
+            offset += width
+
+        self.state.write_reg(
+            "B", 0, (source_address + bit_count) & MASK32
+        )
+        self.state.write_reg(
+            "B", 2, (destination_address + bit_count) & MASK32
+        )
+        self.state.write_reg("B", 7, 0)
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "abstract_block_move",
+                "source_bit_address": source_address,
+                "destination_bit_address": destination_address,
+                "width": bit_count,
+                "source_unaligned_mode": source_unaligned,
+                "destination_unaligned_mode": destination_unaligned,
+            }
+        )
+        self._active_trace.notes.append(
+            "successful non-overlapping BLMOVE boundary; physical "
+            "transactions, timing, interrupt, fault, and retry pending"
+        )
+        return None
 
     def _execute_ori(
         self, instruction: Instruction, words: list[int]

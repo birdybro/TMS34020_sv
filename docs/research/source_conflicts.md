@@ -285,3 +285,24 @@
   results. Another TI guide revision, erratum, or hardware trace is still
   desirable. Confidence: `VERIFIED_PRIMARY` for the table/example mapping and
   `PROVISIONAL` for explaining the defective prose.
+
+## RSC-0017: pinned MAME BLMOVE alignment and continuation are incomplete
+
+- Status: open secondary-reference implementation gap; bounded TI success
+  boundary modeled
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, BLMOVE printed
+  pp.13-44..13-45 requires 32-bit long-word alignment whenever S or D is zero.
+  It defines S/D-specific intermediate B0/B2 updates, decrements B7 as bits are
+  moved, and restarts the opcode after interruption.
+- Secondary evidence: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 2047–2092 checks
+  `address & 0xF`, which is only 16-bit alignment, and transfers 16-bit words
+  regardless of S/D. Lines 2078–2082 explicitly mark the B0/B2
+  mid-instruction update policy TODO.
+- Decision: the model enforces TI's 32-bit alignment requirements and verifies
+  only the successful final B0/B2/B7/ST state for non-overlapping ranges. It
+  does not copy MAME's request width, timing, or continuation behavior.
+  Overlap, intermediate checkpoints, page-mode transactions, dynamic sizing,
+  faults, and retries remain unresolved. Confidence: `VERIFIED_PRIMARY` for
+  the alignment and final state, `UNKNOWN` for omitted physical sequencing.

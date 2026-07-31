@@ -60,6 +60,13 @@ alignment class. Sources: User's Guide TRAPL printed p.13-257 and timing table
 p.15-9. These counts assume successful memory cycles under the chapter-15
 conditions; stack/vector wait, retry, and fault timing is not implemented.
 
+BLMOVE is labeled only `complex instruction` on its instruction page and in
+the chapter-15 table. The guide states that B7 decrements as the move proceeds
+and that B0/B2 intermediate updates depend on S/D, making an instruction-level
+fixed count inappropriate. Source: User's Guide printed pp.13-44..13-45 and
+p.15-3. The model therefore reports no state count; no BLMOVE timing,
+page-mode, width, wait, interrupt, fault, or retry case is claimed.
+
 ## Cache-fetch interaction
 
 A cache hit reads an instruction word in one machine state, normally overlapped

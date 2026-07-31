@@ -346,6 +346,12 @@
   lookup, complete ST reset, PC alignment, and 10/12-state stack-alignment
   cases. The 84-test model covers 51/52 extracted forms. Stack/vector
   fault/retry behavior and RTL interrupt sequencing remain absent.
+- Implemented a bounded independent BLMOVE success path for all four S/D
+  modes, with TI's 32-bit alignment requirements, bit-exact non-overlapping
+  copies, B0/B2 advancement, B7 completion, ST preservation, zero/self/wrap
+  cases, abstract tracing, and rollback guards. The 88-test model now has
+  bounded semantics for all 52 currently extracted forms; this is not a
+  complete ISA or continuation/timing claim.
 
 ### Documentation
 
@@ -372,6 +378,10 @@
   worked example. The database and model use the repeated descending-vector
   mapping, while RSC-0016 retains the evidence and need for errata/hardware
   corroboration.
+- Recorded that pinned MAME's BLMOVE uses 16-bit rather than TI's 32-bit
+  alignment check and leaves S/D-dependent continuation updates TODO.
+  RSC-0017 keeps its request width, overlap, continuation, and timing behavior
+  out of the primary-driven model contract.
 - Recorded a second pinned MAME disassembler discrepancy: its broad masks label
   nonzero low-bit neighbors of fixed NOP/CLRC/DINT/EINT/SETC encodings, while
   TI fixes bits 4–0 to zero.

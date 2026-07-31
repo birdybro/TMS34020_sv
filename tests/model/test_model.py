@@ -14,7 +14,7 @@ from tools.model import (
     ModelError,
     ProcessorState,
     Tms34020Model,
-    UnsupportedInstruction,
+    UnclassifiedEncoding,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1563,6 +1563,144 @@ class ExecutionTests(unittest.TestCase):
                     ],
                 )
 
+    def test_blmove_all_modes_successful_boundary(self) -> None:
+        fixtures = (
+            (0x00F0, 0x0000_0400, 0x0000_0800, 0, 0),
+            (0x00F1, 0x0000_0400, 0x0000_0805, 0, 1),
+            (0x00F2, 0x0000_0403, 0x0000_0800, 1, 0),
+            (0x00F3, 0x0000_0403, 0x0000_0805, 1, 1),
+        )
+        chunks = ((32, 0x89AB_CDEF), (32, 0x1357_9BDF), (1, 1))
+        for (
+            opcode,
+            source,
+            destination,
+            source_mode,
+            destination_mode,
+        ) in fixtures:
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=0x2000)
+                offset = 0
+                for width, value in chunks:
+                    model.state.memory.write_bits(
+                        source + offset, width, value
+                    )
+                    offset += width
+                model.state.memory.write_bits(destination - 1, 1, 1)
+                model.state.memory.write_bits(destination + 65, 1, 1)
+                model.state.write_reg("B", 0, source)
+                model.state.write_reg("B", 2, destination)
+                model.state.write_reg("B", 7, 65)
+                model.state.st = 0xF123_4567
+                event = model.step()
+
+                offset = 0
+                for width, value in chunks:
+                    self.assertEqual(
+                        model.state.memory.read_bits(
+                            destination + offset, width
+                        ),
+                        value,
+                    )
+                    offset += width
+                self.assertEqual(
+                    model.state.memory.read_bits(destination - 1, 1), 1
+                )
+                self.assertEqual(
+                    model.state.memory.read_bits(destination + 65, 1), 1
+                )
+                self.assertEqual(
+                    model.state.read_reg("B", 0), source + 65
+                )
+                self.assertEqual(
+                    model.state.read_reg("B", 2), destination + 65
+                )
+                self.assertEqual(model.state.read_reg("B", 7), 0)
+                self.assertEqual(model.state.st, 0xF123_4567)
+                self.assertIsNone(event.machine_states)
+                self.assertFalse(model.state.timing_complete)
+                self.assertEqual(
+                    event.transactions[-1],
+                    {
+                        "class": "abstract_block_move",
+                        "source_bit_address": source,
+                        "destination_bit_address": destination,
+                        "width": 65,
+                        "source_unaligned_mode": source_mode,
+                        "destination_unaligned_mode": destination_mode,
+                    },
+                )
+
+    def test_blmove_alignment_guards_roll_back(self) -> None:
+        fixtures = (
+            (0x00F0, 0x0000_0401, 0x0000_0800),
+            (0x00F0, 0x0000_0400, 0x0000_0801),
+            (0x00F1, 0x0000_0401, 0x0000_0801),
+            (0x00F2, 0x0000_0401, 0x0000_0801),
+        )
+        for opcode, source, destination in fixtures:
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=0x2000)
+                model.state.write_reg("B", 0, source)
+                model.state.write_reg("B", 2, destination)
+                model.state.write_reg("B", 7, 32)
+                before = model.snapshot()
+                with self.assertRaises(ModelError):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
+    def test_blmove_overlap_guard_is_not_silicon_behavior(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x00F3], bit_address=0x2000)
+        model.state.write_reg("B", 0, 0x400)
+        model.state.write_reg("B", 2, 0x410)
+        model.state.write_reg("B", 7, 32)
+        before = model.snapshot()
+        with self.assertRaises(ModelError):
+            model.step()
+        self.assertEqual(model.snapshot(), before)
+
+    def test_blmove_zero_self_and_wrapping_ranges(self) -> None:
+        zero = Tms34020Model()
+        zero.load_program([0x00F3], bit_address=0x2000)
+        zero.state.write_reg("B", 0, 0x401)
+        zero.state.write_reg("B", 2, 0x801)
+        event = zero.step()
+        self.assertEqual(zero.state.read_reg("B", 0), 0x401)
+        self.assertEqual(zero.state.read_reg("B", 2), 0x801)
+        self.assertEqual(zero.state.read_reg("B", 7), 0)
+        self.assertEqual(event.transactions[-1]["width"], 0)
+
+        same = Tms34020Model()
+        same.load_program([0x00F3], bit_address=0x2000)
+        same.state.memory.write_bits(0x403, 32, 0xA5C3_5A3C)
+        same.state.write_reg("B", 0, 0x403)
+        same.state.write_reg("B", 2, 0x403)
+        same.state.write_reg("B", 7, 32)
+        same.step()
+        self.assertEqual(
+            same.state.memory.read_bits(0x403, 32), 0xA5C3_5A3C
+        )
+        self.assertEqual(same.state.read_reg("B", 0), 0x423)
+        self.assertEqual(same.state.read_reg("B", 2), 0x423)
+
+        wrapping = Tms34020Model()
+        wrapping.load_program([0x00F3], bit_address=0x2000)
+        wrapping.state.memory.write_bits(
+            0xFFFF_FFF0, 32, 0xC35A_A53C
+        )
+        wrapping.state.write_reg("B", 0, 0xFFFF_FFF0)
+        wrapping.state.write_reg("B", 2, 0x100)
+        wrapping.state.write_reg("B", 7, 32)
+        wrapping.step()
+        self.assertEqual(
+            wrapping.state.memory.read_bits(0x100, 32), 0xC35A_A53C
+        )
+        self.assertEqual(wrapping.state.read_reg("B", 0), 0x10)
+        self.assertEqual(wrapping.state.read_reg("B", 2), 0x120)
+
     def test_idle_retains_pc_and_marks_timing_incomplete(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0040], bit_address=0x100)
@@ -1574,11 +1712,11 @@ class ExecutionTests(unittest.TestCase):
         with self.assertRaises(ModelError):
             model.step()
 
-    def test_decoded_but_unimplemented_instruction_does_not_advance(self) -> None:
+    def test_unclassified_instruction_does_not_advance(self) -> None:
         model = Tms34020Model()
-        model.load_program([0x00F3], bit_address=0x80)
+        model.load_program([0x0000], bit_address=0x80)
         before = model.snapshot()
-        with self.assertRaises(UnsupportedInstruction):
+        with self.assertRaises(UnclassifiedEncoding):
             model.step()
         self.assertEqual(model.snapshot(), before)
 

@@ -3,21 +3,23 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `2c844b7365e9a9ff3f76f966e6fb06286c96239b`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 84 directed model
+- Latest commit: `f6229ee81392e12a62ba707e145ad82901ee4a4e`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 88 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 51 of 52 extracted encoding forms, including complete
+- Model status: all 52 currently extracted encoding forms have bounded
+  successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
-  SETCDP/SETCMP/SETCSP plus successful TRAPL and VLCOL forms, fetch
-  opcodes/extensions through
+  SETCDP/SETCMP/SETCSP plus bounded BLMOVE and successful TRAPL/VLCOL forms;
+  fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
-  replay; BLMOVE, non-cache fault/retry, and full ISA/interfaces remain
-  (`TMS20-0007`)
+  replay. The extracted ISA is far from complete; BLMOVE overlap,
+  continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
+  (`TMS20-0006`, `TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST

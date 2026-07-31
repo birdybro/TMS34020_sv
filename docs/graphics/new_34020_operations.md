@@ -61,3 +61,11 @@ transaction and updates an explicit external color-latch abstraction. It does
 not yet model LRDY/BUSFLT handling or pin phases for the special cycle. No RTL
 VLCOL request owner exists. Pinned MAME's VLCOL handler is a logging stub; see
 RSC-0015.
+
+## Continuous bit-block move
+
+BLMOVE and the four S/D alignment/update modes are documented in
+`array_operations.md`. The independent model covers only an atomic,
+non-overlapping successful boundary. Interrupt continuation, overlap results,
+physical requests, page mode, dynamic sizing, faults, retries, and timing
+remain open.

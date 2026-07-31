@@ -21,9 +21,10 @@ Implemented:
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK,
   MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
-  AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry,
-  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, SETCSP, and
-  TRAPL and VLCOL.
+  AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
+  IDLE entry,
+  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, SETCSP,
+  TRAPL, and VLCOL.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -66,6 +67,15 @@ split. The vector-entry formula follows both TI vector-map figures and its
 worked examples rather than contradictory prose; see
 `docs/architecture/interrupts.md` and RSC-0016. Stack/vector faults and retries
 are not modeled.
+BLMOVE validates all four S/D alignment modes, performs a bit-exact successful
+non-overlapping copy, advances B0/SADDR and B2/DADDR by the original B7/DYDX,
+clears B7, and preserves ST. It emits one abstract block transaction and
+leaves machine-state timing incomplete because TI labels the instruction
+complex. Overlapping nonidentical ranges raise `ModelError` rather than
+inventing a result. Intermediate register updates, interruption, page mode,
+bus decomposition, faults, retries, and continuation remain absent. Sources:
+the same guide, printed pp.13-44..13-45 and §8.4 printed p.8-16; see
+`docs/graphics/array_operations.md` and RSC-0017.
 The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,
@@ -169,10 +179,6 @@ raises `ModelError` for any other current value. That is a verification guard,
 not a claim that physical silicon traps or otherwise behaves the same way for
 an undocumented PSIZE value.
 
-The decoded BLMOVE entry intentionally raises `UnsupportedInstruction` without
-changing state. Its presence in the ISA database is not an implementation
-claim.
-
 The cache model is in `tools/model/cache.py` and follows the primary contract
 in `docs/cache/instruction_cache.md` and
 `docs/memory/bus_fault_retry.md`. It exposes 16-bit direct instruction-fetch
@@ -250,7 +256,9 @@ source/destination selection, conversion-field boundaries, hidden writes,
 VLCOL full-width/field-size-independent successful special-cycle traces,
 TRAPL primary vector examples, signed extremes, stack order, ST/PC changes,
 aligned/unaligned timing, and vector-target alignment,
-IDLE claim boundaries, no mutation on unsupported
+all BLMOVE S/D modes, alignment guards, zero/self/wrapping ranges, abstract
+transactions, overlap refusal, and final B0/B2/B7/ST state;
+IDLE claim boundaries, no mutation on unclassified
 instructions, and snapshot/replay equivalence.
 
 The cache tests independently cover reset metadata, the Figure 5-2
@@ -260,4 +268,4 @@ self-modifying-code staleness, current-cycle-only retry, fault pause/resume,
 fault abort without `P` commit, pending-refill replay, cold opcode fetch,
 same-subsegment hits, an extension-word subsegment crossing, three-word
 disabled fetch, flush-visible code modification, and cache rollback on
-unsupported execution.
+unclassified execution.
