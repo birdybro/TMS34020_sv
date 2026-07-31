@@ -517,7 +517,7 @@
   fetch/execute overlap or cycle qualification.
 - Documented the composed cache/fetch path, native completion coverage, and
   remaining execution/timing boundary.
-- Documented the current 51-operation scalar admission set, blocked-packet
+- Documented the bounded scalar admission set, blocked-packet
   contract, directed state dependencies, synthesis evidence, and timing
   non-claims.
 - Recorded RSC-0009 for the SUBI.L example row that prints `NCZV=0001` despite
@@ -535,7 +535,7 @@
 
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 39 one-word, four two-word, and eight
+  bounded scalar composition accepts only 42 one-word, four two-word, and eight
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.
