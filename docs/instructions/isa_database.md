@@ -119,7 +119,8 @@ machine states for false/taken cases. Sources: TMS34020 User's Guide,
 `JAcondition`, printed pp.13-135..13-136 and timing table p.15-5. The TMS34010
 guide printed pp.12-92..12-93 establishes semantic/object compatibility but
 has different timing. At this extraction checkpoint the decoder and packet
-fetch classify JACC, while model and RTL execution owners reject it atomically.
+fetch classify JACC. The model executes all condition outcomes, while RTL
+execution owners still reject it atomically.
 
 The extracted long `JRcc` form has first word
 `1100_CCCC_0000_0000` and a signed 16-bit word displacement in its second

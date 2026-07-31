@@ -99,6 +99,7 @@ class Tms34020Model:
             "EXGPC": self._execute_exgpc,
             "GETPC": self._execute_getpc,
             "GETST": self._execute_getst,
+            "JACC": self._execute_jacc,
             "JR.L": self._execute_jr_long,
             "JUMP": self._execute_jump,
             "POPST": self._execute_popst,
@@ -567,6 +568,18 @@ class Tms34020Model:
             self.state.pc + displacement * 16
         ) & MASK32
         return 3
+
+    def _execute_jacc(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        condition_code = (words[0] >> 8) & 0xF
+        if not self._condition_true(condition_code, self.state.st):
+            return 3
+
+        absolute_target = words[1] | (words[2] << 16)
+        self.state.pc = absolute_target & 0xFFFF_FFF0
+        return 4
 
     def _execute_dsj_family(
         self, instruction: Instruction, words: list[int]

@@ -131,8 +131,10 @@ programmer-visible operation but different alignment-dependent state cases.
 That establishes semantic/object compatibility without making its timing
 sequencer reusable. The generated decoder now classifies all 16 exact
 `C?80h` first words and assembles their three-word packets. The independent
-model, direct-PC owner, commit path, and scalar slice deliberately reject the
-complete packet until functional execution is implemented.
+model executes all conditions with exact target assembly, alignment, state
+preservation, and three-/four-state instruction-boundary counts. The direct-PC
+owner, commit path, and scalar slice deliberately reject the complete packet
+until RTL functional execution is implemented.
 
 ## Conditional relative jumps
 

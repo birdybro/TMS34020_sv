@@ -19,7 +19,7 @@ Implemented:
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
-  EXGPC, GETPC, GETST, JR.L, JUMP, POPST, PUSHST, PUTST,
+  EXGPC, GETPC, GETST, JACC, JR.L, JUMP, POPST, PUSHST, PUTST,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -31,10 +31,16 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 80 of the 81 currently extracted database forms. JACC is
-decoded but deliberately raises `UnsupportedInstruction` and rolls back the
-complete model/cache snapshot until its functional owner is implemented. This
-is coverage of a current partial extraction, not instruction completeness.
+These handlers cover all 81 currently extracted database forms. This is
+coverage of a current partial extraction, not instruction completeness.
+
+JACC tests cover all 16 condition codes, a taken case for every code and a
+false case for every conditional code, low-word/high-word target assembly,
+forced target alignment, false-path sequential-PC wrap, exact instruction
+words/next PC, complete ST/register preservation, cache-only transaction
+classes, and the documented three-/four-state boundary cases. Sources: TI
+*TMS34020 User's Guide*, August 1990, `JAcondition` printed
+pp.13-135..13-136 and timing table p.15-5.
 
 JR.L tests cover all 16 condition codes, a taken case for every code and a
 false case for every conditional code, signed `+1`, `+32767`, `-32768`, and

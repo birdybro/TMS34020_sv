@@ -119,6 +119,10 @@
   timing, exhaustive decode boundaries, and atomic model/direct/commit/
   cache-fed RTL nonexecution guards. RSC-0020 records the short-JR range text
   conflict at the `80h` escape.
+- Independent JAcc model execution covering all 16 condition predicates, every
+  possible false outcome, low-word/high-word absolute-target assembly, forced
+  PC alignment, false-path PC wrap, exact instruction/next-PC traces, complete
+  ST/register preservation, and documented three-/four-state cases.
 - Primary-page-verified long JRcc encoding with all 16 condition predicates,
   signed 16-bit word displacement, two-/three-state timing, TMS34010 semantic
   compatibility and distinct timing, exact `C?00h` decode, independent
@@ -256,6 +260,11 @@
 
 ### Verified
 
+- The 133-case independent model suite now has bounded successful semantics for
+  all 81 currently extracted forms. JAcc tests independently cover every
+  condition outcome, target-word ordering/alignment, false-path PC wrap, exact
+  traces, state preservation, and primary three-/four-state counts. This is
+  not coverage of short JRcc, the unextracted ISA, or RTL JAcc execution/timing.
 - Expanded the collision-free ISA slice to 81 entries covering 25,298 first
   words. The 30-case ISA suite checks all JAcc/long-JR condition words and the
   adjacent short-JR exclusion across the complete 65,536-word sweep; the

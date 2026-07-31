@@ -3,17 +3,19 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `faadaabd6547e67745b582016139e4cc7ba75b4b`
-- Passing tests: foundation, reference/hash, delta, 30-case ISA sweep, 132 directed model
+- Latest verified baseline commit: `e6973603c63d47aba498451dafb36cc8461a94a4`
+- Passing tests: foundation, reference/hash, delta, 30-case ISA sweep, 133 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 80 of 81 currently extracted encoding forms have bounded
-  successful semantics. JACC is decoded as a three-word packet but rolls back
-  atomically pending execution ownership. Long JRcc covers all 16 conditions, every possible
+- Model status: all 81 currently extracted encoding forms have bounded
+  successful semantics. JACC covers all 16 conditions, every possible false
+  outcome, low/high absolute-target assembly, forced alignment, false-path PC
+  wrap, exact traces, complete state preservation, and three-/four-state
+  cases. Long JRcc covers all 16 conditions, every possible
   false outcome, signed extremes, PC wrap, exact trace fields, complete state
   preservation, and two-/three-state cases. DSJS covers every published row, direction/magnitude
   endpoints, instruction-range endpoints, PC wrap, A/B/shared-SP, exact writes,

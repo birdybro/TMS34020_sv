@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -1926,19 +1925,90 @@ class ExecutionTests(unittest.TestCase):
             model.step()
         self.assertEqual(model.snapshot(), before)
 
-    def test_jacc_is_decoded_but_rolls_back_before_model_ownership(self) -> None:
+    def test_jacc_all_condition_outcomes_status_alignment_and_cycles(
+        self,
+    ) -> None:
+        fixtures = {
+            0x0: (0x0, None),
+            0x1: (0x0, 0x8),
+            0x2: (0x4, 0x0),
+            0x3: (0x0, 0x4),
+            0x4: (0x8, 0x0),
+            0x5: (0x0, 0x8),
+            0x6: (0x8, 0x0),
+            0x7: (0x0, 0x2),
+            0x8: (0x4, 0x0),
+            0x9: (0x0, 0x4),
+            0xA: (0x2, 0x0),
+            0xB: (0x0, 0x2),
+            0xC: (0x1, 0x0),
+            0xD: (0x0, 0x1),
+            0xE: (0x8, 0x0),
+            0xF: (0x0, 0x8),
+        }
+        for condition_code, (taken_nczv, false_nczv) in fixtures.items():
+            outcomes = [(taken_nczv, True)]
+            if false_nczv is not None:
+                outcomes.append((false_nczv, False))
+            for nczv, expected_taken in outcomes:
+                with self.subTest(
+                    condition_code=f"{condition_code:X}",
+                    nczv=f"{nczv:X}",
+                    expected_taken=expected_taken,
+                ):
+                    model = Tms34020Model()
+                    opcode = 0xC080 | (condition_code << 8)
+                    model.load_program(
+                        [opcode, 0x567F, 0x1234],
+                        bit_address=0x80,
+                    )
+                    original_status = (
+                        (nczv << 28) | 0x05A3_4A95
+                    )
+                    model.state.st = original_status
+
+                    event = model.step()
+
+                    self.assertEqual(
+                        model.state.pc,
+                        0x1234_5670 if expected_taken else 0xB0,
+                    )
+                    self.assertEqual(
+                        event.machine_states,
+                        4 if expected_taken else 3,
+                    )
+                    self.assertEqual(model.state.st, original_status)
+                    self.assertEqual(event.status_before, original_status)
+                    self.assertEqual(event.status_after, original_status)
+                    self.assertEqual(event.register_writes, [])
+                    self.assertEqual(
+                        event.instruction_words,
+                        [opcode, 0x567F, 0x1234],
+                    )
+                    self.assertEqual(event.next_pc, model.state.pc)
+                    self.assertTrue(
+                        all(
+                            transaction["class"]
+                            in ("instruction_cache_lookup", "cache_fill")
+                            for transaction in event.transactions
+                        )
+                    )
+
+    def test_jacc_false_fallthrough_wraps_after_three_words(self) -> None:
         model = Tms34020Model()
         model.load_program(
-            [0xC080, 0x5678, 0x1234],
-            bit_address=0x80,
+            [0xC980, 0xFFFF, 0xFFFF],
+            bit_address=0xFFFF_FFE0,
         )
-        model.state.st = 0xF5A3_4A95
-        before = model.snapshot()
+        model.state.st = 1 << 30
 
-        with self.assertRaises(UnsupportedInstruction):
-            model.step()
+        event = model.step()
 
-        self.assertEqual(model.snapshot(), before)
+        self.assertEqual(model.state.pc, 0x0000_0010)
+        self.assertEqual(event.next_pc, 0x0000_0010)
+        self.assertEqual(event.machine_states, 3)
+        self.assertEqual(model.state.st, 1 << 30)
+        self.assertEqual(event.register_writes, [])
 
     def test_jr_long_all_condition_outcomes_status_and_cycles(self) -> None:
         fixtures = {
