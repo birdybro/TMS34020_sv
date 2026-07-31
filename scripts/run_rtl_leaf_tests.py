@@ -20,6 +20,7 @@ SOURCES = [
     ROOT / "rtl/core/tms34020_status.sv",
     ROOT / "rtl/core/tms34020_register_commit.sv",
     ROOT / "rtl/execute/tms34020_xy_arithmetic.sv",
+    ROOT / "rtl/execute/tms34020_cmpxy.sv",
     ROOT / "rtl/execute/tms34020_addxyi.sv",
     ROOT / "rtl/execute/tms34020_binary_arithmetic.sv",
     ROOT / "rtl/execute/tms34020_bit_test.sv",

@@ -2,12 +2,13 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 67 register/status/control-flow operations already verified
+execution path for 69 register/status/control-flow operations already verified
 against their individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, GETST, and PUTST;
 - ABS, NEG, NEGB, and NOT;
-- ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, ADDK/INC, SUBK/DEC, and MOVK; and
+- ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPXY, ADDK/INC, SUBK/DEC, and
+  MOVK; and
 - AND, ANDN, OR, XOR, BTST.K, BTST.R, SETF, EXGF, SEXT, ZEXT, CMPK, LMO, RMO,
   MOVE, MOVX, MOVY,
   RL.K, and RL.R; plus
@@ -39,7 +40,7 @@ enable. A supported packet therefore commits at most once. For an ordinary
 instruction or GETPC, the frontend then receives a sequential completion
 handshake. EXGPC, JUMP, and taken JR.L/DSJ-family instructions instead hold their
 redirect target across the commit-to-completion boundary and present it with
-the completion handshake. Twenty scalar runtime assertions check that only
+the completion handshake. Twenty-three scalar runtime assertions check that only
 supported packets commit, blocked packets cannot assert state writes, a commit
 cannot remain
 asserted on the next FPGA clock, and committed and pending redirect targets
@@ -53,7 +54,9 @@ status, and redirect by their encoded unsigned word magnitude and direction
 only when the result is nonzero; shift commits must assert atomic register
 and status writes without redirect; LMO commits must likewise atomically write
 their destination and the exact Z-only mask; ADDXY/SUBXY commits must atomically
-write their destination and all four NCZV bits; BTST.K/R commits must suppress
+write their destination and all four NCZV bits; CMPXY commits must suppress the
+destination write, replace all four NCZV bits, and never redirect; BTST.K/R
+commits must suppress
 the register write and update only Z; SETF must suppress the register write and
 write only its selected six-bit status bank; SEXT/ZEXT must atomically write
 their destination and exact partial status mask; EXGF must atomically write its
@@ -172,13 +175,21 @@ half equality and unsigned greater-than comparisons. Both use a same-file
 source/destination pair, replace NCZV, and honor A15/B15 as shared SP. Sources:
 TI *TMS34020 User's Guide*, August 1990, printed pp.13-38 and 13-246.
 
+CMPXY reads the same register pair without modifying either operand. N and Z
+report X and Y equality respectively; C is the sign of the wrapped
+`Rd.Y-Rs.Y` difference and V is the sign of the wrapped `Rd.X-Rs.X`
+difference. These are result-sign bits, not SUBXY borrow indicators or
+overflow detection. The serialized commit replaces all NCZV bits but is not
+evidence for the documented one machine state. Source: the same guide, CMPXY
+printed p.13-84 and timing summary printed p.15-3.
+
 ## Directed verification
 
 `make scalar-slice-tests` uses disabled-cache word fetches to isolate
 fetch-to-commit ordering. It executes this dependency chain:
 
 ```text
-EINT -> SETC -> GETST B2 -> LMO B2,B2 -> DINT
+EINT -> SETC -> GETST B2 -> CMPXY B2,B2 -> DINT
      -> SUBK/DEC A0 -> ADDK/INC SP -> ADD SP,A0 -> NOP
 ```
 
@@ -231,13 +242,13 @@ redirect from sequential PC `000000F0h` to `FFFFFF00h`.
 
 A second pass enables the cache, checks the demand-word-last refill sequence,
 and executes the first eight dependent instructions, including the cache-fed
-GETST-to-LMO dependency, with exactly four native
+GETST-to-CMPXY dependency, with exactly four native
 long-word reads. This couples cache present/tag state, hit delivery, sequential
 PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 5,262 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 5,215 logic cells,
 1,414 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

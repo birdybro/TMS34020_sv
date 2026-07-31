@@ -439,6 +439,16 @@ module tms34020_scalar_slice (
                 !commit_pc_redirect_enable;
     endproperty
 
+    property p_cmpxy_commit_has_only_full_nczv_write;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            packet_opcode_id_o == TMS20_OP_CMPXY
+            |-> !register_write_enable_o &&
+                status_write_enable_o &&
+                status_write_mask_o == 32'hF000_0000 &&
+                !commit_pc_redirect_enable;
+    endproperty
+
     property p_btst_commit_has_only_atomic_z_write;
         @(posedge clk_i) disable iff (reset_i)
             commit_accepted_o &&
@@ -551,6 +561,7 @@ module tms34020_scalar_slice (
     assert property (
         p_xy_commit_has_atomic_register_and_status_writes
     );
+    assert property (p_cmpxy_commit_has_only_full_nczv_write);
     assert property (p_btst_commit_has_only_atomic_z_write);
     assert property (
         p_setf_commit_has_only_selected_status_bank_write

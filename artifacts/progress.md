@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `ee1151118f8e91f6cb1bd3f4316fe29e9d60b53a`
+- Latest committed baseline: `9d810d6fa5a1caf775bf8c295fd038b69e86a024`
 - Passing tests: foundation, reference/hash, delta, 32-case ISA sweep, 136 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -57,7 +57,7 @@
 - RTL status: generated 82-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
-  write intents for 51 one-word instructions, with externally gated one-edge
+  write intents for 52 one-word instructions, with externally gated one-edge
   state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
@@ -67,7 +67,7 @@
   standalone native-completion cache lookup/refill RTL;
   a dedicated GETPC/EXGPC/JUMP/JACC/JR.L direct-PC leaf, an integrated serialized
   cache/instruction-packet frontend with explicit completion and abort/reload;
-  and a bounded fetch-to-commit path for those 51
+  and a bounded fetch-to-commit path for those 52
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word JACC/ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
   GETPC consumes the packet sequential PC, while EXGPC atomically writes that
@@ -81,6 +81,11 @@
   ADDXY/SUBXY use a shared independent-half arithmetic leaf, replace NCZV,
   and pass all 25 primary example rows plus A/B, same-register, shared-SP, and
   dependent scalar-commit tests.
+  CMPXY uses a dedicated nondestructive leaf: N/Z report X/Y equality while
+  C/V report the signs of wrapped Y/X differences. All nine primary rows,
+  a result-sign-versus-borrow discriminator, A/B/same-register/shared-SP
+  routing, ordered commit, cache-fed execution, and a status-only runtime
+  assertion pass; the documented one-state retirement is not implemented.
   CLR requires no duplicate execution opcode: the existing XOR path decodes
   all 32 same-register alias words, routes equal source/destination selectors,
   clears the selected A/B/shared-SP register, sets Z, and preserves N/C/V.
@@ -131,14 +136,14 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, twenty-two scalar, and two commit-owner
+- Formal status: four cache, four fetch, twenty-three scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 8,723 logic cells
+  warnings; the current decoder-bearing leaf wrapper uses 8,784 logic cells
   and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 411, 785, and 5,262 logic cells;
+  the fetch, frontend, and scalar wrappers use 411, 785, and 5,215 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

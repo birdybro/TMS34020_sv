@@ -119,7 +119,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0000: memory_word = 16'h0D60;
                 32'h0000_0010: memory_word = 16'h0DE0;
                 32'h0000_0020: memory_word = 16'h0192;
-                32'h0000_0030: memory_word = 16'h6A52;
+                32'h0000_0030: memory_word = 16'hE452;
                 32'h0000_0040: memory_word = 16'h0360;
                 32'h0000_0050: memory_word = 16'h1420;
                 32'h0000_0060: memory_word = 16'h102F;
@@ -675,18 +675,18 @@ module tb_tms34020_scalar_slice;
             "scalar GETST commit"
         );
         serve_and_commit(
-            32'h30, TMS20_OP_LMO,
-            1'b1, 1'b1, 4'd2, 32'd1,
-            1'b1, 32'd0, 32'h2000_0000,
-            32'h4020_0010, 32'd0,
-            "scalar LMO observes prior GETST"
+            32'h30, TMS20_OP_CMPXY,
+            1'b0, 1'b1, 4'd2, 32'd0,
+            1'b1, 32'hA000_0000, 32'hF000_0000,
+            32'hA020_0010, 32'd0,
+            "scalar CMPXY compares B2 with itself without writeback"
         );
         serve_and_commit(
             32'h40, TMS20_OP_DINT,
             1'b0, 1'b0, 4'd0, 32'd0,
             1'b1, 32'd0, 32'h0020_0000,
-            32'h4000_0010, 32'd0,
-            "scalar DINT preserves carry set before LMO"
+            32'hA000_0010, 32'd0,
+            "scalar DINT preserves CMPXY NCZV"
         );
         serve_and_commit(
             32'h50, TMS20_OP_SUBK,
@@ -1306,7 +1306,7 @@ module tb_tms34020_scalar_slice;
         );
         check_condition(
             commit_count == 21,
-            "twenty-one move, rotate, LMO, and direct-PC packet commits"
+            "twenty-one move, rotate, CMPXY, and direct-PC packet commits"
         );
 
         serve_word(32'h0000_0490);

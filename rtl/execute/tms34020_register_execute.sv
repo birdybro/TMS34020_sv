@@ -48,6 +48,7 @@ module tms34020_register_execute (
     tms34020_xy_op_t xy_operation;
     logic [31:0] xy_result;
     logic [3:0] xy_nczv;
+    logic [3:0] cmpxy_nczv;
     logic [31:0] immediate_add_source;
     logic [31:0] immediate_add_result;
     logic [3:0] immediate_add_nczv;
@@ -179,6 +180,12 @@ module tms34020_register_execute (
         .destination_i(destination_i),
         .result_o(xy_result),
         .status_nczv_o(xy_nczv)
+    );
+
+    tms34020_cmpxy cmpxy (
+        .source_i(source_i),
+        .destination_i(destination_i),
+        .status_nczv_o(cmpxy_nczv)
     );
 
     always_comb begin
@@ -501,6 +508,13 @@ module tms34020_register_execute (
                     register_write_data_o = xy_result;
                     status_write_enable_o = 1'b1;
                     status_write_data_o = {xy_nczv, 28'd0};
+                    status_write_mask_o = 32'hF000_0000;
+                end
+
+                TMS20_OP_CMPXY: begin
+                    supported_o = 1'b1;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o = {cmpxy_nczv, 28'd0};
                     status_write_mask_o = 32'hF000_0000;
                 end
 

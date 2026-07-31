@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 51 one-word, eight
+asserted only when its declared length matches one of the 52 one-word, eight
 two-word, or nine three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -26,7 +26,8 @@ Supported operations are:
 - CLRC, DINT, EINT, GETST, PUTST, SETF, EXGF, SEXT, ZEXT, ADDK/INC, SUBK/DEC,
   MOVK,
   SETC;
-- ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPK, BTST.K, BTST.R, LMO, and RMO;
+- ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPXY, CMPK, BTST.K, BTST.R, LMO,
+  and RMO;
 - AND, ANDN, OR, and XOR;
 - MOVE, MOVX, MOVY, RL.K, RL.R, SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R;
 - GETPC, EXGPC, JUMP, and DSJS;
@@ -73,7 +74,8 @@ the general registers on reset; TI leaves them uninitialized. Source: TI
 `make rtl-leaf-tests` executes ordered state-commit sequences plus
 direct combinational instruction checks. The suite verifies prior-state
 dependency, A/B selection, shared A15/B15 SP aliasing, partial ST masks,
-register-plus-status updates on one edge, nondestructive CMP/CMPI, every SUBK
+register-plus-status updates on one edge, nondestructive CMP/CMPI/CMPXY,
+every SUBK
 and MOVK constant, encoded-zero ADDK/SUBK/MOVK, MOVK status preservation,
 MOVI short sign extension, long-word assembly, N/Z/V replacement with C
 preservation, MOVX/MOVY half-word merging with complete ST preservation,
@@ -83,6 +85,9 @@ constant/register rotate counts, RL C/Z replacement with N/V preservation,
 direct and two's-complement shift counts, arithmetic/logical fill, SLA
 overflow, the four shift-family status masks, LMO leading-zero results and
 Z-only status writes, including a commit sourced from shared SP,
+all nine published CMPXY status rows, result-sign-versus-borrow boundaries,
+A/B/same-register/shared-SP selection, full NCZV replacement, and destination
+preservation,
 BTST.K complemented constant selection, BTST.R low-five-bit register selection,
 Z-only status writes with no destination write, and shared-SP count and
 destination access, SETF selected-bank-only status writes, and SEXT/ZEXT

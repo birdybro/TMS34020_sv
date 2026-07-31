@@ -8,6 +8,10 @@
   differences, equality N/Z, result-sign C/V, nondestructive register behavior,
   all nine primary rows, borrow-distinguishing boundaries, A/B, same-register,
   shared-SP, and one-state tests.
+- Synthesizable CMPXY execution leaf and status-only router/commit path with
+  independent halfword difference signs, full NCZV replacement, destination
+  preservation, A/B/shared-SP selection, cache-fed execution, and a dedicated
+  runtime ownership assertion.
 - Primary-page-verified CMPXY `E400h`/`FE00h` metadata, status semantics,
   one-state TMS34020 timing, TMS34010 `1,4` timing delta, independent
   base/end fixtures, and explicit model/RTL nonexecution guards ahead of
@@ -278,6 +282,13 @@
 
 ### Verified
 
+- CMPXY passes all nine published status rows plus a result-sign-versus-borrow
+  discriminator in warning-free direct-leaf, router, ordered-commit, bypass
+  fetch, and cache-refill tests. Cyclone V Analysis & Synthesis passes with
+  zero errors/warnings at 8,784 leaf and 5,215 bounded-scalar logic cells,
+  2,048/1,414 registers, and 0/4,096 block-memory bits respectively. These are
+  functional and portability results, not the documented one-state retirement,
+  fit, TimeQuest, or complete-core evidence.
 - The 136-case independent model suite now has bounded successful semantics for
   all 82 extracted forms. CMPXY has no RTL execution in this checkpoint, and
   neither its one-state model result nor the untimed fetch boundary constitutes

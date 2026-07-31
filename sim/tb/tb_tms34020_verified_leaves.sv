@@ -60,6 +60,9 @@ module tb_tms34020_verified_leaves;
     logic [31:0] xy_destination;
     logic [31:0] xy_result;
     logic [3:0] xy_nczv;
+    logic [31:0] cmpxy_source;
+    logic [31:0] cmpxy_destination;
+    logic [3:0] cmpxy_nczv;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -227,6 +230,12 @@ module tb_tms34020_verified_leaves;
         .destination_i(xy_destination),
         .result_o(xy_result),
         .status_nczv_o(xy_nczv)
+    );
+
+    tms34020_cmpxy cmpxy_dut (
+        .source_i(cmpxy_source),
+        .destination_i(cmpxy_destination),
+        .status_nczv_o(cmpxy_nczv)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -548,6 +557,47 @@ module tb_tms34020_verified_leaves;
             execute_destination_index == first_word[3:0] &&
             execute_register_write_enable &&
             execute_register_write_data == expected_result &&
+            execute_status_write_enable &&
+            execute_status_write_data == {expected_nczv, 28'd0} &&
+            execute_status_write_mask == 32'hF000_0000,
+            message
+        );
+    endtask
+
+    task automatic check_cmpxy(
+        input logic [31:0] source,
+        input logic [31:0] destination,
+        input logic [3:0] expected_nczv,
+        input string message
+    );
+        cmpxy_source = source;
+        cmpxy_destination = destination;
+        #1;
+        check_condition(cmpxy_nczv == expected_nczv, message);
+    endtask
+
+    task automatic check_cmpxy_register_execute(
+        input logic [15:0] first_word,
+        input logic [31:0] source,
+        input logic [31:0] destination,
+        input logic [3:0] expected_nczv,
+        input string message
+    );
+        execute_first_word = first_word;
+        execute_packet_length = 3'd1;
+        execute_immediate = 32'd0;
+        execute_source = source;
+        execute_destination = destination;
+        execute_status = 32'h0ABC_DEF0;
+        #1;
+        check_condition(
+            execute_supported &&
+            execute_register_file == first_word[4] &&
+            execute_destination_register_file == first_word[4] &&
+            execute_source_index == first_word[8:5] &&
+            execute_destination_index == first_word[3:0] &&
+            !execute_register_write_enable &&
+            execute_register_write_data == 32'd0 &&
             execute_status_write_enable &&
             execute_status_write_data == {expected_nczv, 28'd0} &&
             execute_status_write_mask == 32'hF000_0000,
@@ -2964,11 +3014,30 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "unclassified register execute instruction"
         );
-        check_register_execute(
+        check_cmpxy_register_execute(
             16'hE420, 32'h0009_0009, 32'h0001_0001,
-            32'hA5A5_5A5A,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "CMPXY remains noncommitting before RTL implementation"
+            4'b0101,
+            "register execute CMPXY primary result-sign flags"
+        );
+        check_cmpxy_register_execute(
+            16'hE452, 32'h0009_0009, 32'h0009_0009,
+            4'b1010,
+            "register execute CMPXY B-file same-register operands"
+        );
+        check_cmpxy_register_execute(
+            16'hE5E0, 32'h8000_8000, 32'h0000_0000,
+            4'b0101,
+            "register execute CMPXY shared-SP source"
+        );
+        check_cmpxy_register_execute(
+            16'hE43F, 32'h0000_0000, 32'h8000_8000,
+            4'b0101,
+            "register execute CMPXY shared-SP destination"
+        );
+        check_cmpxy_register_execute(
+            16'hE420, 32'hFFFF_0000, 32'h0000_FFFF,
+            4'b0001,
+            "register execute CMPXY signs differ from borrow flags"
         );
         check_register_execute(
             16'h01A0, 32'hA5C3_5A3C, 32'd0, 32'hF000_0FFF,
@@ -3259,6 +3328,13 @@ module tb_tms34020_verified_leaves;
             1'b0, 32'd0, 32'd0,
             32'h4020_0010, 32'd0,
             "register commit GETST B2"
+        );
+        commit_register_instruction(
+            16'hE452, 1'b1,
+            1'b0, 1'b1, 4'd2, 32'd0,
+            1'b1, 32'hA000_0000, 32'hF000_0000,
+            32'hA020_0010, 32'd0,
+            "register commit CMPXY B2,B2 is nondestructive"
         );
         commit_register_instruction(
             16'h1032, 1'b1,
@@ -4154,6 +4230,47 @@ module tb_tms34020_verified_leaves;
         check_xy_arithmetic(
             TMS34020_XY_SUB, 32'h0010_0010, 32'h0009_0009,
             32'hFFF9_FFF9, 4'b0101, "SUBXY primary row 8"
+        );
+
+        check_cmpxy(
+            32'h0009_0009, 32'h0001_0001,
+            4'b0101, "CMPXY primary row 0"
+        );
+        check_cmpxy(
+            32'h0009_0009, 32'h0009_0001,
+            4'b0011, "CMPXY primary row 1"
+        );
+        check_cmpxy(
+            32'h0009_0009, 32'h0001_0009,
+            4'b1100, "CMPXY primary row 2"
+        );
+        check_cmpxy(
+            32'h0009_0009, 32'h0009_0009,
+            4'b1010, "CMPXY primary row 3"
+        );
+        check_cmpxy(
+            32'h0009_0009, 32'h0000_0010,
+            4'b0100, "CMPXY primary row 4"
+        );
+        check_cmpxy(
+            32'h0009_0009, 32'h0009_0010,
+            4'b0010, "CMPXY primary row 5"
+        );
+        check_cmpxy(
+            32'h0009_0009, 32'h0010_0000,
+            4'b0001, "CMPXY primary row 6"
+        );
+        check_cmpxy(
+            32'h0009_0009, 32'h0010_0009,
+            4'b1000, "CMPXY primary row 7"
+        );
+        check_cmpxy(
+            32'h0009_0009, 32'h0010_0010,
+            4'b0000, "CMPXY primary row 8"
+        );
+        check_cmpxy(
+            32'hFFFF_0000, 32'h0000_FFFF,
+            4'b0001, "CMPXY result signs are not borrow flags"
         );
 
         check_binary_arithmetic(

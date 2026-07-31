@@ -29,6 +29,7 @@ module tms34020_leaf_synth_top (
     logic [3:0] add_nczv;
     logic [31:0] xy_result;
     logic [3:0] xy_nczv;
+    logic [3:0] cmpxy_nczv;
     logic [31:0] binary_result;
     logic [3:0] binary_nczv;
     logic binary_register_write_enable;
@@ -124,6 +125,7 @@ module tms34020_leaf_synth_top (
          execute_register_write_enable, execute_status_write_enable} ^
         {27'd0, binary_nczv, binary_register_write_enable} ^
         {28'd0, xy_nczv} ^
+        {28'd0, cmpxy_nczv} ^
         {31'd0, lmo_z} ^
         {31'd0, bit_test_z} ^
         {6'd0, unary_nczv, unary_status_write_mask,
@@ -172,6 +174,12 @@ module tms34020_leaf_synth_top (
         .destination_i(operand_i),
         .result_o(xy_result),
         .status_nczv_o(xy_nczv)
+    );
+
+    tms34020_cmpxy cmpxy (
+        .source_i(immediate_i),
+        .destination_i(operand_i),
+        .status_nczv_o(cmpxy_nczv)
     );
 
     tms34020_binary_arithmetic binary_arithmetic (
