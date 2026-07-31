@@ -166,6 +166,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0350: memory_word = 16'h09FF;
                 32'h0000_0360: memory_word = 16'h5678;
                 32'h0000_0370: memory_word = 16'h1234;
+                32'h0000_0380: memory_word = 16'hEC01;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -841,6 +842,32 @@ module tb_tms34020_scalar_slice;
         apply_reset();
         load_pc(32'h380);
         serve_word(32'h380);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_MOVX &&
+            packet_length_words == 3'd1 &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "complete MOVX packet remains blocked"
+        );
+        repeat (3) begin
+            @(posedge clk);
+            #1;
+            check_condition(
+                packet_blocked &&
+                commit_count == 0 &&
+                status == TMS34020_ST_RESET &&
+                sp == 32'd0,
+                "blocked MOVX packet cannot mutate state"
+            );
+        end
+
+        apply_reset();
+        load_pc(32'h390);
+        serve_word(32'h390);
         wait (packet_blocked);
         check_condition(
             packet_valid &&

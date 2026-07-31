@@ -535,6 +535,47 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(aligned_sp.state.sp, 0x1234_5678)
         self.assertEqual(aligned_event.machine_states, 2)
 
+    def test_movx_and_movy_primary_rows_preserve_status(self) -> None:
+        cases = (
+            (0xEC01, 0x0000_0000, 0xFFFF_FFFF, 0xFFFF_0000),
+            (0xEC01, 0x1234_5678, 0x0000_0000, 0x0000_5678),
+            (0xEC01, 0xFFFF_FFFF, 0x0000_0000, 0x0000_FFFF),
+            (0xEE01, 0x0000_0000, 0xFFFF_FFFF, 0x0000_FFFF),
+            (0xEE01, 0x1234_5678, 0x0000_0000, 0x1234_0000),
+            (0xEE01, 0xFFFF_FFFF, 0x0000_0000, 0xFFFF_0000),
+        )
+        for opcode, source, destination, expected in cases:
+            with self.subTest(opcode=f"{opcode:04X}", source=f"{source:08X}"):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.write_reg("A", 0, source)
+                model.state.write_reg("A", 1, destination)
+                model.state.st = 0xF020_001F
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(model.state.read_reg("A", 0), source)
+                self.assertEqual(model.state.st, 0xF020_001F)
+                self.assertEqual(event.machine_states, 1)
+
+    def test_movx_movy_b_file_shared_sp_and_same_register(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0xEDF2, 0xEE5F, 0xECB5])
+        model.state.sp = 0x1234_5678
+        model.state.write_reg("B", 2, 0xABCD_EF01)
+        model.state.write_reg("B", 5, 0xCAFE_BABE)
+
+        movx = model.step()
+        self.assertEqual(movx.mnemonic, "MOVX")
+        self.assertEqual(model.state.read_reg("B", 2), 0xABCD_5678)
+
+        movy = model.step()
+        self.assertEqual(movy.mnemonic, "MOVY")
+        self.assertEqual(model.state.sp, 0xABCD_5678)
+
+        same = model.step()
+        self.assertEqual(same.mnemonic, "MOVX")
+        self.assertEqual(model.state.read_reg("B", 5), 0xCAFE_BABE)
+
     def test_add_primary_examples(self) -> None:
         cases = (
             (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0b1100),

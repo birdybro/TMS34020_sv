@@ -19,7 +19,7 @@ Implemented:
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK,
-  MOVI.W, MOVI.L, SETC,
+  MOVI.W, MOVI.L, MOVX, MOVY, SETC,
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
@@ -77,6 +77,12 @@ two when its first extension word is long-word aligned and three otherwise.
 Sources: the same guide, printed pp.13-167..13-168 and timing-table p.15-6.
 The p.13-167 Z/V label defect is resolved explicitly in
 `docs/research/source_conflicts.md` RSC-0012.
+
+MOVX merges the source register's low X half into the destination's low half;
+MOVY similarly merges the high Y half. Both operands use the same selected A
+or B file, the other destination half and all ST bits remain unchanged, and
+each takes one documented state. Shared index 15 uses the common SP owner.
+Sources: the same guide, printed pp.13-170..13-171 and timing-table p.15-6.
 
 The two ADDI encoding forms add either a sign-extended 16-bit word or a full
 32-bit immediate and replace NCZV. The short form takes two documented states;
@@ -195,8 +201,9 @@ ADDK and INC-alias example rows, all SUBK and DEC-alias example rows,
 every SUBK constant, every MOVK constant, encoded-zero/B/SP cases for all three
 constant families, complete MOVK status preservation, all published MOVI
 short/long rows, sign extension, C preservation, the resolved Z/V behavior,
-long alignment cases, A/B selection, shared SP, CMPK
-constants/flags, PSIZE get/exchange, RMO
+long alignment cases, A/B selection, and shared SP; all MOVX/MOVY example rows,
+half preservation, same-file selection, shared SP, and status preservation;
+CMPK constants/flags; PSIZE get/exchange; RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
 pending states, IDLE claim boundaries, no mutation on unsupported
 instructions, and snapshot/replay equivalence.

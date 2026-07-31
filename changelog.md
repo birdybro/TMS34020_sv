@@ -284,6 +284,12 @@
   with C preservation. The scalar composition fetches and commits both forms.
   Warning-free Quartus requalification reports 6,025 leaf and 3,810 scalar
   logic cells; fetch/frontend logic is unchanged.
+- Extracted and modeled MOVX/MOVY from TI printed pp.13-170..13-171. The
+  49-record database covers 10,896 first words; 72 model tests cover all TI
+  rows, same-file A/B operation, shared SP, unchanged halves, same-register
+  operation, and complete ST preservation. The decoded instructions remain
+  blocked at this extraction-only RTL checkpoint. Warning-free Quartus reports
+  5,939 leaf, 361 fetch, 740 frontend, and 3,792 scalar logic cells.
 
 ### Documentation
 

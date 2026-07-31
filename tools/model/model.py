@@ -94,6 +94,8 @@ class Tms34020Model:
             "MOVK": self._execute_movk,
             "MOVI.W": self._execute_movi_word,
             "MOVI.L": self._execute_movi_long,
+            "MOVX": self._execute_movx,
+            "MOVY": self._execute_movy,
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
@@ -529,6 +531,35 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_immediate_move(words, True)
+
+    def _execute_register_half_move(
+        self,
+        words: list[int],
+        high_half: bool,
+    ) -> int:
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        source = self.state.read_reg(register_file, source_index)
+        destination = self.state.read_reg(register_file, destination_index)
+        if high_half:
+            result = (source & 0xFFFF_0000) | (destination & 0x0000_FFFF)
+        else:
+            result = (destination & 0xFFFF_0000) | (source & 0x0000_FFFF)
+        self.state.write_reg(register_file, destination_index, result)
+        return 1
+
+    def _execute_movx(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_register_half_move(words, False)
+
+    def _execute_movy(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_register_half_move(words, True)
 
     def _execute_setc(
         self, instruction: Instruction, words: list[int]

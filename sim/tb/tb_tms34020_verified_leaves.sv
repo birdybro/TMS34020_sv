@@ -1177,6 +1177,16 @@ module tb_tms34020_verified_leaves;
             "register execute MOVI.L B-file zero"
         );
         check_register_execute(
+            16'hEC01, 32'h1234_5678, 32'hFFFF_FFFF, 32'hF020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decoded MOVX remains unsupported at extraction checkpoint"
+        );
+        check_register_execute(
+            16'hEE01, 32'h1234_5678, 32'hFFFF_FFFF, 32'hF020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decoded MOVY remains unsupported at extraction checkpoint"
+        );
+        check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "incomplete ANDNI cannot enter register execute"
@@ -1630,6 +1640,14 @@ module tb_tms34020_verified_leaves;
                      "MOVI.L lower-bound decode");
         check_decode(16'h09FF, TMS20_OP_MOVI_L, 3'd3,
                      "MOVI.L upper-bound decode");
+        check_decode(16'hEC00, TMS20_OP_MOVX, 3'd1,
+                     "MOVX lower-bound decode");
+        check_decode(16'hEDFF, TMS20_OP_MOVX, 3'd1,
+                     "MOVX upper-bound decode");
+        check_decode(16'hEE00, TMS20_OP_MOVY, 3'd1,
+                     "MOVY lower-bound decode");
+        check_decode(16'hEFFF, TMS20_OP_MOVY, 3'd1,
+                     "MOVY upper-bound decode");
         check_decode(16'h41FF, TMS20_OP_ADD, 3'd1, "ADD masked decode");
         check_decode(16'h43FF, TMS20_OP_ADDC, 3'd1,
                      "ADDC masked decode");

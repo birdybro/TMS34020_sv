@@ -99,6 +99,10 @@ class IsaTests(unittest.TestCase):
             0x09DF: ("MOVI.W", 2),
             0x09E0: ("MOVI.L", 3),
             0x09FF: ("MOVI.L", 3),
+            0xEC00: ("MOVX", 1),
+            0xEDFF: ("MOVX", 1),
+            0xEE00: ("MOVY", 1),
+            0xEFFF: ("MOVY", 1),
             0x4000: ("ADD", 1),
             0x41FF: ("ADD", 1),
             0x4200: ("ADDC", 1),
@@ -178,8 +182,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 9872)
-        self.assertEqual(unclassified, 65536 - 9872)
+        self.assertEqual(matched, 10896)
+        self.assertEqual(unclassified, 65536 - 10896)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -300,6 +304,24 @@ class IsaTests(unittest.TestCase):
             )
             self.assertNotIn(
                 "C", instruction.metadata["status_bits_written"]
+            )
+
+    def test_movx_movy_are_same_file_status_neutral_half_moves(self) -> None:
+        for opcode, mnemonic, half in (
+            (0xEC00, "MOVX", "X half"),
+            (0xEE00, "MOVY", "Y half"),
+        ):
+            instruction = self.database.decode(opcode)
+            self.assertEqual(instruction.mnemonic, mnemonic)
+            self.assertIn("same file", instruction.metadata["register_file"])
+            self.assertEqual(instruction.metadata["status_bits_written"], [])
+            self.assertEqual(
+                instruction.metadata["destination_registers"],
+                [f"Rd {half}"],
+            )
+            self.assertEqual(
+                instruction.metadata["documented_cycles"]["machine_states"],
+                1,
             )
 
 
