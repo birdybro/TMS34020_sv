@@ -2,13 +2,13 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 59 register/status operations already verified against their
+execution path for 60 register/status operations already verified against their
 individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
 - ABS, NEG, NEGB, and NOT;
 - ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, ADDK/INC, SUBK/DEC, and MOVK; and
-- AND, ANDN, OR, XOR, BTST.K, BTST.R, SETF, SEXT, ZEXT, CMPK, LMO, RMO,
+- AND, ANDN, OR, XOR, BTST.K, BTST.R, SETF, EXGF, SEXT, ZEXT, CMPK, LMO, RMO,
   MOVE, MOVX, MOVY,
   RL.K, and RL.R; plus
 - SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R; plus
@@ -39,7 +39,7 @@ enable. A supported packet therefore commits at most once. For an ordinary
 instruction or GETPC, the frontend then receives a sequential completion
 handshake. EXGPC instead holds its aligned old-register target across the
 commit-to-completion boundary and presents that redirect with the completion
-handshake. Eleven scalar runtime assertions check that only supported packets
+handshake. Twelve scalar runtime assertions check that only supported packets
 commit, blocked packets cannot assert state writes, a commit cannot remain
 asserted on the next FPGA clock, and EXGPC committed and pending redirect
 targets stay identified and aligned; shift commits must assert atomic register
@@ -48,7 +48,9 @@ their destination and the exact Z-only mask; ADDXY/SUBXY commits must atomically
 write their destination and all four NCZV bits; BTST.K/R commits must suppress
 the register write and update only Z; SETF must suppress the register write and
 write only its selected six-bit status bank; SEXT/ZEXT must atomically write
-their destination and exact partial status mask. Two additional assertions in
+their destination and exact partial status mask; EXGF must atomically write its
+destination and only its selected six-bit status bank. Two additional
+assertions in
 the commit owner check execution-owner exclusion and committed redirect
 alignment.
 
@@ -89,6 +91,13 @@ SEXT and ZEXT read the selected FS bank, interpret encoded zero as 32 bits,
 extend the right-justified destination field, and update N/Z or Z respectively.
 Both register files and shared SP follow the ordinary destination rules.
 Sources: the same guide, printed pp.13-230..13-232 and 13-268.
+EXGF reads the selected six-bit FS/FE bank and the old destination before either
+write, zero-extends the old bank into the destination, and writes the old
+destination low six bits into only that bank. Both A/B files and the shared SP
+alias follow ordinary destination selection. This functional exchange does not
+implement the documented one-state `F=0` versus two-state `F=1` retirement
+split. Source: the same guide, EXGF printed p.13-111 and chapter 15 printed
+p.15-4.
 SLA/SLL use direct left-shift counts from either the object word or a same-file
 source register. SRA/SRL take the five-bit two's complement of that encoded
 field or source value to recover the right-shift count. SLA replaces NCZV and
@@ -150,8 +159,9 @@ feeds its new A0 value directly into SUBXY while checking both atomic register
 and NCZV writes, and applies dependent BTST.K and BTST.R packets to the resulting
 register state. The bit tests update only Z and do not modify their destination.
 That sequence then sets field bank zero to size 16, zero-extends the dependent
-A1 value, and sign-extends the result, checking the SETF bank mask and both
-extension status masks at each commit.
+A1 value, sign-extends the result, and performs dependent EXGF exchanges through
+both banks, checking the register result and selected-bank status mask at every
+commit.
 The direct-PC checks prove ordering and target selection, not the documented
 one- and two-machine-state timings. The
 earlier INC and DEC spellings exercise the canonical
@@ -165,8 +175,8 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 5,072 logic cells,
-1,387 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
+Synthesis for this composition. The diagnostic wrapper uses 5,062 logic cells,
+1,399 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,
 TimeQuest, full-core utilization, or a timing-closure result.

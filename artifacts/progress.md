@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `05f4eed2742ee01db12d7f2d24e92760424b74c8`
+- Latest verified baseline commit: `72313381e546010ef00d21be8ebc5c532c7e2d3e`
 - Passing tests: foundation, reference/hash, delta, 23-case ISA sweep, 114 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
@@ -33,7 +33,7 @@
 - RTL status: generated 71-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
-  write intents for 47 one-word instructions, with externally gated one-edge
+  write intents for 48 one-word instructions, with externally gated one-edge
   state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
@@ -43,7 +43,7 @@
   standalone native-completion cache lookup/refill RTL;
   a dedicated GETPC/EXGPC direct-PC leaf, an integrated serialized
   cache/instruction-packet frontend with explicit completion and abort/reload;
-  and a bounded fetch-to-commit path for those 47
+  and a bounded fetch-to-commit path for those 48
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
   GETPC consumes the packet sequential PC, while EXGPC atomically writes that
@@ -63,8 +63,10 @@
   SEXT/ZEXT consume the selected size through a dedicated all-width extension
   leaf, update only N/Z or Z, and pass A/B/shared-SP plus dependent scalar
   commit tests.
-  Newly classified EXGF is decoded but remains blocked and noncommitting until
-  its independent atomic register/status exchange is implemented.
+  EXGF atomically exchanges either field bank with an A/B/shared-SP destination,
+  clears the destination upper bits, preserves nonselected ST bits, and passes
+  dependent two-bank scalar commits; its documented one-/two-state retirement
+  split is not implemented.
   There is no architectural completion timing or
   complete executable processor core (`TMS20-0009`–`TMS20-0011`)
 - Cache status: primary organization/refill/reset/disable/flush and
@@ -76,14 +78,14 @@
 - Graphics status: not implemented (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, eleven scalar, and two commit-owner
+- Formal status: four cache, four fetch, twelve scalar, and two commit-owner
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the leaf wrapper uses 8,427 logic cells and 2,021 registers, while
-  the fetch, frontend, and scalar wrappers use 397, 771, and 5,072 logic cells;
-  the scalar wrapper has 1,387 registers and 4,096 block-memory bits; Yosys
+  warnings; the leaf wrapper uses 8,476 logic cells and 2,033 registers, while
+  the fetch, frontend, and scalar wrappers use 397, 771, and 5,062 logic cells;
+  the scalar wrapper has 1,399 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored

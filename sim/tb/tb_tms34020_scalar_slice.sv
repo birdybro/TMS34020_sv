@@ -126,7 +126,6 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0070: memory_word = 16'h41E0;
                 32'h0000_0080: memory_word = 16'h0300;
                 32'h0000_0090: memory_word = 16'h00F0;
-                32'h0000_00A0: memory_word = 16'hD71F;
                 32'h0000_0100: memory_word = 16'h0BA0;
                 32'h0000_0110: memory_word = 16'h5678;
                 32'h0000_0120: memory_word = 16'h1234;
@@ -193,6 +192,8 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0560: memory_word = 16'h0570;
                 32'h0000_0570: memory_word = 16'h0521;
                 32'h0000_0580: memory_word = 16'h0501;
+                32'h0000_0590: memory_word = 16'hD501;
+                32'h0000_05A0: memory_word = 16'hD701;
                 32'h2468_ACF0: memory_word = 16'h0154;
                 default: memory_word = 16'hFFFF;
             endcase
@@ -725,32 +726,6 @@ module tb_tms34020_scalar_slice;
         end
 
         apply_reset();
-        load_pc(32'hA0);
-        serve_word(32'hA0);
-        wait (packet_blocked);
-        check_condition(
-            packet_valid &&
-            !packet_supported &&
-            packet_opcode_id == TMS20_OP_EXGF &&
-            packet_length_words == 3'd1 &&
-            !commit_accepted &&
-            !register_write_enable &&
-            !status_write_enable,
-            "decode-only EXGF packet is blocked"
-        );
-        repeat (3) begin
-            @(posedge clk);
-            #1;
-            check_condition(
-                packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
-                sp == 32'd0,
-                "blocked EXGF packet cannot mutate state"
-            );
-        end
-
-        apply_reset();
         load_pc(32'h100);
         serve_immediate_and_commit(
             32'h100, TMS20_OP_ORI,
@@ -1150,9 +1125,23 @@ module tb_tms34020_scalar_slice;
             32'h9000_0030, 32'd0,
             "scalar SEXT observes preceding ZEXT result"
         );
+        serve_and_commit(
+            32'h590, TMS20_OP_EXGF,
+            1'b1, 1'b0, 4'd1, 32'h0000_0030,
+            1'b1, 32'h0000_003F, 32'h0000_003F,
+            32'h9000_003F, 32'd0,
+            "scalar EXGF field zero exchanges dependent register and status"
+        );
+        serve_and_commit(
+            32'h5A0, TMS20_OP_EXGF,
+            1'b1, 1'b0, 4'd1, 32'd0,
+            1'b1, 32'h0000_0C00, 32'h0000_0FC0,
+            32'h9000_0C3F, 32'd0,
+            "scalar EXGF field one exchanges dependent register and status"
+        );
         check_condition(
-            commit_count == 9,
-            "nine dependent field, XY arithmetic, and bit-test commits"
+            commit_count == 11,
+            "eleven dependent field, XY arithmetic, and bit-test commits"
         );
 
         apply_reset();

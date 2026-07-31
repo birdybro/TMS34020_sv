@@ -9,12 +9,12 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 8,427 logic cells after synthesis, 2,021 registers,
+- Analysis resources: 8,476 logic cells after synthesis, 2,033 registers,
   127 pins, 0 block-memory bits, 0 DSP blocks, and 0 PLLs
 - Scope: generated 71-entry partial decoder, A/B/SP register file, masked ST state,
   instruction semantic leaves including pitch conversion, decoder-controlled
   register-execution and direct-PC intents, and externally gated state commit
-  for 59 register/status/direct-PC instructions, including SETF/SEXT/ZEXT,
+  for 60 register/status/direct-PC instructions, including SETF/EXGF/SEXT/ZEXT,
   ADDXY/SUBXY, BTST.K/R, LMO, and all eight scalar shift forms,
   and an observability-only synthesis wrapper
 - Utilization caveat: the diagnostic top deliberately instantiates both the raw
@@ -80,11 +80,11 @@
 
 - Command: `make quartus-scalar-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 5,072 logic cells, 1,387 registers, 82 pins, 4,096
+- Analysis resources: 5,062 logic cells, 1,399 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`
-- Scope: cache/fetch frontend, 59-operation register/direct-PC execution,
+- Scope: cache/fetch frontend, 60-operation register/direct-PC execution,
   A/B/SP and ST state, held EXGPC completion redirect, bounded
   acceptance/completion, and observability wrapper
 - Fit/placement/routing and TimeQuest: not run; no timing-closure claim

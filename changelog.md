@@ -69,6 +69,10 @@
   covering both field banks/files, ordinary/shared-SP destinations,
   upper-register clearing, nonselected-ST preservation, and TI's one-/two-state
   split.
+- Synthesizable EXGF execution with simultaneous destination and selected-bank
+  write intents, A/B/shared-SP routing, upper-register clearing, dependent
+  two-bank scalar commits, and a runtime atomicity assertion. Architectural
+  one-/two-state retirement timing remains unimplemented.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -176,13 +180,12 @@
   currently extracted forms, including EXGF's atomic two-owner exchange. This
   is not coverage of the unextracted ISA or RTL retirement timing.
 - Expanded the collision-free ISA slice to 71 entries covering 23,056 first
-  words. EXGF decodes across both field banks, A/B, and shared SP while
-  remaining blocked and noncommitting in model/RTL at this extraction
-  checkpoint; all four boundary encodings roll back model state/cache, and
-  leaf/commit/scalar RTL boundaries suppress every architectural write. All
-  four decoder-bearing Cyclone V analyses pass with zero errors/warnings at
-  8,427 leaf, 397 fetch, 771 frontend, and 5,072 scalar diagnostic logic
-  cells; these are not fitted core-area or timing-closure results.
+  words. EXGF decodes and executes across both field banks, A/B, and shared SP
+  in the independent model and bounded RTL, including atomic register/status
+  exchange and nonselected-state preservation. All four decoder-bearing
+  Cyclone V analyses pass with zero errors/warnings at 8,476 leaf, 397 fetch,
+  771 frontend, and 5,062 scalar diagnostic logic cells; these are not fitted
+  core-area or timing-closure results.
 - SETF/SEXT/ZEXT pass the warning-free leaf and scalar Verilator regressions
   across all encoded sizes, both status banks, A/B/shared-SP routing, and
   ordered state dependencies. Affected Cyclone V Analysis & Synthesis passes

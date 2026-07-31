@@ -47,6 +47,7 @@ updates such as:
 - NOT writing only Z;
 - arithmetic instructions writing all N/C/Z/V;
 - SETF writing only FS0/FE0 or FS1/FE1;
+- EXGF atomically exchanging one FS/FE bank with a register's low six bits;
 - SEXT writing N/Z and ZEXT writing only Z;
 - SETC and CLRC changing only C;
 - EINT and DINT changing only IE.
@@ -77,16 +78,18 @@ boundary: the complete old ST is stored at the final predecremented SP before
 ST becomes `00000010h`. This does not add an RTL interrupt owner or establish
 faulted-stack behavior. Source: User's Guide TRAPL, printed pp.13-256..13-258.
 
-The model also verifies EXGF's atomic selected-bank exchange, upper-register
-clearing, nonselected-ST preservation, both register files, and shared SP.
-EXGF is not yet an RTL write owner.
+The model and bounded RTL also verify EXGF's atomic selected-bank exchange,
+upper-register clearing, nonselected-ST preservation, both register files, and
+shared SP. The RTL exposes simultaneous register and selected-bank masked write
+intents; its FPGA commit edge is not evidence for EXGF's documented one- or
+two-machine-state timing.
 
 ## Incomplete behavior
 
 The following are not yet implemented:
 
-- PUTST, PUSHST, and POPST semantics or sequencing, plus EXGF RTL ownership
-  and retirement timing;
+- PUTST, PUSHST, and POPST semantics or sequencing, plus EXGF architectural
+  retirement timing;
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;

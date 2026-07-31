@@ -638,6 +638,35 @@ module tms34020_register_execute (
                     end
                 end
 
+                TMS20_OP_EXGF: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o = 1'b1;
+                    status_write_enable_o = 1'b1;
+                    if (first_word_i[9]) begin
+                        register_write_data_o = {
+                            26'd0,
+                            status_i[11:6]
+                        };
+                        status_write_data_o = {
+                            20'd0,
+                            destination_i[5:0],
+                            6'd0
+                        };
+                        status_write_mask_o = 32'h0000_0FC0;
+                    end else begin
+                        register_write_data_o = {
+                            26'd0,
+                            status_i[5:0]
+                        };
+                        status_write_data_o = {
+                            26'd0,
+                            destination_i[5:0]
+                        };
+                        status_write_mask_o = 32'h0000_003F;
+                    end
+                end
+
                 TMS20_OP_SEXT,
                 TMS20_OP_ZEXT: begin
                     supported_o = 1'b1;

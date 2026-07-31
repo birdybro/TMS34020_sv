@@ -2467,9 +2467,34 @@ module tb_tms34020_verified_leaves;
             "unclassified register execute instruction"
         );
         check_register_execute(
-            16'hD71F, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decode-only EXGF cannot enter register execute"
+            16'hD505, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
+            1'b1, 1'b1, 32'h0000_003F, 1'b1,
+            32'd0, 32'h0000_003F,
+            "register execute EXGF field zero"
+        );
+        check_condition(
+            !execute_register_file &&
+            execute_source_index == 4'd5 &&
+            execute_destination_index == 4'd5,
+            "register execute EXGF field-zero A-file selector"
+        );
+        check_register_execute(
+            16'hD705, 32'd0, 32'hFFFF_FFC0, 32'hF000_0FFF,
+            1'b1, 1'b1, 32'h0000_003F, 1'b1,
+            32'd0, 32'h0000_0FC0,
+            "register execute EXGF field one"
+        );
+        check_register_execute(
+            16'hD71F, 32'd0, 32'hFFFF_FF95, 32'hB5A3_4A95,
+            1'b1, 1'b1, 32'h0000_002A, 1'b1,
+            32'h0000_0540, 32'h0000_0FC0,
+            "register execute EXGF field one shared SP"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_source_index == 4'd15 &&
+            execute_destination_index == 4'd15,
+            "register execute EXGF field-one B-file shared-SP selector"
         );
         check_register_execute(
             16'h0540, 32'd0, 32'd0, 32'hF020_001F,
@@ -2763,13 +2788,6 @@ module tb_tms34020_verified_leaves;
             "register commit rejects unsupported BLMOVE"
         );
         commit_register_instruction(
-            16'hD71F, 1'b0,
-            1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
-            32'h0000_0010, 32'd1,
-            "register commit rejects decode-only EXGF"
-        );
-        commit_register_instruction(
             16'h0300, 1'b1,
             1'b0, 1'b0, 4'd0, 32'd0,
             1'b0, 32'd0, 32'd0,
@@ -3040,6 +3058,27 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'h8000_0000, 32'hA000_0000,
             32'h9000_0430, 32'hFFFF_FFFD,
             "register commit SEXT field one shared SP"
+        );
+        commit_register_instruction(
+            16'hD50F, 1'b1,
+            1'b1, 1'b0, 4'd15, 32'h0000_0030,
+            1'b1, 32'h0000_003D, 32'h0000_003F,
+            32'h9000_043D, 32'h0000_0030,
+            "register commit EXGF field zero shared SP"
+        );
+        commit_register_instruction(
+            16'hD71F, 1'b1,
+            1'b1, 1'b1, 4'd15, 32'h0000_0010,
+            1'b1, 32'h0000_0C00, 32'h0000_0FC0,
+            32'h9000_0C3D, 32'h0000_0010,
+            "register commit EXGF field one shared SP"
+        );
+        commit_register_instruction(
+            16'hD505, 1'b1,
+            1'b1, 1'b0, 4'd5, 32'h0000_003D,
+            1'b1, 32'd0, 32'h0000_003F,
+            32'h9000_0C00, 32'h0000_0010,
+            "register commit EXGF field zero ordinary A register"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");

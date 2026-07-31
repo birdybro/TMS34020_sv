@@ -319,6 +319,21 @@ module tms34020_scalar_slice (
                 !commit_pc_redirect_enable;
     endproperty
 
+    property p_field_exchange_commit_is_atomic;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            packet_opcode_id_o == TMS20_OP_EXGF
+            |-> register_write_enable_o &&
+                status_write_enable_o &&
+                status_write_mask_o ==
+                    (
+                        packet_words_o[9]
+                        ? 32'h0000_0FC0
+                        : 32'h0000_003F
+                    ) &&
+                !commit_pc_redirect_enable;
+    endproperty
+
     assert property (p_only_supported_packets_commit);
     assert property (p_blocked_packet_cannot_write);
     assert property (p_commit_is_single_pulse);
@@ -338,6 +353,7 @@ module tms34020_scalar_slice (
         p_setf_commit_has_only_selected_status_bank_write
     );
     assert property (p_field_extension_commit_is_atomic);
+    assert property (p_field_exchange_commit_is_atomic);
 `endif
 
 endmodule
