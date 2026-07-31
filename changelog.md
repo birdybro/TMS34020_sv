@@ -52,6 +52,10 @@
   decode, Z-only RTL logical leaf, register-execution routing, and state commit.
 - Primary-page-verified ANDNI/ANDI-alias, ORI, and XORI three-word decode and
   independent-model semantics, including extension alignment timing.
+- A transaction-level independent instruction-cache model with documented
+  address partitioning, all refill rotations, segment/subsegment misses,
+  move-to-front LRU, `CD` preservation, `CF` flush, noncoherence, current-cycle
+  retry, bus-fault pause/resume, abort, and deterministic pending replay.
 
 ### Changed
 
@@ -135,6 +139,9 @@
 - Recorded and resolved the guide's overlapping cache address-bit ranges and
   erroneous four-present-flag cache-flush wording from same-guide figures and
   organization text.
+- Extracted local-cycle completion codes, current-cycle-only retry,
+  bus-fault save/restore, page-mode fault restrictions, and dynamic 16-bit
+  restart boundaries into a primary-cited memory contract.
 - Documented unresolved opcode/status/timing, CONTROL2, errata, and
   first-silicon questions as unknown rather than assigning inferred behavior.
 - Recorded a pinned MAME disassembler discrepancy: TI's TRAPL consumes a signed
@@ -157,10 +164,11 @@
 
 ### Known Issues
 
-- The architectural model and RTL cover only a small verified slice; externally
-  gated state commit does not form an executable RTL core, and there is no
-  fetch/PC/timed retirement sequencer, cache, pipeline, memory bus, or subsystem
-  integration.
+- The architectural model and RTL cover only a small verified slice; the
+  standalone cache transaction model is not wired to instruction execution,
+  externally gated state commit does not form an executable RTL core, and
+  there is no fetch/PC/timed retirement sequencer, cache RTL, pipeline, memory
+  bus, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain
   unavailable; Revolution X A-silicon identification is an inference only.
 - Yosys, SymbiYosys, and Icarus Verilog are not installed in the current local

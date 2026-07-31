@@ -4,8 +4,9 @@
 
 This document records the architectural cache contract established directly
 from the August 1990 *TMS34020 User's Guide* (`SPVU019 /
-2564006-9721`). It is an implementation input, not evidence that cache RTL,
-pipeline timing, or local-bus timing is complete.
+2564006-9721`). A transaction-level independent model now implements the
+bounded contract in `tools/model/cache.py`; this is not evidence that cache
+RTL, pipeline timing, or local-bus timing is complete.
 
 The organization, address partition, replacement policy, ordinary hit/miss
 behavior, reset state, refill order, cache disable, and cache flush behavior
@@ -132,8 +133,10 @@ User's Guide §§5.2 and 5.3.2, pp.5-4–5-6.
 
 The externally useful `P` flag must not indicate a successfully present
 subsegment before its four-long-word refill is complete. The guide states
-that the flag is set after loading; the atomicity required when a refill
-faults remains unresolved.
+that the flag is set after loading. Sections 6.9 and 8.6 further establish
+that prior successful native cycles remain complete while retry or bus-fault
+return restarts the current native cycle. The independent model may retain
+partial data internally, but it keeps `P=0` until the complete refill succeeds.
 
 ## Refill address order
 
@@ -236,7 +239,13 @@ These statements do not yet establish the exact transaction beat schedule for
 fault/retry, or every pipeline overlap case. They must not be promoted to a
 general cycle-accuracy claim.
 
-## RTL boundary to be implemented
+## Transaction model and RTL boundary
+
+`tools/model/cache.py` implements the cycle-independent request/response
+boundary below. It supports resumable current-beat retry and bus fault,
+`BSFLTST=FFFFh`-style abort, and deterministic pending-refill snapshots. It
+does not yet drive `Tms34020Model.step()`, decompose native long words into
+pin-level 16-bit cycles, or assign machine-state timing.
 
 The portable cache must separate instruction lookup from the native
 transaction interface. Its eventual contract must make these events explicit:
@@ -287,15 +296,17 @@ aborted refill.
 
 ## Unresolved questions
 
-The following prevent honest cache-controller completion:
+The following prevent honest cache RTL completion:
 
-1. At what phase can `BUSFLT` abort each refill beat, and what cache data,
-   SSA, `P`, and LRU state is retained for retry?
-2. Does instruction continuation preserve any partial refill, or restart the
-   entire four-long-word sequence?
-3. At which checkpoint may an interrupt preempt a miss or bypass fetch?
-4. How are four 32-bit refill words decomposed on a `SIZE16` target, including
-   demand-long-word-last ordering and page-mode eligibility?
+1. What is the exact local-clock/pin phase for each standard and page-mode
+   refill transfer, including the first cycle's `BUSFLT` sampling edge?
+2. What CPU continuation words and interrupt-stack contents correspond to a
+   faulted fetch or refill, beyond the memory controller's saved current-cycle
+   state?
+3. At which checkpoint may a non-fault interrupt preempt a miss or bypass
+   fetch?
+4. How are the native refill words scheduled onto `S=0`/`S=1` transfers on
+   each legal `SIZE16` wiring, including page-mode column sequencing?
 5. What externally observable behavior is required when an uninitialized SSA
    compares equal after reset while all of that segment's `P` flags are clear?
 6. What exact cache-fill and disabled-fetch local-bus status encodings and

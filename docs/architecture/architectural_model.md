@@ -14,6 +14,10 @@ Implemented:
 - verified reset-vector low-nibble loading into CONFIG and PC alignment;
 - deterministic randomized state;
 - program loading, single stepping, JSON snapshot/replay, and checkpoint traces;
+- a standalone transaction-level instruction-cache model with four SSAs,
+  32 present flags, move-to-front LRU, demand-longword-last refills,
+  `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
+  pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, INC, DEC, SETC, ADD,
   ADDC, SUB, SUBB, CMP, AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation,
   ORI, XORI, IDLE entry, MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
@@ -74,13 +78,23 @@ Decoded BLMOVE, SETCDP, SETCMP, SETCSP, TRAPL, and VLCOL entries intentionally
 raise `UnsupportedInstruction` without changing state. Their presence in the
 ISA database is not an implementation claim.
 
+The cache model is in `tools/model/cache.py` and follows the primary contract
+in `docs/cache/instruction_cache.md` and
+`docs/memory/bus_fault_retry.md`. It exposes 16-bit direct instruction-fetch
+requests and four ordered 32-bit cache-fill requests. Successful prior refill
+beats survive a retry or fault; the current native request alone is reissued,
+and `P` is committed only after all four long words succeed. This is a
+transaction-level restart model, not a local-clock waveform or a cache-miss
+cycle count. It is not yet connected to `Tms34020Model.step()`, so instruction
+execution still reads program words directly from `BitMemory`.
+
 ## Claim boundary
 
 This is an architectural seed, not the completed model required by
 `TMS20-0007`. It does not yet implement:
 
 - the remaining instruction set;
-- instruction cache state/refill/replacement;
+- instruction-fetch integration with the standalone cache model;
 - complete I/O/display/host state;
 - 16/32-bit/page-mode transaction targets;
 - bus fault, retry, and continuation;
@@ -113,3 +127,9 @@ INC/DEC example rows, CMPK constants/flags, PSIZE get/exchange, RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
 pending states, IDLE claim boundaries, no mutation on unsupported
 instructions, and snapshot/replay equivalence.
+
+The cache-model tests independently cover reset metadata, the Figure 5-2
+address partition, every demand-longword-last refill rotation, segment and
+subsegment misses, all LRU stack positions, `CD` preservation, `CF` flush,
+self-modifying-code staleness, current-cycle-only retry, fault pause/resume,
+fault abort without `P` commit, and pending-refill replay.
