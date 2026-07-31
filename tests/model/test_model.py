@@ -15,7 +15,6 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
-    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -976,6 +975,68 @@ class ExecutionTests(unittest.TestCase):
                     (expected_nczv << 28) | 0x0ABC_DEF0,
                 )
                 self.assertEqual(event.machine_states, 1)
+
+    def test_cmpxy_all_primary_examples_are_nondestructive(self) -> None:
+        source = 0x0009_0009
+        cases = (
+            (0x0001_0001, 0b0101),
+            (0x0009_0001, 0b0011),
+            (0x0001_0009, 0b1100),
+            (0x0009_0009, 0b1010),
+            (0x0000_0010, 0b0100),
+            (0x0009_0010, 0b0010),
+            (0x0010_0000, 0b0001),
+            (0x0010_0009, 0b1000),
+            (0x0010_0010, 0b0000),
+        )
+        for destination, expected_nczv in cases:
+            with self.subTest(destination=f"{destination:08X}"):
+                model = Tms34020Model()
+                model.load_program([0xE420])
+                model.state.write_reg("A", 1, source)
+                model.state.write_reg("A", 0, destination)
+                model.state.st = 0x0ABC_DEF0
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), source)
+                self.assertEqual(model.state.read_reg("A", 0), destination)
+                self.assertEqual(event.register_writes, [])
+                self.assertEqual(
+                    model.state.st,
+                    (expected_nczv << 28) | 0x0ABC_DEF0,
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_cmpxy_sign_flags_files_same_register_and_shared_sp(self) -> None:
+        model = Tms34020Model()
+        model.load_program([
+            0xE430,
+            0xE452,
+            0xE5E0,
+            0xE43F,
+        ])
+        model.state.write_reg("B", 0, 0x0000_FFFF)
+        model.state.write_reg("B", 1, 0xFFFF_0000)
+        model.state.write_reg("B", 2, 0x1234_5678)
+        model.state.sp = 0x8000_8000
+
+        sign_flags = model.step()
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b0001)
+        self.assertEqual(sign_flags.register_writes, [])
+        self.assertEqual(model.state.read_reg("B", 0), 0x0000_FFFF)
+        self.assertEqual(model.state.read_reg("B", 1), 0xFFFF_0000)
+
+        same_register = model.step()
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b1010)
+        self.assertEqual(model.state.read_reg("B", 2), 0x1234_5678)
+
+        shared_sp_source = model.step()
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b0101)
+        self.assertEqual(model.state.read_reg("A", 0), 0x0000_0000)
+
+        shared_sp_destination = model.step()
+        self.assertEqual((model.state.st >> 28) & 0xF, 0b0101)
+        self.assertEqual(model.state.sp, 0x8000_8000)
+        self.assertEqual(shared_sp_destination.register_writes, [])
 
     def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
         model = Tms34020Model()
@@ -1951,19 +2012,6 @@ class ExecutionTests(unittest.TestCase):
         model.load_program([0x0000], bit_address=0x80)
         before = model.snapshot()
         with self.assertRaises(UnclassifiedEncoding):
-            model.step()
-        self.assertEqual(model.snapshot(), before)
-
-    def test_cmpxy_decodes_but_rolls_back_before_model_implementation(
-        self,
-    ) -> None:
-        model = Tms34020Model()
-        model.load_program([0xE420], bit_address=0x80)
-        model.state.write_reg("A", 0, 0x0001_0001)
-        model.state.write_reg("A", 1, 0x0009_0009)
-        model.state.st = 0xA5A5_5A5A
-        before = model.snapshot()
-        with self.assertRaises(UnsupportedInstruction):
             model.step()
         self.assertEqual(model.snapshot(), before)
 

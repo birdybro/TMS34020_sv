@@ -4,6 +4,10 @@
 
 ### Added
 
+- Independent CMPXY model execution with explicit wrapped halfword
+  differences, equality N/Z, result-sign C/V, nondestructive register behavior,
+  all nine primary rows, borrow-distinguishing boundaries, A/B, same-register,
+  shared-SP, and one-state tests.
 - Primary-page-verified CMPXY `E400h`/`FE00h` metadata, status semantics,
   one-state TMS34020 timing, TMS34010 `1,4` timing delta, independent
   base/end fixtures, and explicit model/RTL nonexecution guards ahead of
@@ -274,6 +278,10 @@
 
 ### Verified
 
+- The 136-case independent model suite now has bounded successful semantics for
+  all 82 extracted forms. CMPXY has no RTL execution in this checkpoint, and
+  neither its one-state model result nor the untimed fetch boundary constitutes
+  RTL retirement-timing evidence.
 - The 82-entry partial decoder classifies 25,810 first words without collision.
   The 32-case ISA suite, 65-entry delta ledger, 135-case model suite, and
   warning-free Verilator leaf checks pass. CMPXY remains atomically unsupported

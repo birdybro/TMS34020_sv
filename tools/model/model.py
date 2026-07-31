@@ -142,6 +142,7 @@ class Tms34020Model:
             "SUBB": self._execute_subb,
             "SUBXY": self._execute_subxy,
             "CMP": self._execute_cmp,
+            "CMPXY": self._execute_cmpxy,
             "AND": self._execute_and,
             "ANDN": self._execute_andn,
             "OR": self._execute_or,
@@ -1365,6 +1366,28 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_binary_arithmetic(words, "CMP")
+
+    def _execute_cmpxy(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        source = self.state.read_reg(register_file, source_index)
+        destination = self.state.read_reg(register_file, destination_index)
+        source_x = source & 0xFFFF
+        source_y = (source >> 16) & 0xFFFF
+        destination_x = destination & 0xFFFF
+        destination_y = (destination >> 16) & 0xFFFF
+        result_x = (destination_x - source_x) & 0xFFFF
+        result_y = (destination_y - source_y) & 0xFFFF
+
+        self._set_status_bit(N_BIT, source_x == destination_x)
+        self._set_status_bit(C_BIT, bool(result_y & 0x8000))
+        self._set_status_bit(Z_BIT, source_y == destination_y)
+        self._set_status_bit(V_BIT, bool(result_x & 0x8000))
+        return 1
 
     def _execute_logical(
         self,

@@ -25,16 +25,14 @@ Implemented:
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
   ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
-  CMPI.W, CMPI.L,
+  CMPI.W, CMPI.L, CMPXY,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover 81 of the 82 currently extracted database forms. CMPXY
-is decoded but deliberately raises `UnsupportedInstruction` with exact
-state/cache rollback until its independent semantic handler is implemented.
-This is coverage of a current partial extraction, not instruction completeness.
+These handlers cover all 82 currently extracted database forms. This is
+coverage of a current partial extraction, not instruction completeness.
 
 JACC tests cover all 16 condition codes, a taken case for every code and a
 false case for every conditional code, low-word/high-word target assembly,
@@ -79,6 +77,14 @@ arithmetic operations leave lower ST fields intact. Sources: TI *TMS34020
 User's Guide*, August 1990, printed pp.13-38..13-39 and 13-246; ADDXY/SUBXY
 compatibility cross-check: TI *TMS34010 User's Guide*, 1988, printed pp.12-41
 and 12-251..12-252.
+
+CMPXY is separately implemented as a nondestructive compare because its C/V
+definitions differ from SUBXY: the model computes the wrapped 16-bit
+destination-minus-source result for each half, places X/Y equality in N/Z,
+and places the Y/X result sign bits in C/V. It does not use unsigned borrow or
+signed overflow. Tests reproduce all nine published rows and cover cases where
+result sign differs from borrow, plus A/B, same-register, and both shared-SP
+operand positions. Source: TMS34020 User's Guide printed p.13-84.
 
 BTST.K recovers the selected bit from the one's-complement object field.
 BTST.R uses only the low five bits of its same-file source. Both preserve every

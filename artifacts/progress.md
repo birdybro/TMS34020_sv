@@ -3,18 +3,18 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified baseline commit: `f0693430ff62dd6a583b4b1f8d2f5dd7a13ea9d0`
-- Passing tests: foundation, reference/hash, delta, 32-case ISA sweep, 135 directed model
+- Latest verified baseline commit: `ee1151118f8e91f6cb1bd3f4316fe29e9d60b53a`
+- Passing tests: foundation, reference/hash, delta, 32-case ISA sweep, 136 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 81 of 82 currently extracted encoding forms have bounded
-  successful semantics; CMPXY decodes but has an exact unsupported
-  state/cache rollback guard pending its independent handler. JACC covers all
-  16 conditions, every possible false
+- Model status: all 82 currently extracted encoding forms have bounded
+  successful semantics. CMPXY reproduces all primary rows, result-sign C/V
+  rather than borrow/overflow, nondestructive A/B/same-register/shared-SP
+  behavior, and one state. JACC covers all 16 conditions, every possible false
   outcome, low/high absolute-target assembly, forced alignment, false-path PC
   wrap, exact traces, complete state preservation, and three-/four-state
   cases. Long JRcc covers all 16 conditions, every possible
