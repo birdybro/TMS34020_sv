@@ -63,7 +63,7 @@ module tms34020_scalar_synth_top (
             {24'd0, cache_lru_debug} ^
             {16'd0, folded_packet_words} ^
             {
-                3'd0,
+                2'd0,
                 pc_load_ready,
                 packet_valid,
                 packet_supported,

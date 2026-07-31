@@ -27,8 +27,12 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 63 currently extracted database forms. This is
-coverage of the current partial extraction, not instruction completeness.
+These handlers cover 63 of the 65 currently extracted database forms. ADDXY
+and SUBXY are classified by the database but intentionally have no handler at
+this extraction checkpoint; directed tests prove that either opcode raises
+`UnsupportedInstruction` and rolls PC, cache, trace, registers, ST, and memory
+back to the pre-step snapshot. This is partial extraction and bounded semantic
+coverage, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -256,8 +260,9 @@ make model-tests
 ```
 
 Directed tests cover SP aliasing, crossing bit memory, reset vector handling,
-seed reproducibility, instruction PC increments, ADDXYI edge behavior and
-flags, all TI example rows for ABS/NEG/NEGB/NOT, directed
+seed reproducibility, instruction PC increments, decode-only ADDXY/SUBXY
+rollback, ADDXYI edge behavior and flags, all TI example rows for
+ABS/NEG/NEGB/NOT, directed
 ADD/ADDC/SUB/SUBB/CMP arithmetic boundaries and nondestructive CMP,
 all TI ADDI example rows, signed-word extension, long-immediate alignment
 timing, A/B selection, and SP aliasing; all TI SUBI arithmetic rows,

@@ -2170,6 +2170,18 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "unclassified register execute instruction"
         );
+        check_register_execute(
+            16'hE020, 32'h0001_0002, 32'h0003_0004,
+            32'hF020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only ADDXY cannot enter register execute"
+        );
+        check_register_execute(
+            16'hE220, 32'h0001_0002, 32'h0003_0004,
+            32'hF020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decode-only SUBXY cannot enter register execute"
+        );
 
         commit_register_instruction(
             16'h0D60, 1'b1,
@@ -2308,6 +2320,20 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'd0, 32'h2000_0000,
             32'h0000_0010, 32'd1,
             "register commit LMO reads shared SP"
+        );
+        commit_register_instruction(
+            16'hE020, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only ADDXY"
+        );
+        commit_register_instruction(
+            16'hE220, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0010, 32'd1,
+            "register commit rejects decode-only SUBXY"
         );
         commit_register_instruction(
             16'h00F0, 1'b0,
@@ -2581,9 +2607,17 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h41FF, TMS20_OP_ADD, 3'd1, "ADD masked decode");
         check_decode(16'h43FF, TMS20_OP_ADDC, 3'd1,
                      "ADDC masked decode");
+        check_decode(16'hE000, TMS20_OP_ADDXY, 3'd1,
+                     "ADDXY base decode");
+        check_decode(16'hE1FF, TMS20_OP_ADDXY, 3'd1,
+                     "ADDXY masked decode");
         check_decode(16'h45FF, TMS20_OP_SUB, 3'd1, "SUB masked decode");
         check_decode(16'h47FF, TMS20_OP_SUBB, 3'd1,
                      "SUBB masked decode");
+        check_decode(16'hE200, TMS20_OP_SUBXY, 3'd1,
+                     "SUBXY base decode");
+        check_decode(16'hE3FF, TMS20_OP_SUBXY, 3'd1,
+                     "SUBXY masked decode");
         check_decode(16'h49FF, TMS20_OP_CMP, 3'd1, "CMP masked decode");
         check_decode(16'h51FF, TMS20_OP_AND, 3'd1, "AND masked decode");
         check_decode(16'h53FF, TMS20_OP_ANDN, 3'd1, "ANDN masked decode");

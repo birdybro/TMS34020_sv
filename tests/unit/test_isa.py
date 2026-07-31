@@ -133,6 +133,8 @@ class IsaTests(unittest.TestCase):
             0x41FF: ("ADD", 1),
             0x4200: ("ADDC", 1),
             0x43FF: ("ADDC", 1),
+            0xE000: ("ADDXY", 1),
+            0xE1FF: ("ADDXY", 1),
             0x0B00: ("ADDI.W", 2),
             0x0B1F: ("ADDI.W", 2),
             0x0B20: ("ADDI.L", 3),
@@ -149,6 +151,8 @@ class IsaTests(unittest.TestCase):
             0x45FF: ("SUB", 1),
             0x4600: ("SUBB", 1),
             0x47FF: ("SUBB", 1),
+            0xE200: ("SUBXY", 1),
+            0xE3FF: ("SUBXY", 1),
             0x4800: ("CMP", 1),
             0x49FF: ("CMP", 1),
             0x5000: ("AND", 1),
@@ -210,8 +214,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 20176)
-        self.assertEqual(unclassified, 65536 - 20176)
+        self.assertEqual(matched, 21200)
+        self.assertEqual(unclassified, 65536 - 21200)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -229,6 +233,29 @@ class IsaTests(unittest.TestCase):
             "same file",
             lmo.metadata["register_file"],
         )
+
+    def test_xy_register_arithmetic_records_primary_contract(self) -> None:
+        for opcode, mnemonic in ((0xE000, "ADDXY"), (0xE200, "SUBXY")):
+            instruction = self.database.decode(opcode)
+            with self.subTest(mnemonic=mnemonic):
+                self.assertIsNotNone(instruction)
+                self.assertEqual(instruction.mnemonic, mnemonic)
+                self.assertEqual(instruction.length_words, 1)
+                self.assertEqual(
+                    instruction.metadata["status_bits_written"],
+                    ["N", "C", "Z", "V"],
+                )
+                self.assertEqual(
+                    instruction.metadata["documented_cycles"],
+                    {"kind": "fixed", "machine_states": 1},
+                )
+                self.assertTrue(
+                    instruction.metadata["compatible_with_tms34010"]
+                )
+                self.assertIn(
+                    "same file",
+                    instruction.metadata["register_file"],
+                )
 
     def test_shift_forms_record_direct_and_twos_complement_counts(self) -> None:
         direct_constant = self.database.decode(0x20E1)

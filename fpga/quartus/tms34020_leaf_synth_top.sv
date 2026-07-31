@@ -120,9 +120,10 @@ module tms34020_leaf_synth_top (
          execute_register_write_enable, execute_status_write_enable} ^
         {27'd0, binary_nczv, binary_register_write_enable} ^
         {31'd0, lmo_z} ^
-        {unary_nczv, unary_status_write_mask,
-         add_nczv, compare_nczv, rmo_z, decode_valid, decoded_id,
-         decode_length, pixel_valid, pixel_states};
+        {6'd0, unary_nczv, unary_status_write_mask,
+         add_nczv, compare_nczv, rmo_z, decode_valid,
+         decode_length, pixel_valid, pixel_states} ^
+        {25'd0, decoded_id};
 
     tms34020_decode decode (
         .first_word_i(first_word_i),

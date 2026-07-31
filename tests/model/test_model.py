@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -49,6 +50,18 @@ class StateTests(unittest.TestCase):
 
 
 class ExecutionTests(unittest.TestCase):
+    def test_decode_only_xy_arithmetic_rolls_back_atomically(self) -> None:
+        for opcode in (0xE020, 0xE220):
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode], bit_address=0x80)
+                model.state.write_reg("A", 0, 0x1234_5678)
+                model.state.write_reg("A", 1, 0x9ABC_DEF0)
+                before = model.snapshot()
+                with self.assertRaises(UnsupportedInstruction):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
     def test_nop_advances_bit_addressed_pc(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0300], bit_address=0x20000)

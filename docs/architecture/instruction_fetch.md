@@ -133,13 +133,13 @@ The testbench requires `PASS: tms34020 instruction packet fetch`.
 
 `make quartus-fetch-smoke` performs warning-free Cyclone V Analysis &
 Synthesis of this block plus the current generated decoder. The diagnostic
-wrapper uses 381 logic cells and 174 registers. This is neither a processor
+wrapper uses 380 logic cells and 175 registers. This is neither a processor
 area estimate nor fit/TimeQuest timing evidence.
 
 ## Explicit exclusions
 
 - Cache and fetch are composed in `tms34020_frontend`. The downstream bounded
-  `tms34020_scalar_slice` connects 27 verified one-word operations and the
+  `tms34020_scalar_slice` connects 40 verified one-word operations and the
   two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and three-word
   ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L operations to register/ST commit;
   every other packet remains blocked.

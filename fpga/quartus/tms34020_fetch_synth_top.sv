@@ -42,7 +42,7 @@ module tms34020_fetch_synth_top (
             {22'd0, packet_cache_results} ^
             {16'd0, folded_packet_words} ^
             {
-                14'd0,
+                13'd0,
                 pc_load_ready,
                 cache_request_valid,
                 cache_response_ready,

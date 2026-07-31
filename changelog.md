@@ -36,6 +36,9 @@
   records for the SPVU004 and SPVU020 code-generation-tool guide editions.
 - A hash-pinned 1988 TMS34010 User's Guide for primary compatibility
   cross-checks without treating it as a TMS34020 timing authority.
+- Primary-page-verified ADDXY/SUBXY encodings and metadata from both processor
+  guides, generated 7-bit decode identifiers, boundary fixtures, explicit RTL
+  noncommit checks, and atomic model rollback guards.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -116,6 +119,9 @@
 - Removed a stale one-bit padding field from the Quartus observability digest
   after the generated opcode enum grew to six bits; the warning-enforcing first
   synthesis run caught the resulting 33-to-32-bit truncation.
+- Rebalanced all decoder-bearing Quartus observability digests when the
+  generated opcode identifier grew from six to seven bits, retaining every
+  identifier bit without implicit truncation.
 - Refactored the cache data-array access into an inference-friendly synchronous
   RAM path after synthesis review showed the initial form was implemented in
   logic; Quartus now maps the 128×32 array to 4,096 block-memory bits.
@@ -128,6 +134,13 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 65 entries covering 21,200 first
+  words. ADDXY and SUBXY decode across their complete primary-defined ranges
+  while remaining atomically non-executable in model and RTL at this
+  extraction-only checkpoint. All four decoder-bearing Quartus Cyclone V
+  Analysis & Synthesis smokes pass with zero errors/warnings: 7,695 leaf, 380
+  fetch, 755 frontend, and 4,559 scalar diagnostic logic cells. These are
+  analysis-only portability metrics, not fitted core area or timing closure.
 - Verilator leaf/scalar regressions and warning-free Cyclone V Analysis &
   Synthesis cover LMO at the register-execution boundary. The leaf diagnostic
   top uses 7,713 logic cells and 2,021 registers; the bounded scalar diagnostic

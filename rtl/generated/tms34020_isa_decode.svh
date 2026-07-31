@@ -4,71 +4,73 @@
 `ifndef TMS34020_ISA_DECODE_SVH
 `define TMS34020_ISA_DECODE_SVH
 
-typedef enum logic [5:0] {
-    TMS20_OP_UNCLASSIFIED = 6'd0,
-    TMS20_OP_CLRC = 6'd1,
-    TMS20_OP_DINT = 6'd2,
-    TMS20_OP_EINT = 6'd3,
-    TMS20_OP_IDLE = 6'd4,
-    TMS20_OP_MWAIT = 6'd5,
-    TMS20_OP_NOP = 6'd6,
-    TMS20_OP_SETC = 6'd7,
-    TMS20_OP_SETCDP = 6'd8,
-    TMS20_OP_SETCMP = 6'd9,
-    TMS20_OP_SETCSP = 6'd10,
-    TMS20_OP_TRAPL = 6'd11,
-    TMS20_OP_VLCOL = 6'd12,
-    TMS20_OP_BLMOVE = 6'd13,
-    TMS20_OP_ABS = 6'd14,
-    TMS20_OP_ADDI_L = 6'd15,
-    TMS20_OP_ADDI_W = 6'd16,
-    TMS20_OP_ADDXYI = 6'd17,
-    TMS20_OP_ANDNI = 6'd18,
-    TMS20_OP_CMPI_L = 6'd19,
-    TMS20_OP_CMPI_W = 6'd20,
-    TMS20_OP_EXGPC = 6'd21,
-    TMS20_OP_EXGPS = 6'd22,
-    TMS20_OP_GETPC = 6'd23,
-    TMS20_OP_GETPS = 6'd24,
-    TMS20_OP_GETST = 6'd25,
-    TMS20_OP_MOVI_L = 6'd26,
-    TMS20_OP_MOVI_W = 6'd27,
-    TMS20_OP_NEG = 6'd28,
-    TMS20_OP_NEGB = 6'd29,
-    TMS20_OP_NOT = 6'd30,
-    TMS20_OP_ORI = 6'd31,
-    TMS20_OP_RPIX = 6'd32,
-    TMS20_OP_SUBI_L = 6'd33,
-    TMS20_OP_SUBI_W = 6'd34,
-    TMS20_OP_XORI = 6'd35,
-    TMS20_OP_ADD = 6'd36,
-    TMS20_OP_ADDC = 6'd37,
-    TMS20_OP_AND = 6'd38,
-    TMS20_OP_ANDN = 6'd39,
-    TMS20_OP_CMP = 6'd40,
-    TMS20_OP_LMO = 6'd41,
-    TMS20_OP_MOVX = 6'd42,
-    TMS20_OP_MOVY = 6'd43,
-    TMS20_OP_OR = 6'd44,
-    TMS20_OP_RL_R = 6'd45,
-    TMS20_OP_RMO = 6'd46,
-    TMS20_OP_SLA_R = 6'd47,
-    TMS20_OP_SLL_R = 6'd48,
-    TMS20_OP_SRA_R = 6'd49,
-    TMS20_OP_SRL_R = 6'd50,
-    TMS20_OP_SUB = 6'd51,
-    TMS20_OP_SUBB = 6'd52,
-    TMS20_OP_XOR = 6'd53,
-    TMS20_OP_ADDK = 6'd54,
-    TMS20_OP_CMPK = 6'd55,
-    TMS20_OP_MOVE = 6'd56,
-    TMS20_OP_MOVK = 6'd57,
-    TMS20_OP_RL_K = 6'd58,
-    TMS20_OP_SLA_K = 6'd59,
-    TMS20_OP_SLL_K = 6'd60,
-    TMS20_OP_SRA_K = 6'd61,
-    TMS20_OP_SRL_K = 6'd62,
-    TMS20_OP_SUBK = 6'd63
+typedef enum logic [6:0] {
+    TMS20_OP_UNCLASSIFIED = 7'd0,
+    TMS20_OP_CLRC = 7'd1,
+    TMS20_OP_DINT = 7'd2,
+    TMS20_OP_EINT = 7'd3,
+    TMS20_OP_IDLE = 7'd4,
+    TMS20_OP_MWAIT = 7'd5,
+    TMS20_OP_NOP = 7'd6,
+    TMS20_OP_SETC = 7'd7,
+    TMS20_OP_SETCDP = 7'd8,
+    TMS20_OP_SETCMP = 7'd9,
+    TMS20_OP_SETCSP = 7'd10,
+    TMS20_OP_TRAPL = 7'd11,
+    TMS20_OP_VLCOL = 7'd12,
+    TMS20_OP_BLMOVE = 7'd13,
+    TMS20_OP_ABS = 7'd14,
+    TMS20_OP_ADDI_L = 7'd15,
+    TMS20_OP_ADDI_W = 7'd16,
+    TMS20_OP_ADDXYI = 7'd17,
+    TMS20_OP_ANDNI = 7'd18,
+    TMS20_OP_CMPI_L = 7'd19,
+    TMS20_OP_CMPI_W = 7'd20,
+    TMS20_OP_EXGPC = 7'd21,
+    TMS20_OP_EXGPS = 7'd22,
+    TMS20_OP_GETPC = 7'd23,
+    TMS20_OP_GETPS = 7'd24,
+    TMS20_OP_GETST = 7'd25,
+    TMS20_OP_MOVI_L = 7'd26,
+    TMS20_OP_MOVI_W = 7'd27,
+    TMS20_OP_NEG = 7'd28,
+    TMS20_OP_NEGB = 7'd29,
+    TMS20_OP_NOT = 7'd30,
+    TMS20_OP_ORI = 7'd31,
+    TMS20_OP_RPIX = 7'd32,
+    TMS20_OP_SUBI_L = 7'd33,
+    TMS20_OP_SUBI_W = 7'd34,
+    TMS20_OP_XORI = 7'd35,
+    TMS20_OP_ADD = 7'd36,
+    TMS20_OP_ADDC = 7'd37,
+    TMS20_OP_ADDXY = 7'd38,
+    TMS20_OP_AND = 7'd39,
+    TMS20_OP_ANDN = 7'd40,
+    TMS20_OP_CMP = 7'd41,
+    TMS20_OP_LMO = 7'd42,
+    TMS20_OP_MOVX = 7'd43,
+    TMS20_OP_MOVY = 7'd44,
+    TMS20_OP_OR = 7'd45,
+    TMS20_OP_RL_R = 7'd46,
+    TMS20_OP_RMO = 7'd47,
+    TMS20_OP_SLA_R = 7'd48,
+    TMS20_OP_SLL_R = 7'd49,
+    TMS20_OP_SRA_R = 7'd50,
+    TMS20_OP_SRL_R = 7'd51,
+    TMS20_OP_SUB = 7'd52,
+    TMS20_OP_SUBB = 7'd53,
+    TMS20_OP_SUBXY = 7'd54,
+    TMS20_OP_XOR = 7'd55,
+    TMS20_OP_ADDK = 7'd56,
+    TMS20_OP_CMPK = 7'd57,
+    TMS20_OP_MOVE = 7'd58,
+    TMS20_OP_MOVK = 7'd59,
+    TMS20_OP_RL_K = 7'd60,
+    TMS20_OP_SLA_K = 7'd61,
+    TMS20_OP_SLL_K = 7'd62,
+    TMS20_OP_SRA_K = 7'd63,
+    TMS20_OP_SRL_K = 7'd64,
+    TMS20_OP_SUBK = 7'd65
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -234,6 +236,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_ADDC;
                 decoded.length_words = 3'd1;
             end
+            16'b1110000?????????: begin
+                decoded.opcode_id = TMS20_OP_ADDXY;
+                decoded.length_words = 3'd1;
+            end
             16'b0101000?????????: begin
                 decoded.opcode_id = TMS20_OP_AND;
                 decoded.length_words = 3'd1;
@@ -292,6 +298,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b0100011?????????: begin
                 decoded.opcode_id = TMS20_OP_SUBB;
+                decoded.length_words = 3'd1;
+            end
+            16'b1110001?????????: begin
+                decoded.opcode_id = TMS20_OP_SUBXY;
                 decoded.length_words = 3'd1;
             end
             16'b0101011?????????: begin

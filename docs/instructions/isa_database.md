@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 63 page-verified encoding records and covers 20,176 of 65,536
+slice contains 65 page-verified encoding records and covers 21,200 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -43,6 +43,7 @@ first words without collisions:
 | SETC | `0DE0h` | 1 | p.13-226 |
 | ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
+| ADDXY | `E000h`, mask `FE00h` | 1 | p.13-38 |
 | ADDI.W / ADDI | `0B00h`, mask `FFE0h` | 2 | p.13-35 |
 | ADDI.L / ADDI | `0B20h`, mask `FFE0h` | 3 | p.13-36 |
 | CMPI.W / CMPI | `0B40h`, mask `FFE0h` | 2 | p.13-81 |
@@ -51,6 +52,7 @@ first words without collisions:
 | SUBI.L / SUBI | `0D00h`, mask `FFE0h` | 3 | p.13-244 |
 | SUB | `4400h`, mask `FE00h` | 1 | p.13-241 |
 | SUBB | `4600h`, mask `FE00h` | 1 | p.13-242 |
+| SUBXY | `E200h`, mask `FE00h` | 1 | p.13-246 |
 | CMP | `4800h`, mask `FE00h` | 1 | p.13-80 |
 | AND | `5000h`, mask `FE00h` | 1 | p.13-40 |
 | ANDN | `5200h`, mask `FE00h` | 1 | p.13-42 |
@@ -88,6 +90,18 @@ in both the TMS34020 guide, printed p.13-147, and the independently acquired
 1988 TMS34010 guide, printed p.12-108. This establishes the database's
 compatibility classification; neither MAME nor the pinned RTL is the source of
 that claim.
+
+ADDXY and SUBXY operate on the X and Y 16-bit halves independently, without
+carry or borrow propagation between halves. ADDXY derives N from X-result
+zero, C from Y-result bit 15, Z from Y-result zero, and V from X-result bit 15.
+SUBXY derives N/Z from equal X/Y halves and V/C from unsigned X/Y borrows,
+respectively. Both use a same-file register pair, replace NCZV, and take one
+state. The encodings and semantics agree between the TMS34020 guide, printed
+pp.13-38 and 13-246, and the independently acquired TMS34010 guide, printed
+pp.12-41 and 12-251..12-252. They are therefore classified compatible from
+primary sources. At this extraction checkpoint they decode in the generated
+RTL but are deliberately rejected by execution and commit, and the model
+rolls either operation back with `UnsupportedInstruction`.
 
 The `.W` and `.L` suffixes on the ADDI, CMPI, and SUBI record pairs are
 canonical database encoding-form names. TI's source mnemonics remain `ADDI`,
@@ -143,9 +157,9 @@ complement of a register source's low five bits at execution. All four define
 count zero as no data shift with C cleared. SLA alone takes three machine
 states and replaces N/C/Z/V with overflow detection; SLL and SRL replace only
 C/Z, while SRA replaces N/C/Z. Sources: printed pp.13-233..13-240 and timing
-table p.15-8. The independent model executes all eight forms and checks every
-published example row plus all 32 SLA counts against an iterative overflow
-oracle. RTL execution remains a separate unimplemented boundary.
+table p.15-8. The independent model and bounded RTL execute all eight forms
+and check every published example row plus all 32 SLA counts against an
+iterative overflow oracle.
 
 The RL form names distinguish the embedded five-bit count (`RL.K`) from the
 same-file register count (`RL.R`); TI uses `RL` for both. Each form rotates Rd

@@ -3,15 +3,15 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest verified commit before this RTL extension: `42afdb27253dc307a61f8ca02d14b75cf4204c21`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 102 directed model
+- Latest verified baseline commit: `397f8510e89fc3e8ea61a8ebea83b2b6e922bc79`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 103 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: all 63 currently extracted encoding forms have bounded
+- Model status: 63 of 65 currently extracted encoding forms have bounded
   successful semantics, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
   SLA/SLL/SRA/SRL constant/register forms, LMO, SETCDP/SETCMP/SETCSP, bounded
@@ -19,10 +19,12 @@
   fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
   replay, including GETPC/EXGPC sequential-PC, redirect, alignment, A/B, and
-  shared-SP behavior. The extracted ISA is far from complete; BLMOVE overlap,
+  shared-SP behavior. ADDXY and SUBXY are decode-only and rollback atomically
+  pending semantic implementation. The extracted ISA is far from complete; BLMOVE overlap,
   continuation/timing, non-cache fault/retry, and full ISA/interfaces remain
   (`TMS20-0006`, `TMS20-0007`)
-- RTL status: generated 63-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 65-entry partial decode, with ADDXY/SUBXY explicitly
+  rejected at execution/commit, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 40 one-word instructions, with externally gated one-edge
@@ -60,7 +62,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 4,595 logic cells, 1,386 registers, and
+  warnings; the scalar wrapper uses 4,559 logic cells, 1,387 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored
