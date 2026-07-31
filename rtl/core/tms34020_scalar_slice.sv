@@ -68,7 +68,6 @@ module tms34020_scalar_slice (
         execution_eligible =
             packet_valid_o &&
             packet_decode_valid &&
-            packet_length_words_o == 3'd1 &&
             register_commit_supported;
         packet_supported_o = execution_eligible;
         packet_blocked_o = packet_valid_o && !execution_eligible;
@@ -129,7 +128,8 @@ module tms34020_scalar_slice (
         .clk_i(clk_i),
         .reset_i(reset_i),
         .commit_i(execution_eligible),
-        .first_word_i(packet_words_o[15:0]),
+        .packet_words_i(packet_words_o[47:0]),
+        .packet_length_words_i(packet_length_words_o),
         .supported_o(register_commit_supported),
         .commit_accepted_o(commit_accepted_o),
         .register_write_enable_o(register_write_enable_o),
@@ -144,13 +144,23 @@ module tms34020_scalar_slice (
     );
 
 `ifndef SYNTHESIS
-    property p_only_supported_one_word_commits;
+    property p_only_supported_packets_commit;
         @(posedge clk_i) disable iff (reset_i)
             commit_accepted_o
             |-> packet_valid_o &&
                 packet_decode_valid &&
-                packet_length_words_o == 3'd1 &&
-                register_commit_supported;
+                register_commit_supported &&
+                (
+                    packet_length_words_o == 3'd1 ||
+                    (
+                        packet_length_words_o == 3'd3 &&
+                        (
+                            packet_opcode_id_o == TMS20_OP_ANDNI ||
+                            packet_opcode_id_o == TMS20_OP_ORI ||
+                            packet_opcode_id_o == TMS20_OP_XORI
+                        )
+                    )
+                );
     endproperty
 
     property p_blocked_packet_cannot_write;
@@ -166,7 +176,7 @@ module tms34020_scalar_slice (
             commit_accepted_o |=> !commit_accepted_o;
     endproperty
 
-    assert property (p_only_supported_one_word_commits);
+    assert property (p_only_supported_packets_commit);
     assert property (p_blocked_packet_cannot_write);
     assert property (p_commit_is_single_pulse);
 `endif

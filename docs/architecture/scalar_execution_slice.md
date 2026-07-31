@@ -2,13 +2,14 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for the 23 one-word register/status operations already verified
-against their individual TI instruction pages:
+execution path for 26 register/status operations already verified against their
+individual TI instruction pages:
 
 - NOP, CLRC, DINT, EINT, SETC, and GETST;
 - ABS, NEG, NEGB, and NOT;
 - ADD, ADDC, SUB, SUBB, CMP, INC, and DEC; and
-- AND, ANDN, OR, XOR, CMPK, and RMO.
+- AND, ANDN, OR, XOR, CMPK, and RMO; plus
+- the three-word ANDNI, ORI, and XORI immediate-logical family.
 
 The canonical encodings, operands, status effects, and printed-page citations
 remain in `docs/generated/tms34020_isa.yaml`. The register-file and status
@@ -22,19 +23,26 @@ A packet is accepted only when all of these conditions are true:
 
 1. the frontend has produced a complete packet;
 2. the generated decoder classifies the first word;
-3. the decoded length is exactly one word; and
-4. the register-execution owner reports the instruction as supported.
+3. the supplied packet length matches the generated decode length; and
+4. the register-execution owner reports that complete packet as supported.
 
 The same acceptance event supplies the existing atomic register/ST commit
 enable. A supported packet therefore commits at most once. The frontend then
 receives a sequential completion handshake. Three runtime assertions check
-that only supported one-word packets commit, blocked packets cannot assert
-state writes, and a commit cannot remain asserted on the next FPGA clock.
+that only the supported one- or three-word packet classes commit, blocked
+packets cannot assert state writes, and a commit cannot remain asserted on the
+next FPGA clock.
 
-Decoded instructions outside the verified scalar set and every multiword
-packet remain presented with `packet_blocked_o=1`. They are neither consumed
-nor treated as illegal instructions, because the architectural exception,
-control-flow, and multiword execution behavior is not yet implemented.
+Decoded instructions outside the verified scalar set and unclassified packets
+remain presented with `packet_blocked_o=1`. They are neither consumed nor
+treated as illegal instructions, because the architectural exception and other
+execution behavior are not yet implemented.
+
+For ANDNI/ORI/XORI, the packet owner supplies extension word 1 as the low half
+and word 2 as the high half of the immediate. No state write can occur until
+the frontend has collected the complete three-word packet. This verifies
+atomic packet consumption, not the documented two- versus three-machine-state
+alignment cases.
 
 ## Directed verification
 
@@ -48,8 +56,10 @@ EINT -> SETC -> GETST B2 -> INC B2 -> DINT
 
 The test observes every accepted PC/opcode, register and status write intent,
 post-edge ST/SP state, and dependent result. It then verifies that decoded
-one-word BLMOVE and three-word ORI remain stable for three clocks with no
-commit, register write, status write, or state change.
+one-word BLMOVE remains stable for three clocks with no commit, register write,
+status write, or state change. A separate sequence commits ORI, a dependent
+XORI, and ANDNI from complete fetched packets, then proves an unclassified word
+remains blocked and state-stable.
 
 A second pass enables the cache, checks the demand-word-last refill sequence,
 and executes the first eight dependent instructions with exactly four native
@@ -58,7 +68,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 3,444 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 3,512 logic cells,
 1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

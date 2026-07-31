@@ -196,6 +196,8 @@ module tms34020_leaf_synth_top (
 
     tms34020_register_execute register_execute (
         .first_word_i(first_word_i),
+        .packet_length_words_i(decode_length),
+        .immediate_i(immediate_i),
         .source_i(immediate_i),
         .destination_i(operand_i),
         .status_i(status_value),
@@ -214,7 +216,8 @@ module tms34020_leaf_synth_top (
         .clk_i(clk_i),
         .reset_i(reset_i),
         .commit_i(write_enable_i),
-        .first_word_i(first_word_i),
+        .packet_words_i({immediate_i, first_word_i}),
+        .packet_length_words_i(decode_length),
         .supported_o(commit_supported),
         .commit_accepted_o(commit_accepted),
         .register_write_enable_o(commit_register_write_enable),

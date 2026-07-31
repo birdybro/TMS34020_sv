@@ -5,7 +5,8 @@ module tms34020_register_commit (
     input  logic        clk_i,
     input  logic        reset_i,
     input  logic        commit_i,
-    input  logic [15:0] first_word_i,
+    input  logic [47:0] packet_words_i,
+    input  logic [2:0]  packet_length_words_i,
 
     output logic        supported_o,
     output logic        commit_accepted_o,
@@ -60,7 +61,9 @@ module tms34020_register_commit (
     );
 
     tms34020_register_execute execute (
-        .first_word_i(first_word_i),
+        .first_word_i(packet_words_i[15:0]),
+        .packet_length_words_i(packet_length_words_i),
+        .immediate_i(packet_words_i[47:16]),
         .source_i(source_data),
         .destination_i(destination_data),
         .status_i(status_o),

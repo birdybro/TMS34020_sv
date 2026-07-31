@@ -129,6 +129,12 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0100: memory_word = 16'h0BA0;
                 32'h0000_0110: memory_word = 16'h5678;
                 32'h0000_0120: memory_word = 16'h1234;
+                32'h0000_0130: memory_word = 16'h0BC0;
+                32'h0000_0140: memory_word = 16'h5678;
+                32'h0000_0150: memory_word = 16'h1234;
+                32'h0000_0160: memory_word = 16'h0B80;
+                32'h0000_0170: memory_word = 16'hFFFF;
+                32'h0000_0180: memory_word = 16'hFFFF;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -152,6 +158,52 @@ module tb_tms34020_scalar_slice;
         if (!condition) begin
             $display("FAIL: %s", message);
             $fatal(1);
+        end
+    endtask
+
+    task automatic serve_immediate_and_commit(
+        input logic [31:0] expected_pc,
+        input tms34020_opcode_id_t expected_opcode,
+        input logic [31:0] expected_register_data,
+        input logic [31:0] expected_status,
+        input string message
+    );
+        begin
+            serve_word(expected_pc);
+            serve_word(expected_pc + 32'd16);
+            serve_word(expected_pc + 32'd32);
+            wait (commit_accepted);
+            check_condition(
+                packet_valid &&
+                packet_supported &&
+                !packet_blocked &&
+                packet_opcode_id == expected_opcode &&
+                packet_length_words == 3'd3 &&
+                packet_start_pc == expected_pc &&
+                packet_words[47:0] == {
+                    memory_word(expected_pc + 32'd32),
+                    memory_word(expected_pc + 32'd16),
+                    memory_word(expected_pc)
+                } &&
+                packet_words[79:48] == 32'd0 &&
+                register_write_enable &&
+                !register_write_file &&
+                register_write_index == 4'd0 &&
+                register_write_data == expected_register_data &&
+                status_write_enable &&
+                status_write_data ==
+                    {2'd0, expected_register_data == 32'd0, 29'd0} &&
+                status_write_mask == 32'h2000_0000,
+                message
+            );
+            @(posedge clk);
+            #1;
+            check_condition(
+                !commit_accepted &&
+                status == expected_status &&
+                sp == 32'd0,
+                message
+            );
         end
     endtask
 
@@ -413,32 +465,47 @@ module tb_tms34020_scalar_slice;
 
         apply_reset();
         load_pc(32'h100);
-        serve_word(32'h100);
-        serve_word(32'h110);
-        serve_word(32'h120);
+        serve_immediate_and_commit(
+            32'h100, TMS20_OP_ORI,
+            32'h1234_5678, 32'h0000_0010,
+            "scalar ORI packet commit"
+        );
+        serve_immediate_and_commit(
+            32'h130, TMS20_OP_XORI,
+            32'd0, 32'h2000_0010,
+            "scalar XORI observes ORI"
+        );
+        serve_immediate_and_commit(
+            32'h160, TMS20_OP_ANDNI,
+            32'd0, 32'h2000_0010,
+            "scalar ANDNI packet commit"
+        );
+        check_condition(
+            commit_count == 3,
+            "three immediate-logical packet commits"
+        );
+
+        serve_word(32'h190);
         wait (packet_blocked);
         check_condition(
             packet_valid &&
             !packet_supported &&
-            packet_opcode_id == TMS20_OP_ORI &&
-            packet_length_words == 3'd3 &&
-            packet_words[47:0] ==
-                {16'h1234, 16'h5678, 16'h0BA0} &&
-            packet_words[79:48] == 32'd0 &&
+            packet_opcode_id == TMS20_OP_UNCLASSIFIED &&
+            packet_length_words == 3'd1 &&
             !commit_accepted &&
             !register_write_enable &&
             !status_write_enable,
-            "multiword packet is blocked"
+            "unclassified packet is blocked"
         );
         repeat (3) begin
             @(posedge clk);
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 0 &&
-                status == TMS34020_ST_RESET &&
+                commit_count == 3 &&
+                status == 32'h2000_0010 &&
                 sp == 32'd0,
-                "blocked multiword packet cannot mutate state"
+                "blocked unclassified packet cannot mutate state"
             );
         end
 

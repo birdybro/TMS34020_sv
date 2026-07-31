@@ -106,9 +106,19 @@ def lint() -> None:
         lint_command.extend(str(path) for path in rtl_files)
         if verified_leaf_tb.is_file():
             lint_command.append(str(verified_leaf_tb))
-        run(
-            lint_command
+        completed = subprocess.run(
+            lint_command,
+            cwd=ROOT,
+            check=False,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
         )
+        print(completed.stdout, end="")
+        if completed.returncode:
+            raise SystemExit(completed.returncode)
+        if "%Warning" in completed.stdout:
+            raise SystemExit("FAIL: Verilator emitted RTL lint warnings")
     elif rtl_files:
         print("SKIP: Verilator unavailable; RTL lint not executed")
     else:

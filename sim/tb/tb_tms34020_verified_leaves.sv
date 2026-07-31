@@ -84,6 +84,8 @@ module tb_tms34020_verified_leaves;
     logic [31:0] status_value;
 
     logic [15:0] execute_first_word;
+    logic [2:0] execute_packet_length;
+    logic [31:0] execute_immediate;
     logic [31:0] execute_source;
     logic [31:0] execute_destination;
     logic [31:0] execute_status;
@@ -98,7 +100,8 @@ module tb_tms34020_verified_leaves;
     logic [31:0] execute_status_write_mask;
 
     logic commit_valid;
-    logic [15:0] commit_first_word;
+    logic [47:0] commit_packet_words;
+    logic [2:0] commit_packet_length;
     logic commit_supported;
     logic commit_accepted;
     logic commit_register_write_enable;
@@ -215,6 +218,8 @@ module tb_tms34020_verified_leaves;
 
     tms34020_register_execute register_execute_dut (
         .first_word_i(execute_first_word),
+        .packet_length_words_i(execute_packet_length),
+        .immediate_i(execute_immediate),
         .source_i(execute_source),
         .destination_i(execute_destination),
         .status_i(execute_status),
@@ -233,7 +238,8 @@ module tb_tms34020_verified_leaves;
         .clk_i(clk),
         .reset_i(reset),
         .commit_i(commit_valid),
-        .first_word_i(commit_first_word),
+        .packet_words_i(commit_packet_words),
+        .packet_length_words_i(commit_packet_length),
         .supported_o(commit_supported),
         .commit_accepted_o(commit_accepted),
         .register_write_enable_o(commit_register_write_enable),
@@ -256,6 +262,36 @@ module tb_tms34020_verified_leaves;
         end
     endtask
 
+    task automatic check_immediate_register_execute(
+        input logic [15:0] first_word,
+        input logic [31:0] immediate,
+        input logic [31:0] destination,
+        input logic [31:0] expected_register_data,
+        input logic expected_zero,
+        input string message
+    );
+        execute_first_word = first_word;
+        execute_packet_length = 3'd3;
+        execute_immediate = immediate;
+        execute_source = 32'd0;
+        execute_destination = destination;
+        execute_status = 32'hD000_0010;
+        #1;
+        check_condition(
+            execute_supported &&
+            execute_register_file == first_word[4] &&
+            execute_source_index == first_word[3:0] &&
+            execute_destination_index == first_word[3:0] &&
+            execute_register_write_enable &&
+            execute_register_write_data == expected_register_data &&
+            execute_status_write_enable &&
+            execute_status_write_data ==
+                {2'd0, expected_zero, 29'd0} &&
+            execute_status_write_mask == 32'h2000_0000,
+            message
+        );
+    endtask
+
     task automatic check_decode(
         input logic [15:0] first_word,
         input tms34020_opcode_id_t expected_id,
@@ -270,6 +306,45 @@ module tb_tms34020_verified_leaves;
             decode_length == expected_length,
             message
         );
+    endtask
+
+    task automatic commit_immediate_instruction(
+        input logic [15:0] first_word,
+        input logic [31:0] immediate,
+        input logic expected_register_file,
+        input logic [3:0] expected_register_index,
+        input logic [31:0] expected_register_data,
+        input logic expected_zero,
+        input logic [31:0] expected_status,
+        input logic [31:0] expected_sp,
+        input string message
+    );
+        commit_packet_words = {immediate, first_word};
+        commit_packet_length = 3'd3;
+        commit_valid = 1'b1;
+        #1;
+        check_condition(
+            commit_supported &&
+            commit_accepted &&
+            commit_register_write_enable &&
+            commit_register_write_file == expected_register_file &&
+            commit_register_write_index == expected_register_index &&
+            commit_register_write_data == expected_register_data &&
+            commit_status_write_enable &&
+            commit_status_write_data ==
+                {2'd0, expected_zero, 29'd0} &&
+            commit_status_write_mask == 32'h2000_0000,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(
+            commit_status == expected_status &&
+            commit_sp == expected_sp,
+            message
+        );
+        commit_valid = 1'b0;
+        #1;
     endtask
 
     task automatic check_pixel_replicate(
@@ -392,6 +467,8 @@ module tb_tms34020_verified_leaves;
         input string message
     );
         execute_first_word = first_word;
+        execute_packet_length = 3'd1;
+        execute_immediate = 32'd0;
         execute_source = source;
         execute_destination = destination;
         execute_status = status;
@@ -421,7 +498,8 @@ module tb_tms34020_verified_leaves;
         input logic [31:0] expected_sp,
         input string message
     );
-        commit_first_word = first_word;
+        commit_packet_words = {32'd0, first_word};
+        commit_packet_length = 3'd1;
         commit_valid = 1'b1;
         #1;
         check_condition(
@@ -492,11 +570,14 @@ module tb_tms34020_verified_leaves;
         status_write_data = 32'd0;
         status_write_mask = 32'd0;
         execute_first_word = 16'd0;
+        execute_packet_length = 3'd1;
+        execute_immediate = 32'd0;
         execute_source = 32'd0;
         execute_destination = 32'd0;
         execute_status = 32'd0;
         commit_valid = 1'b0;
-        commit_first_word = 16'd0;
+        commit_packet_words = 48'd0;
+        commit_packet_length = 3'd1;
 
         repeat (2) @(posedge clk);
         reset = 1'b0;
@@ -695,7 +776,37 @@ module tb_tms34020_verified_leaves;
         check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "three-word ANDNI cannot enter one-word register execute"
+            "incomplete ANDNI cannot enter register execute"
+        );
+        check_immediate_register_execute(
+            16'h0B80, 32'hFFFF_FFFF, 32'hFFFF_FFFF,
+            32'd0, 1'b1,
+            "register execute ANDNI zero"
+        );
+        check_immediate_register_execute(
+            16'h0B80, 32'h5555_5555, 32'hAAAA_AAAA,
+            32'hAAAA_AAAA, 1'b0,
+            "register execute ANDNI nonzero"
+        );
+        check_immediate_register_execute(
+            16'h0BA0, 32'hAAAA_AAAA, 32'h5555_5555,
+            32'hFFFF_FFFF, 1'b0,
+            "register execute ORI nonzero"
+        );
+        check_immediate_register_execute(
+            16'h0BA0, 32'd0, 32'd0,
+            32'd0, 1'b1,
+            "register execute ORI zero"
+        );
+        check_immediate_register_execute(
+            16'h0BC0, 32'hFFFF_FFFF, 32'hFFFF_FFFF,
+            32'd0, 1'b1,
+            "register execute XORI zero"
+        );
+        check_immediate_register_execute(
+            16'h0BD2, 32'hFFFF_FFFF, 32'hAAAA_AAAA,
+            32'h5555_5555, 1'b0,
+            "register execute XORI B-file nonzero"
         );
         check_register_execute(
             16'hFFFF, 32'd0, 32'd0, 32'd0,
@@ -821,6 +932,31 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'h2000_0000, 32'h2000_0000,
             32'h2000_0010, 32'd1,
             "register commit ANDN preserves zero result"
+        );
+        commit_register_instruction(
+            16'h0B80, 1'b0,
+            1'b0, 1'b0, 4'd0, 32'd0,
+            1'b0, 32'd0, 32'd0,
+            32'h2000_0010, 32'd1,
+            "register commit rejects incomplete ANDNI packet"
+        );
+        commit_immediate_instruction(
+            16'h0BA0, 32'hA5A5_5A5A,
+            1'b0, 4'd0, 32'hA5A5_5A5A, 1'b0,
+            32'h0000_0010, 32'd1,
+            "register commit ORI packet"
+        );
+        commit_immediate_instruction(
+            16'h0BC0, 32'hA5A5_5A5A,
+            1'b0, 4'd0, 32'd0, 1'b1,
+            32'h2000_0010, 32'd1,
+            "register commit XORI observes ORI"
+        );
+        commit_immediate_instruction(
+            16'h0B92, 32'hFFFF_FFFF,
+            1'b1, 4'd2, 32'd0, 1'b1,
+            32'h2000_0010, 32'd1,
+            "register commit ANDNI B2 packet"
         );
 
         check_decode(16'h0040, TMS20_OP_IDLE, 3'd1, "IDLE exact decode");

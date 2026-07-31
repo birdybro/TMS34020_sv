@@ -53,7 +53,19 @@ def main() -> None:
         str(BUILD),
         *[str(source) for source in SOURCES],
     ]
-    subprocess.run(command, cwd=ROOT, check=True)
+    build = subprocess.run(
+        command,
+        cwd=ROOT,
+        check=False,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    print(build.stdout, end="")
+    if build.returncode:
+        raise SystemExit(build.returncode)
+    if "%Warning" in build.stdout:
+        raise SystemExit("FAIL: Verilator emitted verified-leaf RTL warnings")
     completed = subprocess.run(
         [str(BUILD / "Vtb_tms34020_verified_leaves")],
         cwd=ROOT,

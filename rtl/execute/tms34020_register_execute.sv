@@ -3,6 +3,8 @@
 
 module tms34020_register_execute (
     input  logic [15:0] first_word_i,
+    input  logic [2:0]  packet_length_words_i,
+    input  logic [31:0] immediate_i,
     input  logic [31:0] source_i,
     input  logic [31:0] destination_i,
     input  logic [31:0] status_i,
@@ -35,6 +37,9 @@ module tms34020_register_execute (
     logic rmo_z;
     logic [31:0] logical_result;
     logic logical_z;
+    tms34020_logical_op_t immediate_logical_operation;
+    logic [31:0] immediate_logical_result;
+    logic immediate_logical_z;
     tms34020_binary_op_t increment_decrement_operation;
     logic [31:0] increment_decrement_result;
     logic [3:0] increment_decrement_nczv;
@@ -91,6 +96,23 @@ module tms34020_register_execute (
     );
 
     always_comb begin
+        immediate_logical_operation = TMS34020_LOGICAL_ANDN;
+        if (opcode_id == TMS20_OP_ORI) begin
+            immediate_logical_operation = TMS34020_LOGICAL_OR;
+        end else if (opcode_id == TMS20_OP_XORI) begin
+            immediate_logical_operation = TMS34020_LOGICAL_XOR;
+        end
+    end
+
+    tms34020_logical immediate_logical (
+        .operation_i(immediate_logical_operation),
+        .source_i(immediate_i),
+        .destination_i(destination_i),
+        .result_o(immediate_logical_result),
+        .status_z_o(immediate_logical_z)
+    );
+
+    always_comb begin
         increment_decrement_operation = TMS34020_BINARY_ADD;
         if (opcode_id == TMS20_OP_DEC) begin
             increment_decrement_operation = TMS34020_BINARY_SUB;
@@ -118,7 +140,8 @@ module tms34020_register_execute (
         status_write_data_o = 32'd0;
         status_write_mask_o = 32'd0;
 
-        if (decode_valid && length_words == 3'd1) begin
+        if (decode_valid &&
+            packet_length_words_i == length_words) begin
             unique case (opcode_id)
                 TMS20_OP_NOP: begin
                     supported_o = 1'b1;
@@ -199,6 +222,19 @@ module tms34020_register_execute (
                     status_write_enable_o = 1'b1;
                     status_write_data_o =
                         {2'd0, logical_z, 29'd0};
+                    status_write_mask_o = 32'h2000_0000;
+                end
+
+                TMS20_OP_ANDNI,
+                TMS20_OP_ORI,
+                TMS20_OP_XORI: begin
+                    supported_o = 1'b1;
+                    source_index_o = first_word_i[3:0];
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = immediate_logical_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o =
+                        {2'd0, immediate_logical_z, 29'd0};
                     status_write_mask_o = 32'h2000_0000;
                 end
 
