@@ -92,6 +92,9 @@ class IsaTests(unittest.TestCase):
             0x1400: ("SUBK", 1),
             0x1420: ("SUBK", 1),
             0x17FF: ("SUBK", 1),
+            0x1800: ("MOVK", 1),
+            0x1820: ("MOVK", 1),
+            0x1BFF: ("MOVK", 1),
             0x4000: ("ADD", 1),
             0x41FF: ("ADD", 1),
             0x4200: ("ADDC", 1),
@@ -162,7 +165,7 @@ class IsaTests(unittest.TestCase):
         for word in (0x0041, 0x0081, 0x017F, 0x01A0, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
-                     0x0FFF, 0x1800, 0x33FF, 0x3800,
+                     0x0FFF, 0x1C00, 0x33FF, 0x3800,
                      0x0AFF, 0x0C20, 0x3FFF, 0x4A00,
                      0x4FFF, 0x5800,
                      0x79FF, 0x7C00):
@@ -171,8 +174,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 8784)
-        self.assertEqual(unclassified, 65536 - 8784)
+        self.assertEqual(matched, 9808)
+        self.assertEqual(unclassified, 65536 - 9808)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -262,6 +265,17 @@ class IsaTests(unittest.TestCase):
         self.assertIs(subk_32, dec_alias)
         self.assertEqual(subk_32.metadata["aliases"], ["DEC when K=1"])
         immediate = subk_32.metadata["immediate_fields"][0]
+        self.assertEqual(immediate["width"], 5)
+        self.assertFalse(immediate["signed"])
+        self.assertEqual(immediate["zero_encoding"], 32)
+
+    def test_movk_metadata_and_encoded_zero(self) -> None:
+        movk_32 = self.database.decode(0x1800)
+        movk_1 = self.database.decode(0x1820)
+        self.assertEqual(movk_32.mnemonic, "MOVK")
+        self.assertIs(movk_32, movk_1)
+        self.assertEqual(movk_32.metadata["status_bits_written"], [])
+        immediate = movk_32.metadata["immediate_fields"][0]
         self.assertEqual(immediate["width"], 5)
         self.assertFalse(immediate["signed"])
         self.assertEqual(immediate["zero_encoding"], 32)

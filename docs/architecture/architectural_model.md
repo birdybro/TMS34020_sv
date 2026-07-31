@@ -18,7 +18,8 @@ Implemented:
   SSAs, 32 present flags, move-to-front LRU, demand-longword-last refills,
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
-- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, SETC,
+- NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK,
+  SETC,
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
@@ -63,6 +64,11 @@ assembler alias for the K=1 encoding, not a separate object-code family. The
 model executes the canonical SUBK record while preserving every published DEC
 example. Sources: the same guide, printed pp.13-94 and 13-245 and timing-table
 p.15-2.
+
+MOVK zero-extends the unsigned embedded constant 1–32 into the selected
+destination without changing ST; an all-zero five-bit K field represents 32.
+It takes one documented state. Source: the same guide, printed p.13-169 and
+timing-table p.15-6.
 
 The two ADDI encoding forms add either a sign-extended 16-bit word or a full
 32-bit immediate and replace NCZV. The short form takes two documented states;
@@ -178,7 +184,8 @@ all TI register/immediate logical example rows, ANDI encoded-complement
 behavior, aligned and unaligned immediate timing,
 CLRC/SETC preservation, DINT/EINT IE changes, complete GETST transfer, all TI
 ADDK and INC-alias example rows, all SUBK and DEC-alias example rows,
-every SUBK constant, encoded-zero/B/SP cases for both constant families, CMPK
+every SUBK constant, every MOVK constant, encoded-zero/B/SP cases for all three
+constant families, complete MOVK status preservation, CMPK
 constants/flags, PSIZE get/exchange, RMO
 zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
 pending states, IDLE claim boundaries, no mutation on unsupported

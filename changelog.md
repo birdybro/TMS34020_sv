@@ -258,6 +258,14 @@
   fetched-packet tests cover every K value, the alias, and encoded-zero shared
   SP. Warning-free Quartus reports 5,913 leaf, 344 fetch, 722 frontend, and
   3,744 scalar logic cells.
+- Extracted the complete MOVK family from TI printed p.13-169 and timing-table
+  p.15-6. The 45-record database covers 9,808 first words, and 68 model tests
+  cover every K value, the four published examples, A/B/shared-SP selection,
+  encoded-zero K=32, and complete ST preservation. The generated decoder
+  recognizes all 1,024 MOVK words while leaf and scalar tests prove MOVK remains
+  blocked and non-mutating at this extraction-only RTL checkpoint.
+  Warning-free Quartus reports 5,867 leaf, 347 fetch, 721 frontend, and 3,722
+  scalar logic cells.
 
 ### Documentation
 

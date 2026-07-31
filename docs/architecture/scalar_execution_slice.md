@@ -74,8 +74,10 @@ dependent ADDI.W, ADDI.L, and sign-extending ADDI.W packets with full NCZV
 replacement; executes complemented SUBI.W and dependent SUBI.L packets; then
 executes nondestructive CMPI.W followed by CMPI.L against the preserved
 destination; executes ADDK with encoded K=0 and then SUBK with encoded K=0
-against shared SP; then proves a separate unclassified packet remains blocked
-and state-stable. The earlier INC and DEC spellings exercise the canonical
+against shared SP; proves the newly decoded MOVK packet remains blocked and
+state-stable at the extraction checkpoint; then, after reset, proves a separate
+unclassified packet remains blocked and state-stable. The earlier INC and DEC
+spellings exercise the canonical
 ADDK K=1 and SUBK K=1 object codes.
 
 A second pass enables the cache, checks the demand-word-last refill sequence,
@@ -85,7 +87,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 3,744 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 3,722 logic cells,
 1,357 registers, 82 pins, and 4,096 block-memory bits, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.
 These are wrapper-heavy Analysis & Synthesis figures, not placement,

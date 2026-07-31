@@ -91,6 +91,7 @@ class Tms34020Model:
             "GETST": self._execute_getst,
             "ADDK": self._execute_addk,
             "SUBK": self._execute_subk,
+            "MOVK": self._execute_movk,
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
@@ -480,6 +481,16 @@ class Tms34020Model:
         self._set_status_bit(C_BIT, borrow)
         self._set_status_bit(Z_BIT, result == 0)
         self._set_status_bit(V_BIT, overflow)
+        return 1
+
+    def _execute_movk(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        encoded_constant = (words[0] >> 5) & 0x1F
+        constant = encoded_constant or 32
+        self.state.write_reg(register_file, index, constant)
         return 1
 
     def _execute_setc(

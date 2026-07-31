@@ -1012,6 +1012,11 @@ module tb_tms34020_verified_leaves;
             "decoded but unsupported register execute instruction"
         );
         check_register_execute(
+            16'h1800, 32'd0, 32'd0, 32'd0,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decoded MOVK remains unsupported at extraction checkpoint"
+        );
+        check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "incomplete ANDNI cannot enter register execute"
@@ -1434,6 +1439,10 @@ module tb_tms34020_verified_leaves;
                      "SUBK/DEC alias decode");
         check_decode(16'h17FF, TMS20_OP_SUBK, 3'd1,
                      "SUBK upper-bound decode");
+        check_decode(16'h1800, TMS20_OP_MOVK, 3'd1,
+                     "MOVK encoded-zero decode");
+        check_decode(16'h1BFF, TMS20_OP_MOVK, 3'd1,
+                     "MOVK upper-bound decode");
         check_decode(16'h41FF, TMS20_OP_ADD, 3'd1, "ADD masked decode");
         check_decode(16'h43FF, TMS20_OP_ADDC, 3'd1,
                      "ADDC masked decode");

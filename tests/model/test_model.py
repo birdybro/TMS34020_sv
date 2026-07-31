@@ -434,6 +434,37 @@ class ExecutionTests(unittest.TestCase):
                 self.assertEqual((model.state.st >> 28) & 0xF, 0b0010)
                 self.assertEqual(event.machine_states, 1)
 
+    def test_movk_primary_examples_and_status_preservation(self) -> None:
+        for constant in (1, 8, 16, 32):
+            with self.subTest(constant=constant):
+                model = Tms34020Model()
+                opcode = 0x1800 | ((constant & 0x1F) << 5)
+                model.load_program([opcode])
+                model.state.st = 0xF020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "MOVK")
+                self.assertEqual(model.state.read_reg("A", 0), constant)
+                self.assertEqual(model.state.st, 0xF020_0010)
+                self.assertEqual(event.machine_states, 1)
+
+    def test_movk_all_constants_b_file_and_shared_sp(self) -> None:
+        words = [
+            0x1812 | ((constant & 0x1F) << 5)
+            for constant in range(1, 33)
+        ]
+        words.append(0x180F)
+        model = Tms34020Model()
+        model.load_program(words)
+        model.state.sp = 0xDEADBEEF
+        for constant in range(1, 33):
+            event = model.step()
+            self.assertEqual(event.mnemonic, "MOVK")
+            self.assertEqual(model.state.read_reg("B", 2), constant)
+            self.assertEqual(event.machine_states, 1)
+        final = model.step()
+        self.assertEqual(final.mnemonic, "MOVK")
+        self.assertEqual(model.state.sp, 32)
+
     def test_add_primary_examples(self) -> None:
         cases = (
             (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0b1100),

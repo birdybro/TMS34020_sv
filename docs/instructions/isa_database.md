@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 44 page-verified encoding records and covers 8,784 of 65,536
+slice contains 45 page-verified encoding records and covers 9,808 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -24,6 +24,7 @@ first words without collisions:
 | GETST | `0180h`, mask `FFE0h` | 1 | p.13-132 |
 | ADDK / INC alias when K=1 | `1000h`, mask `FC00h` | 1 | pp.13-37, 13-134 |
 | SUBK / DEC alias when K=1 | `1400h`, mask `FC00h` | 1 | pp.13-94, 13-245 |
+| MOVK | `1800h`, mask `FC00h` | 1 | p.13-169 |
 | SETC | `0DE0h` | 1 | p.13-226 |
 | ADD | `4000h`, mask `FE00h` | 1 | p.13-33 |
 | ADDC | `4200h`, mask `FE00h` | 1 | p.13-34 |
@@ -86,6 +87,11 @@ mapping. TI explicitly defines DEC as an alternate mnemonic for SUBK 1,Rd, so
 `1420h`–`143Fh` decode as SUBK with the conditional DEC alias rather than as
 an overlapping instruction record. Sources: printed pp.13-94 and 13-245. The
 decision is recorded in `docs/research/source_conflicts.md` RSC-0011.
+
+MOVK uses the adjacent `000110 KKKKK R DDDD` encoding and the same unsigned
+1–31/encoded-zero-means-32 K mapping. It zero-extends that constant into the
+selected A/B destination, leaves every ST bit unaffected, and takes one
+documented machine state. Sources: printed p.13-169 and timing-table p.15-6.
 
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database
