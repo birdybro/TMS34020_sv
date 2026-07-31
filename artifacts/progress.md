@@ -3,16 +3,17 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `854412048abb87367ed12ae22506f8ffe7227bee`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 74 directed model
+- Latest commit: `5a253ed65ddc77b291c6f82a11c752cea8c361a0`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 77 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 44 of 50 extracted encoding forms, including complete
-  ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX, and MOVY forms, fetch opcodes/extensions through
+- Model status: 46 of 52 extracted encoding forms, including complete
+  ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, and RL constant/register
+  forms, fetch opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
   replay; full ISA/interfaces remain (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
@@ -26,7 +27,7 @@
   completion and abort/reload; and a bounded fetch-to-commit path for those 27
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets. All
-  other unsupported packets block. MOVI.W
+  other unsupported packets, including decoded RL.K/RL.R, block. MOVI.W
   sign-extends its extension word;
   both MOVI forms replace N/Z/V while preserving C.
   There is no architectural completion timing or
@@ -45,7 +46,7 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the scalar wrapper uses 3,830 logic cells, 1,357 registers, and
+  warnings; the scalar wrapper uses 3,838 logic cells, 1,357 registers, and
   4,096 block-memory bits; Yosys unavailable; no fit or TimeQuest result
 - Documentation acquired: eight hash-verified TI documents plus an eleven-file
   pinned MAME source set; all payloads are gitignored

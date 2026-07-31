@@ -97,6 +97,8 @@ class Tms34020Model:
             "MOVE": self._execute_move,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
+            "RL.K": self._execute_rl_constant,
+            "RL.R": self._execute_rl_register,
             "SETC": self._execute_setc,
             "ADD": self._execute_add,
             "ADDC": self._execute_addc,
@@ -582,6 +584,49 @@ class Tms34020Model:
         self._set_status_bit(Z_BIT, result == 0)
         self._set_status_bit(V_BIT, False)
         return 1
+
+    def _execute_rotate_left(
+        self,
+        register_file: str,
+        destination_index: int,
+        count: int,
+    ) -> int:
+        count &= 0x1F
+        destination = self.state.read_reg(register_file, destination_index)
+        if count == 0:
+            result = destination
+            carry = False
+        else:
+            result = (
+                (destination << count) | (destination >> (32 - count))
+            ) & MASK32
+            carry = bool(result & 1)
+        self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(C_BIT, carry)
+        self._set_status_bit(Z_BIT, result == 0)
+        return 1
+
+    def _execute_rl_constant(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, destination_index = self._decode_destination(words[0])
+        count = (words[0] >> 5) & 0x1F
+        return self._execute_rotate_left(
+            register_file, destination_index, count
+        )
+
+    def _execute_rl_register(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        count = self.state.read_reg(register_file, source_index) & 0x1F
+        return self._execute_rotate_left(
+            register_file, destination_index, count
+        )
 
     def _execute_setc(
         self, instruction: Instruction, words: list[int]

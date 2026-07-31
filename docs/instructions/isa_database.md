@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 50 page-verified encoding records and covers 11,920 of 65,536
+slice contains 52 page-verified encoding records and covers 13,456 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -28,6 +28,8 @@ first words without collisions:
 | MOVI.W / MOVI | `09C0h`, mask `FFE0h` | 2 | p.13-167 |
 | MOVI.L / MOVI | `09E0h`, mask `FFE0h` | 3 | p.13-168 |
 | MOVE | `4C00h`, mask `FC00h` | 1 | p.13-158 |
+| RL.K / RL constant | `3000h`, mask `FC00h` | 1 | p.13-222 |
+| RL.R / RL register | `6800h`, mask `FE00h` | 1 | p.13-223 |
 | MOVX | `EC00h`, mask `FE00h` | 1 | p.13-170 |
 | MOVY | `EE00h`, mask `FE00h` | 1 | p.13-171 |
 | SETC | `0DE0h` | 1 | p.13-226 |
@@ -117,6 +119,13 @@ It is the sole MOVE form that crosses A/B files, copies all 32 bits, derives N/Z
 from that value, preserves C, clears V, and takes one state. Source: printed
 p.13-158.
 
+The RL form names distinguish the embedded five-bit count (`RL.K`) from the
+same-file register count (`RL.R`); TI uses `RL` for both. Each form rotates Rd
+left, replaces C/Z, preserves N/V, and takes one state. Count zero clears C.
+Sources: printed pp.13-222..13-223 and timing table p.15-8. The p.13-222
+count-30 example's C digit conflicts with both its published result and the
+page's bit definition; RSC-0013 records the resolution.
+
 Unmatched words are unclassified, **not** presumed reserved or illegal. The
 project cannot claim decode or instruction completeness until the database
 covers every legal instruction and explicitly classifies the remainder.
@@ -162,6 +171,10 @@ cites both primary locations and uses the timing-table distinction.
 RSC-0009 records that the first SUBI.L example prints `NCZV=0001` for a zero
 result without signed overflow. The model follows the same page's flag
 definitions and the other zero-result rows by expecting `0010`.
+
+RSC-0013 records that the RL count-30 example prints C=1 even though its own
+result has LSB zero and the page defines C as that bit. The database and model
+follow the bit definition and published result by expecting C=0.
 
 ## Validation
 

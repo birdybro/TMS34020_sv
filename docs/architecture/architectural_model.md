@@ -19,7 +19,7 @@ Implemented:
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK,
-  MOVI.W, MOVI.L, MOVE, MOVX, MOVY, SETC,
+  MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, and RPIX.
@@ -89,6 +89,14 @@ cross-file A/B operands. It is the only MOVE form that may cross register
 files. It sets N/Z from the copied value, preserves C, clears V, and takes one
 state; index 15 on either side resolves to the shared SP owner. Source: the same
 guide, printed p.13-158.
+
+RL.K rotates Rd left by its embedded count; RL.R takes the count from the low
+five bits of a same-file source register. Both forms use counts 0–31, write C
+from the last bit rotated out (zero for count 0), write Z from the result,
+preserve N/V, and take one state. Shared SP and same-register operands use
+pre-write values. Sources: the same guide, printed pp.13-222..13-223 and
+timing-table p.15-8. The count-30 example's contradictory C digit is resolved
+in `docs/research/source_conflicts.md` RSC-0013.
 
 The two ADDI encoding forms add either a sign-extended 16-bit word or a full
 32-bit immediate and replace NCZV. The short form takes two documented states;

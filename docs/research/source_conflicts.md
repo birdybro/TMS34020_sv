@@ -192,3 +192,25 @@
 - Decision: both MOVI forms update N and Z from the moved result, clear V, and
   preserve C. The contradictory p.13-167 labels remain recorded here and are
   covered by directed zero-result tests. Confidence: `VERIFIED_PRIMARY`.
+
+## RSC-0013: RL count-30 example carry contradicts its result and definition
+
+- Status: resolved internal example-table error
+- Conflicting primary text: TI *TMS34020 User's Guide*, August 1990, RL
+  constant, printed p.13-222, gives `RL 30,A1` with input `F0000000h`, result
+  `3C000000h`, and `C=1`.
+- Resolving primary evidence: the same page defines C as original bit
+  `[32-constant]` and says it is also the result LSB. For count 30 that is
+  original bit 2, which is zero in `F0000000h`; the published result
+  `3C000000h` likewise has LSB zero. All three statements agree on C=0 except
+  the example's printed status digit.
+- Corroboration: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e` derives C after the first
+  `count-1` shifts, then completes the rotate in
+  `src/devices/cpu/tms34010/34010ops.hxx` lines 862–882. That algorithm also
+  selects original bit 2 and produces C=0 for this case.
+- Decision: follow the instruction definition and the example result, expecting
+  C=0 for this row. The model checks the corrected `NCZV=x00x` result and all
+  other published RL rows. This is a documentation resolution, not
+  physical-hardware evidence. Confidence: `VERIFIED_PRIMARY` for the bit
+  relation and `CORROBORATED` for the secondary implementation.

@@ -309,6 +309,15 @@
   A-to-B/B-to-A commits, N/Z/V replacement, and C preservation. Warning-free
   Quartus requalification reports 6,037 leaf and 3,830 scalar logic cells; the
   generated decode, fetch, and frontend hardware are unchanged.
+- Extracted and modeled the constant and register-count RL forms from TI
+  printed pp.13-222..13-223. The 52-record database covers 13,456 first words;
+  77 model tests cover every published row, all five count bits, count zero,
+  same-file A/B operation, shared SP, same-register operation, one-state
+  timing, C/Z replacement, and N/V preservation. RSC-0013 records and resolves
+  the count-30 example's contradictory C digit from the same page's bit
+  definition and result, corroborated by pinned MAME. RL remains blocked at
+  this extraction-only RTL checkpoint. Warning-free Quartus reports 6,037
+  leaf, 363 fetch, 742 frontend, and 3,838 scalar logic cells.
 
 ### Documentation
 

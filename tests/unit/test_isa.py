@@ -101,6 +101,10 @@ class IsaTests(unittest.TestCase):
             0x09FF: ("MOVI.L", 3),
             0x4C00: ("MOVE", 1),
             0x4FFF: ("MOVE", 1),
+            0x3000: ("RL.K", 1),
+            0x33FF: ("RL.K", 1),
+            0x6800: ("RL.R", 1),
+            0x69FF: ("RL.R", 1),
             0xEC00: ("MOVX", 1),
             0xEDFF: ("MOVX", 1),
             0xEE00: ("MOVY", 1),
@@ -175,17 +179,17 @@ class IsaTests(unittest.TestCase):
         for word in (0x0041, 0x0081, 0x017F, 0x01A0, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
-                     0x0FFF, 0x1C00, 0x33FF, 0x3800,
+                     0x0FFF, 0x1C00, 0x2FFF, 0x3800,
                      0x0AFF, 0x0C20, 0x3FFF, 0x4A00,
-                     0x5800,
+                     0x5800, 0x67FF, 0x6A00,
                      0x79FF, 0x7C00):
             with self.subTest(word=f"{word:04X}"):
                 self.assertIsNone(self.database.decode(word))
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 11920)
-        self.assertEqual(unclassified, 65536 - 11920)
+        self.assertEqual(matched, 13456)
+        self.assertEqual(unclassified, 65536 - 13456)
         self.assertGreater(unclassified, 0)
 
     def test_trapl_primary_length_disagrees_with_pinned_mame_disassembly(self) -> None:
@@ -341,6 +345,24 @@ class IsaTests(unittest.TestCase):
             same_file.metadata["documented_cycles"]["machine_states"],
             1,
         )
+
+    def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
+        constant = self.database.decode(0x3001)
+        register = self.database.decode(0x6801)
+        self.assertEqual(constant.mnemonic, "RL.K")
+        self.assertEqual(register.mnemonic, "RL.R")
+        self.assertEqual(
+            constant.metadata["immediate_fields"][0]["zero_encoding"], 0
+        )
+        self.assertIn("same file", register.metadata["register_file"])
+        for instruction in (constant, register):
+            self.assertEqual(
+                instruction.metadata["status_bits_written"], ["C", "Z"]
+            )
+            self.assertEqual(
+                instruction.metadata["documented_cycles"]["machine_states"],
+                1,
+            )
 
 
 if __name__ == "__main__":

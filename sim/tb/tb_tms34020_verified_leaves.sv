@@ -1280,6 +1280,16 @@ module tb_tms34020_verified_leaves;
             "register execute cross-file MOVE shared-SP selectors"
         );
         check_register_execute(
+            16'h3001, 32'd0, 32'hF000_0000, 32'hF020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decoded RL.K remains unsupported"
+        );
+        check_register_execute(
+            16'h6801, 32'd4, 32'hF000_0000, 32'hF020_001F,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "decoded RL.R remains unsupported"
+        );
+        check_register_execute(
             16'h0B80, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "incomplete ANDNI cannot enter register execute"

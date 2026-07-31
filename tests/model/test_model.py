@@ -628,6 +628,72 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(model.state.read_reg("A", 3), 0x8000_0000)
         self.assertEqual((model.state.st >> 28) & 0xF, 0b1100)
 
+    def test_rl_constant_primary_rows_preserve_n_and_v(self) -> None:
+        cases = (
+            (0, 0x0000_000F, 0x0000_000F, 0b1001),
+            (1, 0xF000_0000, 0xE000_0001, 0b1101),
+            (4, 0xF000_0000, 0x0000_000F, 0b1101),
+            (5, 0xF000_0000, 0x0000_001E, 0b1001),
+            (30, 0xF000_0000, 0x3C00_0000, 0b1001),
+            (5, 0x0000_0000, 0x0000_0000, 0b1011),
+        )
+        for count, before, expected, expected_nczv in cases:
+            with self.subTest(count=count, before=f"{before:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x3001 | (count << 5)])
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0x9020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "RL.K")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_rl_register_primary_rows_use_low_five_source_bits(self) -> None:
+        cases = (
+            (0b00000, 0x0000_000F, 0x0000_000F, 0b0000),
+            (0b00100, 0xF000_0000, 0x0000_000F, 0b0100),
+            (0b00101, 0xF000_0000, 0x0000_001E, 0b0000),
+            (0b11111, 0xF000_0000, 0x7800_0000, 0b0000),
+            (0xFFFF_FFE5, 0x0000_0000, 0x0000_0000, 0b0010),
+        )
+        for count_source, before, expected, expected_nczv in cases:
+            with self.subTest(count_source=f"{count_source:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x6801])
+                model.state.write_reg("A", 0, count_source)
+                model.state.write_reg("A", 1, before)
+                model.state.st = 0x0020_0010
+                event = model.step()
+                self.assertEqual(event.mnemonic, "RL.R")
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF, expected_nczv
+                )
+                self.assertEqual(event.machine_states, 1)
+
+    def test_rl_b_file_shared_sp_and_same_register(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x69F2, 0x6873, 0x33FF])
+        model.state.sp = 4
+        model.state.write_reg("B", 2, 0xF000_0000)
+        model.state.write_reg("B", 3, 4)
+
+        register_sp = model.step()
+        self.assertEqual(register_sp.mnemonic, "RL.R")
+        self.assertEqual(model.state.read_reg("B", 2), 0x0000_000F)
+
+        same_register = model.step()
+        self.assertEqual(same_register.mnemonic, "RL.R")
+        self.assertEqual(model.state.read_reg("B", 3), 0x0000_0040)
+
+        constant_sp = model.step()
+        self.assertEqual(constant_sp.mnemonic, "RL.K")
+        self.assertEqual(model.state.sp, 0x0000_0002)
+        self.assertEqual(constant_sp.machine_states, 1)
+
     def test_add_primary_examples(self) -> None:
         cases = (
             (0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFE, 0b1100),

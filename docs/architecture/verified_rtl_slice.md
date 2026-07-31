@@ -8,7 +8,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 50 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 52 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
@@ -56,6 +56,8 @@ Verilator. It checks:
 - full-register MOVE decode boundaries, same-file and both cross-file
   directions, independent source/destination selectors, shared SP, full-width
   copying, result-derived N/Z/V, and C preservation;
+- RL.K/RL.R decode boundaries and explicit executor rejection at this
+  extraction-only RTL checkpoint;
 - explicit three-word decode, incomplete-packet rejection, and complete-packet
   execution for the ANDNI/ORI/XORI immediate-logical family;
 - complete ADDXYI packet execution through the register router, including
@@ -151,7 +153,8 @@ enabled cache across the bypass sequence.
 
 `make scalar-slice-tests` composes cache, packet fetch, register execution, and
 atomic state commit. It checks nine bypass-fetched dependent commits, stable
-noncommit for one-word BLMOVE, complete ORI/XORI/ANDNI packet commits,
+noncommit for one-word BLMOVE, decoded RL.K noncommit, complete
+ORI/XORI/ANDNI packet commits,
 two dependent ADDXYI packet commits, dependent ADDI.W/ADDI.L/ADDI.W and
 SUBI.W/SUBI.L packet commits, nondestructive CMPI.W/CMPI.L packet commits,
 encoded-zero ADDK and SUBK shared-SP commits, an encoded-zero MOVK commit with
@@ -182,17 +185,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 359
+packet assembler and generated decoder. Its observability wrapper uses 363
 logic cells and 174 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 732 logic cells, 372 registers, and 4,096 block-memory
+zero errors/warnings to 742 logic cells, 372 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 3,830 logic cells, 1,357 registers,
+composition with zero errors/warnings to 3,838 logic cells, 1,357 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

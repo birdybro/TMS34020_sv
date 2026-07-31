@@ -170,6 +170,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0390: memory_word = 16'hEFE0;
                 32'h0000_03A0: memory_word = 16'h4E01;
                 32'h0000_03B0: memory_word = 16'h4E32;
+                32'h0000_03C0: memory_word = 16'h3001;
                 default: memory_word = 16'hFFFF;
             endcase
         end
@@ -887,12 +888,12 @@ module tb_tms34020_scalar_slice;
         check_condition(
             packet_valid &&
             !packet_supported &&
-            packet_opcode_id == TMS20_OP_UNCLASSIFIED &&
+            packet_opcode_id == TMS20_OP_RL_K &&
             packet_length_words == 3'd1 &&
             !commit_accepted &&
             !register_write_enable &&
             !status_write_enable,
-            "unclassified packet is blocked"
+            "decoded RL.K packet is blocked"
         );
         repeat (3) begin
             @(posedge clk);
@@ -902,9 +903,24 @@ module tb_tms34020_scalar_slice;
                 commit_count == 0 &&
                 status == TMS34020_ST_RESET &&
                 sp == 32'd0,
-                "blocked unclassified packet cannot mutate state"
+                "blocked RL.K packet cannot mutate state"
             );
         end
+
+        apply_reset();
+        load_pc(32'h3D0);
+        serve_word(32'h3D0);
+        wait (packet_blocked);
+        check_condition(
+            packet_valid &&
+            !packet_supported &&
+            packet_opcode_id == TMS20_OP_UNCLASSIFIED &&
+            packet_length_words == 3'd1 &&
+            !commit_accepted &&
+            !register_write_enable &&
+            !status_write_enable,
+            "unclassified packet is blocked"
+        );
 
         check_condition(
             !faulted &&
