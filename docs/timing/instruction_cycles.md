@@ -53,6 +53,13 @@ load-color-register write state. Source: User's Guide VLCOL printed p.13-264
 and timing table p.15-8. The model carries the hidden state abstractly; no
 special-cycle pin timing or fault/retry cycle count is claimed.
 
+TRAPL takes 10 states when the saved-ST stack address is long-word aligned and
+12 otherwise. The successful model uses the address after both 32-bit
+predecrements to select the case; subtracting 64 preserves the initial SP's
+alignment class. Sources: User's Guide TRAPL printed p.13-257 and timing table
+p.15-9. These counts assume successful memory cycles under the chapter-15
+conditions; stack/vector wait, retry, and fault timing is not implemented.
+
 ## Cache-fetch interaction
 
 A cache hit reads an instruction word in one machine state, normally overlapped

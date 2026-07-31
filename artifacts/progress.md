@@ -3,20 +3,21 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest commit: `ebc93f9397d6e310456fc890b953b087c1a235f3`
-- Passing tests: foundation, reference/hash, delta, ISA sweep, 82 directed model
+- Latest commit: `2c844b7365e9a9ff3f76f966e6fb06286c96239b`
+- Passing tests: foundation, reference/hash, delta, ISA sweep, 84 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 50 of 52 extracted encoding forms, including complete
+- Model status: 51 of 52 extracted encoding forms, including complete
   ADDK/INC, SUBK/DEC, MOVK, MOVI, MOVE, MOVX/MOVY, RL constant/register, and
-  SETCDP/SETCMP/SETCSP plus successful VLCOL forms, fetch opcodes/extensions
-  through
+  SETCDP/SETCMP/SETCSP plus successful TRAPL and VLCOL forms, fetch
+  opcodes/extensions through
   transaction-level cache/retry state with traces, rollback and snapshot
-  replay; full ISA/interfaces remain (`TMS20-0007`)
+  replay; BLMOVE, non-cache fault/retry, and full ISA/interfaces remain
+  (`TMS20-0007`)
 - RTL status: generated partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST

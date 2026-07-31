@@ -46,7 +46,7 @@ User's Guide §4.2, printed p.4-4, Table 4-2 defines these address operations:
 | Control-flow class | Architectural next PC |
 |---|---|
 | No branch | Sequential address after all instruction words |
-| Absolute branch (`TRAP`, `CALLA`, `JAcc`) | Absolute target with bits `[3:0]` forced to zero |
+| Absolute branch (`TRAP`, `TRAPL`, `CALLA`, `JAcc`) | Absolute target with bits `[3:0]` forced to zero |
 | Relative branch (`CALLR`, `JRcc`, `DSJcc`) | Current post-instruction PC plus a signed 8- or 16-bit **word** displacement shifted left four |
 | Indirect branch (`JUMP`, `CALL`) | Register target with bits `[3:0]` forced to zero |
 | Interrupt | Vector value becomes the PC through the interrupt-entry sequence |
@@ -61,6 +61,13 @@ The complete branch family and condition-code extraction remains part of
 All architecturally loaded instruction addresses are word aligned. An RTL
 redirect must explicitly clear target bits `[3:0]`; it must not rely on a
 software convention.
+
+TRAPL obtains its target indirectly through a 32-bit vector-table entry. For
+signed 16-bit trap number `N`, Figure 6-1 and Figure 13-13 place that entry at
+`FFFF_FFE0h - (sign_extend(N) << 5)`, modulo `2^32`. The conflicting prose
+formula on printed p.13-256 is resolved in favor of both figures and the
+worked examples under RSC-0016. The successful model boundary and its explicit
+fault exclusions are documented in `interrupts.md`.
 
 ## Direct PC instructions
 

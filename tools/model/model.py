@@ -132,6 +132,7 @@ class Tms34020Model:
             "SETCDP": self._execute_setcdp,
             "SETCMP": self._execute_setcmp,
             "SETCSP": self._execute_setcsp,
+            "TRAPL": self._execute_trapl,
             "VLCOL": self._execute_vlcol,
         }
         self._active_trace: StepTrace | None = None
@@ -1109,6 +1110,59 @@ class Tms34020Model:
     ) -> int:
         del instruction, words
         return self._execute_set_pitch_conversion(1, CONVSP_ADDRESS)
+
+    def _execute_trapl(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        trap_number = words[1]
+        if trap_number & 0x8000:
+            trap_number -= 0x1_0000
+        vector_address = (
+            0xFFFF_FFE0 - (trap_number << 5)
+        ) & MASK32
+        return_pc = self.state.pc
+        saved_st = self.state.st
+        saved_pc_address = (self.state.sp - 32) & MASK32
+        saved_st_address = (self.state.sp - 64) & MASK32
+
+        self.state.memory.write_bits(saved_pc_address, 32, return_pc)
+        self.state.memory.write_bits(saved_st_address, 32, saved_st)
+        self.state.sp = saved_st_address
+        vector = self.state.memory.read_bits(vector_address, 32)
+        self.state.st = 0x0000_0010
+        self.state.pc = vector & 0xFFFF_FFF0
+
+        assert self._active_trace is not None
+        self._active_trace.transactions.extend(
+            [
+                {
+                    "class": "data_write",
+                    "purpose": "trap_return_pc",
+                    "bit_address": saved_pc_address,
+                    "width": 32,
+                    "value": return_pc,
+                },
+                {
+                    "class": "data_write",
+                    "purpose": "trap_saved_st",
+                    "bit_address": saved_st_address,
+                    "width": 32,
+                    "value": saved_st,
+                },
+                {
+                    "class": "interrupt_vector_fetch",
+                    "bit_address": vector_address,
+                    "width": 32,
+                    "value": vector,
+                },
+            ]
+        )
+        self._active_trace.notes.append(
+            "successful atomic TRAPL abstraction; stack/vector "
+            "fault and retry pending"
+        )
+        return 10 if saved_st_address & 0x1F == 0 else 12
 
     def _execute_vlcol(
         self, instruction: Instruction, words: list[int]

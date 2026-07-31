@@ -1470,6 +1470,99 @@ class ExecutionTests(unittest.TestCase):
                 self.assertEqual(model.state.vram_color_latch, color)
                 self.assertEqual(event.register_writes, [])
 
+    def test_trapl_primary_vector_examples_and_stack_frame(self) -> None:
+        fixtures = (
+            (-1, 0x0000_0000, 0xFF0F_0000),
+            (0, 0xFFFF_FFE0, 0xFFA0_0000),
+            (31, 0xFFFF_FC00, 0xFFE0_0000),
+            (33, 0xFFFF_FBC0, 0xFF0E_0000),
+        )
+        for trap_number, vector_address, target in fixtures:
+            with self.subTest(trap_number=trap_number):
+                model = Tms34020Model()
+                model.load_program(
+                    [0x080F, trap_number & 0xFFFF],
+                    bit_address=0x0000_1000,
+                )
+                model.state.sp = 0x8000_0000
+                model.state.st = 0xF123_4567
+                model.state.memory.write_bits(vector_address, 32, target)
+                event = model.step()
+
+                self.assertEqual(model.state.pc, target)
+                self.assertEqual(model.state.st, 0x0000_0010)
+                self.assertEqual(model.state.sp, 0x7FFF_FFC0)
+                self.assertEqual(
+                    model.state.memory.read_bits(0x7FFF_FFE0, 32),
+                    0x0000_1020,
+                )
+                self.assertEqual(
+                    model.state.memory.read_bits(0x7FFF_FFC0, 32),
+                    0xF123_4567,
+                )
+                self.assertEqual(event.machine_states, 10)
+                self.assertEqual(event.next_pc, target)
+                self.assertEqual(
+                    event.transactions[-1],
+                    {
+                        "class": "interrupt_vector_fetch",
+                        "bit_address": vector_address,
+                        "width": 32,
+                        "value": target,
+                    },
+                )
+                self.assertIn("fault and retry pending", event.notes[-1])
+
+    def test_trapl_signed_extremes_alignment_and_pc_mask(self) -> None:
+        fixtures = (
+            (-32768, 0x000F_FFE0),
+            (-1, 0x0000_0000),
+            (0, 0xFFFF_FFE0),
+            (1, 0xFFFF_FFC0),
+            (32767, 0xFFF0_0000),
+        )
+        for trap_number, vector_address in fixtures:
+            with self.subTest(trap_number=trap_number):
+                model = Tms34020Model()
+                model.load_program(
+                    [0x080F, trap_number & 0xFFFF],
+                    bit_address=0x0000_1000,
+                )
+                model.state.sp = 0x8000_0007
+                model.state.st = 0xFFFF_FFFF
+                model.state.memory.write_bits(
+                    vector_address, 32, 0x1234_567F
+                )
+                event = model.step()
+
+                self.assertEqual(model.state.pc, 0x1234_5670)
+                self.assertEqual(model.state.sp, 0x7FFF_FFC7)
+                self.assertEqual(event.machine_states, 12)
+                writes = [
+                    transaction
+                    for transaction in event.transactions
+                    if transaction["class"] == "data_write"
+                ]
+                self.assertEqual(
+                    writes,
+                    [
+                        {
+                            "class": "data_write",
+                            "purpose": "trap_return_pc",
+                            "bit_address": 0x7FFF_FFE7,
+                            "width": 32,
+                            "value": 0x0000_1020,
+                        },
+                        {
+                            "class": "data_write",
+                            "purpose": "trap_saved_st",
+                            "bit_address": 0x7FFF_FFC7,
+                            "width": 32,
+                            "value": 0xFFFF_FFFF,
+                        },
+                    ],
+                )
+
     def test_idle_retains_pc_and_marks_timing_incomplete(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0040], bit_address=0x100)

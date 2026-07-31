@@ -23,7 +23,7 @@ Implemented:
   ADD, ADDC, ADDI.W, ADDI.L, SUB, SUBB, SUBI.W, SUBI.L, CMP, CMPI.W, CMPI.L,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, ORI, XORI, IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, RMO, RPIX, SETCDP, SETCMP, SETCSP, and
-  VLCOL.
+  TRAPL and VLCOL.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset
 ST value `00000010h`. Source: TI *TMS34020 User's Guide* §4.1, printed pages
@@ -58,6 +58,14 @@ documented hidden write state. Field size is ignored. Sources: the same guide,
 §8.12.3 printed p.8-38 and VLCOL pp.13-264..13-265. Special-cycle bus
 fault/retry is not modeled, and the pinned MAME handler is only a stub; see
 RSC-0015.
+TRAPL predecrement-pushes the two-word instruction's return PC and old ST,
+sets SP to the saved-ST address, loads `00000010h` into ST, and fetches the
+32-bit vector selected by the signed extension word. It records the two stack
+writes and vector fetch in order and uses TI's 10/12-state saved-ST alignment
+split. The vector-entry formula follows both TI vector-map figures and its
+worked examples rather than contradictory prose; see
+`docs/architecture/interrupts.md` and RSC-0016. Stack/vector faults and retries
+are not modeled.
 The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,
@@ -161,9 +169,9 @@ raises `ModelError` for any other current value. That is a verification guard,
 not a claim that physical silicon traps or otherwise behaves the same way for
 an undocumented PSIZE value.
 
-Decoded BLMOVE and TRAPL entries intentionally
-raise `UnsupportedInstruction` without changing state. Their presence in the
-ISA database is not an implementation claim.
+The decoded BLMOVE entry intentionally raises `UnsupportedInstruction` without
+changing state. Its presence in the ISA database is not an implementation
+claim.
 
 The cache model is in `tools/model/cache.py` and follows the primary contract
 in `docs/cache/instruction_cache.md` and
@@ -240,6 +248,8 @@ zero/bit-position cases, all RPIX sizes/cycles, invalid PSIZE rejection, MWAIT
 pending states, all SETCDP/SETCMP/SETCSP primary conversion rows, implied
 source/destination selection, conversion-field boundaries, hidden writes,
 VLCOL full-width/field-size-independent successful special-cycle traces,
+TRAPL primary vector examples, signed extremes, stack order, ST/PC changes,
+aligned/unaligned timing, and vector-target alignment,
 IDLE claim boundaries, no mutation on unsupported
 instructions, and snapshot/replay equivalence.
 

@@ -1297,7 +1297,7 @@
       "operand_fields": [],
       "register_file": "SP implied",
       "immediate_fields": [
-        {"name": "N", "width": 16, "signed": true, "word_order": ["word1"], "vector_formula": "sign_extend(N << 5)"}
+        {"name": "N", "width": 16, "signed": true, "word_order": ["word1"], "vector_formula": "(0xFFFFFFE0 - (sign_extend(N) << 5)) modulo 2^32"}
       ],
       "condition_fields": [],
       "addressing_modes": ["immediate", "stack_predecrement"],
@@ -1306,20 +1306,20 @@
       "status_bits_read": [],
       "status_bits_written": ["entire ST becomes 00000010h"],
       "undefined_status_bits": [],
-      "memory_transactions": ["push 32-bit return PC", "push 32-bit ST"],
+      "memory_transactions": ["push 32-bit return PC", "push 32-bit ST", "fetch 32-bit trap vector"],
       "graphics_register_dependencies": [],
       "cache_interactions": ["two instruction words fetched through cache"],
       "pipeline_interactions": ["flush control flow to signed trap vector"],
       "interruptibility": "software interrupt entry is atomic at its documented boundary",
       "restartability": "returns to the instruction after TRAPL; TRAPL 0 is not the TRAP 0 reset exception",
       "bus_fault_behavior": "stack-write fault behavior requires chapter 6/15 extraction",
-      "documented_cycles": {"kind": "section_reference", "reference": "UG §15.1"},
+      "documented_cycles": {"kind": "stack_alignment", "aligned_saved_st": 10, "unaligned_saved_st": 12},
       "cache_hit_cycles": "timing-table extraction pending",
       "cache_miss_cycles": "instruction refill and stack transaction latency plus entry timing",
       "bus_16_effects": "splits each 32-bit stack write",
       "bus_32_effects": "native 32-bit stack writes when aligned",
       "page_mode_effects": "may affect consecutive stack writes",
-      "source_citations": ["TI-TMS34020-UG-1990 TRAPL, printed pp.13-256..13-257", "TI-TMS34020-UG-1990 summary table, printed p.13-18"],
+      "source_citations": ["TI-TMS34020-UG-1990 Figure 6-1, printed p.6-8", "TI-TMS34020-UG-1990 TRAPL and Figure 13-13, printed pp.13-256..13-258", "TI-TMS34020-UG-1990 summary table, printed p.13-18"],
       "compatible_with_tms34010": false,
       "confidence": "VERIFIED_PRIMARY"
     },

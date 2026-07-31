@@ -68,6 +68,11 @@ remains `TMS20-0029`/`TMS20-0030`.
 The module is also included in warning-free Cyclone V leaf Analysis &
 Synthesis.
 
+The independent software model additionally verifies the successful TRAPL
+boundary: the complete old ST is stored at the final predecremented SP before
+ST becomes `00000010h`. This does not add an RTL interrupt owner or establish
+faulted-stack behavior. Source: User's Guide TRAPL, printed pp.13-256..13-258.
+
 ## Incomplete behavior
 
 The following are not yet implemented:
@@ -76,7 +81,8 @@ The following are not yet implemented:
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
 - interrupt/fault ownership of IX and BF;
-- status save/restore ordering;
+- general interrupt/fault status save/restore ordering beyond the successful
+  TRAPL model boundary;
 - single-step recognition;
 - pipeline hazards and same-state priority among multiple architectural
   writers;

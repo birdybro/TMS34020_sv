@@ -259,3 +259,29 @@
   unimplemented and explicitly outside the current model claim. Confidence:
   `VERIFIED_PRIMARY` for the success path and `UNKNOWN` for unresolved fault
   timing.
+
+## RSC-0016: TRAPL prose formula conflicts with TI vector maps and examples
+
+- Status: primary conflict resolved provisionally from repeated same-guide
+  evidence; successful path modeled
+- Conflicting primary text: TI *TMS34020 User's Guide*, August 1990, TRAPL
+  printed p.13-256 says the trap address is made by shifting signed immediate
+  `N` left five and sign-extending it. Taken literally, `N=-1` produces
+  `FFFF_FFE0h` and `N=0` produces zero.
+- Resolving primary evidence: Figure 6-1 on printed p.6-8 and Figure 13-13 on
+  p.13-257 both map `N=-1` to `0000_0000h`, `N=0` to `FFFF_FFE0h`, and
+  increasing nonnegative traps downward through memory. The examples on
+  p.13-258 use entries `0000_0000h`, `FFFF_FFE0h`, `FFFF_FC00h`, and
+  `FFFF_FBC0h` for `N=-1`, 0, 31, and 33. All of that evidence agrees with
+  `FFFF_FFE0h - (sign_extend(N) << 5)` modulo `2^32`.
+- Secondary evidence: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 2495–2498 implements TRAPL
+  only as a log message. Its disassembler also omits the extension word as
+  recorded separately in RSC-0004, so it cannot resolve the formula.
+- Decision: the ISA database, model, and tests follow the two vector-map
+  figures and all worked examples. Tests cover both signed extremes, zero,
+  representative positive and negative values, and the four published vector
+  results. Another TI guide revision, erratum, or hardware trace is still
+  desirable. Confidence: `VERIFIED_PRIMARY` for the table/example mapping and
+  `PROVISIONAL` for explaining the defective prose.

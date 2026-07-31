@@ -341,6 +341,11 @@
   unchanged ST. The 82-test model covers 50/52 extracted forms. Special-cycle
   fault/retry and RTL request ownership remain absent; RSC-0015 records that
   pinned MAME's VLCOL handler is a logging stub.
+- Implemented the independent TRAPL success path with the verified two-word
+  encoding, ordered return-PC/ST predecrement stack frame, signed vector-table
+  lookup, complete ST reset, PC alignment, and 10/12-state stack-alignment
+  cases. The 84-test model covers 51/52 extracted forms. Stack/vector
+  fault/retry behavior and RTL interrupt sequencing remain absent.
 
 ### Documentation
 
@@ -362,6 +367,11 @@
   first-silicon questions as unknown rather than assigning inferred behavior.
 - Recorded a pinned MAME disassembler discrepancy: TI's TRAPL consumes a signed
   extension word, but the secondary path does not advance over it.
+- Recorded and resolved an internal TI TRAPL contradiction: the instruction
+  prose's shift/sign-extension formula disagrees with two vector maps and every
+  worked example. The database and model use the repeated descending-vector
+  mapping, while RSC-0016 retains the evidence and need for errata/hardware
+  corroboration.
 - Recorded a second pinned MAME disassembler discrepancy: its broad masks label
   nonzero low-bit neighbors of fixed NOP/CLRC/DINT/EINT/SETC encodings, while
   TI fixes bits 4–0 to zero.
