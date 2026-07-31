@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 39 one-word, four
+asserted only when its declared length matches one of the 40 one-word, four
 two-word, or eight three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -24,7 +24,7 @@ Supported operations are:
 
 - NOP, ABS, NEG, NEGB, NOT;
 - CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK, SETC;
-- ADD, ADDC, SUB, SUBB, CMP, CMPK, and RMO;
+- ADD, ADDC, SUB, SUBB, CMP, CMPK, LMO, and RMO;
 - AND, ANDN, OR, and XOR;
 - MOVE, MOVX, MOVY, RL.K, RL.R, SLA.K/R, SLL.K/R, SRA.K/R, and SRL.K/R;
 - GETPC and EXGPC;
@@ -59,7 +59,7 @@ the general registers on reset; TI leaves them uninitialized. Source: TI
 
 ## Verification
 
-`make rtl-leaf-tests` executes fifty ordered state-commit sequences plus
+`make rtl-leaf-tests` executes fifty-one ordered state-commit sequences plus
 direct combinational instruction checks. The suite verifies prior-state
 dependency, A/B selection, shared A15/B15 SP aliasing, partial ST masks,
 register-plus-status updates on one edge, nondestructive CMP/CMPI, every SUBK
@@ -70,7 +70,8 @@ same-file and cross-file MOVE with independent source/destination file
 selection, MOVE N/Z/V replacement with C preservation, Z-only logical flags,
 constant/register rotate counts, RL C/Z replacement with N/V preservation,
 direct and two's-complement shift counts, arithmetic/logical fill, SLA
-overflow, and the four shift-family status masks,
+overflow, the four shift-family status masks, LMO leading-zero results and
+Z-only status writes, including a commit sourced from shared SP,
 state-neutral NOP, GETPC into a B register, EXGPC old-value capture and aligned
 redirect through an A register and shared SP, and rejection of an otherwise
 decoded but unsupported BLMOVE word. Two runtime assertions additionally

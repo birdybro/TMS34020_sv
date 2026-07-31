@@ -10,6 +10,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/core/tms34020_pc_exe
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_binary_arithmetic.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_unary.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_cmpk.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_lmo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_rmo.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_rotate_left.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_shift.sv

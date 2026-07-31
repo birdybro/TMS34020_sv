@@ -119,7 +119,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0000: memory_word = 16'h0D60;
                 32'h0000_0010: memory_word = 16'h0DE0;
                 32'h0000_0020: memory_word = 16'h0192;
-                32'h0000_0030: memory_word = 16'h1032;
+                32'h0000_0030: memory_word = 16'h6A52;
                 32'h0000_0040: memory_word = 16'h0360;
                 32'h0000_0050: memory_word = 16'h1420;
                 32'h0000_0060: memory_word = 16'h102F;
@@ -180,8 +180,9 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0430: memory_word = 16'h2422;
                 32'h0000_0440: memory_word = 16'h6402;
                 32'h0000_0450: memory_word = 16'h2C22;
-                32'h0000_0460: memory_word = 16'h0153;
-                32'h0000_0470: memory_word = 16'h0120;
+                32'h0000_0460: memory_word = 16'h6A43;
+                32'h0000_0470: memory_word = 16'h0153;
+                32'h0000_0480: memory_word = 16'h0120;
                 32'h2468_ACF0: memory_word = 16'h0154;
                 default: memory_word = 16'hFFFF;
             endcase
@@ -646,18 +647,18 @@ module tb_tms34020_scalar_slice;
             "scalar GETST commit"
         );
         serve_and_commit(
-            32'h30, TMS20_OP_ADDK,
-            1'b1, 1'b1, 4'd2, 32'h4020_0011,
-            1'b1, 32'd0, 32'hF000_0000,
-            32'h0020_0010, 32'd0,
-            "scalar ADDK/INC observes prior B2"
+            32'h30, TMS20_OP_LMO,
+            1'b1, 1'b1, 4'd2, 32'd1,
+            1'b1, 32'd0, 32'h2000_0000,
+            32'h4020_0010, 32'd0,
+            "scalar LMO observes prior GETST"
         );
         serve_and_commit(
             32'h40, TMS20_OP_DINT,
             1'b0, 1'b0, 4'd0, 32'd0,
             1'b1, 32'd0, 32'h0020_0000,
-            32'h0000_0010, 32'd0,
-            "scalar DINT commit"
+            32'h4000_0010, 32'd0,
+            "scalar DINT preserves carry set before LMO"
         );
         serve_and_commit(
             32'h50, TMS20_OP_SUBK,
@@ -974,15 +975,22 @@ module tb_tms34020_scalar_slice;
         );
 
         serve_and_commit(
-            32'h460, TMS20_OP_GETPC,
-            1'b1, 1'b1, 4'd3, 32'h0000_0470,
+            32'h460, TMS20_OP_LMO,
+            1'b1, 1'b0, 4'd3, 32'd31,
+            1'b1, 32'd0, 32'h2000_0000,
+            32'hD000_0010, 32'h1234_5678,
+            "scalar LMO observes shifted A2"
+        );
+        serve_and_commit(
+            32'h470, TMS20_OP_GETPC,
+            1'b1, 1'b1, 4'd3, 32'h0000_0480,
             1'b0, 32'd0, 32'd0,
             32'hD000_0010, 32'h1234_5678,
             "scalar GETPC uses packet sequential address"
         );
         serve_and_commit(
-            32'h470, TMS20_OP_EXGPC,
-            1'b1, 1'b0, 4'd0, 32'h0000_0480,
+            32'h480, TMS20_OP_EXGPC,
+            1'b1, 1'b0, 4'd0, 32'h0000_0490,
             1'b0, 32'd0, 32'd0,
             32'hD000_0010, 32'h1234_5678,
             "scalar EXGPC commits sequential PC before redirect"
@@ -995,8 +1003,8 @@ module tb_tms34020_scalar_slice;
             "scalar EXGPC redirect reaches GETPC target"
         );
         check_condition(
-            commit_count == 19,
-            "nineteen move, rotate, shift, and direct-PC packet commits"
+            commit_count == 20,
+            "twenty move, rotate, LMO, and direct-PC packet commits"
         );
 
         serve_word(32'h2468_AD00);
@@ -1016,7 +1024,7 @@ module tb_tms34020_scalar_slice;
             #1;
             check_condition(
                 packet_blocked &&
-                commit_count == 19 &&
+                commit_count == 20 &&
                 status == 32'hD000_0010 &&
                 sp == 32'h1234_5678,
                 "blocked packet cannot mutate shift sequence"

@@ -42,6 +42,8 @@
 - Independent LMO architectural-model semantics with all five TI result rows,
   Z-only status updates, same-register prewrite behavior, B-file selection,
   and shared-SP source/destination coverage.
+- A synthesizable LMO leading-priority leaf, Z-only atomic register/ST commit,
+  cache-fed dependency sequence, and A/B/same-register/shared-SP RTL coverage.
 - Primary-page-verified ABS, NEG, NEGB, and NOT ISA/model/RTL semantics with
   explicit partial status-write masks and every TI example row as a test.
 - Primary-page-verified ADD, ADDC, SUB, SUBB, and CMP decode/model/RTL
@@ -125,6 +127,13 @@
   `SUBK 1,Rd`; no overlapping decode or expectation weakening was introduced.
 
 ### Verified
+
+- Verilator leaf/scalar regressions and warning-free Cyclone V Analysis &
+  Synthesis cover LMO at the register-execution boundary. The leaf diagnostic
+  top uses 7,713 logic cells and 2,021 registers; the bounded scalar diagnostic
+  top uses 4,595 logic cells, 1,386 registers, and 4,096 block-memory bits.
+  These are Analysis & Synthesis portability metrics, not fitted core area or
+  timing closure.
 
 - The working directory is the existing clean `birdybro/TMS34020_sv` clone on
   `main`; no nested repository was created.

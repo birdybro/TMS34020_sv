@@ -8,19 +8,20 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 63 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified; LMO is decode-only in this revision | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 63 entries currently present in the canonical ISA database; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent and EXGPC sequential-PC write plus aligned old-register redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, EXGPC printed p.13-112 and GETPC printed p.13-130 |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
-| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit and direct-PC redirect event for 39 one-word operations, two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W, and complete three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets; GETPC/EXGPC consume the packet's sequential PC and EXGPC captures the old destination before writeback; unsupported or length-mismatched packets cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1, EXGPC printed p.13-112, GETPC printed p.13-130, and the individual instruction pages cited for `tms34020_register_execute` |
-| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for 51 verified scalar operations, including all eight scalar shift forms and a held EXGPC completion redirect; decoded unsupported and unclassified packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for the execution leaves |
+| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit and direct-PC redirect event for 40 one-word operations, two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W, and complete three-word ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets; GETPC/EXGPC consume the packet's sequential PC and EXGPC captures the old destination before writeback; unsupported or length-mismatched packets cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1, EXGPC printed p.13-112, GETPC printed p.13-130, and the individual instruction pages cited for `tms34020_register_execute` |
+| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for 52 verified scalar operations, including LMO, all eight scalar shift forms, and a held EXGPC completion redirect; decoded unsupported and unclassified packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for the execution leaves |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
 | `rtl/execute/tms34020_cmpk.sv` | Encoded-zero-means-32 subtraction and N/C/Z/V compare results without register modification | TI *TMS34020 User's Guide*, August 1990, CMPK, printed p.13-83 |
+| `rtl/execute/tms34020_lmo.sv` | Leading-zero count in the range 0–31 and zero-source Z result | TI *TMS34020 User's Guide*, August 1990, LMO, printed p.13-147 |
 | `rtl/execute/tms34020_logical.sv` | AND, ANDN, OR, and XOR register results plus Z; N/C/V remain outside the write mask | TI *TMS34020 User's Guide*, August 1990, printed pp.13-40, 13-42, 13-182, and 13-266 |
-| `rtl/execute/tms34020_register_execute.sv` | Packet-length-checked independent source/destination file selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK, MOVI.W/L, MOVE, MOVX, MOVY, RL.K/R, SLA.K/R, SLL.K/R, SRA.K/R, SRL.K/R, SETC, ADD, ADDC, SUB, SUBB, CMP, CMPI.W/L, CMPK, RMO, AND, ANDN, OR, XOR, ANDNI, ORI, XORI, ADDXYI, ADDI.W/L, and SUBI.W/L | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-37, 13-39..13-43, 13-58, 13-80..13-83, 13-94..13-95, 13-109, 13-132, 13-134, 13-158, 13-167..13-171, 13-178..13-183, 13-222..13-245, and 13-266..13-267 |
+| `rtl/execute/tms34020_register_execute.sv` | Packet-length-checked independent source/destination file selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, ADDK/INC, SUBK/DEC, MOVK, MOVI.W/L, MOVE, MOVX, MOVY, RL.K/R, SLA.K/R, SLL.K/R, SRA.K/R, SRL.K/R, SETC, ADD, ADDC, SUB, SUBB, CMP, CMPI.W/L, CMPK, LMO, RMO, AND, ANDN, OR, XOR, ANDNI, ORI, XORI, ADDXYI, ADDI.W/L, and SUBI.W/L | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-43, 13-58, 13-80..13-83, 13-94..13-95, 13-109, 13-132, 13-134, 13-147, 13-158, 13-167..13-183, 13-222..13-245, and 13-266..13-267 |
 | `rtl/execute/tms34020_rotate_left.sv` | 32-bit rotate-left result for counts 0–31, count-zero C clearing, last-bit-out C, and result-derived Z | TI *TMS34020 User's Guide*, August 1990, RL, printed pp.13-222..13-223 |
 | `rtl/execute/tms34020_shift.sv` | SLA/SLL/SRA/SRL results for counts 0–31, arithmetic or zero fill, count-zero C clearing, last-bit-out C, instruction-specific N/C/Z/V write masks, and SLA sign-change overflow | TI *TMS34020 User's Guide*, August 1990, printed pp.13-233..13-240 |
 | `rtl/execute/tms34020_rmo.sv` | Least-significant set-bit index and Z result | TI *TMS34020 User's Guide*, August 1990, RMO, printed p.13-224 |
@@ -50,8 +51,8 @@ Verilator. It checks:
 
 - every currently extracted decoder entry, including masked register/mode
   encodings and instruction-word count;
-- both LMO decode boundaries while the register-execution boundary continues
-  to reject that decoded instruction;
+- both LMO decode boundaries, all five primary result rows, Z-only status
+  writes, A/B and shared-SP selectors, and same-register read-before-write;
 - every published SLA/SLL/SRA/SRL result row, all 32 SLA counts against an
   iterative overflow oracle, direct and two's-complement count recovery,
   arithmetic versus zero fill, partial status masks, same-register count
@@ -92,6 +93,7 @@ Verilator. It checks:
 - a near-neighbor that must remain unclassified;
 - two ADDXYI arithmetic/flag cases;
 - CMPK constant-32, borrow, and overflow cases;
+- LMO zero, bit-0, bit-4, bit-27, and bit-31 cases;
 - RMO zero, low-bit, and high-bit cases;
 - every TI example row for ABS, NEG, NEGB, and NOT, including borrow and
   partial status-write masks;
@@ -104,7 +106,7 @@ Verilator. It checks:
 - ST reset/priority, documented bit layout and reserved mask, full flag
   replacement, partial flag preservation, isolated IE set, and isolated C
   clear.
-- decoder-controlled NOP, unary, binary-arithmetic, logical, CMPK, RMO,
+- decoder-controlled NOP, unary, binary-arithmetic, logical, CMPK, LMO, RMO,
   CLRC/SETC, DINT/EINT, GETST, ADDK/INC, SUBK/DEC, and MOVK write intents,
   including A/B
   register-file selection, source/destination indices, CMP write inhibition,
@@ -114,8 +116,8 @@ Verilator. It checks:
   decoded-but-unsupported and unclassified words.
 - fifty-one ordered commit checks covering EINT, SETC, GETST, ADDK/INC, DINT,
   SUBK/DEC,
-  ABS, shared-SP write/read, ADD, nondestructive CMP, RMO, decode-only LMO
-  rejection, unsupported BLMOVE rejection, state-neutral NOP, AND, OR, XOR,
+  ABS, shared-SP write/read, ADD, nondestructive CMP, RMO, LMO shared-SP
+  source commit, unsupported BLMOVE rejection, state-neutral NOP, AND, OR, XOR,
   ANDN, incomplete-ANDNI rejection,
   complete ORI/XORI/ANDNI packets, two dependent ADDXYI packets, ADDXYI
   through the shared SP alias, dependent ADDI.W/ADDI.L packets, and ADDI.L
@@ -180,13 +182,15 @@ SUBI.W/SUBI.L packet commits, nondestructive CMPI.W/CMPI.L packet commits,
 encoded-zero ADDK and SUBK shared-SP commits, an encoded-zero MOVK commit with
 ST preservation, complete MOVI.W/MOVI.L packet commits, dependent MOVX/MOVY
 packet commits, dependent A-to-B and B-to-A MOVE packet commits,
-dependent RL.K then source-counted RL.R commits, GETPC sequential-PC capture,
+dependent RL.K then source-counted RL.R commits, LMO against the preceding
+shift result, GETPC sequential-PC capture,
 all eight SLA/SLL/SRA/SRL forms in a dependent sequence with preserved versus
 replaced status fields,
 EXGPC atomic register exchange and aligned nonsequential completion redirect,
 a GETPC at that redirect target, unclassified-word noncommit, and
-a cache-enabled pass that feeds eight dependent commits from exactly four
-refill long-word reads. Eight runtime assertions across the scalar and commit
+a cache-enabled pass that feeds eight dependent commits, including LMO after
+GETST, from exactly four refill long-word reads. Nine runtime assertions across
+the scalar and commit
 owners constrain acceptance, blocked writes, single-pulse commit, mutually
 exclusive execution ownership, and aligned committed/pending redirects. These
 FPGA handshakes are not architectural cycle evidence.
@@ -194,11 +198,11 @@ FPGA handshakes are not architectural cycle evidence.
 `make quartus-leaf-smoke` runs warning-free Quartus Analysis & Synthesis for
 the leaf qualification wrapper on Cyclone V device `5CSEBA6U23I7`. The wrapper
 keeps both register-file read ports, arithmetic flags, decoder outputs, PSIZE
-data paths, unary, binary, and logical arithmetic, RMO, and RPIX timing outputs
+data paths, unary, binary, and logical arithmetic, LMO, RMO, and RPIX timing outputs
 observable. It also keeps every output of the register-execution router
 observable and instantiates the commit composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 7,620 logic-cell/2,021-register resource count is not a core-area
+so its 7,713 logic-cell/2,021-register resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -220,13 +224,13 @@ bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 4,563 logic cells, 1,386 registers,
+composition with zero errors/warnings to 4,595 logic cells, 1,386 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 
 ## Explicitly absent
 
-There is a bounded serialized opcode-to-register execution path for only 51
+There is a bounded serialized opcode-to-register execution path for only 52
 register/status operations. There is no timing sequencer,
 processor-derived retirement boundary, interrupt logic, complete memory
 access, page mode,

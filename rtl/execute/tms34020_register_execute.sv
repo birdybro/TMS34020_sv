@@ -34,6 +34,8 @@ module tms34020_register_execute (
     logic [3:0] unary_status_write_mask;
     logic [31:0] compare_result;
     logic [3:0] compare_nczv;
+    logic [31:0] lmo_result;
+    logic lmo_z;
     logic [31:0] rmo_result;
     logic rmo_z;
     logic [31:0] logical_result;
@@ -106,6 +108,12 @@ module tms34020_register_execute (
         .status_c_o(compare_nczv[2]),
         .status_z_o(compare_nczv[1]),
         .status_v_o(compare_nczv[0])
+    );
+
+    tms34020_lmo lmo (
+        .source_i(source_i),
+        .result_o(lmo_result),
+        .status_z_o(lmo_z)
     );
 
     tms34020_rmo rmo (
@@ -561,6 +569,16 @@ module tms34020_register_execute (
                     status_write_enable_o = 1'b1;
                     status_write_data_o =
                         {2'd0, rmo_z, 29'd0};
+                    status_write_mask_o = 32'h2000_0000;
+                end
+
+                TMS20_OP_LMO: begin
+                    supported_o = 1'b1;
+                    register_write_enable_o = 1'b1;
+                    register_write_data_o = lmo_result;
+                    status_write_enable_o = 1'b1;
+                    status_write_data_o =
+                        {2'd0, lmo_z, 29'd0};
                     status_write_mask_o = 32'h2000_0000;
                 end
 

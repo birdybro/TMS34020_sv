@@ -74,6 +74,10 @@ module tb_tms34020_verified_leaves;
     logic compare_z;
     logic compare_v;
 
+    logic [31:0] lmo_source;
+    logic [31:0] lmo_result;
+    logic lmo_z;
+
     logic [31:0] rmo_source;
     logic [31:0] rmo_result;
     logic rmo_z;
@@ -224,6 +228,12 @@ module tb_tms34020_verified_leaves;
         .status_c_o(compare_c),
         .status_z_o(compare_z),
         .status_v_o(compare_v)
+    );
+
+    tms34020_lmo lmo_dut (
+        .source_i(lmo_source),
+        .result_o(lmo_result),
+        .status_z_o(lmo_z)
     );
 
     tms34020_rmo rmo_dut (
@@ -1043,6 +1053,7 @@ module tb_tms34020_verified_leaves;
         pixel = 32'd0;
         pixel_size = 6'd0;
         compare_constant = 5'd0;
+        lmo_source = 32'd0;
         rmo_source = 32'd0;
         rotate_value = 32'd0;
         rotate_count = 5'd0;
@@ -1653,8 +1664,55 @@ module tb_tms34020_verified_leaves;
         );
         check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "decoded LMO remains outside register execute"
+            1'b1, 1'b1, 32'd4,
+            1'b1, 32'd0, 32'h2000_0000,
+            "register execute LMO primary example"
+        );
+        check_condition(
+            !execute_register_file &&
+            !execute_destination_register_file &&
+            execute_source_index == 4'd0 &&
+            execute_destination_index == 4'd1,
+            "register execute LMO A-file selectors"
+        );
+        check_register_execute(
+            16'h6A52, 32'h0000_0010, 32'hDEAD_BEEF, 32'hC000_0010,
+            1'b1, 1'b1, 32'd27,
+            1'b1, 32'd0, 32'h2000_0000,
+            "register execute LMO same-register source is read first"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_destination_register_file &&
+            execute_source_index == 4'd2 &&
+            execute_destination_index == 4'd2,
+            "register execute LMO B-file same-register selectors"
+        );
+        check_register_execute(
+            16'h6BFE, 32'd1, 32'hDEAD_BEEF, 32'hD000_0010,
+            1'b1, 1'b1, 32'd31,
+            1'b1, 32'd0, 32'h2000_0000,
+            "register execute LMO shared-SP source"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_destination_register_file &&
+            execute_source_index == 4'd15 &&
+            execute_destination_index == 4'd14,
+            "register execute LMO shared-SP source selector"
+        );
+        check_register_execute(
+            16'h6A5F, 32'h8000_0000, 32'hDEAD_BEEF, 32'h1000_0010,
+            1'b1, 1'b1, 32'd0,
+            1'b1, 32'd0, 32'h2000_0000,
+            "register execute LMO shared-SP destination"
+        );
+        check_condition(
+            execute_register_file &&
+            execute_destination_register_file &&
+            execute_source_index == 4'd2 &&
+            execute_destination_index == 4'd15,
+            "register execute LMO shared-SP destination selector"
         );
         check_register_execute(
             16'h09C0, 32'd0, 32'd0, 32'd0,
@@ -2245,11 +2303,11 @@ module tb_tms34020_verified_leaves;
             "register commit RMO clears zero"
         );
         commit_register_instruction(
-            16'h6A01, 1'b0,
-            1'b0, 1'b0, 4'd0, 32'd0,
-            1'b0, 32'd0, 32'd0,
+            16'h6BFE, 1'b1,
+            1'b1, 1'b1, 4'd14, 32'd31,
+            1'b1, 32'd0, 32'h2000_0000,
             32'h0000_0010, 32'd1,
-            "register commit rejects decode-only LMO"
+            "register commit LMO reads shared SP"
         );
         commit_register_instruction(
             16'h00F0, 1'b0,
@@ -2689,6 +2747,27 @@ module tb_tms34020_verified_leaves;
         check_condition({compare_n, compare_c, compare_z, compare_v} ==
                         4'b0001,
                         "CMPK signed overflow");
+
+        lmo_source = 32'd0;
+        #1;
+        check_condition(lmo_z && lmo_result == 32'd0,
+                        "LMO zero source");
+        lmo_source = 32'h0000_0001;
+        #1;
+        check_condition(!lmo_z && lmo_result == 32'd31,
+                        "LMO bit 0");
+        lmo_source = 32'h0000_0010;
+        #1;
+        check_condition(!lmo_z && lmo_result == 32'd27,
+                        "LMO bit 4");
+        lmo_source = 32'h0800_0000;
+        #1;
+        check_condition(!lmo_z && lmo_result == 32'd4,
+                        "LMO bit 27");
+        lmo_source = 32'h8000_0000;
+        #1;
+        check_condition(!lmo_z && lmo_result == 32'd0,
+                        "LMO bit 31");
 
         rmo_source = 32'd0;
         #1;
