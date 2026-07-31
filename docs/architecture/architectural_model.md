@@ -31,7 +31,8 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAPL, and VLCOL.
 
-These handlers cover all 74 currently extracted database forms. This is
+These handlers cover 74 of the 75 currently extracted database forms. JUMP is
+an atomic non-execution boundary pending an independent handler. This is
 coverage of a current partial extraction, not instruction completeness.
 
 The model uses the TI-defined status positions N=31, C=30, Z=29, V=28 and reset

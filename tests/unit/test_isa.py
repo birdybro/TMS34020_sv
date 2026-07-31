@@ -88,6 +88,8 @@ class IsaTests(unittest.TestCase):
             0x013F: ("EXGPC", 1),
             0x0140: ("GETPC", 1),
             0x015F: ("GETPC", 1),
+            0x0160: ("JUMP", 1),
+            0x017F: ("JUMP", 1),
             0x0180: ("GETST", 1),
             0x019F: ("GETST", 1),
             0x01A0: ("PUTST", 1),
@@ -235,7 +237,7 @@ class IsaTests(unittest.TestCase):
                 )
 
     def test_nearby_reserved_or_other_words_do_not_alias_fixed_opcodes(self) -> None:
-        for word in (0x0041, 0x0081, 0x017F, 0x0250, 0x0252,
+        for word in (0x0041, 0x0081, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x0FFF, 0x3800,
@@ -248,8 +250,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 23090)
-        self.assertEqual(unclassified, 65536 - 23090)
+        self.assertEqual(matched, 23122)
+        self.assertEqual(unclassified, 65536 - 23122)
         self.assertGreater(unclassified, 0)
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
@@ -401,6 +403,27 @@ class IsaTests(unittest.TestCase):
         )
         self.assertTrue(putst_a.metadata["compatible_with_tms34010"])
         self.assertIsNone(self.database.decode(0x01C1))
+
+    def test_jump_records_register_redirect_and_alignment_contract(self) -> None:
+        jump_a = self.database.decode(0x0160)
+        jump_b_sp = self.database.decode(0x017F)
+
+        self.assertIs(jump_a, jump_b_sp)
+        self.assertEqual(jump_a.mnemonic, "JUMP")
+        self.assertEqual(jump_a.metadata["source_registers"], ["Rs"])
+        self.assertEqual(jump_a.metadata["destination_registers"], ["PC"])
+        self.assertEqual(jump_a.metadata["status_bits_written"], [])
+        self.assertEqual(
+            jump_a.metadata["documented_cycles"],
+            {"kind": "fixed", "machine_states": 2},
+        )
+        self.assertIn(
+            "bits 3:0 cleared",
+            jump_a.metadata["pipeline_interactions"][0],
+        )
+        self.assertTrue(jump_a.metadata["compatible_with_tms34010"])
+        self.assertEqual(self.database.decode(0x015F).mnemonic, "GETPC")
+        self.assertEqual(self.database.decode(0x0180).mnemonic, "GETST")
 
     def test_stack_status_forms_record_ordering_and_alignment_timing(self) -> None:
         popst = self.database.decode(0x01C0)

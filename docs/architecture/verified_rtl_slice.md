@@ -203,7 +203,7 @@ enabled cache across the bypass sequence.
 `make scalar-slice-tests` composes cache, packet fetch, register execution, and
 atomic state commit. It checks twelve bypass-fetched dependent
 field/XY/bit-test/PUTST commits, stable noncommit for one-word BLMOVE and
-the newly classified POPST/PUSHST forms, plus unclassified packets, complete
+the newly classified JUMP and POPST/PUSHST forms, plus unclassified packets, complete
 ORI/XORI/ANDNI packet commits,
 two dependent ADDXYI packet commits, dependent ADDXY/SUBXY one-word commits,
 dependent ADDI.W/ADDI.L/ADDI.W and
@@ -235,7 +235,7 @@ data paths, unary, binary, and logical arithmetic, LMO, RMO, and RPIX timing out
 observable. It also keeps every output of the register-execution router
 observable and instantiates the commit composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 8,504 logic-cell/2,048-register resource count is not a core-area
+so its 8,537 logic-cell/2,048-register resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -247,17 +247,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 402
+packet assembler and generated decoder. Its observability wrapper uses 401
 logic cells and 175 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 775 logic cells, 373 registers, and 4,096 block-memory
+zero errors/warnings to 769 logic cells, 373 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,133 logic cells, 1,414 registers,
+composition with zero errors/warnings to 5,126 logic cells, 1,414 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

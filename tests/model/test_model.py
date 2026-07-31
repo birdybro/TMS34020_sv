@@ -15,6 +15,7 @@ from tools.model import (
     ProcessorState,
     Tms34020Model,
     UnclassifiedEncoding,
+    UnsupportedInstruction,
 )
 from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
 
@@ -2015,6 +2016,17 @@ class ExecutionTests(unittest.TestCase):
             }],
         )
         self.assertIn("fault, retry", event.notes[-1])
+
+    def test_jump_decode_checkpoint_rolls_back_before_redirect(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0160], bit_address=0x80)
+        model.state.write_reg("A", 0, 0x1234_567F)
+        before = model.snapshot()
+
+        with self.assertRaises(UnsupportedInstruction):
+            model.step()
+
+        self.assertEqual(model.snapshot(), before)
 
     def test_popst_unaligned_read_crosses_address_wrap(self) -> None:
         model = Tms34020Model()

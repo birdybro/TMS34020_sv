@@ -92,6 +92,10 @@
   accounting, bit-address wraparound, exact abstract data transactions, and
   round-trip coverage. Fault/retry and physical transfer decomposition remain
   unimplemented.
+- Primary-page-verified JUMP encoding, A/B/shared-SP source selection, aligned
+  indirect-PC redirect, two-state timing, adjacent GETPC/GETST boundaries, and
+  TMS34010 semantic compatibility without timing-FSM reuse. Model and RTL
+  remain explicit nonexecution boundaries at this extraction checkpoint.
 - Primary-page-verified LMO encoding metadata from both TMS34020 and TMS34010
   guides, generated decode, independent boundary fixtures, and a
   pre-implementation model rollback guard.
@@ -195,6 +199,13 @@
 
 ### Verified
 
+- Expanded the collision-free ISA slice to 75 entries covering 23,122 first
+  words. JUMP A/B/shared-SP and adjacent GETPC/GETST boundaries pass; model
+  rollback and RTL execution/commit/scalar nonredirect guards prevent an
+  extracted opcode from mutating architectural state before implementation.
+  All four decoder-bearing Cyclone V analyses pass with zero errors/warnings at
+  8,537 leaf, 401 fetch, 769 frontend, and 5,126 scalar diagnostic logic cells;
+  these are not fitted core-area or timing-closure results.
 - The 120-case independent model suite covers bounded successful semantics for
   all 74 currently extracted forms. POPST/PUSHST tests cover both alignment
   classes, full-width status values, SP ordering, abstract data traces,

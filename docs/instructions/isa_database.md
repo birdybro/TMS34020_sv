@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 74 page-verified encoding records and covers 23,090 of 65,536
+slice contains 75 page-verified encoding records and covers 23,122 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -21,6 +21,7 @@ first words without collisions:
 | CLRC | `0320h` | 1 | p.13-58 |
 | DINT | `0360h` | 1 | p.13-95 |
 | EINT | `0D60h` | 1 | p.13-109 |
+| JUMP | `0160h`, mask `FFE0h` | 1 | p.13-141 |
 | GETST | `0180h`, mask `FFE0h` | 1 | p.13-132 |
 | PUTST | `01A0h`, mask `FFE0h` | 1 | p.13-216 |
 | POPST | `01C0h` | 1 | p.13-214 |
@@ -91,6 +92,15 @@ also carries instruction length, operand layout, register selection, status
 reads/writes, memory transactions, graphics dependencies, cache/pipeline
 interaction, interrupt/restart/fault behavior, documented cycle cases,
 16/32-bit/page effects, compatibility, citations, and confidence.
+
+JUMP reads an A/B register or the shared-SP alias, clears target bits `[3:0]`,
+and redirects PC in two machine states without changing ST. Its
+`0160h`/`FFE0h` range ends immediately before GETST's `0180h` range. The
+TMS34010 guide gives the same encoding and programmer-visible operation, so
+semantic compatibility is primary-verified without treating the TMS34010
+pipeline as reusable. Sources: TMS34020 User's Guide printed p.13-141 and
+§4.2 p.4-4; TMS34010 User's Guide printed p.12-98 and its instruction summary.
+The model and RTL remain nonexecuting at this extraction checkpoint.
 
 EXGF atomically exchanges the selected six-bit FS/FE status bank with the low
 six bits of an A/B/shared-SP destination and clears the register's upper

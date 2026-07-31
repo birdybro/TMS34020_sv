@@ -68,6 +68,13 @@ TMS34020 primary source; RSC-0019 records the secondary discrepancy. Sources:
 TMS34020 User's Guide printed pp.13-111 and 15-4; TMS34010 User's Guide
 printed pp.12-17 and 12-78.
 
+JUMP takes two machine states, preserves ST and its source register, and loads
+an aligned PC from that register. Both processor guides give the same encoding,
+operation, and two-state cache-hit summary; this isolated match is not evidence
+that their branch pipelines are generally timing-equivalent. Sources: TMS34020
+User's Guide printed p.13-141; TMS34010 User's Guide printed p.12-98 and its
+instruction summary.
+
 PUTST takes three machine states and copies the complete source register into
 ST. The same encoding, operation, and three-state summary appear in the
 TMS34010 guide; this compatibility evidence does not establish general timing
