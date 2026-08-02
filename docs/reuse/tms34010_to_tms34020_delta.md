@@ -187,6 +187,15 @@ sequencer. BEN, CAS/RMW, dynamic SIZE16, page turnaround, waits, faults/retries
 and interrupts require device-owned control. Sources: TMS34020 guide printed
 pp.13-160 and 15-10..15-12; TMS34010 guide pp.12-137..12-138.
 
+`MOVE Rs,*Rd+[,F]` retains `9000h`/`FC00h`, captured-source/address ordering,
+field-size pointer addition and unchanged ST. Its TMS34020 32-bit alignment,
+BEN and hidden-write timing are nevertheless device-owned. The current model
+and address/insertion leaves reuse only semantic capture, add and insertion;
+they do not reuse a TMS34010 bus/timing FSM. Dynamic SIZE16, CAS/RMW, page
+mode, waits, interrupt recognition and idempotent fault/retry still require
+the TMS34020 sequencer. Sources: TMS34020 guide printed pp.13-13, 13-160 and
+15-10..15-11; TMS34010 guide printed pp.12-128..12-129.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

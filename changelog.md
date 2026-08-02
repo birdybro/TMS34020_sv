@@ -4,6 +4,15 @@
 
 ### Added
 
+- Primary-page-extracted `MOVE Rs,*Rd+[,F]` as internal MOVE.RM.POST,
+  covering all 1,024 words, captured-address store ordering, field-size pointer
+  update, unchanged ST, five alignment classes, hidden writes, and compatible
+  TMS34010 semantic bounds.
+- Little-endian architectural MOVE.RM.POST traces with exhaustive bank/width/
+  offset geometry, A/B/SP and Rs=Rd capture, pointer wrap, and atomic BEN
+  rejection.
+- A clean-room ordinary/postincrement/predecrement field-address-update leaf
+  with exhaustive size/mode/wrap verification and invalid dual-mode reporting.
 - Primary-page-extracted `MOVE *Rs,*Rd[,F]` as internal MOVE.MM, covering all
   1,024 words, unchanged ST/register behavior, complete read-before-write,
   all 25 source/destination alignment pairs, timing, and compatibility bounds.
@@ -460,6 +469,18 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis reports 12,660 leaf logic
+  cells/2,230 registers/9 DSP, 437 fetch logic cells, 807 frontend logic
+  cells, and 5,409 scalar logic cells for the 108-entry decoder/postincrement
+  field-store revision. The frontend/scalar probes retain 4,096 block-memory
+  bits. These are observability-wrapper analysis results, not fit, TimeQuest,
+  or core-area qualification.
+- The 49-case ISA suite, 70-entry delta ledger, and 181-case model suite pass.
+  MOVE.RM.POST exhausts both banks, every width/offset, all five alignment
+  cases, A/B/SP/same-register capture and pointer wrap, unchanged ST, exact
+  logical traces, hidden writes, and BEN rollback. The RTL field-address leaf
+  independently exhausts all sizes and update modes; direct execution remains
+  noncommitting without a memory owner.
 - Warning-free Cyclone V Analysis & Synthesis reports 12,544 leaf logic
   cells/2,230 registers/9 DSP, 433 fetch logic cells, 812 frontend logic
   cells, and 5,405 scalar logic cells for the 107-entry decoder/field-copy
@@ -1076,6 +1097,8 @@
 
 ### Documentation
 
+- Documented postincrement field-store semantic compatibility separately from
+  TMS34020-owned 32-bit alignment, BEN, hidden-write and fault sequencing.
 - Recorded the verified ordinary memory-to-memory field-copy implementation
   baseline as commit `3b235c2b0fb2ad1b45d94f95394806c3b775fd60`
   in the progress ledger.
@@ -1226,6 +1249,10 @@
 
 ### Known Issues
 
+- MOVE.RM.POST is a logical little-endian store plus instruction-boundary
+  pointer update and a separate combinational address leaf. No RTL owner yet
+  makes memory and Rd commit fault/retry/interrupt-safe; BEN, CAS/RMW, SIZE16,
+  page mode, waits, I/O and pin cycles remain.
 - MOVE.MM is a little-endian logical read-before-write model and combinational
   window leaf only. BEN, byte strobes/RMW, dynamic SIZE16, page turnaround,
   waits, I/O, faults/retries, interrupts and a committing sequencer remain.

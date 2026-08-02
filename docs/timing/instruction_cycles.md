@@ -96,6 +96,12 @@ sequencer exists, so this is not an external-cycle claim. Source: TMS34020
 User's Guide Tables 15-2 and register-to-memory timing rows, printed
 pp.15-10..15-11.
 
+`MOVE Rs,*Rd+[,F]` has the same one visible little-endian state and
+1/2/2/3/4 hidden alignment-case write states. Its pointer postincrement is
+captured in the successful model result; no physical commit/fault ordering is
+claimed. BEN=1 again adds one visible state. Source: User's Guide printed
+pp.13-160 and 15-10..15-11.
+
 `MOVE *Rs,Rd[,F]` takes 3/3/4/4/4 visible states for field-alignment cases
 1..5 when FE=0, and 4/4/5/5/5 when FE=1. The model and field-load leaf expose
 those counts with little-endian logical extraction only; no request or wait-

@@ -20,8 +20,8 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
-  PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM, MOVE.MR,
-  MOVE.MM,
+  PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM,
+  MOVE.RM.POST, MOVE.MR, MOVE.MM,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -34,7 +34,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 106 of 107 currently extracted database forms for their
+These handlers cover 107 of 108 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -54,6 +54,17 @@ rolls back atomically because BEN-aware bit mapping is not yet part of the
 memory model. The logical transaction is not evidence for byte strobes,
 dynamic width, RMW, page mode, waits, faults, retry, or pin timing. Sources:
 User's Guide printed pp.3-20..3-21, 13-19..13-23, 13-159, and 15-10..15-11.
+
+`MOVE.RM.POST` names `MOVE Rs,*Rd+[,F]`. It captures source data and the old
+destination bit address before writing, then advances Rd by the selected field
+size with 32-bit wrap. This ordering also governs Rs=Rd and shared-SP aliases.
+The logical little-endian store has the same five alignment classes, one
+visible state, and 1/2/2/3/4 hidden write states as MOVE.RM; ST is unchanged.
+Tests exhaust both field banks, every width/offset, A/B/SP, alias and wrap
+cases, exact traces, and BEN rollback. The pointer update and logical memory
+write are instruction-boundary semantics, not a physical fault/retry or
+interrupt checkpoint. Sources: User's Guide printed pp.13-13, 13-160, and
+15-10..15-11.
 
 `MOVE.MR` is the internal family name for `MOVE *Rs,Rd[,F]`. It captures the
 source bit address before any aliasing destination write, reads the selected

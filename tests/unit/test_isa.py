@@ -299,6 +299,8 @@ class IsaTests(unittest.TestCase):
             0x87FF: ("MOVE.MR", 1),
             0x8800: ("MOVE.MM", 1),
             0x8BFF: ("MOVE.MM", 1),
+            0x9000: ("MOVE.RM.POST", 1),
+            0x93FF: ("MOVE.RM.POST", 1),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -326,8 +328,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 34262)
-        self.assertEqual(unclassified, 65536 - 34262)
+        self.assertEqual(matched, 35286)
+        self.assertEqual(unclassified, 65536 - 35286)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -1503,6 +1505,42 @@ class IsaTests(unittest.TestCase):
                     "case_5": 4,
                 },
                 "hidden_write_states_by_destination_case": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_move_register_to_memory_postincrement_contract(self) -> None:
+        instruction = self.database.decode(0x9000)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.RM.POST")
+        self.assertEqual(instruction.opcode_mask, 0xFC00)
+        self.assertEqual(instruction.opcode_value, 0x9000)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertIn(
+            "captured Rd plus the selected field size",
+            instruction.metadata["destination_registers"][0],
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "field_alignment_cases",
+                "visible_machine_states": 1,
+                "little_endian_hidden_write_states": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+                "big_endian_visible_machine_states": 2,
+                "big_endian_hidden_write_states": {
                     "case_1": 1,
                     "case_2": 2,
                     "case_3": 2,

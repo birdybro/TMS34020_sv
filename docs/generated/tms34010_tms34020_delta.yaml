@@ -696,6 +696,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVE indirect-to-indirect form, printed p.13-160", "TI-TMS34020-UG-1990 MOVE/MOVB source/destination case matrix and timing, printed pp.15-10..15-12", "TI-TMS34020-UG-1990 BEN, printed pp.3-20..3-21 and 4-20..4-21", "TI-TMS34010-UG-1988 MOVE indirect-to-indirect, printed pp.12-137..12-138"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact native read/write request decomposition, byte CAS strobes, dynamic SIZE16 beats, page turnaround, and fault/retry checkpoint remain pending the memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "postincrement_register_to_memory_field_move",
+      "tms34010_behavior": "MOVE Rs,*Rd+[,F] uses 9000h/FC00h, stores the captured right-justified source field at the captured destination bit address, then advances Rd by the selected field size. It leaves ST unchanged and publishes 16-bit-bus timing.",
+      "tms34020_behavior": "The encoding, capture ordering, pointer update and field insertion remain compatible, but the TMS34020 32-bit pipeline uses five alignment cases. Little-endian execution exposes one visible state and 1/2/2/3/4 hidden write states; BEN=1 exposes two visible states with the same hidden counts.",
+      "rtl_impact": "Reuse field-size, capture, pointer-add and insertion semantics only. A TMS34020-owned sequencer must capture Rs/Rd/ST before an Rs=Rd update, issue the byte-strobed/RMW store, update Rd exactly once, retain pending-write state, and make retry/fault idempotent on dynamic 32/16-bit targets. The current leaves only calculate little-endian two-word insertion, effective/final pointers and timing metadata.",
+      "test_impact": "All 1,024 encodings; both field banks; widths 1..32; all offsets/cases; A/B/SP, Rs=Rd and wraparound capture ordering; ST preservation; BEN; visible/hidden timing; byte strobes; 16-bit decomposition; pages; waits; faults/retries at every phase; pending writes, interrupts, host and I/O destinations.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary and register-to-indirect-postincrement form, printed pp.13-13 and 13-160", "TI-TMS34020-UG-1990 MOVE/MOVB timing cases, printed pp.15-10..15-11", "TI-TMS34020-UG-1990 BEN, printed pp.3-20..3-21 and 4-20..4-21", "TI-TMS34010-UG-1988 MOVE register-to-indirect postincrement, printed pp.12-128..12-129"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact ordering of pointer commit relative to physical write acceptance, retry, fault and interrupt recognition remains pending the memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

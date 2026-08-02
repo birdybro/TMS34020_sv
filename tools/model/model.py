@@ -132,6 +132,9 @@ class Tms34020Model:
             "MOVE.MM": self._execute_move_memory_to_memory,
             "MOVE.MR": self._execute_move_memory_to_register,
             "MOVE.RM": self._execute_move_register_to_memory,
+            "MOVE.RM.POST": (
+                self._execute_move_register_to_memory_postincrement
+            ),
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
@@ -1540,6 +1543,17 @@ class Tms34020Model:
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
+        return self._execute_move_register_to_memory_common(words, False)
+
+    def _execute_move_register_to_memory_postincrement(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_register_to_memory_common(words, True)
+
+    def _execute_move_register_to_memory_common(
+        self, words: list[int], postincrement: bool
+    ) -> int:
         if self.state.read_io(CONFIG_ADDRESS) & 1:
             raise UnsupportedInstruction(
                 "MOVE.RM big-endian field mapping is classified but not modeled"
@@ -1556,21 +1570,40 @@ class Tms34020Model:
         alignment_case = self._field_alignment_case(bit_address, width)
         hidden_states = (0, 1, 2, 2, 3, 4)[alignment_case]
         self.state.memory.write_bits(bit_address, width, value)
+        pointer_after = (bit_address + width) & MASK32
+        if postincrement:
+            self.state.write_reg(register_file, pointer_index, pointer_after)
         self._new_hidden_write_states = hidden_states
         assert self._active_trace is not None
-        self._active_trace.transactions.append(
-            {
-                "class": "data_write",
-                "purpose": "field_move_register_to_memory",
-                "bit_address": bit_address,
-                "width": width,
-                "value": value,
-                "alignment_case": alignment_case,
-                "hidden_write_states": hidden_states,
-            }
-        )
+        transaction = {
+            "class": "data_write",
+            "purpose": (
+                "field_move_register_to_memory_postincrement"
+                if postincrement
+                else "field_move_register_to_memory"
+            ),
+            "bit_address": bit_address,
+            "width": width,
+            "value": value,
+            "alignment_case": alignment_case,
+            "hidden_write_states": hidden_states,
+        }
+        if postincrement:
+            transaction.update(
+                {
+                    "pointer_before": bit_address,
+                    "pointer_after": pointer_after,
+                }
+            )
+        self._active_trace.transactions.append(transaction)
         self._active_trace.notes.append(
-            "logical little-endian field insertion; physical byte strobes, "
+            "logical little-endian field insertion"
+            + (
+                " with captured-address postincrement"
+                if postincrement
+                else ""
+            )
+            + "; physical byte strobes, "
             "read/modify/write, dynamic width, wait, page, fault, and retry "
             "sequencing remain pending"
         )

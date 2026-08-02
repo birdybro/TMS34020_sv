@@ -126,6 +126,15 @@ module tb_tms34020_verified_leaves;
     logic field_store_writes_word1;
     logic [31:0] field_store_word0_result;
     logic [31:0] field_store_word1_result;
+    logic [4:0] field_address_size;
+    logic [31:0] field_address_pointer;
+    logic field_address_predecrement;
+    logic field_address_postincrement;
+    logic [5:0] field_address_decoded_size;
+    logic [31:0] field_address_effective;
+    logic [31:0] field_address_final;
+    logic field_address_write;
+    logic field_address_mode_valid;
     logic [4:0] field_load_size;
     logic field_load_sign_extend;
     logic [4:0] field_load_offset;
@@ -440,6 +449,18 @@ module tb_tms34020_verified_leaves;
         .writes_word1_o(field_store_writes_word1),
         .word0_o(field_store_word0_result),
         .word1_o(field_store_word1_result)
+    );
+
+    tms34020_field_address_update field_address_update_dut (
+        .field_size_encoded_i(field_address_size),
+        .pointer_i(field_address_pointer),
+        .predecrement_i(field_address_predecrement),
+        .postincrement_i(field_address_postincrement),
+        .field_size_o(field_address_decoded_size),
+        .effective_address_o(field_address_effective),
+        .final_pointer_o(field_address_final),
+        .pointer_write_o(field_address_write),
+        .mode_valid_o(field_address_mode_valid)
     );
 
     tms34020_field_load field_load_dut (
@@ -1018,6 +1039,33 @@ module tb_tms34020_verified_leaves;
             field_store_writes_word1 == expected_writes_word1 &&
             {field_store_word1_result, field_store_word0_result} ==
                 expected_window,
+            message
+        );
+    endtask
+
+    task automatic check_field_address_update(
+        input logic [4:0] field_size_encoded,
+        input logic [31:0] pointer,
+        input logic predecrement,
+        input logic postincrement,
+        input logic [5:0] expected_size,
+        input logic [31:0] expected_effective,
+        input logic [31:0] expected_final,
+        input logic expected_write,
+        input logic expected_valid,
+        input string message
+    );
+        field_address_size = field_size_encoded;
+        field_address_pointer = pointer;
+        field_address_predecrement = predecrement;
+        field_address_postincrement = postincrement;
+        #1;
+        check_condition(
+            field_address_decoded_size == expected_size &&
+            field_address_effective == expected_effective &&
+            field_address_final == expected_final &&
+            field_address_write == expected_write &&
+            field_address_mode_valid == expected_valid,
             message
         );
     endtask
@@ -2116,6 +2164,10 @@ module tb_tms34020_verified_leaves;
         field_store_source = 32'd0;
         field_store_word0 = 32'd0;
         field_store_word1 = 32'd0;
+        field_address_size = 5'd0;
+        field_address_pointer = 32'd0;
+        field_address_predecrement = 1'b0;
+        field_address_postincrement = 1'b0;
         field_load_size = 5'd0;
         field_load_sign_extend = 1'b0;
         field_load_offset = 5'd0;
@@ -2956,6 +3008,38 @@ module tb_tms34020_verified_leaves;
                 );
             end
         end
+        for (int unsigned encoded_size = 0; encoded_size < 32;
+             encoded_size++) begin
+            logic [5:0] expected_size;
+            logic [31:0] pointer;
+            expected_size = encoded_size == 0 ? 6'd32 :
+                encoded_size[5:0];
+            pointer = 32'hFFFF_FFF0 + encoded_size;
+            check_field_address_update(
+                encoded_size[4:0], pointer, 1'b0, 1'b0,
+                expected_size, pointer, pointer, 1'b0, 1'b1,
+                "ordinary field address has no pointer update"
+            );
+            check_field_address_update(
+                encoded_size[4:0], pointer, 1'b0, 1'b1,
+                expected_size, pointer,
+                pointer + {26'd0, expected_size},
+                1'b1, 1'b1,
+                "postincrement field address captures old pointer"
+            );
+            check_field_address_update(
+                encoded_size[4:0], pointer, 1'b1, 1'b0,
+                expected_size, pointer - {26'd0, expected_size},
+                pointer - {26'd0, expected_size}, 1'b1, 1'b1,
+                "predecrement field address uses updated pointer"
+            );
+        end
+        check_field_address_update(
+            5'd16, 32'h1234_5678, 1'b1, 1'b1,
+            6'd16, 32'h1234_5678, 32'h1234_5678,
+            1'b0, 1'b0,
+            "simultaneous predecrement and postincrement is rejected"
+        );
         check_field_load(
             5'd0, 1'b0, 5'd0,
             64'hC33C_F00F_A5A5_5A5A,
@@ -3739,6 +3823,12 @@ module tb_tms34020_verified_leaves;
             32'hA020_0010,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MOVE.MM cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'h9001, 32'hD69A_35C7, 32'h0000_2003,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.RM.POST cannot bypass absent field-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -5398,6 +5488,10 @@ module tb_tms34020_verified_leaves;
                      "MOVE.MM field-zero lower-bound decode");
         check_decode(16'h8BFF, TMS20_OP_MOVE_MM, 3'd1,
                      "MOVE.MM field-one upper-bound decode");
+        check_decode(16'h9000, TMS20_OP_MOVE_RM_POST, 3'd1,
+                     "MOVE.RM.POST field-zero lower-bound decode");
+        check_decode(16'h93FF, TMS20_OP_MOVE_RM_POST, 3'd1,
+                     "MOVE.RM.POST field-one upper-bound decode");
         decode_word = 16'h8C00;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,

@@ -80,6 +80,24 @@ ordering, zero/negative/positive status, logical read traces, and atomic BEN
 rollback. No request owner yet supplies dynamic-width beats, waits, page
 mode, I/O routing, fault/retry suppression, interrupts, or pin timing.
 
+## Verified postincrement register-to-memory boundary
+
+`MOVE Rs,*Rd+[,F]` occupies `9000h`/`FC00h`. It captures the right-justified
+source field and old Rd bit address, stores at that address, then writes
+`Rd + field_size` back to Rd. The source and address capture precede the
+pointer update, including when Rs=Rd or both names resolve to SP. ST is
+unchanged. Sources: User's Guide printed pp.13-13 and 13-160; the compatible
+TMS34010 form is printed pp.12-128..12-129.
+
+The model exhausts both banks, all widths/offsets, A/B/SP aliases and 32-bit
+pointer wrap while retaining MOVE.RM's one visible little-endian state and
+1/2/2/3/4 hidden alignment-case writes. The clean-room
+`tms34020_field_address_update` leaf independently exhausts ordinary,
+postincrement and predecrement effective/final pointer calculations. There is
+still no combined RTL operand-capture, store, pointer-commit or fault owner;
+BEN mapping, CAS/RMW, SIZE16, page mode, waits, retry, faults, interrupts and
+pin timing remain absent.
+
 ## Verified ordinary memory-to-memory boundary
 
 `MOVE *Rs,*Rd[,F]` occupies `8800h`/`FC00h`, captures both same-file bit
@@ -108,7 +126,8 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE addressing-update and absolute forms,
+Remaining ordinary MOVE predecrement, source-postincrement, paired-update,
+offset and absolute forms,
 BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain

@@ -111,6 +111,11 @@ module tms34020_leaf_synth_top (
     logic field_store_writes_word1;
     logic [31:0] field_store_word0;
     logic [31:0] field_store_word1;
+    logic [5:0] field_address_size;
+    logic [31:0] field_address_effective;
+    logic [31:0] field_address_final;
+    logic field_address_write;
+    logic field_address_mode_valid;
     logic [5:0] field_load_size;
     logic [2:0] field_load_alignment_case;
     logic field_load_reads_word1;
@@ -189,6 +194,8 @@ module tms34020_leaf_synth_top (
         swap_register_result ^
         field_store_word0 ^
         field_store_word1 ^
+        field_address_effective ^
+        field_address_final ^
         field_load_raw ^
         field_load_result ^
         field_move_value ^
@@ -204,6 +211,8 @@ module tms34020_leaf_synth_top (
         {28'd0, swap_legal_in_word, swap_n, swap_z, swap_v} ^
         {19'd0, field_store_size, field_store_alignment_case,
          field_store_hidden_states, field_store_writes_word1} ^
+        {24'd0, field_address_size, field_address_write,
+         field_address_mode_valid} ^
         {16'd0, field_load_size, field_load_alignment_case,
          field_load_reads_word1, field_load_visible_states,
          field_load_n, field_load_z, field_load_v} ^
@@ -455,6 +464,20 @@ module tms34020_leaf_synth_top (
         .writes_word1_o(field_store_writes_word1),
         .word0_o(field_store_word0),
         .word1_o(field_store_word1)
+    );
+
+    tms34020_field_address_update field_address_update (
+        .field_size_encoded_i(
+            first_word_i[9] ? status_value[10:6] : status_value[4:0]
+        ),
+        .pointer_i(second_register_data),
+        .predecrement_i(first_word_i[13]),
+        .postincrement_i(first_word_i[12]),
+        .field_size_o(field_address_size),
+        .effective_address_o(field_address_effective),
+        .final_pointer_o(field_address_final),
+        .pointer_write_o(field_address_write),
+        .mode_valid_o(field_address_mode_valid)
     );
 
     tms34020_field_load field_load (
