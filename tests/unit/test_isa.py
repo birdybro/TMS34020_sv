@@ -262,6 +262,8 @@ class IsaTests(unittest.TestCase):
             0x0BDF: ("XORI", 3),
             0x0C57: ("LINIT", 1),
             0x08F2: ("CLIP", 1),
+            0xF600: ("DRAV", 1),
+            0xF7FF: ("DRAV", 1),
             0x0ABB: ("FPIXEQ", 1),
             0x0ADB: ("FPIXNE", 1),
             0xDE1A: ("FLINE", 1),
@@ -413,8 +415,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 48224)
-        self.assertEqual(unclassified, 65536 - 48224)
+        self.assertEqual(matched, 48736)
+        self.assertEqual(unclassified, 65536 - 48736)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2455,6 +2457,34 @@ class IsaTests(unittest.TestCase):
                 self.assertEqual(
                     instruction.metadata["documented_cycles"]["expression"],
                     "12 + 3*CD + (2+P)*E + 3",
+                )
+                self.assertIn(
+                    "not established",
+                    instruction.metadata["cache_miss_cycles"],
+                )
+
+    def test_drav_records_xy_write_window_timing_and_compatibility(self) -> None:
+        for word in (0xF600, 0xF610, 0xF7FF):
+            with self.subTest(word=f"{word:04X}"):
+                instruction = self.database.decode(word)
+                self.assertIsNotNone(instruction)
+                self.assertEqual(instruction.mnemonic, "DRAV")
+                self.assertEqual(instruction.opcode_mask, 0xFE00)
+                self.assertEqual(instruction.length_words, 1)
+                self.assertTrue(
+                    instruction.metadata["compatible_with_tms34010"]
+                )
+                self.assertEqual(
+                    instruction.metadata["documented_cycles"]["inside"]["W0"],
+                    "4+P+CD",
+                )
+                self.assertEqual(
+                    instruction.metadata["documented_cycles"]["outside"]["W0"],
+                    "4+P+CD",
+                )
+                self.assertIn(
+                    "independently",
+                    instruction.metadata["pipeline_interactions"][-1],
                 )
                 self.assertIn(
                     "not established",

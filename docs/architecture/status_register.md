@@ -210,6 +210,13 @@ Directed model tests seed all status fields and the standalone step leaf
 exposes no status-write output. Source: User's Guide FLINE printed
 pp.13-121..13-124.
 
+DRAV preserves the entire status register when CONTROL.W is zero. With active
+window checking, only V is updated to report a violation; N/C/Z remain
+unaffected. The current W=0 model seeds and checks full-width ST preservation,
+and the standalone transform leaf intentionally has no status output. Sources:
+TMS34020 User's Guide DRAV printed pp.13-100..13-102; TMS34010 User's Guide
+DRAV printed pp.12-67..12-69.
+
 CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
 The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide

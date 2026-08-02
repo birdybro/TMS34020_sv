@@ -98,6 +98,20 @@ waits, faults and continuation remain outside it. Sources: User's Guide
 FLINE pp.13-121..13-125, COLOR0/COLOR1 pp.4-17..4-20, CONTROL
 pp.4-24..4-27, plane masking pp.12-39..12-42, and timing p.15-5.
 
+## Draw-and-advance boundary
+
+DRAV (`F600h`/`FE00h`) writes the COLOR1 pixel aligned to the linear address
+converted from old Rd, then advances Rd by same-file Rs as two independent
+16-bit XY additions. The model's successful boundary is limited to W=0,
+replace PPOP, transparency off, DPYCTL.CST=0 and little endian. It supports
+all six PSIZE values, aligned 32-bit COLOR1/PMASK lanes, all three conversion
+classes, A/B/shared-SP aliases, ordered logical `pixel_write`, and complete ST
+preservation. `tms34020_drav_step.sv` implements only the normalized pixel
+transform and XY half-add; it owns no I/O capture, conversion, window/PPOP,
+memory request, commit or timing. Sources: TMS34020 User's Guide DRAV printed
+pp.13-100..13-102, COLOR1 pp.4-18..4-20, plane masking pp.12-39..12-42 and
+timing p.15-5; RSC-0045.
+
 ## Line initialization boundary
 
 LINIT is the exact `0C57h` TMS34020-only setup operation used before line

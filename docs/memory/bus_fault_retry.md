@@ -159,6 +159,14 @@ decision/pointer twice. The model's
 `pixel_write` entries describe final logical values only, not accepted local-
 bus subcycles.
 
+DRAV's atomic logical write and immediate Rd update are not retry evidence.
+A physical owner must establish the pixel-write completion checkpoint before
+choosing when the XY advance becomes resumable, and prove a retry cannot
+duplicate either the write or the half-add. The current `drav_replace` trace
+contains the final logical pixel and old/increment/new XY values only; it does
+not describe physical read/modify/write acceptance, SIZE16 beats or BUSFLT
+sampling.
+
 ## Required verification
 
 Future RTL tests and properties must inject all four completion codes during

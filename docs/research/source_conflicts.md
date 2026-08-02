@@ -892,3 +892,22 @@
   before comparison with the aligned COLOR0 lane. Directed tests discriminate
   this from ignoring PMASK. This resolution does not infer how the memory
   controller groups pixels into physical reads or checkpoints a grouped read.
+
+## RSC-0045: DRAV table retains the TMS34010 CONTROL address
+
+- Status: resolved from the TMS34020 register map and DRAV's CST statement;
+  no architectural address ambiguity remains
+- Primary inconsistency: TI *TMS34020 User's Guide*, August 1990, the DRAV
+  implied-operand table on printed p.13-100 labels `C0000080h` as CONTROL.
+  The TMS34020 I/O-register summary on printed pp.4-9..4-11 assigns CONTROL to
+  `C00000B0h`/`C0000190h` and assigns `C0000080h` to DPYCTL. The DRAV page on
+  printed p.13-101 separately says the CST bit selects serial-register
+  transfers; CST is documented in DPYCTL on printed pp.4-35..4-39.
+- Historical explanation: the TMS34010 DRAV table on printed p.12-67 correctly
+  used `C0000080h` for that device's CONTROL register. The TMS34020 table
+  evidently retained the old address while its surrounding behavior was
+  revised for DPYCTL.CST.
+- Decision: use TMS34020 CONTROL at `C00000B0h` for PPOP/W/T/TM and
+  DPYCTL at `C0000080h` for CST. Directed rollback tests discriminate the two
+  registers. This does not establish the unimplemented upper CONTROL half at
+  `C0000190h` or any physical CST transfer timing.

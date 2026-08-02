@@ -1076,6 +1076,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 XY conversion, §3.6 printed pp.3-15..3-16", "TI-TMS34020-UG-1990 FLINE printed pp.13-121..13-125", "TI-TMS34020-UG-1990 graphics interrupts printed pp.6-13..6-14", "TI-TMS34020-UG-1990 timing Table 15-1/formula printed pp.15-2 and 15-5"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Replace/no-transparency logical semantics are modeled; the other 21 PPOP options, transparency, physical page/wait/fault/retry behavior and continuation frame remain unimplemented.", "The one-step RTL leaf consumes already-normalized linear increments and owns no conversion or architectural commit."]
+    },
+    {
+      "feature": "draw_and_advance",
+      "tms34010_behavior": "DRAV at F600h/FE00h writes an aligned COLOR1 pixel through a 16-bit local-bus graphics path, then adds same-file Rs to Rd as independent X/Y halves. PSIZE is limited to 1/2/4/8/16; window coordinates are documented as positive; CONTROL is at C0000080h; SRT selects shift-register cycles; timing is the TMS34010-specific table.",
+      "tms34020_behavior": "The encoding and programmer-visible draw/XY advance remain compatible, but the pixel path is 32 bits, PSIZE additionally supports 32, signed window coordinates are allowed, CONTROL moves to C00000B0h while DPYCTL.CST at C0000080h selects SRT cycles, arbitrary/two-power conversion is explicit, and timing uses the TMS34020 4+P+CD/window matrix.",
+      "rtl_impact": "Reuse only the independent XY half-add and aligned pixel-transform equations. TMS34020 requires its own 32-bit conversion, I/O capture, window, pixel-processing, CST, memory-controller, fault/retry and timing owners. The clean-room RTL leaf covers only a normalized W0 replace-mode transform and next XY value.",
+      "test_impact": "All 512 encodings and same-file/SP aliases; every PSIZE/lane/PMASK; independent half carries; one-/two-power/arbitrary pitch and W0 timing; signed window modes; all PPOP/transparency cells; CST; 16/32-bit physical requests; waits/page/fault/retry and no duplicate Rd advance.",
+      "source_citation": ["TI-TMS34020-UG-1990 DRAV, printed pp.13-100..13-102", "TI-TMS34020-UG-1990 CONTROL/DPYCTL, printed pp.4-24..4-27 and 4-35..4-39", "TI-TMS34020-UG-1990 DRAV timing matrix, printed p.15-5", "TI-TMS34010-UG-1988 DRAV, printed pp.12-67..12-69"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Window/PPOP/transparency/CST semantics and the physical request/continuation owner remain unimplemented.", "The TMS34020 DRAV implied-operand table appears to retain the TMS34010 CONTROL address; the independently documented TMS34020 register map governs and RSC-0045 records the conflict."]
     }
   ]
 }

@@ -115,6 +115,19 @@ module tb_tms34020_verified_leaves;
     logic [31:0] find_next_mptch;
     logic find_done;
     logic find_z;
+    logic [31:0] drav_source_xy;
+    logic [31:0] drav_destination_xy;
+    logic [31:0] drav_linear_address;
+    logic [31:0] drav_color1;
+    logic [31:0] drav_pmask;
+    logic [31:0] drav_raw_destination;
+    logic [15:0] drav_psize;
+    logic drav_inputs_valid;
+    logic [31:0] drav_access_address;
+    logic [31:0] drav_source_pixel;
+    logic [31:0] drav_plane_mask;
+    logic [31:0] drav_result_pixel;
+    logic [31:0] drav_next_destination_xy;
     logic fline_algorithm_one;
     logic [31:0] fline_decision;
     logic [31:0] fline_daddr;
@@ -676,6 +689,22 @@ module tb_tms34020_verified_leaves;
         .next_mptch_o(find_next_mptch),
         .done_o(find_done),
         .status_z_o(find_z)
+    );
+
+    tms34020_drav_step drav_step_dut (
+        .source_xy_i(drav_source_xy),
+        .destination_xy_i(drav_destination_xy),
+        .linear_address_i(drav_linear_address),
+        .color1_i(drav_color1),
+        .pmask_i(drav_pmask),
+        .raw_destination_i(drav_raw_destination),
+        .psize_i(drav_psize),
+        .inputs_valid_o(drav_inputs_valid),
+        .access_address_o(drav_access_address),
+        .source_pixel_o(drav_source_pixel),
+        .plane_mask_o(drav_plane_mask),
+        .result_pixel_o(drav_result_pixel),
+        .next_destination_xy_o(drav_next_destination_xy)
     );
 
     tms34020_fline_step fline_step_dut (
@@ -1656,6 +1685,41 @@ module tb_tms34020_verified_leaves;
             find_next_mptch == expected_next_mptch &&
             find_done == expected_done &&
             find_z == expected_z,
+            message
+        );
+    endtask
+
+    task automatic check_drav_step(
+        input logic [31:0] source_xy,
+        input logic [31:0] destination_xy,
+        input logic [31:0] linear_address,
+        input logic [31:0] color1,
+        input logic [31:0] pmask,
+        input logic [31:0] raw_destination,
+        input logic [15:0] psize,
+        input logic expected_valid,
+        input logic [31:0] expected_access_address,
+        input logic [31:0] expected_source_pixel,
+        input logic [31:0] expected_plane_mask,
+        input logic [31:0] expected_result_pixel,
+        input logic [31:0] expected_next_destination_xy,
+        input string message
+    );
+        drav_source_xy = source_xy;
+        drav_destination_xy = destination_xy;
+        drav_linear_address = linear_address;
+        drav_color1 = color1;
+        drav_pmask = pmask;
+        drav_raw_destination = raw_destination;
+        drav_psize = psize;
+        #1;
+        check_condition(
+            drav_inputs_valid == expected_valid &&
+            drav_access_address == expected_access_address &&
+            drav_source_pixel == expected_source_pixel &&
+            drav_plane_mask == expected_plane_mask &&
+            drav_result_pixel == expected_result_pixel &&
+            drav_next_destination_xy == expected_next_destination_xy,
             message
         );
     endtask
@@ -3120,6 +3184,13 @@ module tb_tms34020_verified_leaves;
         find_color0 = 32'd0;
         find_pmask = 32'd0;
         find_raw_pixel = 32'd0;
+        drav_source_xy = 32'd0;
+        drav_destination_xy = 32'd0;
+        drav_linear_address = 32'd0;
+        drav_color1 = 32'd0;
+        drav_pmask = 32'd0;
+        drav_raw_destination = 32'd0;
+        drav_psize = 16'd1;
         fline_algorithm_one = 1'b0;
         fline_decision = 32'd0;
         fline_daddr = 32'd0;
@@ -3977,6 +4048,60 @@ module tb_tms34020_verified_leaves;
                     32'h0000_0400 + find_lane_loop + find_size_loop,
                     32'd0, 1'b1, 1'b1,
                     "FPIXEQ every legal PSIZE and long-word lane"
+                );
+            end
+        end
+
+        check_drav_step(
+            32'h0010_0010, 32'h0040_0010, 32'h0001_8040,
+            32'hFFFF_FFFF, 32'd0, 32'd8, 16'd4,
+            1'b1, 32'h0001_8040, 32'h0000_000F, 32'd0,
+            32'h0000_000F, 32'h0050_0020,
+            "DRAV primary replace example and independent XY add"
+        );
+        check_drav_step(
+            32'h0001_FFFF, 32'h0001_0001, 32'h0000_0208,
+            32'h0000_A500, 32'h0000_F000, 32'h0000_005A, 16'd8,
+            1'b1, 32'h0000_0208, 32'h0000_00A5, 32'h0000_00F0,
+            32'h0000_0055, 32'h0002_0000,
+            "DRAV aligned COLOR1 PMASK and no X-to-Y carry"
+        );
+        check_drav_step(
+            32'd0, 32'd0, 32'h0000_0100,
+            32'd0, 32'd0, 32'd0, 16'd3,
+            1'b0, 32'h0000_0100, 32'd0, 32'd0,
+            32'd0, 32'd0,
+            "DRAV illegal PSIZE remains unsupported"
+        );
+        check_drav_step(
+            32'd0, 32'd0, 32'h0000_0102,
+            32'd0, 32'd0, 32'd0, 16'd4,
+            1'b0, 32'h0000_0102, 32'd0, 32'd0,
+            32'd0, 32'd0,
+            "DRAV misaligned linear address remains unsupported"
+        );
+        for (find_size_loop = 1; find_size_loop <= 32;
+             find_size_loop = find_size_loop * 2) begin
+            find_loop_mask =
+                32'hFFFF_FFFF >> (32 - find_size_loop);
+            find_loop_value = 32'hA5A5_5A5B & find_loop_mask;
+            for (find_lane_loop = 0; find_lane_loop < 32;
+                 find_lane_loop = find_lane_loop + find_size_loop) begin
+                check_drav_step(
+                    32'd0,
+                    32'd0,
+                    32'h0000_0400 + find_lane_loop,
+                    find_loop_value << find_lane_loop,
+                    32'd0,
+                    32'd0,
+                    find_size_loop[15:0],
+                    1'b1,
+                    32'h0000_0400 + find_lane_loop,
+                    find_loop_value,
+                    32'd0,
+                    find_loop_value,
+                    32'd0,
+                    "DRAV every legal PSIZE and long-word lane"
                 );
             end
         end
@@ -5727,6 +5852,16 @@ module tb_tms34020_verified_leaves;
             16'h0ADB, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "FPIXNE cannot bypass implied B-register/memory ownership"
+        );
+        check_register_execute(
+            16'hF620, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "DRAV cannot bypass XY conversion/graphics ownership"
+        );
+        check_register_execute(
+            16'hF7FF, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "DRAV shared-SP form cannot bypass graphics ownership"
         );
         check_register_execute(
             16'hDE1A, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
@@ -7513,6 +7648,10 @@ module tb_tms34020_verified_leaves;
                      "FPIXEQ exact decode");
         check_decode(16'h0ADB, TMS20_OP_FPIXNE, 3'd1,
                      "FPIXNE exact decode");
+        check_decode(16'hF600, TMS20_OP_DRAV, 3'd1,
+                     "DRAV lower-bound decode");
+        check_decode(16'hF7FF, TMS20_OP_DRAV, 3'd1,
+                     "DRAV upper-bound decode");
         check_decode(16'hDE1A, TMS20_OP_FLINE, 3'd1,
                      "FLINE algorithm zero decode");
         check_decode(16'hDE9A, TMS20_OP_FLINE, 3'd1,

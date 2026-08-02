@@ -36,7 +36,7 @@ Implemented:
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
-  CEXEC.S, CLIP, FLINE, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
+  CEXEC.S, CLIP, DRAV, FLINE, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
   CMOVMC.POST.C, CMOVCM.POST.C, CMOVCM.PRE.C, CMOVMC.POST.R,
   CMOVMC.PRE.C,
   XORI,
@@ -44,7 +44,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LINIT, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 144 of 145 currently extracted database forms for their
+These handlers cover 145 of 146 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -450,6 +450,20 @@ for 1/2/4-bit pixels. Physical requests, other PPOP/transparency modes,
 page/wait/fault/retry behavior and IX continuation remain absent. Sources:
 User's Guide §3.6 pp.3-15..3-16, FLINE pp.13-121..13-125, graphics
 interrupts pp.6-13..6-14, and timing pp.15-2 and 15-5.
+
+DRAV captures same-file Rs and old Rd before an atomic logical W=0 draw. The
+supported slice requires little-endian ordinary pixel cycles, replace PPOP,
+transparency off and DPYCTL.CST clear. It converts old Rd from XY to a linear
+bit address with CONVDP, B3/DPTCH, PSIZE and B4/OFFSET, selects the aligned
+B9/COLOR1 and PMASK lanes, preserves protected destination bits, writes one
+logical pixel, and replaces Rd with independent wrapping X/Y half additions.
+All ST bits remain unchanged. Tests reproduce the five primary replace
+examples, every legal PSIZE/lane/PMASK, A/B/same-register/shared-SP cases,
+all three pitch classes and their W0 `4+P+CD` totals, plus atomic invalid-mode
+rollback. Window checking, other PPOP/transparency modes, CST, physical
+read/modify/write, waits/page/fault/retry and hidden-write overlap remain
+absent. Sources: TMS34020 User's Guide DRAV pp.13-100..13-102 and timing
+pp.15-1..15-2, 15-5; TMS34010 User's Guide DRAV pp.12-67..12-69; RSC-0045.
 
 The four XY-to-linear handlers share equation-level arithmetic but retain
 their distinct explicit and implied operands. Signed X/Y halves and signed
@@ -911,6 +925,9 @@ logical read traces, B10/B11/Z results, and unsupported-mode rollback,
 FLINE algorithm-zero/one decision boundaries, PATTERN/COLOR0/COLOR1 rotation,
 all legal PSIZE/lane/PMASK writes, implied state, zero/negative counts,
 pitch-class no-wait formula cases, and atomic unsupported-mode rollback,
+DRAV primary replace examples, every PSIZE/lane/PMASK, independent XY halves,
+A/B/same-register/shared-SP operands, pitch-class W0 timing, logical writes,
+status preservation and atomic unsupported-mode rollback,
 all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
 coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and the
 published state cases plus provisional CVXYL arbitrary-pitch selection,

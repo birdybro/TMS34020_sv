@@ -145,6 +145,16 @@ normalized replace-mode step only; the atomic model owns no physical bus or
 IX/BF continuation. Sources: TMS34020 guide §3.6 pp.3-15..3-16, FLINE
 pp.13-121..13-125, and timing pp.15-2, 15-5.
 
+DRAV retains `F600h`/`FE00h`, same-file Rs/Rd, aligned COLOR1 output,
+independent XY half-addition, PPOP/window/transparency/PMASK controls, and
+conditional V behavior. That functional compatibility does not authorize the
+TMS34010 state machine: TMS34020 adds PSIZE=32, a 32-bit data path, signed
+window coordinates, arbitrary/two-power pitch conversion, moved CONTROL plus
+DPYCTL.CST, dynamic bus behavior, and its own `4+P+CD` window timing matrix.
+The clean-room TMS34020 leaf reimplements only the normalized pixel transform
+and XY addition. Sources: TMS34020 guide DRAV pp.13-100..13-102 and timing
+p.15-5; TMS34010 guide DRAV pp.12-67..12-69; RSC-0045.
+
 CVXYL retains `E800h`/`FE00h`, same-file explicit operands, implied B3/B4,
 CONVDP/PSIZE inputs, unaffected ST, and the signed XY-to-linear equation. The
 TMS34020 expands pitch handling from the TMS34010's power-of-two display case

@@ -315,6 +315,17 @@ retries or interrupts, exactly as Chapter 15 states. The combinational RTL
 leaf exposes no timing claim. Sources: User's Guide timing assumptions/Table
 15-1 printed pp.15-1..15-2 and FLINE formula p.15-5.
 
+DRAV's TMS34020 timing is a window matrix. For an inside pixel, W=0, W=2 and
+W=3 use `4+P+CD`, while W=1 uses 5 states. For an outside pixel, W=0 retains
+`4+P+CD`, W=1 and W=3 use 3 states, and W=2 uses 5. P comes from Table 15-1
+and CD is 0, 1 or 12 for
+power-of-two, two-power or arbitrary destination pitch. The current model
+tests only replace-mode W=0, for exact totals 4, 5 and 16. It assumes enabled
+cache with the instruction present, immediate memory grants, and no waits or
+retries. The normalized RTL leaf exposes no timing. Sources: TMS34020 User's
+Guide timing assumptions/Table 15-1/DRAV matrix printed pp.15-1..15-2 and
+15-5. TMS34010's different table on printed p.12-68 is not reused.
+
 CVDXYL, CVMXYL, and CVSXYL take 2 machine states for a power-of-two pitch, 3
 for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3 and 4
 states for the first two classes. Its instruction page specifies 14 for an

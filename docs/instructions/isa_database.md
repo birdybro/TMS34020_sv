@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 145 page-verified encoding records and covers 48,224 of 65,536
+slice contains 146 page-verified encoding records and covers 48,736 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -133,6 +133,7 @@ first words without collisions:
 | CEXEC.L | exact `0600h` plus command/size and ID/command words | 3 | pp.13-51..13-52 |
 | CEXEC.S | `D800h`, mask `FF80h`, plus ID/command word | 2 | pp.13-53..13-54 |
 | CLIP | `08F2h` | 1 | pp.13-55..13-56 |
+| DRAV | `F600h`, mask `FE00h` | 1 | pp.13-100..13-102 |
 | FLINE | `DE1Ah`/`DE9Ah`, mask `FF7Fh` | 1 | pp.13-121..13-125 |
 | FPIXEQ | `0ABBh` | 1 | pp.13-126..13-127 |
 | FPIXNE | `0ADBh` | 1 | pp.13-128..13-129 |
@@ -207,6 +208,24 @@ commit. Other pixel-processing/transparency modes and physical continuation
 remain pending. Sources: User's Guide §3.6 pp.3-15..3-16, FLINE
 pp.13-121..13-125, graphics interrupts pp.6-13..6-14, and timing pp.15-2,
 15-5.
+
+DRAV covers all 512 same-file words at `F600h`/`FE00h`. It converts the old
+Rd XY address through CONVDP/DPTCH/PSIZE plus B4/OFFSET, writes the aligned
+B9/COLOR1 pixel through PPOP/transparency/PMASK/window control, then adds Rs
+to Rd as independent wrapping 16-bit halves. The encoding and visible
+operation are TMS34010-compatible, but the TMS34020 adds PSIZE=32, a 32-bit
+pixel path, signed windows, changed I/O placement/CST control, pitch classes,
+and different timing. The model currently implements atomic W=0,
+replace-PPOP, transparency-off, CST=0 logical writes and exact Chapter-15
+pitch-class timing; the standalone RTL leaf consumes an already-converted
+linear address and owns no memory request or architectural commit. Sources:
+TMS34020 User's Guide DRAV pp.13-100..13-102 and timing pp.15-1..15-2,
+15-5; TMS34010 User's Guide DRAV pp.12-67..12-69; RSC-0045.
+Pinned MAME commit `a562e947b22f4f5acff0c182c26fd649d72dad0e`
+corroborates the decode in `34010dsm.cpp` lines 1647–1649 and the basic
+write-then-half-add sequence in `34010ops.hxx` lines 292–312. Its handler is a
+shared TMS340x0 path with `COUNT_UNKNOWN_CYCLES`, so it is not evidence for
+TMS34020 bus, window-corner, or timing deltas.
 
 `CLR Rd` is the documented alternate mnemonic for `XOR Rd,Rd`, not a separate
 decode range. Its instruction word repeats the same four-bit register number

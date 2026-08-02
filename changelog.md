@@ -4,6 +4,16 @@
 
 ### Added
 
+- Primary-page-extracted all 512 DRAV words at `F600h`/`FE00h`, including
+  same-file/shared-SP operands, old-Rd XY-to-linear pixel addressing,
+  independent wrapping XY advance, aligned 32-bit COLOR1/PMASK, conditional V,
+  the full window timing matrix, and the verified TMS34010/TMS34020 delta. The
+  independent model implements atomic W0 replace/no-transparency/CST=0 logical
+  writes and pitch timing; a clean-room RTL leaf implements only the normalized
+  pixel transform and XY half-add.
+- RSC-0045 resolves DRAV's stale `C0000080h` CONTROL table entry from the
+  TMS34020 register map: PPOP/W/T/TM use CONTROL at `C00000B0h`, while CST uses
+  DPYCTL at `C0000080h`.
 - Primary-page-extracted FLINE algorithm zero/one at `DE1Ah`/`DE9Ah`,
   including implied Bresenham state, linear DADDR plus converted XY increments,
   PATTERN-controlled aligned COLOR0/COLOR1, PMASK-preserving writes, unchanged
@@ -659,6 +669,23 @@
 
 ### Verified
 
+- The 146-entry ISA database classifies 48,736 first words through 81 ISA
+  tests; the 108-entry delta ledger passes schema checks. The 238-test model
+  suite covers DRAV's five primary replace examples, every legal
+  PSIZE/lane/PMASK, independent XY carries, A/B/same-register/shared-SP forms,
+  all pitch-class W0 totals, exact logical writes, ST preservation and atomic
+  unsupported-mode rollback. Window/PPOP/transparency/CST and physical timing
+  remain absent.
+- The normalized DRAV leaf passes standalone warning-free lint and shared
+  exhaustive simulation, including exact lower/upper decode and explicit
+  scalar noncommit. This is not XY conversion, a memory request owner,
+  window/pixel processing, architectural commit, or cycle accuracy.
+- Five warning-free Cyclone V Analysis & Synthesis smokes report 15,310 logic
+  cells/2,230 registers/9 DSPs for the observability-heavy DRAV-expanded leaf
+  wrapper, 375/200/4,096 RAM bits for cache, 523/177 for fetch,
+  907/375/4,096 RAM bits for frontend, and 5,556/1,416/4,096 RAM bits for the
+  bounded scalar composition. These remain slice-only analysis metrics, not
+  core area, fit, TimeQuest, or timing closure.
 - The 145-entry ISA database classifies 48,224 first words through 80 ISA
   tests; the 107-entry delta ledger passes schema checks. The 233-test model
   suite covers both FLINE decision-zero algorithms, patterned output, every

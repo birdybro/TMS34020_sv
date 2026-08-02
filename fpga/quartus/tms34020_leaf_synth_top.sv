@@ -106,6 +106,12 @@ module tms34020_leaf_synth_top (
     logic [31:0] find_next_mptch;
     logic find_done;
     logic find_z;
+    logic drav_inputs_valid;
+    logic [31:0] drav_access_address;
+    logic [31:0] drav_source_pixel;
+    logic [31:0] drav_plane_mask;
+    logic [31:0] drav_result_pixel;
+    logic [31:0] drav_next_destination_xy;
     logic fline_inputs_valid;
     logic fline_active;
     logic fline_diagonal;
@@ -364,6 +370,12 @@ module tms34020_leaf_synth_top (
         find_next_mptch ^
         {25'd0, find_inputs_valid, find_active, find_predecrement,
          find_found, find_done, find_z, first_word_i[5]} ^
+        drav_access_address ^
+        drav_source_pixel ^
+        drav_plane_mask ^
+        drav_result_pixel ^
+        drav_next_destination_xy ^
+        {31'd0, drav_inputs_valid} ^
         fline_access_address ^
         fline_source_pixel ^
         fline_plane_mask ^
@@ -707,6 +719,22 @@ module tms34020_leaf_synth_top (
         .next_mptch_o(find_next_mptch),
         .done_o(find_done),
         .status_z_o(find_z)
+    );
+
+    tms34020_drav_step drav_step (
+        .source_xy_i(operand_i),
+        .destination_xy_i(immediate_i),
+        .linear_address_i(operand_i + immediate_i),
+        .color1_i({operand_i[15:0], operand_i[31:16]}),
+        .pmask_i({immediate_i[15:0], immediate_i[31:16]}),
+        .raw_destination_i(operand_i ^ immediate_i),
+        .psize_i({10'd0, pixel_size_i}),
+        .inputs_valid_o(drav_inputs_valid),
+        .access_address_o(drav_access_address),
+        .source_pixel_o(drav_source_pixel),
+        .plane_mask_o(drav_plane_mask),
+        .result_pixel_o(drav_result_pixel),
+        .next_destination_xy_o(drav_next_destination_xy)
     );
 
     tms34020_fline_step fline_step (

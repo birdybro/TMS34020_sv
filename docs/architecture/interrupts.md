@@ -128,6 +128,13 @@ recognition or resume owner. B0/B2/B10/B13 alone must not be claimed as the
 complete silicon continuation frame. Sources: User's Guide graphics interrupt
 sequence printed pp.6-13..6-14 and FLINE printed p.13-124.
 
+DRAV defines one pixel operation and an Rd XY advance as its architectural
+effects. The current atomic model and combinational leaf have no interrupt-
+recognition or hidden-write scheduler; they therefore provide no evidence for
+the exact recognition state or ordering relative to the pixel write. Source:
+User's Guide DRAV printed pp.13-100..13-102 and general recognition rules
+printed pp.6-8..6-12.
+
 ## RETM monitor return
 
 RETM is exact word `0860h` and is TMS34020-only. It restores the same

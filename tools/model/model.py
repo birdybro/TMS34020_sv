@@ -220,6 +220,7 @@ class Tms34020Model:
             "CEXEC.L": self._execute_cexec,
             "CEXEC.S": self._execute_cexec,
             "CLIP": self._execute_clip,
+            "DRAV": self._execute_drav,
             "FLINE": self._execute_fline,
             "FPIXEQ": self._execute_find_pixel,
             "FPIXNE": self._execute_find_pixel,
@@ -3775,6 +3776,115 @@ class Tms34020Model:
             "interrupt continuation remain pending"
         )
         return None
+
+    def _execute_drav(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        config = self.state.read_io(CONFIG_ADDRESS)
+        if config & 1:
+            raise UnsupportedInstruction(
+                "DRAV big-endian pixel mapping is classified but not modeled"
+            )
+        if self.state.read_io(DPYCTL_ADDRESS) & (1 << 11):
+            raise UnsupportedInstruction(
+                "DRAV CST-converted VRAM transfer is classified but not modeled"
+            )
+        control = self.state.read_io(CONTROL_ADDRESS)
+        if (control >> 10) & 0x1F:
+            raise UnsupportedInstruction(
+                "DRAV pixel processing is currently limited to replace"
+            )
+        if control & (1 << 5):
+            raise UnsupportedInstruction(
+                "DRAV transparency is classified but not modeled"
+            )
+        if (control >> 6) & 0x3:
+            raise UnsupportedInstruction(
+                "DRAV window checking is classified but not modeled"
+            )
+
+        first_word = words[0]
+        register_file = "B" if first_word & 0x10 else "A"
+        source_index = (first_word >> 5) & 0xF
+        destination_index = first_word & 0xF
+        source_xy = self.state.read_reg(register_file, source_index)
+        destination_xy = self.state.read_reg(
+            register_file, destination_index
+        )
+        dptch = self.state.read_reg("B", 3)
+        offset = self.state.read_reg("B", 4)
+        color1 = self.state.read_reg("B", 9)
+        pixel_size = self._read_legal_psize()
+        pixel_mask = MASK32 if pixel_size == 32 else (1 << pixel_size) - 1
+        plane_mask = (
+            self.state.read_io(PMASKL_ADDRESS)
+            | (self.state.read_io(PMASKH_ADDRESS) << 16)
+        )
+        linear_address, pitch_class = self._xy_linear_result(
+            destination_xy,
+            CONVDP_ADDRESS,
+            dptch,
+            pixel_size,
+            offset,
+        )
+        if linear_address & (pixel_size - 1):
+            raise ModelError("DRAV produces a non-pixel-aligned address")
+        lane = linear_address & 0x1F
+        if lane + pixel_size > 32:
+            raise ModelError("DRAV pixel crosses a long-word boundary")
+        raw_destination = self.state.memory.read_bits(
+            linear_address, pixel_size
+        )
+        source_pixel = (color1 >> lane) & pixel_mask
+        pixel_plane_mask = (plane_mask >> lane) & pixel_mask
+        result_pixel = (
+            (raw_destination & pixel_plane_mask)
+            | (source_pixel & (~pixel_plane_mask & pixel_mask))
+        )
+        next_x = (
+            (destination_xy & 0xFFFF) + (source_xy & 0xFFFF)
+        ) & 0xFFFF
+        next_y = (
+            ((destination_xy >> 16) & 0xFFFF)
+            + ((source_xy >> 16) & 0xFFFF)
+        ) & 0xFFFF
+        next_destination = (next_y << 16) | next_x
+
+        self.state.memory.write_bits(
+            linear_address, pixel_size, result_pixel
+        )
+        self.state.write_reg(
+            register_file, destination_index, next_destination
+        )
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "pixel_write",
+                "purpose": "drav_replace",
+                "bit_address": linear_address,
+                "width": pixel_size,
+                "raw_destination": raw_destination,
+                "source_value": source_pixel,
+                "plane_mask": pixel_plane_mask,
+                "value": result_pixel,
+                "xy_before": destination_xy,
+                "xy_increment": source_xy,
+                "xy_after": next_destination,
+            }
+        )
+        self._record_xy_pitch_class(pitch_class)
+        conversion = {
+            "power_of_two": 0,
+            "two_powers_of_two": 1,
+            "arbitrary": 12,
+        }[pitch_class]
+        self._active_trace.notes.append(
+            "successful atomic DRAV W0 replace/no-transparency logical write; "
+            "physical read/modify/write, waits, page mode, fault/retry, and "
+            "hidden-write overlap remain pending"
+        )
+        return 4 + conversion
 
     def _execute_fline(
         self, instruction: Instruction, words: list[int]
