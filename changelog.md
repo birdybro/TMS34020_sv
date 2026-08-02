@@ -1168,6 +1168,8 @@
 
 ### Documentation
 
+- Recorded the verified predecrement field-move implementation baseline as
+  commit `985b09468c8e543c38f870ec28789f5c8c68a03a` in the progress ledger.
 - Documented all three predecrement MOVE compatibility boundaries separately
   from TMS34020-owned 32-bit alignment, BEN, hidden-write, dynamic-width, page
   and fault/retry realization.
