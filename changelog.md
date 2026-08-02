@@ -1563,6 +1563,9 @@ qualification.
 
 ### Documentation
 
+- Recorded bounded PFILL.XY semantics, primary pattern/alignment cases,
+  regression and synthesis evidence, and explicit B14/continuation/physical-
+  sequencing limits at commit `4d1adaab5f83782bbefc8b508660d639d55f5ff1`.
 - Recorded bounded FILL.L/FILL.XY semantics, primary-example, regression, and
   synthesis evidence, plus explicit active-window and physical-sequencing
   limits at commit `5169ade24edd7d84aeb256c762eee86d534e1ff8`.
