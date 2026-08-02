@@ -25,6 +25,7 @@ Implemented:
   MOVE.MR.PRE, MOVE.MR.OFFSET, MOVE.MM,
   MOVE.MM.POST, MOVE.MM.PRE, MOVE.MM.OFFSET, MOVE.MM.SOFF_POST,
   MOVE.RM.ABS, MOVE.MR.ABS, MOVE.MM.SABS_POST, MOVE.MM.ABS,
+  MOVB.RM, MOVB.RM.OFFSET, MOVB.RM.ABS,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -37,7 +38,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 120 of 121 currently extracted database forms for their
+These handlers cover 123 of 124 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -195,6 +196,21 @@ little-endian instruction-boundary operations, not physical bus or retirement
 owners. Sources: User's Guide printed pp.13-14..13-15, 13-159..13-166 and
 15-11..15-12; compatible forms: TMS34010 User's Guide printed
 pp.12-133..12-134 and 12-152..12-158.
+
+`MOVB.RM`, `MOVB.RM.OFFSET`, and `MOVB.RM.ABS` name the fixed-eight-bit
+register-to-memory spellings `MOVB Rs,*Rd`, `MOVB Rs,*Rd(offset)`, and
+`MOVB Rs,@DAddress`. They capture the low source byte, preserve all registers
+and ST, and use an indirect bit address, a modulo-2^32 signed-16 displacement,
+or low-word/high-word absolute address respectively. Tests exhaust every
+destination bit offset and all 256 byte values for each form, plus A/B/SP,
+source/address aliasing, signed wrap, absolute word ordering, aligned and
+unaligned first-extension timing, exact logical traces, and atomic BEN
+rollback. The model reports one, three, or two/three visible states and
+1/2/4 hidden states for applicable byte alignment cases 1, 2, and 5. These
+are logical little-endian instruction boundaries; no physical byte-strobe,
+read/modify/write, dynamic-width, wait, fault/retry, or commit owner is
+claimed. Sources: User's Guide printed pp.13-13, 13-154, and 15-10..15-12;
+compatible TMS34010 forms printed pp.12-114..12-117.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

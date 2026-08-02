@@ -4,6 +4,14 @@
 
 ### Added
 
+- Three primary-page-extracted register-to-memory MOVB forms at 8C00h,
+  AC00h, and 05E0h, covering 1,056 first words, fixed-eight-bit semantics,
+  indirect/signed-offset/absolute address ordering, ST preservation, primary
+  visible/hidden timing, and compatible TMS34010 boundaries.
+- Exhaustive little-endian architectural byte-store tests and a clean-room
+  fixed-byte RTL leaf covering every byte value/offset, A/B/SP alias capture,
+  signed wrap, absolute word order, alignment classes, and explicit noncommit
+  without a memory owner.
 - Four primary-page-extracted absolute-address field MOVE forms at
   0580h/05A0h/D400h/05C0h, covering 194 first words, low-then-high source and
   destination extension order, FE/status, destination postincrement,
@@ -533,12 +541,18 @@
 
 ### Verified
 
-- Warning-free Cyclone V Analysis & Synthesis reports 12,856 leaf logic
-  cells/2,230 registers/9 DSP, 462 fetch logic cells, 835 frontend logic cells,
-  and 5,449 scalar logic cells for the 121-entry decoder/absolute-address
+- The three extracted register-to-memory MOVB forms pass exhaustive model and
+  RTL byte geometry, timing, address, decode-boundary, ST-preservation, BEN
+  rollback, and direct-router noncommit checks.
+- Warning-free Cyclone V Analysis & Synthesis reports 13,004 leaf logic
+  cells/2,230 registers/9 DSP, 458 fetch logic cells, 831 frontend logic cells,
+  and 5,459 scalar logic cells for the 124-entry decoder/fixed-byte-store
   revision. The frontend/scalar probes retain 4,096 block-memory bits. These
   are observability-wrapper analysis results, not fit, TimeQuest, or core-area
-  qualification.
+qualification.
+- The 65-case ISA suite, 86-entry delta ledger, complete 206-case model
+  regression, and decoder/leaf/integration RTL suites pass for the fixed-byte
+  register-store milestone.
 - The 62-case ISA suite, 83-entry delta ledger, complete 204-case model
   regression, and decoder/leaf RTL suite pass. All four absolute forms cover
   low/high address ordering, both field banks, every geometry/timing case,
@@ -1233,6 +1247,10 @@
 
 ### Documentation
 
+- Recorded MOVB register-store semantics, TMS34010 compatibility bounds,
+  TMS34020-only timing ownership, RTL boundary, and unresolved physical
+  memory/fault/retry work across the ISA, model, field-access, timing, delta,
+  status, task, and status ledgers.
 - Recorded `2c15791fbe6b04b5712dcb86ffce88308ad4e12d` as the verified
   absolute-address field-MOVE implementation baseline.
 - Documented all four absolute field MOVE encodings, low/high address-word

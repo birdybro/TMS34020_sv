@@ -166,6 +166,15 @@ reports these instruction-table values; it does not reproduce extension-fetch
 or physical memory cycles. Source: User's Guide printed pp.15-11..15-12 and
 the alignment footnote on p.13-14.
 
+The fixed-byte register stores use only byte alignment cases 1, 2, and 5.
+`MOVB Rs,*Rd` exposes one little-endian visible state,
+`MOVB Rs,*Rd(offset)` exposes three, and `MOVB Rs,@DAddress` exposes two when
+the first extension word is long-word aligned or three otherwise. Their
+case-1/case-2/case-5 hidden writes are 1/2/4 states. The current model and
+byte-store leaf report these table values without claiming physical
+byte-strobe, read/modify/write, wait, SIZE16, fault, retry, or BEN timing.
+Source: User's Guide MOVB timing rows, printed pp.15-10..15-12.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.

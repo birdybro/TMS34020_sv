@@ -62,6 +62,32 @@ two-word result into byte CAS strobes, read/modify/write cycles, dynamic
 16-bit beats, page-mode operations, waits, I/O accesses, retry, or bus-fault
 continuation.
 
+## Verified register-to-memory byte boundaries
+
+The fixed-eight-bit forms `MOVB Rs,*Rd` (`8C00h`/`FE00h`),
+`MOVB Rs,*Rd(offset)` (`AC00h`/`FE00h` plus a signed 16-bit bit
+displacement), and `MOVB Rs,@DAddress` (`05E0h`/`FFE0h` plus low then high
+address halves) write the low source byte and preserve all registers and ST.
+The first uses the captured indirect address, the second adds its signed
+offset modulo 2^32 without changing the base, and the third consumes the
+absolute address in documented word order. Sources: User's Guide printed
+pp.13-13 and 13-154; compatible TMS34010 forms printed pp.12-114..12-117.
+
+The independent model exhausts every bit offset and all 256 source-byte values
+for each form, plus A/B/SP, alias capture, signed wrap, absolute word order,
+logical traces, and atomic BEN rollback. The clean-room
+`tms34020_byte_store` leaf wraps the verified field-insertion primitive at a
+fixed size of eight bits, exposes applicable destination cases 1, 2, and 5,
+and classifies visible timing as one, three, or two/three states for indirect,
+offset, or aligned/unaligned absolute addressing. Hidden counts are 1, 2, and
+4 for cases 1, 2, and 5. Source: User's Guide MOVB timing, printed
+pp.15-10..15-12.
+
+This evidence is little-endian and noncommitting. BEN=1 is rejected rather
+than assigned guessed bit mapping. No RTL owner generates byte strobes or
+read/modify/write requests, decomposes SIZE16 transfers, handles page mode,
+waits, I/O, faults/retries or interrupts, or retires a memory instruction.
+
 ## Verified ordinary memory-to-register boundary
 
 `MOVE *Rs,Rd[,F]` occupies `8400h`/`FC00h`. F selects the corresponding

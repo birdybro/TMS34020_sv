@@ -111,6 +111,12 @@ module tms34020_leaf_synth_top (
     logic field_store_writes_word1;
     logic [31:0] field_store_word0;
     logic [31:0] field_store_word1;
+    logic byte_store_mode_valid;
+    logic [2:0] byte_store_destination_case;
+    logic [2:0] byte_store_visible_states;
+    logic [2:0] byte_store_hidden_states;
+    logic [31:0] byte_store_word0;
+    logic [31:0] byte_store_word1;
     logic [5:0] field_address_size;
     logic [31:0] field_address_effective;
     logic [31:0] field_address_final;
@@ -210,6 +216,10 @@ module tms34020_leaf_synth_top (
         swap_register_result ^
         field_store_word0 ^
         field_store_word1 ^
+        {22'd0, byte_store_mode_valid, byte_store_destination_case,
+         byte_store_visible_states, byte_store_hidden_states} ^
+        byte_store_word0 ^
+        byte_store_word1 ^
         field_address_effective ^
         field_address_final ^
         field_pair_source_effective ^
@@ -496,6 +506,21 @@ module tms34020_leaf_synth_top (
         .writes_word1_o(field_store_writes_word1),
         .word0_o(field_store_word0),
         .word1_o(field_store_word1)
+    );
+
+    tms34020_byte_store byte_store (
+        .address_mode_i(first_word_i[1:0]),
+        .first_extension_aligned_i(first_word_i[2]),
+        .destination_offset_i(operand_i[4:0]),
+        .source_i(second_register_data),
+        .destination_word0_i(immediate_i),
+        .destination_word1_i(operand_i),
+        .mode_valid_o(byte_store_mode_valid),
+        .destination_case_o(byte_store_destination_case),
+        .visible_states_o(byte_store_visible_states),
+        .hidden_states_o(byte_store_hidden_states),
+        .destination_word0_o(byte_store_word0),
+        .destination_word1_o(byte_store_word1)
     );
 
     tms34020_field_address_update field_address_update (

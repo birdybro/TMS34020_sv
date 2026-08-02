@@ -338,6 +338,12 @@ class IsaTests(unittest.TestCase):
             0xD41F: ("MOVE.MM.SABS_POST", 3),
             0xD600: ("MOVE.MM.SABS_POST", 3),
             0xD61F: ("MOVE.MM.SABS_POST", 3),
+            0x8C00: ("MOVB.RM", 1),
+            0x8DFF: ("MOVB.RM", 1),
+            0xAC00: ("MOVB.RM.OFFSET", 2),
+            0xADFF: ("MOVB.RM.OFFSET", 2),
+            0x05E0: ("MOVB.RM.ABS", 3),
+            0x05FF: ("MOVB.RM.ABS", 3),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -365,8 +371,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 44696)
-        self.assertEqual(unclassified, 65536 - 44696)
+        self.assertEqual(matched, 45752)
+        self.assertEqual(unclassified, 65536 - 45752)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2009,6 +2015,49 @@ class IsaTests(unittest.TestCase):
             },
         )
         self.assertEqual(instruction.metadata["status_bits_written"], [])
+
+    def test_movb_register_to_memory_contract(self) -> None:
+        instruction = self.database.decode(0x8C00)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVB.RM")
+        self.assertEqual(instruction.opcode_mask, 0xFE00)
+        self.assertEqual(instruction.length_words, 1)
+        cycles = instruction.metadata["documented_cycles"]
+        self.assertEqual(cycles["little_endian_visible_machine_states"], 1)
+        self.assertEqual(
+            cycles["hidden_write_states_by_reachable_destination_case"],
+            {"case_1": 1, "case_2": 2, "case_5": 4},
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+
+    def test_movb_register_to_offset_contract(self) -> None:
+        instruction = self.database.decode(0xAC00)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVB.RM.OFFSET")
+        self.assertEqual(instruction.opcode_mask, 0xFE00)
+        self.assertEqual(instruction.length_words, 2)
+        self.assertTrue(instruction.metadata["immediate_fields"][0]["signed"])
+        self.assertEqual(
+            instruction.metadata["documented_cycles"]
+            ["little_endian_visible_machine_states"],
+            3,
+        )
+
+    def test_movb_register_to_absolute_contract(self) -> None:
+        instruction = self.database.decode(0x05E0)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVB.RM.ABS")
+        self.assertEqual(instruction.opcode_mask, 0xFFE0)
+        self.assertEqual(instruction.length_words, 3)
+        self.assertEqual(
+            instruction.metadata["immediate_fields"][0]["word_order"],
+            ["word1_low", "word2_high"],
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"]
+            ["little_endian_visible_machine_states_by_immediate_alignment"],
+            {"long_word_aligned": 2, "not_long_word_aligned": 3},
+        )
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

@@ -162,6 +162,9 @@ class Tms34020Model:
             ),
             "MOVE.RM.OFFSET": self._execute_move_register_to_memory_offset,
             "MOVE.RM.ABS": self._execute_move_register_to_memory_absolute,
+            "MOVB.RM": self._execute_movb_register_to_memory,
+            "MOVB.RM.OFFSET": self._execute_movb_register_to_memory,
+            "MOVB.RM.ABS": self._execute_movb_register_to_memory,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
@@ -2111,6 +2114,68 @@ class Tms34020Model:
             "fault, retry, and I/O sequencing remain pending"
         )
         return 2 if immediate_aligned else 3
+
+    def _execute_movb_register_to_memory(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} big-endian byte mapping is "
+                "classified but not modeled"
+            )
+        first_word = words[0]
+        register_file = "B" if first_word & 0x10 else "A"
+        if instruction.mnemonic == "MOVB.RM.ABS":
+            source_index = first_word & 0xF
+            destination_address = self._absolute_bit_address(words, 1)
+            immediate_aligned = self._first_extension_long_word_aligned()
+            machine_states = 2 if immediate_aligned else 3
+        else:
+            source_index = (first_word >> 5) & 0xF
+            destination_index = first_word & 0xF
+            destination_address = self.state.read_reg(
+                register_file, destination_index
+            )
+            immediate_aligned = None
+            if instruction.mnemonic == "MOVB.RM.OFFSET":
+                destination_offset = words[1]
+                if destination_offset & 0x8000:
+                    destination_offset -= 0x1_0000
+                destination_address = (
+                    destination_address + destination_offset
+                ) & MASK32
+                machine_states = 3
+            else:
+                machine_states = 1
+        value = self.state.read_reg(register_file, source_index) & 0xFF
+        destination_case = self._field_alignment_case(
+            destination_address, 8
+        )
+        hidden_states = (0, 1, 2, 0, 0, 4)[destination_case]
+        self.state.memory.write_bits(destination_address, 8, value)
+        self._new_hidden_write_states = hidden_states
+        assert self._active_trace is not None
+        transaction = {
+            "class": "data_write",
+            "purpose": "byte_move_register_to_memory",
+            "bit_address": destination_address,
+            "width": 8,
+            "value": value,
+            "alignment_case": destination_case,
+            "hidden_write_states": hidden_states,
+            "addressing_mode": instruction.mnemonic,
+        }
+        if immediate_aligned is not None:
+            transaction["first_extension_long_word_aligned"] = int(
+                immediate_aligned
+            )
+        self._active_trace.transactions.append(transaction)
+        self._active_trace.notes.append(
+            "logical little-endian fixed-byte insertion; physical byte "
+            "strobes, read/modify/write, dynamic width, wait, page, fault, "
+            "retry, interrupt, and I/O sequencing remain pending"
+        )
+        return machine_states
 
     def _execute_move_memory_to_register_absolute(
         self, instruction: Instruction, words: list[int]

@@ -132,6 +132,13 @@ CALL's shared-SP read-before-write hazard and both stack alignment classes.
 All three forms remain blocked in RTL pending stack-write/direct-PC ownership.
 Sources: User's Guide CALL/CALLA/CALLR, printed pp.13-48..13-50.
 
+The three extracted register-to-memory MOVB forms preserve the complete ST
+value while writing the captured low source byte through indirect,
+signed-offset, or absolute addressing. Model tests use mixed full-width ST
+patterns rather than checking only NCZV. The byte-store RTL leaf has no status
+or architectural commit port. Sources: User's Guide MOVB, printed
+pp.13-154..13-157.
+
 CPW preserves the complete status register except V, which reports whether
 any of its four signed-XY window outcode bits are set. The independent model
 tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;
