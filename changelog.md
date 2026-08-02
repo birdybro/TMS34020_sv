@@ -4,6 +4,13 @@
 
 ### Added
 
+- Primary-page-extracted exact `0C57h` LINIT, including implied signed-XY
+  endpoints/window, all five B-register results, NCZV predicates, no-data-
+  memory behavior, and fixed nine-state timing. The independent model and a
+  clean-room combinational RTL leaf cover horizontal, vertical, equal-axis,
+  reverse, degenerate, trivial/partial-window, and maximum-delta lines; the
+  scalar path explicitly refuses commit until a four-read/five-write atomic
+  owner exists.
 - Primary-page-extracted all five CMOVCM/CMOVMC memory-sequence families,
   adding 160 first words with constant/register counts, pre/post pointer modes,
   both transfer directions, ID/command/size, 32-bit-only memory transactions,
@@ -622,6 +629,16 @@
 
 ### Verified
 
+- The 77-case ISA suite, 104-entry delta ledger, complete 221-case model
+  regression, warning-free lint, and decoder/leaf/fetch/frontend/scalar/cache/
+  fault RTL suites pass for the LINIT milestone. The RTL checks exact outputs
+  for six discriminating line geometries and preserves explicit noncommit at
+  the missing architectural owner.
+- Warning-free Cyclone V Analysis & Synthesis reports 13,699 leaf logic
+  cells/2,230 registers/9 DSP, 375 cache logic cells/4,096 RAM bits, 501 fetch
+  logic cells, 867 frontend logic cells/4,096 RAM bits, and 5,461 scalar logic
+  cells/4,096 RAM bits for the 141-entry decoder revision. These remain
+  observability-wrapper analysis results, not fit, TimeQuest, or core area.
 - The 76-case ISA suite, 103-entry delta ledger, complete 220-case model
   regression, warning-free lint, and decoder/leaf/fetch/frontend/scalar/cache/
   fault RTL suites pass for the CMOVCM/CMOVMC milestone. Directed discriminators

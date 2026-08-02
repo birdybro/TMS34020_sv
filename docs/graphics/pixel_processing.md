@@ -32,6 +32,33 @@ printed p.12-19; CPW printed pp.13-85..13-86; instruction timing printed
 p.15-4. Compatibility cross-check: TI *TMS34010 User's Guide*, 1988, CPW
 printed pp.12-57..12-58 and Appendix A p.A-13.
 
+## Line initialization boundary
+
+LINIT is the exact `0C57h` TMS34020-only setup operation used before line
+drawing. It captures B2/DADDR as `(y0:x0)`, B7/DYDX as `(y1:x1)`, and the
+signed inclusive B5/WSTART and B6/WEND corners. With
+`a=max(abs(x1-x0),abs(y1-y0))` and `b=min(...)`, it produces:
+
+| Result | Meaning |
+|---|---|
+| B0 | decision variable `2b-a` |
+| B7 | `b:a`, minor extent in the high half and major in the low half |
+| B10 | count `a+1` |
+| B11 | signed XY increment for a diagonal/minor-axis step |
+| B12 | signed XY increment along only the dominant axis |
+
+N reports `x0==x1`, C reports a shared nonzero endpoint outcode, Z reports
+`y0==y1`, and V reports either endpoint outside. The model and
+`tms34020_line_initialize.sv` cover horizontal, vertical, equal, reversed,
+degenerate, signed-window and maximum coordinate-delta cases. The scalar
+router deliberately does not execute LINIT: it lacks the simultaneous four
+implied reads and atomic five-register/status commit owner. The leaf exposes
+the documented nine-state count but does not implement graphics-pipeline
+timing, FLINE execution, clipping, continuation, or memory cycles.
+
+Sources: TMS34020 User's Guide §12.7.5.2 printed p.12-26; FLINE setup printed
+pp.13-121..13-123; LINIT printed p.13-146; timing table p.15-6.
+
 ## XY-to-linear conversion boundary
 
 The model implements CVDXYL, CVMXYL, CVSXYL, and CVXYL using the signed

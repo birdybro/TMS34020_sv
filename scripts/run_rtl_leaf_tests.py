@@ -58,6 +58,7 @@ SOURCES = [
     ROOT / "rtl/graphics/tms34020_pixel_size_ops.sv",
     ROOT / "rtl/graphics/tms34020_pixel_replicate.sv",
     ROOT / "rtl/graphics/tms34020_window_compare.sv",
+    ROOT / "rtl/graphics/tms34020_line_initialize.sv",
     ROOT / "rtl/graphics/tms34020_xy_to_linear.sv",
     ROOT / "sim/tb/tb_tms34020_verified_leaves.sv",
 ]

@@ -110,6 +110,14 @@ destination alias writes either register. Sources: TMS34020 guide printed
 pp.13-85..13-86 and p.15-4; TMS34010 guide printed pp.12-57..12-58 and
 Appendix A p.A-13.
 
+LINIT at exact `0C57h` is TMS34020-only; the TMS34010 guide has no matching
+instruction. Its signed endpoint/window classification, major/minor setup,
+five implied B-register writes, NCZV replacement, and fixed nine-state timing
+therefore require a dedicated semantic leaf and eventual multi-register commit
+owner rather than an adapted TMS34010 graphics timing machine. Sources:
+TMS34020 guide §12.7.5.2 printed p.12-26, LINIT printed p.13-146, and timing
+table p.15-6.
+
 CVXYL retains `E800h`/`FE00h`, same-file explicit operands, implied B3/B4,
 CONVDP/PSIZE inputs, unaffected ST, and the signed XY-to-linear equation. The
 TMS34020 expands pitch handling from the TMS34010's power-of-two display case

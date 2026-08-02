@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 140 page-verified encoding records and covers 48,218 of 65,536
+slice contains 141 page-verified encoding records and covers 48,219 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -144,6 +144,7 @@ first words without collisions:
 | CMPK | `3400h`, mask `FC00h` | 1 | p.13-83 |
 | EXGPS | `02A0h`, mask `FFE0h` | 1 | p.13-113 |
 | GETPS | `02C0h`, mask `FFE0h` | 1 | p.13-131 |
+| LINIT | `0C57h` | 1 | p.13-146 |
 | LMO | `6A00h`, mask `FE00h` | 1 | p.13-147 |
 | RMO | `7A00h`, mask `FE00h` | 1 | p.13-224 |
 | SETCDP | `0273h` | 1 | p.13-227 |
@@ -157,6 +158,14 @@ also carries instruction length, operand layout, register selection, status
 reads/writes, memory transactions, graphics dependencies, cache/pipeline
 interaction, interrupt/restart/fault behavior, documented cycle cases,
 16/32-bit/page effects, compatibility, citations, and confidence.
+
+LINIT is the exact one-word `0C57h` TMS34020-only line-setup operation. Its
+operands are implied B2/B7 endpoints and B5/B6 signed inclusive window bounds;
+it overwrites B0/B7/B10/B11/B12 and NCZV together, performs no data-memory
+transaction, and takes nine machine states. Endpoint and window inputs must be
+captured before B7 writeback. Sources: User's Guide §12.7.5.2 printed p.12-26,
+LINIT printed p.13-146, FLINE setup printed pp.13-121..13-123, and timing table
+p.15-6.
 
 `CLR Rd` is the documented alternate mnemonic for `XOR Rd,Rd`, not a separate
 decode range. Its instruction word repeats the same four-bit register number

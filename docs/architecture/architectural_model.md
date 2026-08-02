@@ -41,10 +41,10 @@ Implemented:
   CMOVMC.PRE.C,
   XORI,
   IDLE entry,
-  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
+  MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LINIT, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 139 of 140 currently extracted database forms for their
+These handlers cover 140 of 141 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -391,6 +391,18 @@ documented one-state boundary. The standalone RTL leaf covers the signed
 comparison semantics, but the scalar owner remains absent because the current
 two-read register composition cannot simultaneously acquire Rs, B5, and B6.
 Sources: TMS34020 User's Guide printed pp.13-85..13-86 and p.15-4.
+
+LINIT captures implied signed-XY endpoints B2/B7 and inclusive window bounds
+B5/B6 before B7 is overwritten. It computes major extent `a`, minor extent
+`b`, the `2b-a` decision variable, `a+1` count, signed diagonal/dominant
+increments, and the endpoint visibility/trivial-rejection NCZV predicates,
+then writes B0/B7/B10/B11/B12 and status at one instruction boundary. Tests
+cover both dominant axes, equal axes, negative increments, partial and trivial
+window rejection, a degenerate outside point, and the complete `-32768` to
+`32767` coordinate span. No pixel/data-memory transaction is emitted, and the
+event reports the fixed nine states. Sources: TMS34020 User's Guide §12.7.5.2
+printed p.12-26, LINIT printed p.13-146, FLINE setup printed
+pp.13-121..13-123, and timing table p.15-6.
 
 The four XY-to-linear handlers share equation-level arithmetic but retain
 their distinct explicit and implied operands. Signed X/Y halves and signed
@@ -840,6 +852,9 @@ unaligned hidden writes, CALLR signed extremes and PC wrap, and CALLA
 low/high-word target assembly with explicitly incomplete timing,
 all 16 CPW primary outcodes, signed/inclusive bounds, V-only status, explicit
 operand aliases, and implied B5/B6 read-before-write hazards,
+LINIT horizontal/vertical/equal/reverse/degenerate/full-span line setup,
+signed inclusive endpoint window classification, exact implied-register
+write order, NCZV, no-data-transaction boundary, and fixed nine states,
 all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
 coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and the
 published state cases plus provisional CVXYL arbitrary-pitch selection,

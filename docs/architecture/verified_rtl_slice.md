@@ -415,9 +415,12 @@ data paths, unary, binary, and logical arithmetic, LMO, RMO, and RPIX timing out
 observable. It also keeps every output of the register-execution router
 observable, instantiates CMPXY both directly and through the commit
 composition, and retains the CEXEC and every CMOVGC/CMOVCG/CMOVCS/CMOVCM/
-CMOVMC formatter output. The wrapper deliberately
+CMOVMC formatter output. It also retains every signed line-setup, window-
+classification, status, and state-count output of the standalone LINIT leaf;
+the register-execution router explicitly rejects LINIT because no four-read,
+five-write atomic architectural owner exists. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 13,481 logic-cell/2,230-register/9-DSP resource count is not a core-area
+so its 13,699 logic-cell/2,230-register/9-DSP resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -429,17 +432,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 482
+packet assembler and generated decoder. Its observability wrapper uses 501
 logic cells and 177 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 878 logic cells, 375 registers, and 4,096 block-memory
+zero errors/warnings to 867 logic cells, 375 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,483 logic cells, 1,416 registers,
+composition with zero errors/warnings to 5,461 logic cells, 1,416 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

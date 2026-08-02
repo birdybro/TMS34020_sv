@@ -4899,6 +4899,71 @@ class ExecutionTests(unittest.TestCase):
                 self.assertEqual(model.state.sp, 0x0000_0140)
                 self.assertEqual(event.machine_states, 1)
 
+    def test_linit_axes_window_status_and_extreme_deltas(self) -> None:
+        def xy(x_value: int, y_value: int) -> int:
+            return ((y_value & 0xFFFF) << 16) | (x_value & 0xFFFF)
+
+        cases = (
+            # start, end, window start/end, B0, B7, B10, B11, B12, NCZV
+            ((5, 7), (10, 7), (0, 0), (20, 20),
+             0xFFFF_FFFB, 0x0000_0005, 6,
+             0x0000_0001, 0x0000_0001, 0b0010),
+            ((5, -2), (5, 8), (0, 0), (10, 10),
+             0xFFFF_FFF6, 0x0000_000A, 11,
+             0x0001_0000, 0x0001_0000, 0b1001),
+            ((-5, 1), (-2, 4), (0, 0), (10, 10),
+             3, 0x0003_0003, 4,
+             0x0001_0001, 0x0000_0001, 0b0101),
+            ((8, 8), (6, -4), (0, 0), (10, 10),
+             0xFFFF_FFF8, 0x0002_000C, 13,
+             0xFFFF_FFFF, 0xFFFF_0000, 0b0001),
+            ((-32768, -32768), (32767, 32767),
+             (-32768, -32768), (32767, 32767),
+             0x0000_FFFF, 0xFFFF_FFFF, 0x0001_0000,
+             0x0001_0001, 0x0000_0001, 0b0000),
+            ((20, 20), (20, 20), (0, 0), (10, 10),
+             0, 0, 1, 0, 0, 0b1111),
+        )
+        for (
+            start, endpoint, window_start, window_end,
+            decision, dimensions, count, diagonal, dominant, expected_nczv,
+        ) in cases:
+            with self.subTest(start=start, endpoint=endpoint):
+                model = Tms34020Model()
+                model.load_program([0x0C57])
+                model.state.write_reg("B", 2, xy(*start))
+                model.state.write_reg("B", 5, xy(*window_start))
+                model.state.write_reg("B", 6, xy(*window_end))
+                model.state.write_reg("B", 7, xy(*endpoint))
+                model.state.write_reg("B", 0, 0xDEAD_BEEF)
+                model.state.write_reg("B", 10, 0xDEAD_BEEF)
+                model.state.write_reg("B", 11, 0xDEAD_BEEF)
+                model.state.write_reg("B", 12, 0xDEAD_BEEF)
+                model.state.st = 0x0ABC_DEF0
+
+                event = model.step()
+
+                self.assertEqual(event.mnemonic, "LINIT")
+                self.assertEqual(event.machine_states, 9)
+                self.assertEqual(model.state.read_reg("B", 0), decision)
+                self.assertEqual(model.state.read_reg("B", 7), dimensions)
+                self.assertEqual(model.state.read_reg("B", 10), count)
+                self.assertEqual(model.state.read_reg("B", 11), diagonal)
+                self.assertEqual(model.state.read_reg("B", 12), dominant)
+                self.assertEqual(model.state.st, 0x0ABC_DEF0 |
+                                 (expected_nczv << 28))
+                self.assertFalse(any(
+                    item["class"] in {
+                        "data_read", "data_write",
+                        "coprocessor_data_in", "coprocessor_data_out",
+                    }
+                    for item in event.transactions
+                ))
+                self.assertEqual(
+                    [item["index"] for item in event.register_writes],
+                    [0, 7, 10, 11, 12],
+                )
+
     def test_cvxyl_primary_equation_rows_and_pitch_classes(self) -> None:
         primary_rows = (
             (0x0040_0030, 0x0000_0000, 16, 0x0014, 0x0002_0300),

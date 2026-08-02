@@ -72,6 +72,17 @@ module tb_tms34020_verified_leaves;
     logic [31:0] window_end;
     logic [31:0] window_outcode;
     logic window_outside;
+    logic [31:0] linit_start_point;
+    logic [31:0] linit_end_point;
+    logic [31:0] linit_window_start;
+    logic [31:0] linit_window_end;
+    logic [31:0] linit_decision_variable;
+    logic [31:0] linit_dimensions;
+    logic [31:0] linit_count;
+    logic [31:0] linit_diagonal_increment;
+    logic [31:0] linit_dominant_increment;
+    logic [3:0] linit_nczv;
+    logic [3:0] linit_visible_states;
     logic [31:0] xy_linear_xy;
     logic [31:0] xy_linear_pitch;
     logic [31:0] xy_linear_offset;
@@ -560,6 +571,20 @@ module tb_tms34020_verified_leaves;
         .window_end_i(window_end),
         .outcode_o(window_outcode),
         .outside_o(window_outside)
+    );
+
+    tms34020_line_initialize line_initialize_dut (
+        .start_point_i(linit_start_point),
+        .end_point_i(linit_end_point),
+        .window_start_i(linit_window_start),
+        .window_end_i(linit_window_end),
+        .decision_variable_o(linit_decision_variable),
+        .dimensions_o(linit_dimensions),
+        .count_o(linit_count),
+        .diagonal_increment_o(linit_diagonal_increment),
+        .dominant_increment_o(linit_dominant_increment),
+        .status_nczv_o(linit_nczv),
+        .visible_states_o(linit_visible_states)
     );
 
     tms34020_xy_to_linear xy_to_linear_dut (
@@ -1408,6 +1433,36 @@ module tb_tms34020_verified_leaves;
         check_condition(
             window_outcode == expected_outcode &&
             window_outside == (expected_outcode != 32'd0),
+            message
+        );
+    endtask
+
+    task automatic check_line_initialize(
+        input logic [31:0] start_point,
+        input logic [31:0] end_point,
+        input logic [31:0] window_start_value,
+        input logic [31:0] window_end_value,
+        input logic [31:0] expected_decision,
+        input logic [31:0] expected_dimensions,
+        input logic [31:0] expected_count,
+        input logic [31:0] expected_diagonal,
+        input logic [31:0] expected_dominant,
+        input logic [3:0] expected_nczv,
+        input string message
+    );
+        linit_start_point = start_point;
+        linit_end_point = end_point;
+        linit_window_start = window_start_value;
+        linit_window_end = window_end_value;
+        #1;
+        check_condition(
+            linit_decision_variable == expected_decision &&
+            linit_dimensions == expected_dimensions &&
+            linit_count == expected_count &&
+            linit_diagonal_increment == expected_diagonal &&
+            linit_dominant_increment == expected_dominant &&
+            linit_nczv == expected_nczv &&
+            linit_visible_states == 4'd9,
             message
         );
     endtask
@@ -2798,6 +2853,10 @@ module tb_tms34020_verified_leaves;
         window_point = 32'd0;
         window_start = 32'd0;
         window_end = 32'd0;
+        linit_start_point = 32'd0;
+        linit_end_point = 32'd0;
+        linit_window_start = 32'd0;
+        linit_window_end = 32'd0;
         xy_linear_xy = 32'd0;
         xy_linear_pitch = 32'd0;
         xy_linear_offset = 32'd0;
@@ -3469,6 +3528,49 @@ module tb_tms34020_verified_leaves;
         check_window_compare(
             32'h0007_0006, 32'h0000_0140,
             "CPW signed positive below-right comparison"
+        );
+
+        check_line_initialize(
+            32'h0007_0005, 32'h0007_000A,
+            32'h0000_0000, 32'h0014_0014,
+            32'hFFFF_FFFB, 32'h0000_0005, 32'd6,
+            32'h0000_0001, 32'h0000_0001, 4'b0010,
+            "LINIT horizontal line inside window"
+        );
+        check_line_initialize(
+            32'hFFFE_0005, 32'h0008_0005,
+            32'h0000_0000, 32'h000A_000A,
+            32'hFFFF_FFF6, 32'h0000_000A, 32'd11,
+            32'h0001_0000, 32'h0001_0000, 4'b1001,
+            "LINIT vertical partial-window line"
+        );
+        check_line_initialize(
+            32'h0001_FFFB, 32'h0004_FFFE,
+            32'h0000_0000, 32'h000A_000A,
+            32'h0000_0003, 32'h0003_0003, 32'd4,
+            32'h0001_0001, 32'h0000_0001, 4'b0101,
+            "LINIT equal-axis trivially rejected line"
+        );
+        check_line_initialize(
+            32'h0008_0008, 32'hFFFC_0006,
+            32'h0000_0000, 32'h000A_000A,
+            32'hFFFF_FFF8, 32'h0002_000C, 32'd13,
+            32'hFFFF_FFFF, 32'hFFFF_0000, 4'b0001,
+            "LINIT reverse steep partial-window line"
+        );
+        check_line_initialize(
+            32'h8000_8000, 32'h7FFF_7FFF,
+            32'h8000_8000, 32'h7FFF_7FFF,
+            32'h0000_FFFF, 32'hFFFF_FFFF, 32'h0001_0000,
+            32'h0001_0001, 32'h0000_0001, 4'b0000,
+            "LINIT full signed-coordinate span"
+        );
+        check_line_initialize(
+            32'h0014_0014, 32'h0014_0014,
+            32'h0000_0000, 32'h000A_000A,
+            32'd0, 32'd0, 32'd1,
+            32'd0, 32'd0, 4'b1111,
+            "LINIT degenerate outside point"
         );
 
         check_xy_to_linear(
@@ -5098,6 +5200,11 @@ module tb_tms34020_verified_leaves;
             16'hE600, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "CPW cannot bypass the unimplemented implied B5/B6 read owner"
+        );
+        check_register_execute(
+            16'h0C57, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "LINIT cannot bypass implied B-register ownership"
         );
         check_register_execute(
             16'h0A60, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
@@ -6866,6 +6973,8 @@ module tb_tms34020_verified_leaves;
                      "CPW lower-bound decode");
         check_decode(16'hE7FF, TMS20_OP_CPW, 3'd1,
                      "CPW upper-bound decode");
+        check_decode(16'h0C57, TMS20_OP_LINIT, 3'd1,
+                     "LINIT exact decode");
         check_decode(16'h0A60, TMS20_OP_CVMXYL, 3'd1,
                      "CVMXYL lower-bound decode");
         check_decode(16'h0A7F, TMS20_OP_CVMXYL, 3'd1,

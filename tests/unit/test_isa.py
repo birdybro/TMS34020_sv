@@ -260,6 +260,7 @@ class IsaTests(unittest.TestCase):
             0x0BBF: ("ORI", 3),
             0x0BC0: ("XORI", 3),
             0x0BDF: ("XORI", 3),
+            0x0C57: ("LINIT", 1),
             0x0040: ("IDLE", 1),
             0x0080: ("MWAIT", 1),
             0x0900: ("TRAP", 1),
@@ -407,8 +408,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 48218)
-        self.assertEqual(unclassified, 65536 - 48218)
+        self.assertEqual(matched, 48219)
+        self.assertEqual(unclassified, 65536 - 48219)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2353,6 +2354,25 @@ class IsaTests(unittest.TestCase):
         self.assertIn(
             "capture count register low five bits",
             register_count.metadata["condition_fields"][0]["condition"],
+        )
+
+    def test_linit_implied_operands_status_and_timing(self) -> None:
+        instruction = self.database.decode(0x0C57)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "LINIT")
+        self.assertEqual(instruction.opcode_mask, 0xFFFF)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(
+            instruction.metadata["status_bits_written"],
+            ["N", "C", "Z", "V"],
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"]["machine_states"],
+            9,
+        )
+        self.assertIn(
+            "DYDX B7 input/output",
+            instruction.metadata["graphics_register_dependencies"],
         )
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:

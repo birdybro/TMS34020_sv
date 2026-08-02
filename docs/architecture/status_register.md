@@ -179,6 +179,15 @@ tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;
 the standalone RTL comparison leaf emits the V condition but does not own ST
 commit. Sources: User's Guide CPW, printed pp.13-85..13-86.
 
+LINIT replaces all four NCZV bits while preserving ST bits `[27:0]`. N reports
+equal endpoint X coordinates, C reports a nonzero intersection of the two
+endpoint window outcodes (trivial rejection), Z reports equal Y coordinates,
+and V reports that either endpoint is outside the inclusive signed-XY window.
+The model checks all four predicates independently and together with the five
+implied B-register results; the standalone leaf emits NCZV but has no status
+commit owner. Sources: User's Guide §12.7.5.2 printed p.12-26 and LINIT
+printed p.13-146.
+
 CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
 The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide

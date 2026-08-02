@@ -284,6 +284,13 @@ equivalence. Sources: TMS34020 User's Guide printed pp.13-85..13-86 and
 timing table p.15-4; TMS34010 User's Guide printed pp.12-57..12-58 and
 Appendix A p.A-13.
 
+LINIT takes exactly nine machine states, performs no data-memory transaction,
+and atomically produces five implied B-register results plus NCZV at the
+instruction boundary represented by the model. The combinational RTL leaf's
+`visible_states_o=9` is metadata, not an implemented nine-state retirement
+sequencer or evidence for internal graphics-pipeline overlap. Sources:
+TMS34020 User's Guide LINIT printed p.13-146 and timing table p.15-6.
+
 CVDXYL, CVMXYL, and CVSXYL take 2 machine states for a power-of-two pitch, 3
 for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3 and 4
 states for the first two classes. Its instruction page specifies 14 for an

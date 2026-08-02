@@ -82,6 +82,13 @@ module tms34020_leaf_synth_top (
     logic [31:0] commit_sp;
     logic [31:0] window_outcode;
     logic window_outside;
+    logic [31:0] linit_decision_variable;
+    logic [31:0] linit_dimensions;
+    logic [31:0] linit_count;
+    logic [31:0] linit_diagonal_increment;
+    logic [31:0] linit_dominant_increment;
+    logic [3:0] linit_nczv;
+    logic [3:0] linit_visible_states;
     logic [31:0] xy_linear_result;
     logic [1:0] xy_linear_pitch_class;
     logic [3:0] xy_linear_visible_states;
@@ -312,6 +319,12 @@ module tms34020_leaf_synth_top (
         commit_status ^
         commit_sp ^
         window_outcode ^
+        linit_decision_variable ^
+        linit_dimensions ^
+        linit_count ^
+        linit_diagonal_increment ^
+        linit_dominant_increment ^
+        {24'd0, linit_nczv, linit_visible_states} ^
         xy_linear_result ^
         divider_quotient ^
         divider_remainder ^
@@ -597,6 +610,20 @@ module tms34020_leaf_synth_top (
         .window_end_i({immediate_i[15:0], immediate_i[31:16]}),
         .outcode_o(window_outcode),
         .outside_o(window_outside)
+    );
+
+    tms34020_line_initialize line_initialize (
+        .start_point_i(operand_i),
+        .end_point_i(immediate_i),
+        .window_start_i({operand_i[31:16], immediate_i[15:0]}),
+        .window_end_i({immediate_i[31:16], operand_i[15:0]}),
+        .decision_variable_o(linit_decision_variable),
+        .dimensions_o(linit_dimensions),
+        .count_o(linit_count),
+        .diagonal_increment_o(linit_diagonal_increment),
+        .dominant_increment_o(linit_dominant_increment),
+        .status_nczv_o(linit_nczv),
+        .visible_states_o(linit_visible_states)
     );
 
     tms34020_xy_to_linear xy_to_linear (

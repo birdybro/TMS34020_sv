@@ -224,6 +224,7 @@ class Tms34020Model:
             "CMOVCM.PRE.C": self._execute_coprocessor_memory_transfer,
             "CMOVMC.POST.R": self._execute_coprocessor_memory_transfer,
             "CMOVMC.PRE.C": self._execute_coprocessor_memory_transfer,
+            "LINIT": self._execute_linit,
             "ORI": self._execute_ori,
             "XORI": self._execute_xori,
             "IDLE": self._execute_idle,
@@ -3532,17 +3533,9 @@ class Tms34020Model:
         value &= 0xFFFF
         return value - 0x1_0000 if value & 0x8000 else value
 
-    def _execute_cpw(
-        self, instruction: Instruction, words: list[int]
+    def _xy_window_outcode(
+        self, point: int, window_start: int, window_end: int
     ) -> int:
-        del instruction
-        register_file, source_index, destination_index = (
-            self._decode_source_destination(words[0])
-        )
-        # All operands are captured before Rd is written; Rd may be B5/B6.
-        point = self.state.read_reg(register_file, source_index)
-        window_start = self.state.read_reg("B", 5)
-        window_end = self.state.read_reg("B", 6)
         point_x = self._signed_half(point)
         point_y = self._signed_half(point >> 16)
         start_x = self._signed_half(window_start)
@@ -3558,9 +3551,74 @@ class Tms34020Model:
             result |= 1 << 7
         if point_y > end_y:
             result |= 1 << 8
+        return result
+
+    def _execute_cpw(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        # All operands are captured before Rd is written; Rd may be B5/B6.
+        point = self.state.read_reg(register_file, source_index)
+        window_start = self.state.read_reg("B", 5)
+        window_end = self.state.read_reg("B", 6)
+        result = self._xy_window_outcode(point, window_start, window_end)
         self.state.write_reg(register_file, destination_index, result)
         self._set_status_bit(V_BIT, result != 0)
         return 1
+
+    def _execute_linit(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        # Capture all implied inputs before B7 changes from endpoint to b:a.
+        start = self.state.read_reg("B", 2)
+        endpoint = self.state.read_reg("B", 7)
+        window_start = self.state.read_reg("B", 5)
+        window_end = self.state.read_reg("B", 6)
+        start_x = self._signed_half(start)
+        start_y = self._signed_half(start >> 16)
+        end_x = self._signed_half(endpoint)
+        end_y = self._signed_half(endpoint >> 16)
+        delta_x = end_x - start_x
+        delta_y = end_y - start_y
+        extent_x = abs(delta_x)
+        extent_y = abs(delta_y)
+        major = max(extent_x, extent_y)
+        minor = min(extent_x, extent_y)
+        step_x = -1 if delta_x < 0 else (1 if delta_x > 0 else 0)
+        step_y = -1 if delta_y < 0 else (1 if delta_y > 0 else 0)
+        diagonal_increment = (
+            ((step_y & 0xFFFF) << 16) | (step_x & 0xFFFF)
+        )
+        if extent_x >= extent_y:
+            major_increment = step_x & 0xFFFF
+        else:
+            major_increment = (step_y & 0xFFFF) << 16
+        start_outcode = self._xy_window_outcode(
+            start, window_start, window_end
+        )
+        end_outcode = self._xy_window_outcode(
+            endpoint, window_start, window_end
+        )
+        self.state.write_reg("B", 0, 2 * minor - major)
+        self.state.write_reg("B", 7, (minor << 16) | major)
+        self.state.write_reg("B", 10, major + 1)
+        self.state.write_reg("B", 11, diagonal_increment)
+        self.state.write_reg("B", 12, major_increment)
+        self._set_status_bit(N_BIT, start_x == end_x)
+        self._set_status_bit(C_BIT, bool(start_outcode & end_outcode))
+        self._set_status_bit(Z_BIT, start_y == end_y)
+        self._set_status_bit(V_BIT, bool(start_outcode | end_outcode))
+        assert self._active_trace is not None
+        self._active_trace.notes.append(
+            "LINIT captured B2/B7 endpoints and B5/B6 signed inclusive "
+            "window bounds before atomically replacing B0/B7/B10/B11/B12 "
+            "and NCZV; it performs no pixel or data-memory transaction"
+        )
+        return 9
 
     @staticmethod
     def _signed_word(value: int) -> int:

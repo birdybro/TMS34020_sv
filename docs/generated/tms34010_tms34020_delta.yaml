@@ -1036,6 +1036,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 CMOVMC predecrement, printed pp.13-74..13-77", "TI-TMS34020-UG-1990 §10.4.8, printed pp.10-14..10-15"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["The physical wait/fault/interrupt continuation checkpoint remains unimplemented."]
+    },
+    {
+      "feature": "line_initialization",
+      "tms34010_behavior": "No LINIT instruction is documented in the TMS34010 instruction set.",
+      "tms34020_behavior": "Exact 0C57h initializes line-drawing state from signed XY endpoints B2/B7 and inclusive window bounds B5/B6. It writes decision 2b-a to B0, minor:major dimensions to B7, a+1 to B10, diagonal and dominant-axis increments to B11/B12, replaces NCZV with endpoint/window predicates, performs no data transfer, and takes nine states.",
+      "rtl_impact": "A TMS34020-only implied-register capture and atomic five-register/status retirement owner is required. The current clean-room combinational leaf computes the complete semantic result but cannot commit architectural state through the bounded scalar path.",
+      "test_impact": "Exact decode and neighbors; horizontal, vertical, equal-axis, reverse and degenerate lines; signed endpoints and inclusive window bounds; trivial rejection/partial visibility; full 65535-coordinate deltas; B7 capture-before-write; atomic B0/B7/B10/B11/B12 plus NCZV retirement; fixed nine-state timing.",
+      "source_citation": ["TI-TMS34020-UG-1990 LINIT, printed p.13-146", "TI-TMS34020-UG-1990 line setup/status, §12.7.5.2 printed p.12-26", "TI-TMS34020-UG-1990 FLINE setup, printed pp.13-121..13-123", "TI-TMS34020-UG-1990 timing table, printed p.15-6"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["The complete graphics-engine pipeline relationship and atomic architectural commit owner remain unimplemented."]
     }
   ]
 }

@@ -49,6 +49,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_pi
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_pixel_size_ops.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_pixel_replicate.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_window_compare.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_line_initialize.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_xy_to_linear.sv
 set_global_assignment -name SYSTEMVERILOG_FILE tms34020_leaf_synth_top.sv
 
