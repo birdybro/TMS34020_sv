@@ -1016,6 +1016,8 @@
 
 ### Documentation
 
+- Recorded the verified bounded RETM implementation baseline as commit
+  `5157e331e3e95cdcae61b02b24b99b7e1cc3a097` in the progress ledger.
 - Documented RETM's single-step role, TMS34010 absence, one-shot cache bypass,
   ten-state normal case, shared continuation boundary, and explicit lack of an
   interrupt scheduler. RSC-0035 records the instruction page's boxed RETI/
