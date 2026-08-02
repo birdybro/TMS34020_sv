@@ -35,12 +35,13 @@ Implemented:
   ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
-  AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
+  AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
+  CEXEC.S, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 129 of 130 currently extracted database forms for their
+These handlers cover 131 of 132 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -564,6 +565,19 @@ inventing a result. Intermediate register updates, interruption, page mode,
 bus decomposition, faults, retries, and continuation remain absent. Sources:
 the same guide, printed pp.13-44..13-45 and §8.4 printed p.8-16; see
 `docs/graphics/array_operations.md` and RSC-0017.
+CEXEC.L and CEXEC.S preserve every register and ST bit and emit one logical
+`coprocessor_command` transaction containing the reconstructed three-bit ID,
+21-bit command, size bit, and LAD value `{ID, command, size, 7'b0}`. Long-form
+tests independently toggle every command bit, every ID and size, both
+instruction alignments, and reject nonzero reserved bits `[6:0]` in the first
+extension with complete rollback. Short-form tests cover all 128 first words
+and all eight IDs and prove that command bits `[7:6]` are zero. The model
+reports the documented long `2 (1)`/`3 (1)` and short `2 (1)` state cases,
+but its transaction is an instruction-boundary abstraction: it does not model
+the pin command cycle, LRDY/BUSFLT, retry, an external coprocessor side effect,
+or interrupt recognition. Sources: User's Guide Chapter 10, especially
+§§10.3..10.4.5 printed pp.10-5..10-10, and CEXEC printed pp.13-51..13-54;
+see `docs/coprocessor/interface.md`.
 The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,

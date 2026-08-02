@@ -798,3 +798,27 @@
   guide revision, erratum, diagnostic/XDS trace, or physical timing evidence
   before the two-versus-four hidden-state question can be resolved. This does
   not alter the documented five visible states or any byte-copy semantics.
+
+## RSC-0040: Pinned MAME mispacks the short CEXEC command
+
+- Status: resolved for this implementation from explicit primary diagrams and
+  prose; no silicon ambiguity remains
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, short CEXEC
+  printed pp.13-53..13-54 says the short form specifies 19 of 21 command bits,
+  forces LAD bits 14 and 15 to zero, labels the extension field as the 13 MSBs
+  and the first-word field as the 6 LSBs, and says assembler selection depends
+  on coprocessor-command bits 6 and 7 being zero. Since the 21-bit command
+  occupies LAD28:8 under Figure 10-1 on p.10-5, the extension is command
+  `[20:8]`, the first word is command `[5:0]`, and command `[7:6]` is zero.
+- Secondary disagreement: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010dsm.cpp` lines 1527–1534 reconstructs the
+  extension with a five-bit shift and masks only five low first-word bits.
+  That drops first-word bit 6 and specifies only 18 distinct command bits,
+  contrary to the primary 13-plus-6 layout. Its execution handlers are stubs,
+  so they provide no independent semantic discriminator.
+- Decision: the ISA database, independent model and clean-room formatter use
+  `{extension[12:0], 2'b00, first_word[6:1]}`. Directed discriminators require
+  all six low bits, all thirteen high bits, and zero command bits `[7:6]`.
+  MAME remains a secondary differential reference and its short-CEXEC
+  disassembly formula is not copied.

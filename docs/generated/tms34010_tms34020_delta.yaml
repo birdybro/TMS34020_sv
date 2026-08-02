@@ -926,6 +926,26 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVB absolute-to-absolute form, printed p.13-156", "TI-TMS34020-UG-1990 source/destination alignment and timing, printed pp.15-10..15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-123..12-124"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact four-extension fetch and read/write retirement relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "coprocessor_internal_command_long",
+      "tms34010_behavior": "No coprocessor-command instruction or special-function local-memory cycle is documented.",
+      "tms34020_behavior": "Exact 0600h plus two extension words encodes long CEXEC. It sends a 3-bit ID, all 21 command bits and a size bit in one 32-bit SF-high command cycle with no data transfer, preserving registers and ST. First-extension alignment selects 2(1) or 3(1) states.",
+      "rtl_impact": "TMS34020-only packet formatting and coprocessor-cycle ownership are required. The clean-room formatter reconstructs LAD31:0 and validates reserved extension bits, but a future sequencer must own LRDY/BUSFLT, retry/fault continuation, interrupt checkpoints and pin phases.",
+      "test_impact": "Exact first word and neighbors; every ID/size/command bit; low/high extension order; required-zero bits; both extension alignments; full state preservation; stable special-cycle request under waits; retry/fault injection and no duplicate external command acceptance.",
+      "source_citation": ["TI-TMS34020-UG-1990 CEXEC long, printed p.13-51", "TI-TMS34020-UG-1990 coprocessor command and cycle contract, printed pp.10-3..10-9"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact architectural checkpoint and external coprocessor side-effect contract for a command cycle that is later retried or bus-faulted remain pending the physical sequencer and synthetic coprocessor model."]
+    },
+    {
+      "feature": "coprocessor_internal_command_short",
+      "tms34010_behavior": "No short coprocessor-command instruction or special-function local-memory cycle is documented.",
+      "tms34020_behavior": "D800h/FF80h plus one extension word encodes short CEXEC. It supplies command bits 20:8 and 5:0, forces command bits 7:6 (LAD15:14) to zero, sends the 3-bit ID and size in one 32-bit SF-high command cycle with no data transfer, preserves registers/ST and takes 2(1) states.",
+      "rtl_impact": "TMS34020-only short-command reconstruction and cycle ownership are required. The current clean-room formatter emits the common long/short command boundary; it is not a handshake or pin controller.",
+      "test_impact": "All 128 first words, every ID, all 19 representable command bits, forced command bits 7:6, high/low field placement, state preservation, fixed 2(1) timing metadata, stable request under waits, retry/fault injection and decoder neighbor guards.",
+      "source_citation": ["TI-TMS34020-UG-1990 CEXEC short, printed p.13-53", "TI-TMS34020-UG-1990 coprocessor command and cycle contract, printed pp.10-3..10-9"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact architectural checkpoint and external coprocessor side-effect contract for a command cycle that is later retried or bus-faulted remain pending the physical sequencer and synthetic coprocessor model."]
     }
   ]
 }

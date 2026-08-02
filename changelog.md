@@ -4,6 +4,18 @@
 
 ### Added
 
+- Primary-page-extracted CEXEC.L at exact `0600h` and CEXEC.S at
+  `D800h`/`FF80h`, adding 129 first words with exact command/ID/size mapping,
+  complete ST preservation, primary visible/hidden timing, and explicit
+  reserved-neighbor handling.
+- Independent CEXEC model semantics and a clean-room combinational command
+  formatter. Exhaustive tests cover every command bit, ID, size, long
+  alignment and short first word, exact LAD/SF/BCST/I/S outputs, logical
+  traces, atomic reserved-packet rollback, and scalar noncommit while the
+  physical coprocessor bus owner is absent.
+- A source-cited coprocessor-interface specification separating the verified
+  CEXEC command boundary from future LRDY/BUSFLT completion, retry/fault,
+  CMOV transfers, pin timing, and synthetic-coprocessor work.
 - Three primary-page-extracted memory-to-memory MOVB forms at 9C00h,
   BC00h, and exact 0340h, covering 1,025 first words, fixed-eight-bit
   read-before-write semantics, indirect/signed-offset/absolute extension
@@ -532,6 +544,10 @@
 
 ### Fixed
 
+- Corrected short CEXEC packing to the primary guide's 13 high command bits,
+  forced command bits 7:6, and six low command bits. RSC-0040 records that the
+  pinned MAME disassembler instead shifts by five and drops one low bit; the
+  primary layout is now independently discriminated in model and RTL tests.
 - Removed the unsupported claim that arbitrary-pitch CVXYL timing was exact:
   the instruction page specifies 14 states but the chapter-15 table specifies
   15. Both primary values are now machine-readable, the selected 14-state
@@ -566,6 +582,17 @@
 
 ### Verified
 
+- The 73-case ISA suite, 94-entry delta ledger, complete 212-case model
+  regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
+  pass for the long/short CEXEC milestone. The model and RTL matrices cover
+  every command bit, ID, size, alignment and short first word while retaining
+  the no-physical-bus-owner boundary.
+- Warning-free Cyclone V Analysis & Synthesis reports 13,246 leaf logic
+  cells/2,230 registers/9 DSP, 500 fetch logic cells, 869 frontend logic cells,
+  and 5,403 scalar logic cells for the 132-entry decoder/CEXEC revision. The
+  frontend/scalar probes retain 4,096 block-memory bits. These are
+  observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification. Yosys and formal targets remain tracked skips.
 - Warning-free Cyclone V Analysis & Synthesis reports 13,102 leaf logic
   cells/2,230 registers/9 DSP, 474 fetch logic cells, 856 frontend logic cells,
   and 5,439 scalar logic cells for the 130-entry decoder/fixed-byte-copy
@@ -1296,6 +1323,9 @@ qualification.
 
 ### Documentation
 
+- Added the Chapter-10 coprocessor command format, long/short CEXEC encoding,
+  32-bit-only command-cycle signaling, completion/fault boundary, current
+  model/RTL scope, and remaining CMOV/protocol work with primary page citations.
 - Recorded verified memory-to-memory MOVB implementation commit
   `01f72f6d1658d81e8ef3540265e001417a46cfb8` in the progress ledger.
 - Recorded verified memory-to-register MOVB implementation commit

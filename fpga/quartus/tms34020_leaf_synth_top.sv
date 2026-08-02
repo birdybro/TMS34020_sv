@@ -196,6 +196,20 @@ module tms34020_leaf_synth_top (
     logic interrupt_return_force_bypass;
     logic interrupt_return_delay_recognition;
     logic [31:0] interrupt_return_post_st;
+    logic coprocessor_command_supported;
+    logic coprocessor_command_legal;
+    logic coprocessor_command_long;
+    logic [2:0] coprocessor_command_length;
+    logic [2:0] coprocessor_command_id;
+    logic [20:0] coprocessor_command_value;
+    logic coprocessor_command_size_64;
+    logic [31:0] coprocessor_command_lad;
+    logic coprocessor_command_sf;
+    logic [3:0] coprocessor_command_bus_status;
+    logic coprocessor_command_parameter_index;
+    logic coprocessor_command_word_select;
+    logic [1:0] coprocessor_command_visible_states;
+    logic coprocessor_command_hidden_state;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -301,6 +315,17 @@ module tms34020_leaf_synth_top (
         interrupt_return_final_sp ^
         interrupt_return_aligned_pc ^
         interrupt_return_post_st ^
+        coprocessor_command_lad ^
+        {11'd0, coprocessor_command_value} ^
+        {12'd0, coprocessor_command_supported,
+         coprocessor_command_legal, coprocessor_command_long,
+         coprocessor_command_length, coprocessor_command_id,
+         coprocessor_command_size_64, coprocessor_command_sf,
+         coprocessor_command_bus_status,
+         coprocessor_command_parameter_index,
+         coprocessor_command_word_select,
+         coprocessor_command_visible_states,
+         coprocessor_command_hidden_state} ^
         {14'd0, interrupt_return_force_bypass,
          interrupt_return_delay_recognition,
          interrupt_return_saved_pc_misaligned,
@@ -748,6 +773,27 @@ module tms34020_leaf_synth_top (
             interrupt_return_delay_recognition
         ),
         .post_context_st_o(interrupt_return_post_st)
+    );
+
+    tms34020_coprocessor_command coprocessor_command (
+        .first_word_i(first_word_i),
+        .extension_word1_i(immediate_i[15:0]),
+        .extension_word2_i(operand_i[15:0]),
+        .first_extension_aligned_i(operand_i[5]),
+        .supported_o(coprocessor_command_supported),
+        .legal_o(coprocessor_command_legal),
+        .long_form_o(coprocessor_command_long),
+        .instruction_length_words_o(coprocessor_command_length),
+        .coprocessor_id_o(coprocessor_command_id),
+        .command_o(coprocessor_command_value),
+        .size_64_o(coprocessor_command_size_64),
+        .lad_command_o(coprocessor_command_lad),
+        .special_function_o(coprocessor_command_sf),
+        .bus_status_o(coprocessor_command_bus_status),
+        .parameter_index_o(coprocessor_command_parameter_index),
+        .word_select_16_o(coprocessor_command_word_select),
+        .visible_states_o(coprocessor_command_visible_states),
+        .hidden_command_state_o(coprocessor_command_hidden_state)
     );
 
     tms34020_regfile regfile (

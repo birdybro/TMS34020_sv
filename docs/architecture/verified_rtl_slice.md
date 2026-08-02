@@ -8,7 +8,8 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 130 entries currently present in the canonical ISA database, including 13,506 ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM field words and 3,137 MOVB words, exact RETI/RETM, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 132 entries currently present in the canonical ISA database, including 13,506 ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM field words and 3,137 MOVB words, exact RETI/RETM and CEXEC.L, all 128 CEXEC.S first words, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/coprocessor/tms34020_coprocessor_command.sv` | Purely combinational classification and LAD command formatting for exact long CEXEC and all 128 short first words, including length, legal reserved bits, ID, 21-bit command, size, SF, BCST, I, S, and visible/hidden state metadata; no local-bus pins, request state, completion, retry, fault, or external coprocessor ownership | TI *TMS34020 User's Guide*, August 1990, §§10.3..10.4.5 printed pp.10-5..10-10 and CEXEC printed pp.13-51..13-54 |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent, EXGPC sequential-PC write plus aligned old-register redirect intent, status/register-neutral JUMP aligned redirect intent, JACC all-condition fallthrough or aligned low-word/high-word absolute redirect intent, JR.L all-condition fallthrough or signed 16-bit word redirect intent, DSJ/DSJEQ/DSJNE Z-conditioned decrement plus signed 16-bit word redirect intent, and DSJS unconditional decrement plus encoded unsigned-magnitude/direction redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, EXGPC printed p.13-112, GETPC printed p.13-130, and JUMP printed p.13-141 |
@@ -98,6 +99,11 @@ The exact RETI/RETM guards likewise prevent the normal/context classification le
 from bypassing the absent ordered stack reader, 24/31-word hidden-state
 restore, fault/retry checkpoint, interrupt recognition, and atomic ST/PC/SP
 owner.
+CEXEC exact `0600h` and short-range `D800h`..`D87Fh` guards likewise prevent
+the verified command formatter from bypassing the absent local-bus command
+cycle, LRDY/BUSFLT completion, retry/fault checkpoint, external coprocessor,
+and instruction-retirement owner. Direct router tests cover `0600h`, `D800h`,
+and `D87Fh` and require zero register and ST intents.
 
 The generated include `rtl/generated/tms34020_isa_decode.svh` is derived from
 `docs/generated/tms34020_isa.yaml` by
@@ -164,6 +170,10 @@ Verilator. It checks:
   SP wrap, saved-PC alignment/misalignment, IX/BF post-context clearing,
   RETM bypass/delay intents, and direct-router noncommit while stack/cache/
   continuation ownership is absent;
+- exact CEXEC.L and all 128 CEXEC.S first words; every command bit, ID, size,
+  and long alignment; reserved-extension rejection; formatted LAD/SF/BCST/I/S
+  outputs; visible/hidden state metadata; decoder length; and direct-router
+  noncommit while physical command-cycle ownership is absent;
 - exact CMPXY `E400h`/`FE00h` base/end decode boundaries, all nine published
   flag rows, a result-sign-versus-borrow discriminator, A/B and same-register
   routing, shared-SP source/destination selection, full NCZV replacement, and
@@ -380,7 +390,7 @@ observable. It also keeps every output of the register-execution router
 observable and instantiates CMPXY both directly and through the commit
 composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 12,826 logic-cell/2,230-register/9-DSP resource count is not a core-area
+so its 13,246 logic-cell/2,230-register/9-DSP resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -392,17 +402,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 453
-logic cells and 175 registers. This is not fit, routing, TimeQuest, a complete
+packet assembler and generated decoder. Its observability wrapper uses 500
+logic cells and 177 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 806 logic cells, 373 registers, and 4,096 block-memory
+zero errors/warnings to 869 logic cells, 375 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,365 logic cells, 1,414 registers,
+composition with zero errors/warnings to 5,403 logic cells, 1,416 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 
@@ -413,7 +423,9 @@ register/status/control-flow operations. There is no timing sequencer,
 processor-derived retirement boundary, interrupt logic, complete memory
 access, page mode,
 complete bus-fault/retry subsystem, host interface, multiprocessor interface,
-coprocessor interface, display subsystem, original-pin bus, or game wrapper.
+complete coprocessor interface, display subsystem, original-pin bus, or game
+wrapper. A combinational CEXEC formatter exists, but it is not a bus protocol
+owner.
 The cache has transaction completion outcomes but no pin-level decoder, fault
 registers, interrupt entry/return sequencer, or dynamic-width/page-mode memory
 controller. The RETI/RETM leaf is classification/result metadata only. The scalar

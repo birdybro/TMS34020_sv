@@ -40,6 +40,7 @@ SOURCES = [
     ROOT / "rtl/memory/tms34020_byte_move.sv",
     ROOT / "rtl/memory/tms34020_multiple_register_control.sv",
     ROOT / "rtl/interrupts/tms34020_interrupt_return_control.sv",
+    ROOT / "rtl/coprocessor/tms34020_coprocessor_command.sv",
     ROOT / "rtl/execute/tms34020_bit_test.sv",
     ROOT / "rtl/execute/tms34020_field_extend.sv",
     ROOT / "rtl/execute/tms34020_cmpk.sv",

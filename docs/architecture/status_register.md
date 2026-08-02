@@ -153,6 +153,12 @@ full-width ST patterns across indirect, paired signed-offset, and absolute
 forms; the byte-copy RTL leaf has no status or architectural commit port.
 Source: User's Guide MOVB status applicability note, printed p.13-156.
 
+Both CEXEC encodings preserve the complete ST value. The independent model
+checks mixed full-width patterns across every command bit, coprocessor ID,
+size, and both long-form alignments; the combinational RTL formatter has no ST
+or architectural commit port. Sources: User's Guide CEXEC long and short,
+printed pp.13-51 and 13-53.
+
 CPW preserves the complete status register except V, which reports whether
 any of its four signed-XY window outcode bits are set. The independent model
 tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;

@@ -381,6 +381,16 @@ fixed count inappropriate. Source: User's Guide printed pp.13-44..13-45 and
 p.15-3. The model therefore reports no state count; no BLMOVE timing,
 page-mode, width, wait, interrupt, fault, or retry case is claimed.
 
+CEXEC long takes two visible states plus one parenthesized state when its
+first extension word is long-word aligned, or three visible plus one
+parenthesized state otherwise. CEXEC short takes two visible states plus one
+parenthesized state. Sources: User's Guide CEXEC printed pp.13-51 and 13-53
+and the chapter-15 table printed p.15-3. The model and combinational command
+leaf preserve these published classifications, but neither implements the
+Figure 10-2 pin cycle, LRDY waits, BUSFLT retry/fault, or an external
+coprocessor. No command-cycle or instruction-retirement timing accuracy is
+claimed; see `docs/coprocessor/interface.md`.
+
 ## Cache-fetch interaction
 
 A cache hit reads an instruction word in one machine state, normally overlapped

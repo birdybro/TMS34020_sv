@@ -1,6 +1,6 @@
 # TMS34010 to TMS34020 architectural delta
 
-Status: required-topic coverage is complete in the 92-entry generated ledger;
+Status: required-topic coverage is complete in the 94-entry generated ledger;
 instruction-by-instruction and cycle-by-cycle quantification is still in
 progress under `TMS20-0005` and `TMS20-0006`.
 
@@ -430,6 +430,15 @@ bus with refresh, display, host, cache miss, retry, and processor traffic.
 Chapter 10 adds a direct coprocessor interface with command and
 direct/indirect-data operations. The protocol belongs in the processor; the
 external coprocessor function remains outside it.
+
+The generated ledger now separates the long exact-`0600h` and short
+`D800h`/`FF80h` CEXEC encodings because neither has a TMS34010 instruction
+equivalent. The TMS34020-owned model and formatter reconstruct the documented
+ID/command/size LAD value and retain visible/hidden state metadata, while the
+formatter deliberately owns no physical command cycle or completion. No
+TMS34010 sequencer or wrapper is reused. Sources: TMS34020 User's Guide
+Chapter 10, printed pp.10-2..10-10, and CEXEC printed pp.13-51..13-54; see
+`docs/coprocessor/interface.md`.
 
 ## I/O, graphics, and display
 

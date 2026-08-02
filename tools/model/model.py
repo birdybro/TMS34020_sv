@@ -214,6 +214,8 @@ class Tms34020Model:
             "XOR": self._execute_xor,
             "ANDNI": self._execute_andni,
             "BLMOVE": self._execute_blmove,
+            "CEXEC.L": self._execute_cexec,
+            "CEXEC.S": self._execute_cexec,
             "ORI": self._execute_ori,
             "XORI": self._execute_xori,
             "IDLE": self._execute_idle,
@@ -2411,6 +2413,61 @@ class Tms34020Model:
             "under RSC-0039/OQ-0026; physical byte strobes, RMW, dynamic "
             "width, wait, page, fault, retry, interrupt, and I/O sequencing "
             "remain pending"
+        )
+        return machine_states
+
+    def _execute_cexec(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        if instruction.mnemonic == "CEXEC.L":
+            if words[1] & 0x007F:
+                raise UnsupportedInstruction(
+                    "CEXEC.L reserved extension bits 6:0 must be zero"
+                )
+            size = (words[1] >> 7) & 1
+            command = ((words[2] & 0x1FFF) << 8) | (words[1] >> 8)
+            coprocessor_id = (words[2] >> 13) & 7
+            immediate_aligned = self._first_extension_long_word_aligned()
+            machine_states = 2 if immediate_aligned else 3
+        else:
+            size = words[0] & 1
+            command = (
+                ((words[1] & 0x1FFF) << 8) |
+                ((words[0] >> 1) & 0x3F)
+            )
+            coprocessor_id = (words[1] >> 13) & 7
+            immediate_aligned = None
+            machine_states = 2
+        command_word = (
+            (coprocessor_id << 29) |
+            (command << 8) |
+            (size << 7)
+        ) & MASK32
+        self._new_hidden_write_states = 1
+        assert self._active_trace is not None
+        transaction: dict[str, int | str] = {
+            "class": "coprocessor_command",
+            "purpose": "internal_operation_no_data_transfer",
+            "coprocessor_id": coprocessor_id,
+            "command": command,
+            "size_64": size,
+            "parameter_index": 0,
+            "bus_status": 0,
+            "special_function": 1,
+            "word_select_16": 0,
+            "lad_command": command_word,
+            "addressing_mode": instruction.mnemonic,
+        }
+        if immediate_aligned is not None:
+            transaction["first_extension_long_word_aligned"] = int(
+                immediate_aligned
+            )
+        self._active_trace.transactions.append(transaction)
+        self._active_trace.notes.append(
+            "logical successful 32-bit CEXEC command cycle with no data "
+            "transfer; external coprocessor acceptance, LRDY/BUSFLT, retry, "
+            "fault continuation, page interruption, pin phases and interrupt "
+            "recognition remain pending"
         )
         return machine_states
 

@@ -355,6 +355,9 @@ class IsaTests(unittest.TestCase):
             0xBC00: ("MOVB.MM.OFFSET", 3),
             0xBDFF: ("MOVB.MM.OFFSET", 3),
             0x0340: ("MOVB.MM.ABS", 5),
+            0x0600: ("CEXEC.L", 3),
+            0xD800: ("CEXEC.S", 2),
+            0xD87F: ("CEXEC.S", 2),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -372,10 +375,10 @@ class IsaTests(unittest.TestCase):
         for word in (0x0041, 0x0081, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x033F, 0x0341, 0x0361, 0x080E, 0x081F, 0x0861,
-                     0x0941, 0x0A01,
+                     0x0601, 0x0941, 0x0A01,
                      0x0D61, 0x0DE1,
                      0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF,
-                     0x0AFF, 0x0C20,
+                     0x0AFF, 0x0C20, 0xD880,
                      0x79FF, 0x7C00,
                      0xD4FF, 0xD520, 0xD6FF, 0xD720):
             with self.subTest(word=f"{word:04X}"):
@@ -383,8 +386,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 47833)
-        self.assertEqual(unclassified, 65536 - 47833)
+        self.assertEqual(matched, 47962)
+        self.assertEqual(unclassified, 65536 - 47962)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2182,6 +2185,60 @@ class IsaTests(unittest.TestCase):
         self.assertEqual(rows["not_long_word_aligned"]["F"], {
             "visible_machine_states": 8, "hidden_write_states": 4
         })
+
+    def test_cexec_long_contract(self) -> None:
+        instruction = self.database.decode(0x0600)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "CEXEC.L")
+        self.assertEqual(instruction.opcode_mask, 0xFFFF)
+        self.assertEqual(instruction.length_words, 3)
+        fields = instruction.metadata["immediate_fields"]
+        self.assertEqual(
+            [(field["name"], field["word"], field["lsb"], field["width"])
+             for field in fields],
+            [
+                ("command_low", 1, 8, 8),
+                ("size", 1, 7, 1),
+                ("reserved_zero", 1, 0, 7),
+                ("coprocessor_id", 2, 13, 3),
+                ("command_high", 2, 0, 13),
+            ],
+        )
+        cycles = instruction.metadata["documented_cycles"]
+        self.assertEqual(cycles["long_word_aligned"], {
+            "visible_machine_states": 2,
+            "hidden_coprocessor_states": 1,
+        })
+        self.assertEqual(cycles["not_long_word_aligned"], {
+            "visible_machine_states": 3,
+            "hidden_coprocessor_states": 1,
+        })
+
+    def test_cexec_short_contract(self) -> None:
+        instruction = self.database.decode(0xD800)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "CEXEC.S")
+        self.assertEqual(instruction.opcode_mask, 0xFF80)
+        self.assertEqual(instruction.length_words, 2)
+        self.assertEqual(
+            [(field["name"], field["lsb"], field["width"])
+             for field in instruction.metadata["operand_fields"]],
+            [("command_low", 1, 6), ("size", 0, 1)],
+        )
+        self.assertIn(
+            "command bits 7:6 are implicitly zero",
+            instruction.metadata["operand_fields"][0]["encoding"],
+        )
+        self.assertEqual(
+            instruction.metadata["immediate_fields"][1]["encoding"],
+            "command bits 20:8",
+        )
+        self.assertEqual(instruction.metadata["documented_cycles"], {
+            "kind": "fixed_with_hidden_command",
+            "visible_machine_states": 2,
+            "hidden_coprocessor_states": 1,
+        })
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

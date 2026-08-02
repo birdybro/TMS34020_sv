@@ -16,6 +16,9 @@ module tb_tms34020_verified_leaves;
     integer pitch_second_power;
     integer condition_code_index;
     integer condition_status_index;
+    integer coprocessor_first_word_index;
+    integer coprocessor_id_index;
+    integer coprocessor_command_bit;
     logic [15:0] constant_opcode;
     logic [31:0] expected_rotate;
     logic [31:0] expected_shift;
@@ -267,6 +270,26 @@ module tb_tms34020_verified_leaves;
     logic interrupt_return_force_bypass;
     logic interrupt_return_delay_recognition;
     logic [31:0] interrupt_return_post_st;
+    logic [15:0] coprocessor_first_word;
+    logic [15:0] coprocessor_extension_word1;
+    logic [15:0] coprocessor_extension_word2;
+    logic coprocessor_first_extension_aligned;
+    logic coprocessor_supported;
+    logic coprocessor_legal;
+    logic coprocessor_long_form;
+    logic [2:0] coprocessor_instruction_length;
+    logic [2:0] coprocessor_id;
+    logic [20:0] coprocessor_command;
+    logic coprocessor_size_64;
+    logic [31:0] coprocessor_lad_command;
+    logic coprocessor_special_function;
+    logic [3:0] coprocessor_bus_status;
+    logic coprocessor_parameter_index;
+    logic coprocessor_word_select_16;
+    logic [1:0] coprocessor_visible_states;
+    logic coprocessor_hidden_command_state;
+    logic [20:0] expected_coprocessor_command;
+    logic [12:0] expected_coprocessor_extension_payload;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -722,6 +745,27 @@ module tb_tms34020_verified_leaves;
             interrupt_return_delay_recognition
         ),
         .post_context_st_o(interrupt_return_post_st)
+    );
+
+    tms34020_coprocessor_command coprocessor_command_dut (
+        .first_word_i(coprocessor_first_word),
+        .extension_word1_i(coprocessor_extension_word1),
+        .extension_word2_i(coprocessor_extension_word2),
+        .first_extension_aligned_i(coprocessor_first_extension_aligned),
+        .supported_o(coprocessor_supported),
+        .legal_o(coprocessor_legal),
+        .long_form_o(coprocessor_long_form),
+        .instruction_length_words_o(coprocessor_instruction_length),
+        .coprocessor_id_o(coprocessor_id),
+        .command_o(coprocessor_command),
+        .size_64_o(coprocessor_size_64),
+        .lad_command_o(coprocessor_lad_command),
+        .special_function_o(coprocessor_special_function),
+        .bus_status_o(coprocessor_bus_status),
+        .parameter_index_o(coprocessor_parameter_index),
+        .word_select_16_o(coprocessor_word_select_16),
+        .visible_states_o(coprocessor_visible_states),
+        .hidden_command_state_o(coprocessor_hidden_command_state)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -2627,6 +2671,12 @@ module tb_tms34020_verified_leaves;
         interrupt_return_saved_st = 32'd0;
         interrupt_return_saved_pc = 32'd0;
         interrupt_return_monitor = 1'b0;
+        coprocessor_first_word = 16'd0;
+        coprocessor_extension_word1 = 16'd0;
+        coprocessor_extension_word2 = 16'd0;
+        coprocessor_first_extension_aligned = 1'b0;
+        expected_coprocessor_command = 21'd0;
+        expected_coprocessor_extension_payload = 13'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -4700,6 +4750,18 @@ module tb_tms34020_verified_leaves;
             "MOVB.MM.ABS cannot bypass absent byte-memory ownership"
         );
         check_register_execute(
+            16'h0600, 32'h0000_0080, 32'h0000_2000,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CEXEC.L cannot bypass absent coprocessor-cycle ownership"
+        );
+        check_register_execute(
+            16'hD87F, 32'h0000_2000, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CEXEC.S cannot bypass absent coprocessor-cycle ownership"
+        );
+        check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "REV cannot execute without a selected device revision profile"
@@ -6603,6 +6665,12 @@ module tb_tms34020_verified_leaves;
         check_decode(16'h0A00, TMS20_OP_VLCOL, 3'd1, "VLCOL exact decode");
         check_decode(16'h00F3, TMS20_OP_BLMOVE, 3'd1,
                      "BLMOVE masked decode");
+        check_decode(16'h0600, TMS20_OP_CEXEC_L, 3'd3,
+                     "CEXEC.L exact decode");
+        check_decode(16'hD800, TMS20_OP_CEXEC_S, 3'd2,
+                     "CEXEC.S lower-bound decode");
+        check_decode(16'hD87F, TMS20_OP_CEXEC_S, 3'd2,
+                     "CEXEC.S upper-bound decode");
         check_decode(16'h0C1E, TMS20_OP_ADDXYI, 3'd3,
                      "ADDXYI masked decode");
         check_decode(16'h029E, TMS20_OP_RPIX, 3'd1, "RPIX masked decode");
@@ -6629,6 +6697,148 @@ module tb_tms34020_verified_leaves;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
                "unextracted short JR offset cannot alias JACC");
+        decode_word = 16'h0601;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "CEXEC.L neighbor must remain unclassified");
+        decode_word = 16'hD880;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "CEXEC.S upper neighbor must remain unclassified");
+
+        for (
+            coprocessor_id_index = 0;
+            coprocessor_id_index < 8;
+            coprocessor_id_index = coprocessor_id_index + 1
+        ) begin
+            for (
+                constant_index = 0;
+                constant_index < 2;
+                constant_index = constant_index + 1
+            ) begin
+                for (
+                    shift_step = 0;
+                    shift_step < 2;
+                    shift_step = shift_step + 1
+                ) begin
+                    for (
+                        coprocessor_command_bit = 0;
+                        coprocessor_command_bit < 22;
+                        coprocessor_command_bit = coprocessor_command_bit + 1
+                    ) begin
+                        expected_coprocessor_command =
+                            coprocessor_command_bit == 21
+                            ? 21'd0
+                            : (21'd1 << coprocessor_command_bit);
+                        coprocessor_first_word = 16'h0600;
+                        coprocessor_extension_word1 = {
+                            expected_coprocessor_command[7:0],
+                            constant_index[0], 7'd0
+                        };
+                        coprocessor_extension_word2 = {
+                            coprocessor_id_index[2:0],
+                            expected_coprocessor_command[20:8]
+                        };
+                        coprocessor_first_extension_aligned = shift_step[0];
+                        #1;
+                        check_condition(
+                            coprocessor_supported && coprocessor_legal &&
+                            coprocessor_long_form &&
+                            coprocessor_instruction_length == 3'd3 &&
+                            coprocessor_id == coprocessor_id_index[2:0] &&
+                            coprocessor_command ==
+                                expected_coprocessor_command &&
+                            coprocessor_size_64 == constant_index[0] &&
+                            coprocessor_lad_command == {
+                                coprocessor_id_index[2:0],
+                                expected_coprocessor_command,
+                                constant_index[0], 7'd0
+                            } &&
+                            coprocessor_special_function &&
+                            coprocessor_bus_status == 4'd0 &&
+                            !coprocessor_parameter_index &&
+                            !coprocessor_word_select_16 &&
+                            coprocessor_visible_states ==
+                                (shift_step[0] ? 2'd2 : 2'd3) &&
+                            coprocessor_hidden_command_state,
+                            "CEXEC.L command bit/ID/size/alignment matrix"
+                        );
+                    end
+                end
+            end
+        end
+        coprocessor_first_word = 16'h0600;
+        coprocessor_extension_word1 = 16'h0081;
+        coprocessor_extension_word2 = 16'd0;
+        coprocessor_first_extension_aligned = 1'b1;
+        #1;
+        check_condition(
+            coprocessor_supported && !coprocessor_legal &&
+            coprocessor_long_form && !coprocessor_special_function &&
+            !coprocessor_hidden_command_state,
+            "CEXEC.L rejects nonzero reserved extension bits"
+        );
+
+        for (
+            coprocessor_first_word_index = 0;
+            coprocessor_first_word_index < 128;
+            coprocessor_first_word_index = coprocessor_first_word_index + 1
+        ) begin
+            for (
+                coprocessor_id_index = 0;
+                coprocessor_id_index < 8;
+                coprocessor_id_index = coprocessor_id_index + 1
+            ) begin
+                coprocessor_first_word =
+                    16'hD800 + coprocessor_first_word_index[15:0];
+                expected_coprocessor_extension_payload = {
+                    coprocessor_first_word_index[6:0],
+                    coprocessor_id_index[2:0], 3'b101
+                };
+                coprocessor_extension_word1 = {
+                    coprocessor_id_index[2:0],
+                    expected_coprocessor_extension_payload
+                };
+                coprocessor_extension_word2 = 16'hA5A5;
+                coprocessor_first_extension_aligned = 1'b0;
+                expected_coprocessor_command = {
+                    coprocessor_extension_word1[12:0], 2'b00,
+                    coprocessor_first_word[6:1]
+                };
+                #1;
+                check_condition(
+                    coprocessor_supported && coprocessor_legal &&
+                    !coprocessor_long_form &&
+                    coprocessor_instruction_length == 3'd2 &&
+                    coprocessor_id == coprocessor_id_index[2:0] &&
+                    coprocessor_command == expected_coprocessor_command &&
+                    coprocessor_command[7:6] == 2'b00 &&
+                    coprocessor_size_64 == coprocessor_first_word[0] &&
+                    coprocessor_lad_command == {
+                        coprocessor_id_index[2:0],
+                        expected_coprocessor_command,
+                        coprocessor_first_word[0], 7'd0
+                    } &&
+                    coprocessor_special_function &&
+                    coprocessor_bus_status == 4'd0 &&
+                    !coprocessor_parameter_index &&
+                    !coprocessor_word_select_16 &&
+                    coprocessor_visible_states == 2'd2 &&
+                    coprocessor_hidden_command_state,
+                    "CEXEC.S exhaustive first-word/ID matrix"
+                );
+            end
+        end
+        coprocessor_first_word = 16'hD880;
+        #1;
+        check_condition(
+            !coprocessor_supported && !coprocessor_legal &&
+            !coprocessor_special_function &&
+            coprocessor_instruction_length == 3'd0 &&
+            coprocessor_visible_states == 2'd0 &&
+            !coprocessor_hidden_command_state,
+            "coprocessor command leaf rejects unclassified opcode"
+        );
 
         add_destination = 32'h0001_0001;
         add_immediate = 32'hFFFF_FFFF;

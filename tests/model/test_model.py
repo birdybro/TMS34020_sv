@@ -3586,6 +3586,137 @@ class ExecutionTests(unittest.TestCase):
                     rejected.step()
                 self.assertEqual(rejected.snapshot(), before)
 
+    def test_cexec_long_command_format_alignment_and_reserved_rollback(
+        self,
+    ) -> None:
+        shared_isa = Tms34020Model().isa
+        commands = (
+            0,
+            1,
+            0x3F,
+            0x40,
+            0xFF,
+            0x100,
+            1 << 18,
+            1 << 19,
+            1 << 20,
+            0x1F_FFFF,
+        )
+        for start_pc, expected_states in ((0x110, 2), (0x100, 3)):
+            for coprocessor_id in range(8):
+                for size in range(2):
+                    for command in commands:
+                        with self.subTest(
+                            pc=start_pc,
+                            coprocessor_id=coprocessor_id,
+                            size=size,
+                            command=command,
+                        ):
+                            model = Tms34020Model(isa=shared_isa)
+                            low_word = ((command & 0xFF) << 8) | (size << 7)
+                            high_word = (
+                                (coprocessor_id << 13) |
+                                ((command >> 8) & 0x1FFF)
+                            )
+                            model.load_program(
+                                [0x0600, low_word, high_word],
+                                bit_address=start_pc,
+                            )
+                            model.state.st = 0xD020_17A5
+                            model.state.write_reg("A", 3, 0x1234_5678)
+                            before_st = model.state.st
+                            before_reg = model.state.read_reg("A", 3)
+
+                            event = model.step()
+
+                            self.assertEqual(event.mnemonic, "CEXEC.L")
+                            self.assertEqual(
+                                event.machine_states, expected_states
+                            )
+                            self.assertEqual(
+                                model.state.pending_write_states, 1
+                            )
+                            self.assertEqual(model.state.st, before_st)
+                            self.assertEqual(
+                                model.state.read_reg("A", 3), before_reg
+                            )
+                            transaction = event.transactions[-1]
+                            self.assertEqual(
+                                transaction["class"], "coprocessor_command"
+                            )
+                            self.assertEqual(
+                                transaction["coprocessor_id"], coprocessor_id
+                            )
+                            self.assertEqual(transaction["command"], command)
+                            self.assertEqual(transaction["size_64"], size)
+                            self.assertEqual(
+                                transaction["lad_command"],
+                                (coprocessor_id << 29) |
+                                (command << 8) |
+                                (size << 7),
+                            )
+                            self.assertEqual(
+                                transaction[
+                                    "first_extension_long_word_aligned"
+                                ],
+                                int(expected_states == 2),
+                            )
+
+        rejected = Tms34020Model(isa=shared_isa)
+        rejected.load_program([0x0600, 0x0081, 0], bit_address=0x110)
+        before = rejected.snapshot()
+        with self.assertRaisesRegex(
+            UnsupportedInstruction, "reserved extension bits"
+        ):
+            rejected.step()
+        self.assertEqual(rejected.snapshot(), before)
+
+    def test_cexec_short_exhaustive_first_words_and_ids(self) -> None:
+        shared_isa = Tms34020Model().isa
+        for first_word in range(0xD800, 0xD880):
+            for coprocessor_id in range(8):
+                with self.subTest(
+                    first_word=first_word, coprocessor_id=coprocessor_id
+                ):
+                    command_high = (
+                        ((first_word - 0xD800) * 0x149) + coprocessor_id
+                    ) & 0x1FFF
+                    extension = (coprocessor_id << 13) | command_high
+                    model = Tms34020Model(isa=shared_isa)
+                    model.load_program(
+                        [first_word, extension], bit_address=0x100
+                    )
+                    model.state.st = 0x7020_19A5
+                    before_st = model.state.st
+
+                    event = model.step()
+
+                    expected_command = (
+                        (command_high << 8) | ((first_word >> 1) & 0x3F)
+                    )
+                    expected_size = first_word & 1
+                    transaction = event.transactions[-1]
+                    self.assertEqual(event.mnemonic, "CEXEC.S")
+                    self.assertEqual(event.machine_states, 2)
+                    self.assertEqual(model.state.pending_write_states, 1)
+                    self.assertEqual(model.state.st, before_st)
+                    self.assertEqual(
+                        transaction["coprocessor_id"], coprocessor_id
+                    )
+                    self.assertEqual(transaction["command"], expected_command)
+                    self.assertEqual(expected_command & 0xC0, 0)
+                    self.assertLess(expected_command, 1 << 21)
+                    self.assertEqual(transaction["size_64"], expected_size)
+                    self.assertEqual(
+                        transaction["lad_command"],
+                        (coprocessor_id << 29) |
+                        (expected_command << 8) |
+                        (expected_size << 7),
+                    )
+                    self.assertEqual(transaction["parameter_index"], 0)
+                    self.assertEqual(transaction["word_select_16"], 0)
+                    self.assertEqual(transaction["special_function"], 1)
+
     def test_move_offset_boundaries_alias_wrap_and_ben(self) -> None:
         for offset_word, signed_offset in (
             (0x0000, 0),
