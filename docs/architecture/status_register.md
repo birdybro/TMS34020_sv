@@ -155,6 +155,13 @@ C, and clears V. The field/replacement leaf produces N/Z/V; the model commits
 the complete instruction-boundary mask after its abstract locked write. No RTL
 memory/commit owner exists. Source: User's Guide SWAPF, printed p.13-247.
 
+MMTM replaces only N and preserves C/Z/V plus every lower ST bit. The guide's
+two exceptions to the sign of `0-Rp` make the exact implemented rule
+`N = ~old_Rp[31]`: Rp zero sets N while Rp `80000000h` clears it. MMFM leaves
+the complete status register unchanged. The model and multiple-register
+control leaf cover these boundaries, but no RTL status-commit/memory owner
+exists. Source: User's Guide MMTM/MMFM, printed pp.13-148..13-151.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

@@ -4,6 +4,24 @@
 
 ### Added
 
+- Primary-page-extracted MMFM `09A0h`/`FFE0h` and MMTM
+  `0980h`/`FFE0h` metadata for all 64 first words, including deliberately
+  opposite extension-mask directions, A/B/shared-SP rules, logical transfer
+  order, page-mode/dynamic-width/fault obligations, status effects, and
+  documented successful timing classes.
+- Independent MMFM/MMTM model semantics covering exhaustive mask order, every
+  A/B/SP register, pointer wrap, predecrement/postincrement ordering, exact
+  MMTM N behavior, timing classes, deterministic transactions, round trip, and
+  atomic rejection of empty or pointer-containing lists.
+- A clean-room synthesizable multiple-register control leaf that exhaustively
+  normalizes all 65,536 masks in both directions, counts and validates lists,
+  computes final pointer/MMTM N, selects visible/hidden states, and remains
+  explicitly noncommitting until a page-mode/fault-aware memory owner exists.
+- A hash-pinned metadata record for the prior `srg320/TMS34020` FPGA source at
+  commit `2046b4378e2e29ee1fe9ef0b6365987e95fa5c0c`. Its absent license and
+  self-declared missing features make it untracked, reference-only, and
+  prohibited from reuse; the generic GitHub source-set fetcher now supports
+  this independently pinned repository.
 - Primary-page-extracted SWAPF `7E00h`/`FE00h` metadata and an independent
   successful 32-bit-target model boundary covering every valid word-local FS0
   width/offset, FE0 extension, A/B/SP aliases, exact status, five base states,
@@ -398,16 +416,16 @@
 
 ### Verified
 
-- Warning-free Cyclone V Analysis & Synthesis now reports 11,293 leaf logic
-  cells/2,230 registers/9 DSP, 432 fetch logic cells, 806 frontend logic cells,
-  and 5,336 scalar logic cells. The frontend/scalar probes retain 4,096
+- Warning-free Cyclone V Analysis & Synthesis now reports 11,479 leaf logic
+  cells/2,230 registers/9 DSP, 441 fetch logic cells, 811 frontend logic cells,
+  and 5,366 scalar logic cells. The frontend/scalar probes retain 4,096
   block-memory bits. These are observability-wrapper analysis results, not
   fit, TimeQuest, or core-area qualification.
-- The 42-case ISA suite, 63-entry delta ledger, and 158-case model suite pass.
-  SWAPF coverage includes all 512 encodings, every valid FS0 width/word offset,
-  FE0 sign/zero extension, full and positioned exchanges, status preservation,
-  aliases, ordered transaction values, five base states, and invalid-crossing
-  rollback. This is not physical bus-lock or fault/retry evidence.
+- The 43-case ISA suite, 64-entry delta ledger, and 163-case model suite pass.
+  MMFM/MMTM coverage exhausts all 65,536 list masks in both directions and
+  every A/B/SP register, including pointer/status/timing boundaries, logical
+  transfer order, round trip, and atomic invalid-list rollback. All 64 decoded
+  first words remain noncommitting without physical memory ownership.
 - The 41-case ISA suite, 62-entry delta ledger, and 156-case model suite pass.
   MPYS/MPYU coverage includes all 1,024 encodings, every reliable primary
   example row and even FS1, full-versus-low flag discriminators, A/B/SP alias
@@ -958,6 +976,11 @@
 
 ### Documentation
 
+- Documented MMFM/MMTM register-list encoding, pointer/status behavior,
+  TMS34020 timing and page-mode boundary, TMS34010 semantic compatibility, and
+  explicit exclusions from physical bus/continuation claims. RSC-0033 records
+  three primary-page editing errors and MMFM's unexplained alignment/timing
+  statement; OQ-0022 keeps that timing distinction open.
 - Recorded the verified bounded SWAPF implementation baseline as commit
   `fea7a996312e8558663b377ae89b3c078dd835f5` in the progress ledger.
 - Documented the TMS34020-only SWAPF delta, locked restart-from-read boundary,
@@ -1074,6 +1097,11 @@
 
 ### Known Issues
 
+- MMFM/MMTM have successful instruction-boundary model semantics and a
+  combinational control leaf, but no physical read/write owner, page-mode
+  controller, dynamic 16-bit decomposition, wait/fault/retry handling,
+  interrupt checkpoint, partial-list continuation, or architectural commit.
+  MMFM alignment timing remains provisional under RSC-0033/OQ-0022.
 - SWAPF has a successful instruction-boundary model and combinational field
   leaf, but no locked bus owner, memory response path, atomic architectural
   commit, wait insertion, refresh/grant interruption, fault/retry injection,

@@ -92,6 +92,13 @@ def validate_manifest(data: dict[str, Any]) -> None:
                 f"{source_id}: relevant_chapters_or_pages must be a list"
             )
         if source["document_type"] == "git_source_set":
+            repository = source.get("repository")
+            if not isinstance(repository, str) or not repository.startswith(
+                "https://github.com/"
+            ):
+                raise ManifestError(
+                    f"{source_id}: source set lacks an HTTPS GitHub repository"
+                )
             if not SHA256_RE.fullmatch(source.get("commit", "")):
                 # Git commits are SHA-1 in this pinned MAME repository.
                 if not re.fullmatch(r"[0-9a-f]{40}", source.get("commit", "")):

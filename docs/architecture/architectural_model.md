@@ -20,7 +20,7 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
-  PUTST, RETS,
+  PUTST, RETS, MMFM, MMTM,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -33,7 +33,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 99 of 100 currently extracted database forms for their
+These handlers cover 101 of 102 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -41,6 +41,18 @@ verified. A directed test proves that attempting REV raises
 `UnsupportedInstruction` and restores the complete preinstruction model/cache
 snapshot. This is coverage of a current partial extraction, not instruction
 completeness.
+
+MMTM/MMFM cover both operation-specific second-word mask directions, every
+register index in both files, shared SP, ascending-store/descending-load
+order, 32-bit pointer steps and wrap, MMTM's N-only update, matching-list
+round trips, and the published successful state classes. Pointer-in-list and
+empty-list inputs roll back because their results are not portable. Abstract
+transactions preserve register number, address, value, and direction. Global
+timing is marked incomplete: no page-mode, dynamic-width, wait, fault/retry,
+partial-list continuation, hidden-write retirement, or physical memory owner
+exists. MMFM's `n+5` count also remains provisional under RSC-0033/OQ-0022.
+Sources: TMS34020 User's Guide printed pp.8-16..8-17, 13-148..13-151, and
+15-6.
 
 SWAPF covers all FS0 widths and valid field positions within a single 32-bit
 word, FE0 sign/zero extension, A/B/shared-SP aliases, captured replacement

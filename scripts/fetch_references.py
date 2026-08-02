@@ -7,6 +7,7 @@ import argparse
 import os
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -75,7 +76,19 @@ def fetch_file(source: dict[str, object], force: bool) -> None:
 
 def fetch_git_files(source: dict[str, object], force: bool) -> None:
     commit = source["commit"]
-    base = f"https://raw.githubusercontent.com/mamedev/mame/{commit}/"
+    repository = source.get("repository")
+    if not isinstance(repository, str):
+        raise ManifestError(f"{source['id']}: git source set lacks repository")
+    parsed = urllib.parse.urlparse(repository)
+    if parsed.scheme != "https" or parsed.netloc != "github.com":
+        raise ManifestError(
+            f"{source['id']}: automatic git source sets require an HTTPS "
+            "github.com repository"
+        )
+    repository_path = parsed.path.removesuffix(".git").strip("/")
+    if len(repository_path.split("/")) != 2:
+        raise ManifestError(f"{source['id']}: unsupported GitHub repository path")
+    base = f"https://raw.githubusercontent.com/{repository_path}/{commit}/"
     root = local_path(source)
     for item in source["files"]:
         target = root / item["path"]
@@ -86,7 +99,8 @@ def fetch_git_files(source: dict[str, object], force: bool) -> None:
             raise ManifestError(
                 f"{source['id']}: invalid existing file {item['path']}"
             )
-        download(base + item["path"], target, item["sha256"])
+        quoted_path = urllib.parse.quote(item["path"])
+        download(base + quoted_path, target, item["sha256"])
     valid, detail = verify_source(source)
     if not valid:
         raise ManifestError(f"{source['id']}: source-set verify failed: {detail}")

@@ -27,6 +27,7 @@ class ReferenceManifestTests(unittest.TestCase):
                 "TI-SM34020A-DS-SGUS057",
                 "TI-SMJ34020A-DS-SGUS011D",
                 "MAME-TMS34020-20260731",
+                "SRG320-TMS34020-20230420",
             }
             <= ids
         )
@@ -59,6 +60,22 @@ class ReferenceManifestTests(unittest.TestCase):
         self.assertIn("src/mame/williams/midxunit.cpp", paths)
         self.assertNotIn("src/mame/midway/midxunit.cpp", paths)
         self.assertEqual(len(source["commit"]), 40)
+
+    def test_prior_fpga_reference_is_pinned_and_nonreusable(self) -> None:
+        source = next(
+            item for item in self.manifest["sources"]
+            if item["id"] == "SRG320-TMS34020-20230420"
+        )
+        self.assertEqual(
+            source["commit"],
+            "2046b4378e2e29ee1fe9ef0b6365987e95fa5c0c",
+        )
+        self.assertIn("do_not_commit", source["redistribution_status"])
+        self.assertIn("No license", source["license"])
+        self.assertFalse(source["committed"])
+        self.assertIn(
+            "TMS34020.sv", {item["path"] for item in source["files"]}
+        )
 
     def test_toolchain_editions_are_not_conflated(self) -> None:
         sources = {

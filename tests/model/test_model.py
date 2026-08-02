@@ -1712,6 +1712,208 @@ class ExecutionTests(unittest.TestCase):
             crossing.step()
         self.assertEqual(crossing.snapshot(), before)
 
+    def test_multiple_register_mask_orders_are_exhaustive(self) -> None:
+        for mask in range(0x10000):
+            expected_load = [
+                index for index in range(15, -1, -1)
+                if mask & (1 << index)
+            ]
+            expected_store = [
+                index for index in range(16)
+                if mask & (1 << (15 - index))
+            ]
+            self.assertEqual(
+                Tms34020Model._multiple_register_indices(mask, True),
+                expected_load,
+            )
+            self.assertEqual(
+                Tms34020Model._multiple_register_indices(mask, False),
+                expected_store,
+            )
+
+    def test_mmtm_mmfm_round_trip_uses_opposite_mask_orders(self) -> None:
+        model = Tms34020Model()
+        store_mask = sum(1 << (15 - index) for index in (0, 2, 4, 14))
+        load_mask = sum(1 << index for index in (0, 2, 4, 14))
+        model.load_program([0x098F, store_mask, 0x09AF, load_mask])
+        values = {
+            0: 0x0000_A0A0,
+            2: 0x2222_A2A2,
+            4: 0x4444_A4A4,
+            14: 0xEEEE_AEAE,
+        }
+        for index, value in values.items():
+            model.state.write_reg("A", index, value)
+        model.state.sp = 0x800
+        model.state.st = 0x6000_1234
+
+        stored = model.step()
+        self.assertEqual(model.state.sp, 0x780)
+        self.assertEqual(stored.machine_states, 8)
+        self.assertEqual(model.state.pending_write_states, 1)
+        self.assertFalse(model.state.timing_complete)
+        writes = [
+            item for item in stored.transactions
+            if item.get("purpose") == "multiple_register_save"
+        ]
+        self.assertEqual(
+            [item["register_index"] for item in writes], [0, 2, 4, 14]
+        )
+        self.assertEqual(
+            [item["bit_address"] for item in writes],
+            [0x7E0, 0x7C0, 0x7A0, 0x780],
+        )
+        self.assertEqual((model.state.st >> 28) & 0xF, 0xE)
+
+        for index in values:
+            model.state.write_reg("A", index, 0)
+        restored = model.step()
+        self.assertEqual(model.state.sp, 0x800)
+        self.assertEqual(restored.machine_states, 9)
+        self.assertEqual(model.state.pending_write_states, 0)
+        reads = [
+            item for item in restored.transactions
+            if item.get("purpose") == "multiple_register_restore"
+        ]
+        self.assertEqual(
+            [item["register_index"] for item in reads], [14, 4, 2, 0]
+        )
+        self.assertEqual(
+            [item["bit_address"] for item in reads],
+            [0x780, 0x7A0, 0x7C0, 0x7E0],
+        )
+        for index, value in values.items():
+            self.assertEqual(model.state.read_reg("A", index), value)
+        self.assertEqual(model.state.st, 0xE000_1234)
+
+    def test_multiple_register_moves_cover_files_sp_and_every_index(
+        self,
+    ) -> None:
+        isa = Tms34020Model().isa
+        for register_file in ("A", "B"):
+            file_bit = 0x10 if register_file == "B" else 0
+            for register_index in range(16):
+                with self.subTest(
+                    register_file=register_file,
+                    register_index=register_index,
+                ):
+                    pointer_index = 1 if register_index != 1 else 2
+                    value = (0xA500_0000 | register_index) & 0xFFFF_FFFF
+                    store = Tms34020Model(isa=isa)
+                    store.load_program(
+                        [
+                            0x0980 | file_bit | pointer_index,
+                            1 << (15 - register_index),
+                        ]
+                    )
+                    store.state.write_reg(register_file, pointer_index, 0x500)
+                    store.state.write_reg(register_file, register_index, value)
+                    event = store.step()
+                    self.assertEqual(
+                        store.state.memory.read_bits(0x4E0, 32), value
+                    )
+                    self.assertEqual(
+                        event.transactions[-1]["register_index"],
+                        register_index,
+                    )
+
+                    load = Tms34020Model(isa=isa)
+                    load.load_program(
+                        [
+                            0x09A0 | file_bit | pointer_index,
+                            1 << register_index,
+                        ]
+                    )
+                    load.state.write_reg(register_file, pointer_index, 0x4E0)
+                    load.state.memory.write_bits(0x4E0, 32, value)
+                    event = load.step()
+                    self.assertEqual(
+                        load.state.read_reg(register_file, register_index), value
+                    )
+                    self.assertEqual(
+                        event.transactions[-1]["register_index"],
+                        register_index,
+                    )
+
+    def test_multiple_register_invalid_lists_roll_back_atomically(self) -> None:
+        isa = Tms34020Model().isa
+        cases = (
+            (0x09A3, 1 << 3, "pointer register"),
+            (0x0983, 1 << (15 - 3), "pointer register"),
+            (0x09A3, 0, "empty"),
+            (0x0983, 0, "empty"),
+        )
+        for first_word, mask, message in cases:
+            with self.subTest(first_word=f"{first_word:04X}", mask=mask):
+                model = Tms34020Model(isa=isa)
+                model.load_program([first_word, mask])
+                model.state.write_reg("A", 3, 0x600)
+                before = model.snapshot()
+                with self.assertRaisesRegex(ModelError, message):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
+    def test_mmtm_timing_alignment_and_unusual_n_rule(self) -> None:
+        isa = Tms34020Model().isa
+        timing_cases = (
+            (0x400, (0,), 0, 4, 1),
+            (0x408, (0,), 0, 4, 1),
+            (0x401, (0,), 0, 4, 2),
+            (0x400, (0, 1), 0, 6, 1),
+            (0x408, (0, 1), 0, 8, 1),
+            (0x401, (0, 1), 0, 9, 2),
+            (0x401, (0, 1, 2, 4, 5), 0, 12, 1),
+            (0x400, (0,), 0x10, 5, 1),
+        )
+        for (
+            pointer,
+            indices,
+            program_address,
+            expected_states,
+            hidden,
+        ) in timing_cases:
+            with self.subTest(
+                pointer=pointer,
+                indices=indices,
+                pc=program_address,
+            ):
+                pointer_index = 3
+                mask = sum(1 << (15 - index) for index in indices)
+                model = Tms34020Model(isa=isa)
+                model.load_program(
+                    [0x0980 | pointer_index, mask],
+                    bit_address=program_address,
+                )
+                model.state.write_reg("A", pointer_index, pointer)
+                event = model.step()
+                self.assertEqual(event.machine_states, expected_states)
+                self.assertEqual(model.state.pending_write_states, hidden)
+
+        for pointer, expected_n in (
+            (0x0000_0000, 1),
+            (0x7FFF_FFFF, 1),
+            (0x8000_0000, 0),
+            (0xFFFF_FFFF, 0),
+        ):
+            with self.subTest(pointer=f"{pointer:08X}"):
+                model = Tms34020Model(isa=isa)
+                model.load_program([0x0981, 0x8000])
+                model.state.write_reg("A", 1, pointer)
+                model.state.write_reg("A", 0, 0x1234_5678)
+                model.state.st = 0x7000_00AA
+                model.step()
+                self.assertEqual((model.state.st >> 31) & 1, expected_n)
+                self.assertEqual((model.state.st >> 28) & 0x7, 0x7)
+
+        load = Tms34020Model(isa=isa)
+        load.load_program([0x09A3, (1 << 1) | (1 << 2)])
+        load.state.write_reg("A", 3, 0x409)
+        load.state.memory.write_bits(0x409, 32, 0x1111_1111)
+        load.state.memory.write_bits(0x429, 32, 0x2222_2222)
+        load_event = load.step()
+        self.assertEqual(load_event.machine_states, 7)
+        self.assertFalse(load.state.timing_complete)
+
     def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
         model = Tms34020Model()
         model.load_program([

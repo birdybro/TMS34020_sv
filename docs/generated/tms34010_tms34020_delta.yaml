@@ -636,6 +636,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 SWAPF, printed pp.13-247..13-248 and timing p.15-9", "TI-TMS34020-UG-1990 retry behavior, printed p.8-13", "TI-TMS34020-UG-1990 bus lock and dynamic sizing, printed p.8-26"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact pin-level status encoding and fault-vector/continuation order remain pending the local-bus sequencer.", "The independent model and combinational leaf cover only successful valid 32-bit-target semantics; no physical atomicity claim is made."]
+    },
+    {
+      "feature": "multiple_register_moves",
+      "tms34010_behavior": "MMFM 09A0h/FFE0h and MMTM 0980h/FFE0h use a second-word list mask, the same direct/reversed mask ordering and the same memory directions. TMS34010 timing is cache- and pointer-alignment-dependent: MMFM uses 3+4n or 3+6n visible states with hidden trailing states when cached, while MMTM uses 2+4n or 2+10n with its own hidden states; cache-disabled cases differ again.",
+      "tms34020_behavior": "The encodings and architectural list ordering remain compatible, but the 32-bit/page-mode memory system replaces the older timing. MMFM publishes n+5 without the alignment discriminator claimed by its detailed page (RSC-0033). MMTM publishes distinct long-word, byte and bit-alignment rows, a two-word instruction-alignment penalty, and hidden pipelined writes. MMTM replaces N with the complement of old Rp bit 31, including its explicit Rp=0 and 80000000h exceptions; MMFM leaves status unchanged.",
+      "rtl_impact": "Reuse register-file numbering only. Add operation-specific mask normalization, multiport operand capture, descending MMFM load and ascending MMTM store sequencing, pointer/status atomic ownership, 32/16-bit and page-mode memory integration, hidden-write retirement, and partial-list fault continuation. Do not reuse the TMS34010 cache/timing state machine.",
+      "test_impact": "All 32 first words per opcode; exhaustive 65536 second-word masks and both mask directions; A/B/SP; every register index; pointer-in-list and empty-list nonclaims; memory/register order; pointer wrap; status preservation/N boundaries; every documented count/alignment/instruction-alignment timing row; page boundaries; 16-bit decomposition; waits; faults/retries after every transfer; no duplicate partial stores or loads.",
+      "source_citation": ["TI-TMS34020-UG-1990 MMFM/MMTM, printed pp.13-148..13-151 and timing p.15-6", "TI-TMS34020-UG-1990 page mode, printed pp.8-16..8-17", "TI-TMS34010-UG-1988 MMFM/MMTM, printed pp.12-109..12-112"],
+      "confidence": "PROVISIONAL",
+      "unresolved_questions": ["RSC-0033/OQ-0022: exact TMS34020 MMFM pointer-alignment timing.", "Exact interrupt/fault continuation checkpoint, page grouping, dynamic-width beats, and hidden-write completion remain pending."]
     }
   ]
 }

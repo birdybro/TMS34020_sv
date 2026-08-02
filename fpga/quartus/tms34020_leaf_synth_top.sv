@@ -105,6 +105,13 @@ module tms34020_leaf_synth_top (
     logic swap_n;
     logic swap_z;
     logic swap_v;
+    logic [15:0] multiple_normalized_mask;
+    logic [4:0] multiple_register_count;
+    logic multiple_list_valid;
+    logic [31:0] multiple_final_pointer;
+    logic multiple_n;
+    logic [5:0] multiple_visible_states;
+    logic [1:0] multiple_hidden_write_states;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -144,12 +151,16 @@ module tms34020_leaf_synth_top (
         multiplier_product[31:0] ^
         swap_memory_result ^
         swap_register_result ^
+        {16'd0, multiple_normalized_mask} ^
+        multiple_final_pointer ^
         {26'd0, xy_linear_pitch_class, xy_linear_visible_states} ^
         {20'd0, divider_busy, divider_done, divider_overflow,
          divider_n, divider_z, divider_v, divider_visible_states} ^
         {23'd0, multiplier_legal_field_size, multiplier_n,
          multiplier_z, multiplier_visible_states} ^
         {28'd0, swap_legal_in_word, swap_n, swap_z, swap_v} ^
+        {17'd0, multiple_register_count, multiple_list_valid, multiple_n,
+         multiple_visible_states, multiple_hidden_write_states} ^
         {24'd0, commit_supported, commit_accepted,
          commit_register_write_enable, commit_register_write_file,
          commit_register_write_index} ^
@@ -367,6 +378,21 @@ module tms34020_leaf_synth_top (
         .n_o(swap_n),
         .z_o(swap_z),
         .v_o(swap_v)
+    );
+
+    tms34020_multiple_register_control multiple_register_control (
+        .memory_to_registers_i(first_word_i[5]),
+        .register_list_i(immediate_i[15:0]),
+        .pointer_index_i(first_word_i[3:0]),
+        .pointer_i(second_register_data),
+        .instruction_misaligned_i(operand_i[4]),
+        .normalized_register_mask_o(multiple_normalized_mask),
+        .register_count_o(multiple_register_count),
+        .list_valid_o(multiple_list_valid),
+        .final_pointer_o(multiple_final_pointer),
+        .n_o(multiple_n),
+        .visible_states_o(multiple_visible_states),
+        .hidden_write_states_o(multiple_hidden_write_states)
     );
 
     tms34020_regfile regfile (

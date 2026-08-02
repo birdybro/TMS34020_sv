@@ -64,6 +64,17 @@ physical cycles. The model reports five only for a successful abstract 32-bit
 target and its trace is not pin timing; the combinational leaf has no timing
 owner. Sources: User's Guide SWAPF printed p.13-247 and timing p.15-9.
 
+MMFM publishes `n+5` states for `n` restored registers, despite its detailed
+page saying original Rp alignment affects timing. The model reports that sole
+table value but marks timing incomplete under RSC-0033/OQ-0022. MMTM publishes
+4 states for a one-register list; general long-word-, byte-, and bit-aligned
+lists take `4+n`, `6+n`, and `7+n`, respectively. A non-long-word-aligned
+two-word instruction adds one visible state. Parenthesized hidden writes are
+one state for long-word/byte cases, two for bit-aligned lists through four
+registers, and one in the general-n column. The control leaf classifies these
+values only; it is not a memory scheduler. Sources: User's Guide MMFM/MMTM
+printed pp.13-148..13-151 and timing p.15-6.
+
 ## Hidden trailing writes
 
 Parenthesized states in chapter 15 are hidden memory-write states at the end of

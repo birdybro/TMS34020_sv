@@ -50,3 +50,11 @@ page/section notes.
 
 MAME is used as a differential oracle only. Its source is BSD-3-Clause and must
 not be copied or translated into RTL.
+
+The prior `srg320/TMS34020` FPGA implementation is pinned at commit
+`2046b4378e2e29ee1fe9ef0b6365987e95fa5c0c` as a secondary discrepancy and
+coverage reference. That commit has no license file or source license notice,
+so its payload remains untracked and no code, decode table, or timing state
+machine may be copied or adapted. Its own top-level header lists substantial
+missing bus, host, graphics, interrupt, and instruction behavior; it is not an
+architectural authority or completion baseline.

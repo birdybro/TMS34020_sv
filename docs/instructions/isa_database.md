@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 100 page-verified encoding records and covers 31,124 of 65,536
+slice contains 102 page-verified encoding records and covers 31,188 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -31,6 +31,8 @@ first words without collisions:
 | MPYS | `5C00h`, mask `FE00h` | 1 | pp.13-172..13-174 |
 | MPYU | `5E00h`, mask `FE00h` | 1 | pp.13-175..13-176 |
 | SWAPF | `7E00h`, mask `FE00h` | 1 | pp.13-247..13-248 |
+| MMTM | `0980h`, mask `FFE0h` | 2 | pp.13-150..13-151 |
+| MMFM | `09A0h`, mask `FFE0h` | 2 | pp.13-148..13-149 |
 | MODS | `6C00h`, mask `FE00h` | 1 | p.13-152 |
 | MODU | `6E00h`, mask `FE00h` | 1 | p.13-153 |
 | EINT | `0D60h` | 1 | p.13-109 |
@@ -219,6 +221,16 @@ from the unimplemented physical lock owner: read/write adjacency, implicit
 MWAIT, restart-from-read on retry/fault/interruption, host exclusion, and the
 SIZE16/S=0 limitation remain explicit test obligations. Sources: TMS34020
 User's Guide printed pp.13-247..13-248, 8-13, 8-26, and 15-9.
+
+MMTM and MMFM retain compatible first words but use opposite second-word list
+mask directions. MMTM bit 15 selects register 0 and bit 0 selects SP; MMFM bit
+0 selects register 0 and bit 15 selects SP. Metadata records predecrement/
+ascending-register stores, postincrement/descending-register loads, pointer
+validity, MMTM's N-only result, page-mode eligibility, dynamic-width and fault
+obligations, and the complete published timing tables. MMFM `n+5` remains
+provisional under RSC-0033/OQ-0022 because its detailed page claims an absent
+alignment discriminator. Sources: TMS34020 User's Guide printed
+pp.8-16..8-17, 13-148..13-151, and 15-6.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

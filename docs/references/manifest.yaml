@@ -352,6 +352,45 @@
         {"path": "src/mame/williams/midxunit.cpp", "sha256": "3d6ef50dda88318f1c8896d71b543b1f2247aa138b1d7e1ce00c9d183c75a777"}
       ],
       "notes": "Current verified paths differ from the suggested src/mame/midway path. MAME line 9 still records big-endian TMS34020 as unimplemented."
+    },
+    {
+      "id": "SRG320-TMS34020-20230420",
+      "title": "TMS34020 FPGA implementation",
+      "publisher": "srg320",
+      "author": "Sergey Dvodnenko",
+      "publication_number": "git commit 2046b4378e2e29ee1fe9ef0b6365987e95fa5c0c",
+      "date": "2023-04-20",
+      "revision": "master at retrieval, pinned immutable commit",
+      "url": "https://github.com/srg320/TMS34020/commit/2046b4378e2e29ee1fe9ef0b6365987e95fa5c0c",
+      "retrieval_date": "2026-08-01",
+      "local_filename": "srg320_TMS34020",
+      "sha256": "45055f5b0e6d716ee5c0a536ac3ac7830c95c8f782aeaaec6fdbb6bff1ec39e9",
+      "document_type": "git_source_set",
+      "applicable_device": ["TMS34020", "FPGA implementation"],
+      "applicable_silicon_revision": ["not stated"],
+      "authority_level": "SECONDARY_COMMUNITY_FPGA",
+      "redistribution_status": "unknown_do_not_commit_reference_only",
+      "license": "No license file or source license notice at the pinned commit; do not copy or adapt",
+      "relevant_chapters_or_pages": ["decoder", "cache", "memory controller", "I/O", "video", "Quartus constraints"],
+      "committed": false,
+      "required": false,
+      "fetch": "git_files",
+      "repository": "https://github.com/srg320/TMS34020",
+      "commit": "2046b4378e2e29ee1fe9ef0b6365987e95fa5c0c",
+      "files": [
+        {"path": "TMS34020.qsf", "sha256": "37609314b9b0bbf860dbb2853dce7673dd1a18958ba64ca178df30498ee5e44b"},
+        {"path": "TMS34020.sdc", "sha256": "7afc08e7c77295aacec3dc4f6f0dd2c64de0df694581e8dc16ee8b558b4bf34c"},
+        {"path": "TMS34020.sv", "sha256": "0edcd1631eabef234f521ea5e3463c6634f6c4a22af36b0c0e18646c59790b2a"},
+        {"path": "TMS34020_CACHE.sv", "sha256": "cec455b8d6973b380b400d90112c80d5269260e380cb7abdf25033d7c628d540"},
+        {"path": "TMS34020_ID.sv", "sha256": "ab60b2e94ced86ff579bbc5bfd7ef860a8b909af1c7baf6112661330c50fe371"},
+        {"path": "TMS34020_IO.sv", "sha256": "ab7bb47551bdfa6189af8f76964ef0443807182d46816cb7771698089a3ba50e"},
+        {"path": "TMS34020_MC.sv", "sha256": "ad44d481ad3f18bec64a55fe8496fc5ea1956094b1faa66d4f80c93cb6d4fe41"},
+        {"path": "TMS34020_RF.sv", "sha256": "c2b2e0ce306b8c5074f1773130e7554b7b9c5da1d53b51e4768eaca4fbe002dd"},
+        {"path": "TMS34020_mem.sv", "sha256": "6aff07b2a00ff871001491f100821be6599cca5c3dc9ece2af5850e5eab3dc92"},
+        {"path": "TMS34020_pkg.sv", "sha256": "a921304988aa1521b9929407f7a3c9ef53dbe429a992e2b77ab56a585205f138"},
+        {"path": "TMS34020_tb.sv", "sha256": "038e1637426b5eb6e0b106fbf657eb7c539e3b603c28589f1eeb3fa4abb84584"}
+      ],
+      "notes": "Located as a prior FPGA implementation and inspected only as a secondary discrepancy source. The top-level header explicitly lists missing big-endian, host, 16-bit bus, interruptible graphics, window/direction/pixel behavior, EMU/IDLE/BLMOVE/CEXEC/CMOVxx/RETM/SWAPF, several vector/line/pixel operations, and PIXBLT forms. No LICENSE, COPYING, or README exists at the pinned commit. No code or timing state machine is copied into this project."
     }
   ]
 }

@@ -4,15 +4,20 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `fea7a996312e8558663b377ae89b3c078dd835f5`
-- Passing tests: foundation, reference/hash, delta, 42-case ISA sweep, 158 directed model
+- Passing tests: foundation, reference/hash, delta, 43-case ISA sweep, 163 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 99 of 100 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. SWAPF covers every
+- Model status: 101 of 102 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. MMFM/MMTM cover all
+  65,536 mask words in both opposite mask directions, every A/B/SP register,
+  pointer wrap, logical transaction order, exact MMTM status, and published
+  successful timing classes. Empty and pointer-containing lists roll back;
+  physical page mode, dynamic-width decomposition, waits, fault/retry, and
+  partial-list continuation remain absent. SWAPF covers every
   valid word-local FS0 width/offset, FE0 extension, A/B/SP aliases, exact
   status, five base states, and ordered abstract locked read/write traces;
   crossing use rolls back. Physical lock ownership, waits, retry/fault,
@@ -90,7 +95,9 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 100-entry partial decode, clean-room iterative
+- RTL status: generated 102-entry partial decode, an exhaustive clean-room
+  MMFM/MMTM list-normalization/pointer/status/timing control leaf,
+  clean-room iterative
   DIVS/DIVU/MODS/MODU and combinational MPYS/MPYU leaves, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
@@ -149,6 +156,8 @@
   forms until one owner can capture operands and commit either an even pair or
   odd single result plus status atomically; the leaf state output remains
   provisional under RSC-0030.
+  MMFM/MMTM base/end decode and all 65,536 direct/reversed masks pass, with
+  explicit noncommit guards until a page-mode/fault-aware memory owner exists.
   SWAPF decode and its standalone field-transform leaf pass full and
   positioned fields, FE0 extension, status, valid-boundary and crossing
   classification. The router rejects it pending a locked memory/commit owner.
@@ -215,13 +224,15 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 11,293 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 11,479 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 432, 806, and 5,336 logic cells;
+  the fetch, frontend, and scalar wrappers use 441, 811, and 5,366 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
-- Documentation acquired: nine hash-verified TI documents plus an eleven-file
-  pinned MAME source set; all payloads are gitignored
+- Documentation acquired: nine hash-verified TI documents, an eleven-file
+  pinned MAME source set, and an eleven-file pinned prior FPGA source set; all
+  payloads are gitignored. The prior FPGA source has no license and is
+  reference-only, explicitly incomplete, and not copied or adapted
 - Provisional behavior: the cache model represents architecturally
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
   transactions rather than pin-level dynamic-width cycles
@@ -229,8 +240,10 @@
   first-silicon history, the MPYS/MPYU detailed-page/timing-table swap and
   TMS34010 odd-product flag boundary, the unreachable published MODS 41-state result,
   signed even-pair DIVS nonzero early-overflow behavior,
-  CVXYL's three contradictory PSIZE=4 table rows, and its arbitrary-pitch
-  14/15-state primary timing disagreement
+  CVXYL's three contradictory PSIZE=4 table rows, its arbitrary-pitch
+  14/15-state primary timing disagreement, and MMFM's unexplained statement
+  that original-Rp alignment affects timing despite no corresponding timing
+  table class
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
 - Next task: continue primary ISA extraction and preserve explicit noncommit

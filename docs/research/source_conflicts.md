@@ -649,3 +649,32 @@
   Odd-Rd discriminators cover a nonzero full product with zero low word and
   signed products whose full and low-word signs differ. Upstream flag fixtures
   are not imported as compatible evidence. OQ-0021 tracks the older device.
+
+## RSC-0033: Multiple-register pages retain contradictory labels and MMFM timing prose
+
+- Status: data-direction/list-order contradictions resolved from the primary
+  descriptions and examples; MMFM alignment timing remains provisional
+- Primary MMFM evidence: TI *TMS34020 User's Guide*, August 1990, printed
+  pp.13-148..13-149 defines memory-to-register transfers, postincrementing Rp,
+  highest-register-first order, and a direct mask (`bit n` selects register n).
+  Its example list names B3 and B7 but the result table labels their values B4
+  and B8. The same pages say original Rp alignment affects timing, while the
+  only TMS34020 timing table on printed p.15-6 publishes `n+5` without an
+  alignment discriminator.
+- Primary MMTM evidence: printed pp.13-150..13-151 repeatedly defines
+  register-to-memory predecrement stores, ascending register-number order, and
+  the reversed mask (`bit 15` selects register 0, `bit 0` selects SP). The
+  execution line instead prints data at the address in Rn moving to Rp, and
+  one mask paragraph says selected registers are "restored". Those phrases
+  contradict the operation title, full description, mask diagram, memory
+  table, and pointer result on the same pages.
+- Cross-generation evidence: TI *TMS34010 User's Guide*, 1988, printed
+  pp.12-109..12-112 defines the same directions and list orders. Its timings
+  are explicitly cache/alignment dependent and are not substituted for the
+  TMS34020 table.
+- Decision: model/metadata use the unambiguous operation descriptions, mask
+  diagrams, and memory ordering; fixtures do not propagate the mislabeled
+  MMFM result registers. Successful MMFM reports `n+5` as the sole published
+  TMS34020 value but marks timing incomplete and confidence provisional.
+  OQ-0022 tracks the missing alignment discriminator. No cycle-accuracy claim
+  follows from the selected table.

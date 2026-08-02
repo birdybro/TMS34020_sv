@@ -115,6 +115,18 @@ module tb_tms34020_verified_leaves;
     logic swap_n;
     logic swap_z;
     logic swap_v;
+    logic multiple_memory_to_registers;
+    logic [15:0] multiple_register_list;
+    logic [3:0] multiple_pointer_index;
+    logic [31:0] multiple_pointer;
+    logic multiple_instruction_misaligned;
+    logic [15:0] multiple_normalized_mask;
+    logic [4:0] multiple_register_count;
+    logic multiple_list_valid;
+    logic [31:0] multiple_final_pointer;
+    logic multiple_n;
+    logic [5:0] multiple_visible_states;
+    logic [1:0] multiple_hidden_write_states;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -357,6 +369,21 @@ module tb_tms34020_verified_leaves;
         .n_o(swap_n),
         .z_o(swap_z),
         .v_o(swap_v)
+    );
+
+    tms34020_multiple_register_control multiple_register_control_dut (
+        .memory_to_registers_i(multiple_memory_to_registers),
+        .register_list_i(multiple_register_list),
+        .pointer_index_i(multiple_pointer_index),
+        .pointer_i(multiple_pointer),
+        .instruction_misaligned_i(multiple_instruction_misaligned),
+        .normalized_register_mask_o(multiple_normalized_mask),
+        .register_count_o(multiple_register_count),
+        .list_valid_o(multiple_list_valid),
+        .final_pointer_o(multiple_final_pointer),
+        .n_o(multiple_n),
+        .visible_states_o(multiple_visible_states),
+        .hidden_write_states_o(multiple_hidden_write_states)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -834,6 +861,39 @@ module tb_tms34020_verified_leaves;
             swap_memory_result == expected_memory_word &&
             swap_register_result == expected_register &&
             {swap_n, swap_z, swap_v} == expected_nzv,
+            message
+        );
+    endtask
+
+    task automatic check_multiple_register_control(
+        input logic memory_to_registers,
+        input logic [15:0] register_list,
+        input logic [3:0] pointer_index,
+        input logic [31:0] pointer,
+        input logic instruction_misaligned,
+        input logic [15:0] expected_normalized_mask,
+        input logic [4:0] expected_register_count,
+        input logic expected_list_valid,
+        input logic [31:0] expected_final_pointer,
+        input logic expected_n,
+        input logic [5:0] expected_visible_states,
+        input logic [1:0] expected_hidden_write_states,
+        input string message
+    );
+        multiple_memory_to_registers = memory_to_registers;
+        multiple_register_list = register_list;
+        multiple_pointer_index = pointer_index;
+        multiple_pointer = pointer;
+        multiple_instruction_misaligned = instruction_misaligned;
+        #1;
+        check_condition(
+            multiple_normalized_mask == expected_normalized_mask &&
+            multiple_register_count == expected_register_count &&
+            multiple_list_valid == expected_list_valid &&
+            multiple_final_pointer == expected_final_pointer &&
+            multiple_n == expected_n &&
+            multiple_visible_states == expected_visible_states &&
+            multiple_hidden_write_states == expected_hidden_write_states,
             message
         );
     endtask
@@ -1778,6 +1838,11 @@ module tb_tms34020_verified_leaves;
         swap_bit_offset = 5'd0;
         swap_memory_word = 32'd0;
         swap_register = 32'd0;
+        multiple_memory_to_registers = 1'b0;
+        multiple_register_list = 16'd0;
+        multiple_pointer_index = 4'd0;
+        multiple_pointer = 32'd0;
+        multiple_instruction_misaligned = 1'b0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2525,6 +2590,75 @@ module tb_tms34020_verified_leaves;
             1'b0, 32'h9234_5678, 32'd0, 3'b010,
             "SWAPF crossing field is marked unsupported"
         );
+        check_multiple_register_control(
+            1'b1, 16'h4015, 4'd15, 32'h0000_0780, 1'b0,
+            16'h4015, 5'd4, 1'b1, 32'h0000_0800, 1'b1, 6'd9, 2'd0,
+            "MMFM direct mask, descending register order, and n+5 timing"
+        );
+        check_multiple_register_control(
+            1'b0, 16'hA802, 4'd15, 32'h0000_0800, 1'b0,
+            16'h4015, 5'd4, 1'b1, 32'h0000_0780, 1'b1, 6'd8, 2'd1,
+            "MMTM reversed mask and long-word aligned timing"
+        );
+        check_multiple_register_control(
+            1'b0, 16'h8000, 4'd3, 32'h0000_0408, 1'b0,
+            16'h0001, 5'd1, 1'b1, 32'h0000_03E8, 1'b1, 6'd4, 2'd1,
+            "MMTM one-register byte-aligned special timing"
+        );
+        check_multiple_register_control(
+            1'b0, 16'h8000, 4'd3, 32'h0000_0401, 1'b0,
+            16'h0001, 5'd1, 1'b1, 32'h0000_03E1, 1'b1, 6'd4, 2'd2,
+            "MMTM one-register bit-aligned hidden-write timing"
+        );
+        check_multiple_register_control(
+            1'b0, 16'hEC00, 4'd3, 32'h0000_0401, 1'b0,
+            16'h0037, 5'd5, 1'b1, 32'h0000_0361, 1'b1, 6'd12, 2'd1,
+            "MMTM general bit-aligned list timing"
+        );
+        check_multiple_register_control(
+            1'b0, 16'h8000, 4'd3, 32'hFFFF_FFFF, 1'b1,
+            16'h0001, 5'd1, 1'b1, 32'hFFFF_FFDF, 1'b0, 6'd5, 2'd2,
+            "MMTM instruction alignment penalty and inverted-pointer N"
+        );
+        check_multiple_register_control(
+            1'b1, 16'h0008, 4'd3, 32'h0000_0400, 1'b0,
+            16'h0008, 5'd1, 1'b0, 32'h0000_0420, 1'b1, 6'd6, 2'd0,
+            "MMFM rejects a pointer present in the list"
+        );
+        check_multiple_register_control(
+            1'b0, 16'h0000, 4'd3, 32'h0000_0400, 1'b0,
+            16'h0000, 5'd0, 1'b0, 32'h0000_0400, 1'b1, 6'd4, 2'd1,
+            "MMTM marks an empty list outside the portable domain"
+        );
+        for (int unsigned mask_index = 0; mask_index < 65536;
+             mask_index++) begin
+            logic [15:0] expected_reversed_mask;
+            logic [4:0] expected_mask_count;
+            expected_reversed_mask = 16'd0;
+            expected_mask_count = 5'd0;
+            for (int unsigned bit_index = 0; bit_index < 16;
+                 bit_index++) begin
+                expected_reversed_mask[bit_index] =
+                    mask_index[15 - bit_index];
+                expected_mask_count = expected_mask_count +
+                    {4'd0, mask_index[bit_index]};
+            end
+            multiple_register_list = mask_index[15:0];
+            multiple_memory_to_registers = 1'b1;
+            #1;
+            check_condition(
+                multiple_normalized_mask == mask_index[15:0] &&
+                multiple_register_count == expected_mask_count,
+                "MMFM exhaustive direct-mask normalization"
+            );
+            multiple_memory_to_registers = 1'b0;
+            #1;
+            check_condition(
+                multiple_normalized_mask == expected_reversed_mask &&
+                multiple_register_count == expected_mask_count,
+                "MMTM exhaustive reverse-mask normalization"
+            );
+        end
 
         check_pitch_conversion(
             32'h0000_1000, 16'h0013, 3'd4,
@@ -3119,6 +3253,26 @@ module tb_tms34020_verified_leaves;
             16'h7FFF, 32'h0000_0400, 32'h0000_0001, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "SWAPF upper bound cannot bypass memory ownership"
+        );
+        check_register_execute(
+            16'h0980, 32'h0000_0400, 32'h0000_0001, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MMTM cannot bypass multiwrite memory ownership"
+        );
+        check_register_execute(
+            16'h099F, 32'h0000_0400, 32'h0000_0001, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MMTM upper bound cannot bypass multiwrite ownership"
+        );
+        check_register_execute(
+            16'h09A0, 32'h0000_0400, 32'h0000_0001, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MMFM cannot bypass multiread memory ownership"
+        );
+        check_register_execute(
+            16'h09BF, 32'h0000_0400, 32'h0000_0001, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MMFM upper bound cannot bypass multiread ownership"
         );
         check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
@@ -4733,6 +4887,14 @@ module tb_tms34020_verified_leaves;
                      "SWAPF lower-bound decode");
         check_decode(16'h7FFF, TMS20_OP_SWAPF, 3'd1,
                      "SWAPF upper-bound decode");
+        check_decode(16'h0980, TMS20_OP_MMTM, 3'd2,
+                     "MMTM lower-bound decode");
+        check_decode(16'h099F, TMS20_OP_MMTM, 3'd2,
+                     "MMTM upper-bound decode");
+        check_decode(16'h09A0, TMS20_OP_MMFM, 3'd2,
+                     "MMFM lower-bound decode");
+        check_decode(16'h09BF, TMS20_OP_MMFM, 3'd2,
+                     "MMFM upper-bound decode");
         check_decode(16'h6C00, TMS20_OP_MODS, 3'd1,
                      "MODS lower-bound decode");
         check_decode(16'h6DFF, TMS20_OP_MODS, 3'd1,

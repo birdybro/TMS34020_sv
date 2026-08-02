@@ -74,7 +74,7 @@ class IsaTests(unittest.TestCase):
                 if instruction["confidence"] == "PROVISIONAL":
                     self.assertIn(
                         instruction["mnemonic"],
-                        {"CVXYL", "DIVS", "MPYS", "MPYU"},
+                        {"CVXYL", "DIVS", "MMFM", "MPYS", "MPYU"},
                     )
 
     def test_independent_hand_checked_first_words(self) -> None:
@@ -162,6 +162,10 @@ class IsaTests(unittest.TestCase):
             0x09DF: ("MOVI.W", 2),
             0x09E0: ("MOVI.L", 3),
             0x09FF: ("MOVI.L", 3),
+            0x0980: ("MMTM", 2),
+            0x099F: ("MMTM", 2),
+            0x09A0: ("MMFM", 2),
+            0x09BF: ("MMFM", 2),
             0x4C00: ("MOVE", 1),
             0x4FFF: ("MOVE", 1),
             0x3000: ("RL.K", 1),
@@ -310,8 +314,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 31124)
-        self.assertEqual(unclassified, 65536 - 31124)
+        self.assertEqual(matched, 31188)
+        self.assertEqual(unclassified, 65536 - 31188)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -734,6 +738,33 @@ class IsaTests(unittest.TestCase):
             swapf.metadata["pipeline_interactions"][1],
         )
         self.assertFalse(swapf.metadata["compatible_with_tms34010"])
+
+    def test_multiple_register_moves_record_opposite_masks_and_timing(self) -> None:
+        for word in range(0x0980, 0x09A0):
+            with self.subTest(word=f"{word:04X}"):
+                decoded = self.database.decode(word)
+                self.assertIsNotNone(decoded)
+                self.assertEqual(decoded.mnemonic, "MMTM")
+        for word in range(0x09A0, 0x09C0):
+            with self.subTest(word=f"{word:04X}"):
+                decoded = self.database.decode(word)
+                self.assertIsNotNone(decoded)
+                self.assertEqual(decoded.mnemonic, "MMFM")
+
+        mmtm = self.database.decode(0x0980)
+        mmfm = self.database.decode(0x09A0)
+        self.assertEqual(mmtm.length_words, 2)
+        self.assertEqual(mmfm.length_words, 2)
+        self.assertIn("bit 15=A0/B0", mmtm.metadata["operand_fields"][2]["encoding"])
+        self.assertIn("bit 0=A0/B0", mmfm.metadata["operand_fields"][2]["encoding"])
+        self.assertEqual(mmtm.metadata["status_bits_written"], ["N"])
+        self.assertEqual(mmfm.metadata["status_bits_written"], [])
+        self.assertIn(
+            "n+5", mmfm.metadata["documented_cycles"]["machine_states"]
+        )
+        self.assertIn(
+            "RSC-0033", mmfm.metadata["documented_cycles"]["primary_conflict"]
+        )
 
     def test_btst_forms_record_complemented_constant_and_status_only(self) -> None:
         constant = self.database.decode(0x1FE0)

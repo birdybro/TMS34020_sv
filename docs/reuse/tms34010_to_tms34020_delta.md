@@ -160,6 +160,19 @@ not reusable. The current model/leaf cover successful valid 32-bit word-local
 semantics only. Sources: TMS34020 guide printed pp.13-247..13-248, 8-13,
 8-26, and 15-9.
 
+MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
+encodings, opposite second-word mask directions, register order, and visible
+pointer/status semantics. Their timing and memory-controller ownership do not
+carry forward. The TMS34010 pages publish cache-enabled/disabled and aligned/
+nonaligned 16-bit-bus cases. TMS34020 MMFM instead publishes `n+5` under
+RSC-0033, while MMTM distinguishes long-word, byte and bit alignment, hidden
+pipelined writes, and instruction alignment. Both are eligible for the new
+32-bit page-mode memory system and dynamic 16-bit sizing. Reuse is limited to
+register numbering and semantic compatibility fixtures; the multiaccess,
+page, fault/retry and timing state machines require a TMS34020 owner. Sources:
+TMS34020 guide printed pp.8-16..8-17, 13-148..13-151, and 15-6; TMS34010
+guide printed pp.12-109..12-112.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family

@@ -116,6 +116,8 @@ class Tms34020Model:
             "PUSHST": self._execute_pushst,
             "PUTST": self._execute_putst,
             "RETS": self._execute_rets,
+            "MMFM": self._execute_mmfm,
+            "MMTM": self._execute_mmtm,
             "ADDK": self._execute_addk,
             "SUBK": self._execute_subk,
             "MOVK": self._execute_movk,
@@ -1166,6 +1168,142 @@ class Tms34020Model:
             "dynamic-width, page-mode, and redirect timing pending"
         )
         return 5 if old_sp & 0x1F == 0 else 6
+
+    @staticmethod
+    def _multiple_register_indices(
+        mask: int, memory_to_registers: bool
+    ) -> list[int]:
+        if not 0 <= mask <= 0xFFFF:
+            raise ValueError("register-list mask must fit in 16 bits")
+        if memory_to_registers:
+            return [
+                index for index in range(15, -1, -1)
+                if mask & (1 << index)
+            ]
+        return [
+            index for index in range(16)
+            if mask & (1 << (15 - index))
+        ]
+
+    def _validate_multiple_register_list(
+        self,
+        pointer_index: int,
+        mask: int,
+        memory_to_registers: bool,
+    ) -> list[int]:
+        indices = self._multiple_register_indices(
+            mask, memory_to_registers
+        )
+        if not indices:
+            raise ModelError(
+                "empty MMFM/MMTM register list is outside the documented "
+                "portable model domain"
+            )
+        if pointer_index in indices:
+            raise ModelError(
+                "MMFM/MMTM pointer register in the register list has "
+                "documented unpredictable results"
+            )
+        return indices
+
+    def _execute_mmfm(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, pointer_index = self._decode_destination(words[0])
+        indices = self._validate_multiple_register_list(
+            pointer_index, words[1], memory_to_registers=True
+        )
+        pointer = self.state.read_reg(register_file, pointer_index)
+        reads: list[tuple[int, int, int]] = []
+        for register_index in indices:
+            value = self.state.memory.read_bits(pointer, 32)
+            reads.append((register_index, pointer, value))
+            pointer = (pointer + 32) & MASK32
+
+        for register_index, bit_address, value in reads:
+            self.state.write_reg(register_file, register_index, value)
+            assert self._active_trace is not None
+            self._active_trace.transactions.append(
+                {
+                    "class": "data_read",
+                    "purpose": "multiple_register_restore",
+                    "bit_address": bit_address,
+                    "width": 32,
+                    "value": value,
+                    "register_index": register_index,
+                }
+            )
+        self.state.write_reg(register_file, pointer_index, pointer)
+        assert self._active_trace is not None
+        self._active_trace.notes.append(
+            "successful atomic MMFM abstraction; external page-mode, "
+            "dynamic-width, wait, fault/retry, partial-list continuation, "
+            "and physical timing remain pending (RSC-0033)"
+        )
+        self.state.timing_complete = False
+        return len(indices) + 5
+
+    def _execute_mmtm(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, pointer_index = self._decode_destination(words[0])
+        indices = self._validate_multiple_register_list(
+            pointer_index, words[1], memory_to_registers=False
+        )
+        old_pointer = self.state.read_reg(register_file, pointer_index)
+        values = [
+            (register_index, self.state.read_reg(register_file, register_index))
+            for register_index in indices
+        ]
+        pointer = old_pointer
+        writes: list[tuple[int, int, int]] = []
+        for register_index, value in values:
+            pointer = (pointer - 32) & MASK32
+            writes.append((register_index, pointer, value))
+
+        for register_index, bit_address, value in writes:
+            self.state.memory.write_bits(bit_address, 32, value)
+            assert self._active_trace is not None
+            self._active_trace.transactions.append(
+                {
+                    "class": "data_write",
+                    "purpose": "multiple_register_save",
+                    "bit_address": bit_address,
+                    "width": 32,
+                    "value": value,
+                    "register_index": register_index,
+                }
+            )
+        self.state.write_reg(register_file, pointer_index, pointer)
+        self._set_status_bit(N_BIT, not bool(old_pointer & 0x8000_0000))
+
+        register_count = len(indices)
+        if old_pointer & 0x7:
+            visible_states = 4 if register_count == 1 else register_count + 7
+            hidden_states = 2 if register_count <= 4 else 1
+            data_alignment = "bit"
+        elif old_pointer & 0x1F:
+            visible_states = 4 if register_count == 1 else register_count + 6
+            hidden_states = 1
+            data_alignment = "byte"
+        else:
+            visible_states = 4 if register_count == 1 else register_count + 4
+            hidden_states = 1
+            data_alignment = "long_word"
+        assert self._active_trace is not None
+        if self._active_trace.start_pc & 0x1F:
+            visible_states += 1
+        self._new_hidden_write_states = hidden_states
+        self._active_trace.notes.append(
+            f"successful atomic MMTM abstraction; {data_alignment}-aligned "
+            "source pointer timing class selected, but external page-mode, "
+            "dynamic-width, wait, fault/retry, partial-list continuation, "
+            "and physical write retirement remain pending"
+        )
+        self.state.timing_complete = False
+        return visible_states
 
     def _execute_addk(
         self, instruction: Instruction, words: list[int]
