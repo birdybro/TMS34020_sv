@@ -36,7 +36,7 @@ Implemented:
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
-  CEXEC.S, CLIP, DRAV, FLINE, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
+  CEXEC.S, CLIP, DRAV, FILL.L, FILL.XY, FLINE, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
   CMOVMC.POST.C, CMOVCM.POST.C, CMOVCM.PRE.C, CMOVMC.POST.R,
   CMOVMC.PRE.C,
   XORI,
@@ -44,7 +44,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LINIT, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 145 of 146 currently extracted database forms for their
+These handlers cover 147 of 148 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -464,6 +464,20 @@ rollback. Window checking, other PPOP/transparency modes, CST, physical
 read/modify/write, waits/page/fault/retry and hidden-write overlap remain
 absent. Sources: TMS34020 User's Guide DRAV pp.13-100..13-102 and timing
 pp.15-1..15-2, 15-5; TMS34010 User's Guide DRAV pp.12-67..12-69; RSC-0045.
+
+FILL.L and FILL.XY perform bounded atomic W=0 array fills from replicated
+B9/COLOR1 through the aligned 32-bit PMASK lane. DYDX halves are unsigned
+height:width; either zero produces no logical write. The linear form begins at
+B2, while the XY form converts signed B2 through CONVDP, B3/DPTCH, PSIZE and
+B4/OFFSET. Rows advance by B3 and successful nonempty execution leaves B2 at
+the linear start of the following row, preserving B7 and all ST bits. Tests
+reproduce both primary replace examples, every legal PSIZE/lane/PMASK, row
+boundaries, zero dimensions and atomic guard rollback. The atomic model is
+deliberately limited to 65,536 pixels. Other PPOP/transparency modes, CST,
+active windows, physical long-word grouping, hidden writes, page/wait/fault/
+retry behavior and word/row continuation remain absent. Sources: User's Guide
+DADDR/DPTCH/DYDX pp.4-30..4-34 and 4-50..4-51, FILL pp.13-114..13-120,
+array interruption pp.6-13..6-14 and timing p.15-5; RSC-0045/RSC-0046.
 
 The four XY-to-linear handlers share equation-level arithmetic but retain
 their distinct explicit and implied operands. Signed X/Y halves and signed
@@ -928,6 +942,9 @@ pitch-class no-wait formula cases, and atomic unsupported-mode rollback,
 DRAV primary replace examples, every PSIZE/lane/PMASK, independent XY halves,
 A/B/same-register/shared-SP operands, pitch-class W0 timing, logical writes,
 status preservation and atomic unsupported-mode rollback,
+FILL.L/FILL.XY primary replace arrays, every PSIZE/lane/PMASK, row traversal,
+zero dimensions, final linear B2, full ST preservation, the atomic pixel bound,
+and unsupported-mode/alignment rollback,
 all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
 coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and the
 published state cases plus provisional CVXYL arbitrary-pitch selection,

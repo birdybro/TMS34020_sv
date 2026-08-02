@@ -326,6 +326,14 @@ retries. The normalized RTL leaf exposes no timing. Sources: TMS34020 User's
 Guide timing assumptions/Table 15-1/DRAV matrix printed pp.15-1..15-2 and
 15-5. TMS34010's different table on printed p.12-68 is not reused.
 
+FILL.L and FILL.XY are both listed only as `complex instruction`; the guide
+publishes no simple state formula. The model events therefore leave
+`machine_states` unset, and the combinational one-step leaf makes no timing
+claim. Hidden pipelined writes, page grouping, window preclassification,
+interrupt checkpoints, waits and retry can all change the externally observed
+schedule. Sources: User's Guide general assumptions pp.15-1..15-2, FILL table
+p.15-5, and FILL instruction pages pp.13-114..13-120.
+
 CVDXYL, CVMXYL, and CVSXYL take 2 machine states for a power-of-two pitch, 3
 for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3 and 4
 states for the first two classes. Its instruction page specifies 14 for an

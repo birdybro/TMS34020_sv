@@ -167,6 +167,14 @@ contains the final logical pixel and old/increment/new XY values only; it does
 not describe physical read/modify/write acceptance, SIZE16 beats or BUSFLT
 sampling.
 
+FILL's atomic logical pixel list and final B2 update are not bus-fault or retry
+evidence. A physical owner must checkpoint accepted destination words and row
+state, drain or cancel hidden writes correctly, and prove that retry cannot
+duplicate a partial pixel group or advance B2 twice. The current `fill_l_replace`
+and `fill_xy_replace` traces contain per-pixel final values only; they do not
+describe 32/16-bit grouping, page-mode acceptance, byte strobes or BUSFLT
+sampling.
+
 ## Required verification
 
 Future RTL tests and properties must inject all four completion codes during

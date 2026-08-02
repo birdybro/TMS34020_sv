@@ -128,6 +128,27 @@ module tb_tms34020_verified_leaves;
     logic [31:0] drav_plane_mask;
     logic [31:0] drav_result_pixel;
     logic [31:0] drav_next_destination_xy;
+    logic [31:0] fill_current_address;
+    logic [31:0] fill_row_start;
+    logic [31:0] fill_dptch;
+    logic [15:0] fill_columns_remaining;
+    logic [15:0] fill_rows_remaining;
+    logic [15:0] fill_row_width;
+    logic [31:0] fill_color1;
+    logic [31:0] fill_pmask;
+    logic [31:0] fill_raw_destination;
+    logic [15:0] fill_psize;
+    logic fill_inputs_valid;
+    logic fill_active;
+    logic [31:0] fill_access_address;
+    logic [31:0] fill_source_pixel;
+    logic [31:0] fill_plane_mask;
+    logic [31:0] fill_result_pixel;
+    logic [31:0] fill_next_address;
+    logic [31:0] fill_next_row_start;
+    logic [15:0] fill_next_columns_remaining;
+    logic [15:0] fill_next_rows_remaining;
+    logic fill_done;
     logic fline_algorithm_one;
     logic [31:0] fline_decision;
     logic [31:0] fline_daddr;
@@ -705,6 +726,30 @@ module tb_tms34020_verified_leaves;
         .plane_mask_o(drav_plane_mask),
         .result_pixel_o(drav_result_pixel),
         .next_destination_xy_o(drav_next_destination_xy)
+    );
+
+    tms34020_fill_step fill_step_dut (
+        .current_address_i(fill_current_address),
+        .row_start_i(fill_row_start),
+        .dptch_i(fill_dptch),
+        .columns_remaining_i(fill_columns_remaining),
+        .rows_remaining_i(fill_rows_remaining),
+        .row_width_i(fill_row_width),
+        .color1_i(fill_color1),
+        .pmask_i(fill_pmask),
+        .raw_destination_i(fill_raw_destination),
+        .psize_i(fill_psize),
+        .inputs_valid_o(fill_inputs_valid),
+        .active_o(fill_active),
+        .access_address_o(fill_access_address),
+        .source_pixel_o(fill_source_pixel),
+        .plane_mask_o(fill_plane_mask),
+        .result_pixel_o(fill_result_pixel),
+        .next_address_o(fill_next_address),
+        .next_row_start_o(fill_next_row_start),
+        .next_columns_remaining_o(fill_next_columns_remaining),
+        .next_rows_remaining_o(fill_next_rows_remaining),
+        .done_o(fill_done)
     );
 
     tms34020_fline_step fline_step_dut (
@@ -1720,6 +1765,58 @@ module tb_tms34020_verified_leaves;
             drav_plane_mask == expected_plane_mask &&
             drav_result_pixel == expected_result_pixel &&
             drav_next_destination_xy == expected_next_destination_xy,
+            message
+        );
+    endtask
+
+    task automatic check_fill_step(
+        input logic [31:0] current_address,
+        input logic [31:0] row_start,
+        input logic [31:0] dptch,
+        input logic [15:0] columns_remaining,
+        input logic [15:0] rows_remaining,
+        input logic [15:0] row_width,
+        input logic [31:0] color1,
+        input logic [31:0] pmask,
+        input logic [31:0] raw_destination,
+        input logic [15:0] psize,
+        input logic expected_valid,
+        input logic expected_active,
+        input logic [31:0] expected_access_address,
+        input logic [31:0] expected_source_pixel,
+        input logic [31:0] expected_plane_mask,
+        input logic [31:0] expected_result_pixel,
+        input logic [31:0] expected_next_address,
+        input logic [31:0] expected_next_row_start,
+        input logic [15:0] expected_next_columns_remaining,
+        input logic [15:0] expected_next_rows_remaining,
+        input logic expected_done,
+        input string message
+    );
+        fill_current_address = current_address;
+        fill_row_start = row_start;
+        fill_dptch = dptch;
+        fill_columns_remaining = columns_remaining;
+        fill_rows_remaining = rows_remaining;
+        fill_row_width = row_width;
+        fill_color1 = color1;
+        fill_pmask = pmask;
+        fill_raw_destination = raw_destination;
+        fill_psize = psize;
+        #1;
+        check_condition(
+            fill_inputs_valid == expected_valid &&
+            fill_active == expected_active &&
+            fill_access_address == expected_access_address &&
+            fill_source_pixel == expected_source_pixel &&
+            fill_plane_mask == expected_plane_mask &&
+            fill_result_pixel == expected_result_pixel &&
+            fill_next_address == expected_next_address &&
+            fill_next_row_start == expected_next_row_start &&
+            fill_next_columns_remaining ==
+                expected_next_columns_remaining &&
+            fill_next_rows_remaining == expected_next_rows_remaining &&
+            fill_done == expected_done,
             message
         );
     endtask
@@ -3191,6 +3288,16 @@ module tb_tms34020_verified_leaves;
         drav_pmask = 32'd0;
         drav_raw_destination = 32'd0;
         drav_psize = 16'd1;
+        fill_current_address = 32'd0;
+        fill_row_start = 32'd0;
+        fill_dptch = 32'd0;
+        fill_columns_remaining = 16'd0;
+        fill_rows_remaining = 16'd0;
+        fill_row_width = 16'd0;
+        fill_color1 = 32'd0;
+        fill_pmask = 32'd0;
+        fill_raw_destination = 32'd0;
+        fill_psize = 16'd1;
         fline_algorithm_one = 1'b0;
         fline_decision = 32'd0;
         fline_daddr = 32'd0;
@@ -4102,6 +4209,76 @@ module tb_tms34020_verified_leaves;
                     find_loop_value,
                     32'd0,
                     "DRAV every legal PSIZE and long-word lane"
+                );
+            end
+        end
+
+        check_fill_step(
+            32'h0000_2010, 32'h0000_2010, 32'h0000_0080,
+            16'd13, 16'd2, 16'd13,
+            32'h3030_3030, 32'd0, 32'h0000_0022, 16'd8,
+            1'b1, 1'b1, 32'h0000_2010, 32'h0000_0030,
+            32'd0, 32'h0000_0030,
+            32'h0000_2018, 32'h0000_2010, 16'd12, 16'd2, 1'b0,
+            "FILL linear primary first-pixel traversal"
+        );
+        check_fill_step(
+            32'h0000_2070, 32'h0000_2010, 32'h0000_0080,
+            16'd1, 16'd2, 16'd13,
+            32'h3030_3030, 32'd0, 32'h0000_00EE, 16'd8,
+            1'b1, 1'b1, 32'h0000_2070, 32'h0000_0030,
+            32'd0, 32'h0000_0030,
+            32'h0000_2090, 32'h0000_2090, 16'd13, 16'd1, 1'b0,
+            "FILL row boundary advances by DPTCH"
+        );
+        check_fill_step(
+            32'h0000_20F0, 32'h0000_2090, 32'h0000_0080,
+            16'd1, 16'd1, 16'd13,
+            32'h3030_3030, 32'd0, 32'h0000_00EE, 16'd8,
+            1'b1, 1'b1, 32'h0000_20F0, 32'h0000_0030,
+            32'd0, 32'h0000_0030,
+            32'h0000_2110, 32'h0000_2110, 16'd0, 16'd0, 1'b1,
+            "FILL final pixel points to the following row"
+        );
+        check_fill_step(
+            32'h0000_0200, 32'h0000_0200, 32'h0000_0040,
+            16'd0, 16'd2, 16'd0,
+            32'd0, 32'd0, 32'd0, 16'd8,
+            1'b1, 1'b0, 32'h0000_0200, 32'd0,
+            32'd0, 32'd0,
+            32'h0000_0200, 32'h0000_0200, 16'd0, 16'd2, 1'b1,
+            "FILL zero width remains inactive"
+        );
+        check_fill_step(
+            32'h0000_0200, 32'h0000_0200, 32'h0000_0040,
+            16'd4, 16'd1, 16'd3,
+            32'd0, 32'd0, 32'd0, 16'd8,
+            1'b0, 1'b1, 32'h0000_0200, 32'd0,
+            32'd0, 32'd0,
+            32'h0000_0200, 32'h0000_0200, 16'd4, 16'd1, 1'b0,
+            "FILL rejects inconsistent column state"
+        );
+        for (find_size_loop = 1; find_size_loop <= 32;
+             find_size_loop = find_size_loop * 2) begin
+            find_loop_mask =
+                32'hFFFF_FFFF >> (32 - find_size_loop);
+            find_loop_value = 32'hA5A5_5A5B & find_loop_mask;
+            for (find_lane_loop = 0; find_lane_loop < 32;
+                 find_lane_loop = find_lane_loop + find_size_loop) begin
+                check_fill_step(
+                    32'h0000_0400 + find_lane_loop,
+                    32'h0000_0400 + find_lane_loop,
+                    32'h0000_0080,
+                    16'd2, 16'd1, 16'd2,
+                    find_loop_value << find_lane_loop,
+                    32'd0, 32'd0, find_size_loop[15:0],
+                    1'b1, 1'b1,
+                    32'h0000_0400 + find_lane_loop,
+                    find_loop_value, 32'd0, find_loop_value,
+                    32'h0000_0400 + find_lane_loop + find_size_loop,
+                    32'h0000_0400 + find_lane_loop,
+                    16'd1, 16'd1, 1'b0,
+                    "FILL every legal PSIZE and long-word lane"
                 );
             end
         end
@@ -5862,6 +6039,16 @@ module tb_tms34020_verified_leaves;
             16'hF7FF, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "DRAV shared-SP form cannot bypass graphics ownership"
+        );
+        check_register_execute(
+            16'h0FC0, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "FILL.L cannot bypass array/register/memory ownership"
+        );
+        check_register_execute(
+            16'h0FE0, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "FILL.XY cannot bypass conversion/array/window ownership"
         );
         check_register_execute(
             16'hDE1A, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
@@ -7652,6 +7839,10 @@ module tb_tms34020_verified_leaves;
                      "DRAV lower-bound decode");
         check_decode(16'hF7FF, TMS20_OP_DRAV, 3'd1,
                      "DRAV upper-bound decode");
+        check_decode(16'h0FC0, TMS20_OP_FILL_L, 3'd1,
+                     "FILL.L exact decode");
+        check_decode(16'h0FE0, TMS20_OP_FILL_XY, 3'd1,
+                     "FILL.XY exact decode");
         check_decode(16'hDE1A, TMS20_OP_FLINE, 3'd1,
                      "FLINE algorithm zero decode");
         check_decode(16'hDE9A, TMS20_OP_FLINE, 3'd1,
@@ -7801,6 +7992,14 @@ module tb_tms34020_verified_leaves;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
                "CEXEC.L neighbor must remain unclassified");
+        decode_word = 16'h0FC1;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "FILL.L neighbor must remain unclassified");
+        decode_word = 16'h0FE1;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "FILL.XY neighbor must remain unclassified");
         decode_word = 16'h061F;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,

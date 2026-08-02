@@ -135,6 +135,12 @@ the exact recognition state or ordering relative to the pixel write. Source:
 User's Guide DRAV printed pp.13-100..13-102 and general recognition rules
 printed pp.6-8..6-12.
 
+FILL.L and FILL.XY may be interrupted at a destination word or row boundary
+and use the general graphics continuation mechanism. The atomic model and
+one-step leaf have no recognition, hidden-write drain, frame save, or resume
+owner; their completed logical arrays are not continuation evidence. Sources:
+User's Guide graphics interruption pp.6-13..6-14 and FILL pp.13-114..13-118.
+
 ## RETM monitor return
 
 RETM is exact word `0860h` and is TMS34020-only. It restores the same

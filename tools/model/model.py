@@ -29,6 +29,7 @@ V_BIT = 28
 IE_BIT = 21
 IX_BIT = 25
 BF_BIT = 26
+MAX_BOUNDED_GRAPHICS_PIXELS = 65_536
 
 
 class ModelError(RuntimeError):
@@ -221,6 +222,8 @@ class Tms34020Model:
             "CEXEC.S": self._execute_cexec,
             "CLIP": self._execute_clip,
             "DRAV": self._execute_drav,
+            "FILL.L": self._execute_fill,
+            "FILL.XY": self._execute_fill,
             "FLINE": self._execute_fline,
             "FPIXEQ": self._execute_find_pixel,
             "FPIXNE": self._execute_find_pixel,
@@ -3885,6 +3888,130 @@ class Tms34020Model:
             "hidden-write overlap remain pending"
         )
         return 4 + conversion
+
+    def _execute_fill(
+        self, instruction: Instruction, words: list[int]
+    ) -> None:
+        del words
+        config = self.state.read_io(CONFIG_ADDRESS)
+        if config & 1:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} big-endian pixel mapping is "
+                "classified but not modeled"
+            )
+        if self.state.read_io(DPYCTL_ADDRESS) & (1 << 11):
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} CST-converted VRAM transfers are "
+                "classified but not modeled"
+            )
+        control = self.state.read_io(CONTROL_ADDRESS)
+        if (control >> 10) & 0x1F:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} pixel processing is currently "
+                "limited to replace"
+            )
+        if control & (1 << 5):
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} transparency is classified but "
+                "not modeled"
+            )
+        xy_destination = instruction.mnemonic == "FILL.XY"
+        if xy_destination and ((control >> 6) & 0x3):
+            raise UnsupportedInstruction(
+                "FILL.XY window checking is classified but not modeled"
+            )
+
+        pixel_size = self._read_legal_psize()
+        pixel_mask = MASK32 if pixel_size == 32 else (1 << pixel_size) - 1
+        plane_mask = (
+            self.state.read_io(PMASKL_ADDRESS)
+            | (self.state.read_io(PMASKH_ADDRESS) << 16)
+        )
+        daddr = self.state.read_reg("B", 2)
+        dptch = self.state.read_reg("B", 3)
+        dimensions = self.state.read_reg("B", 7)
+        color1 = self.state.read_reg("B", 9)
+        width = dimensions & 0xFFFF
+        height = (dimensions >> 16) & 0xFFFF
+        total_pixels = width * height
+        if total_pixels > MAX_BOUNDED_GRAPHICS_PIXELS:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} atomic model is limited to "
+                f"{MAX_BOUNDED_GRAPHICS_PIXELS} pixels"
+            )
+        if dptch & (pixel_size - 1):
+            raise ModelError(
+                f"{instruction.mnemonic} requires a pixel-aligned DPTCH"
+            )
+
+        pitch_class: str | None = None
+        if xy_destination:
+            linear_start, pitch_class = self._xy_linear_result(
+                daddr,
+                CONVDP_ADDRESS,
+                dptch,
+                pixel_size,
+                self.state.read_reg("B", 4),
+            )
+        else:
+            linear_start = daddr
+        if linear_start & (pixel_size - 1):
+            raise ModelError(
+                f"{instruction.mnemonic} requires a pixel-aligned DADDR"
+            )
+
+        assert self._active_trace is not None
+        purpose = "fill_xy_replace" if xy_destination else "fill_l_replace"
+        for row in range(height):
+            row_start = (linear_start + row * dptch) & MASK32
+            for column in range(width):
+                address = (row_start + column * pixel_size) & MASK32
+                lane = address & 0x1F
+                if lane + pixel_size > 32:
+                    raise ModelError(
+                        f"{instruction.mnemonic} pixel crosses a long-word "
+                        "boundary"
+                    )
+                raw_destination = self.state.memory.read_bits(
+                    address, pixel_size
+                )
+                source_pixel = (color1 >> lane) & pixel_mask
+                pixel_plane_mask = (plane_mask >> lane) & pixel_mask
+                result_pixel = (
+                    (raw_destination & pixel_plane_mask)
+                    | (source_pixel & (~pixel_plane_mask & pixel_mask))
+                )
+                self.state.memory.write_bits(
+                    address, pixel_size, result_pixel
+                )
+                self._active_trace.transactions.append(
+                    {
+                        "class": "pixel_write",
+                        "purpose": purpose,
+                        "bit_address": address,
+                        "width": pixel_size,
+                        "row": row,
+                        "column": column,
+                        "raw_destination": raw_destination,
+                        "source_value": source_pixel,
+                        "plane_mask": pixel_plane_mask,
+                        "value": result_pixel,
+                    }
+                )
+
+        if total_pixels != 0:
+            self.state.write_reg(
+                "B", 2, (linear_start + height * dptch) & MASK32
+            )
+        if pitch_class is not None:
+            self._record_xy_pitch_class(pitch_class)
+        self._active_trace.notes.append(
+            f"successful atomic {instruction.mnemonic} W0 replace/"
+            "no-transparency logical array; dimensions above the bounded "
+            "model limit, physical grouping, hidden writes, page mode, waits, "
+            "fault/retry, and interrupt continuation remain pending"
+        )
+        return None
 
     def _execute_fline(
         self, instruction: Instruction, words: list[int]

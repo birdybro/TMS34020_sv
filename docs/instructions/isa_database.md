@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 146 page-verified encoding records and covers 48,736 of 65,536
+slice contains 148 page-verified encoding records and covers 48,738 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -134,6 +134,8 @@ first words without collisions:
 | CEXEC.S | `D800h`, mask `FF80h`, plus ID/command word | 2 | pp.13-53..13-54 |
 | CLIP | `08F2h` | 1 | pp.13-55..13-56 |
 | DRAV | `F600h`, mask `FE00h` | 1 | pp.13-100..13-102 |
+| FILL.L | exact `0FC0h` | 1 | pp.13-114..13-116 |
+| FILL.XY | exact `0FE0h` | 1 | pp.13-117..13-120 |
 | FLINE | `DE1Ah`/`DE9Ah`, mask `FF7Fh` | 1 | pp.13-121..13-125 |
 | FPIXEQ | `0ABBh` | 1 | pp.13-126..13-127 |
 | FPIXNE | `0ADBh` | 1 | pp.13-128..13-129 |
@@ -226,6 +228,22 @@ corroborates the decode in `34010dsm.cpp` lines 1647–1649 and the basic
 write-then-half-add sequence in `34010ops.hxx` lines 292–312. Its handler is a
 shared TMS340x0 path with `COUNT_UNKNOWN_CYCLES`, so it is not evidence for
 TMS34020 bus, window-corner, or timing deltas.
+
+FILL.L (`0FC0h`) and FILL.XY (`0FE0h`) consume implied B2/DADDR,
+B3/DPTCH, B7/DYDX and B9/COLOR1; the XY form additionally consumes B4/OFFSET,
+B5/WSTART, B6/WEND and CONVDP. DYDX contains unsigned height:width, and zero
+in either half suppresses all pixel transfer. Successful execution leaves B2
+as the linear start of the row following the array. Both timings are explicitly
+complex. The bounded model supports at most 65,536 W=0 replace/no-transparency
+pixels atomically, and the RTL leaf implements one already-normalized pixel and
+row/column traversal step. Neither is evidence for physical grouping, hidden
+writes, page mode, waits, faults/retries, active windows or continuation.
+Sources: User's Guide DADDR/DPTCH/DYDX pp.4-30..4-34 and 4-50..4-51,
+pixel arrays/window checking pp.12-8..12-9 and 12-19..12-23, FILL
+pp.13-114..13-120, and timing p.15-5. RSC-0045 and RSC-0046 apply. Pinned
+MAME commit `a562e947b22f4f5acff0c182c26fd649d72dad0e` corroborates only the
+exact decode in `tms34010.h` lines 528–529 and the basic array traversal in
+`34010gfx.hxx` lines 1797–1978; it is not timing or bus evidence.
 
 `CLR Rd` is the documented alternate mnemonic for `XOR Rd,Rd`, not a separate
 decode range. Its instruction word repeats the same four-bit register number

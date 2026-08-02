@@ -3,16 +3,20 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest committed baseline: `0019883de207b8eee54f45d650385205c15642cf`
-- Passing tests: foundation, reference/hash, 108-entry delta, 81-case ISA sweep, 238 directed model
+- Latest committed baseline: `e07049f575382d4a853b5a94d2722e2c413eab74`
+- Passing tests: foundation, reference/hash, 109-entry delta, 82-case ISA sweep, 243 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 145 of 146 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. DRAV adds atomic W0
+- Model status: 147 of 148 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. FILL.L/FILL.XY add
+  at-most-65,536-pixel atomic W0 replace/no-transparency rows, both primary
+  examples, every legal size/lane/PMASK, zero dimensions and final linear B2.
+  Active windows/PPOP/transparency/CST and physical sequencing remain absent.
+  DRAV adds atomic W0
   replace/no-transparency logical writes, primary examples, every legal
   size/lane/PMASK, A/B/same-register/shared-SP XY advances, pitch classes and
   W0 timing. Window/PPOP/transparency/CST and physical sequencing remain
@@ -167,8 +171,8 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 146-entry partial decode, clean-room combinational
-  normalized one-step DRAV color/mask/XY-add, FLINE
+- RTL status: generated 148-entry partial decode, clean-room combinational
+  normalized one-step FILL pixel/row traversal, DRAV color/mask/XY-add, FLINE
   decision/pattern/color/mask/state/terminal and FPIX
   direction/address/mask/compare/pointer/count/terminal leaves,
   CLIP positive-dimension intersection and LINIT semantic leaves with exact signed
@@ -303,13 +307,14 @@
   retry, fault resume/abort, refill-state reset, and three randomized seeds.
   CPU fault/interrupt state, bus-width/page scheduling and pin timing remain
   (`TMS20-0012`, `TMS20-0017`)
-- Graphics status: DRAV W0 replace-mode atomic model draw/normalized RTL,
+- Graphics status: FILL.L/FILL.XY bounded W0 atomic model arrays/normalized
+  one-step RTL, DRAV W0 replace-mode atomic model draw/normalized RTL,
   FLINE replace-mode atomic logical model draws/one-step RTL,
   FPIXEQ/FPIXNE atomic logical model scans/one-step RTL comparisons, CLIP
   positive-dimension array intersection, LINIT signed line
   setup/status, CPW signed inclusive window/outcode, and all four
   XY-to-linear conversion semantics exist in the model and standalone RTL
-  leaves; DRAV/FLINE/FPIX have no physical sequencer/continuation owner, CLIP/LINIT have no
+  leaves; FILL/DRAV/FLINE/FPIX have no physical sequencer/continuation owner, CLIP/LINIT have no
   multi-register commit owner, and OQ-0029 blocks zero-dimension CLIP status,
   and the full pixel/graphics matrix, I/O/register owner, memory sequencer,
   clipping, and continuation remain (`TMS20-0024`–`TMS20-0026`)
@@ -325,9 +330,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 15,310 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 15,185 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 523, 907, and 5,556 logic cells;
+  the fetch, frontend, and scalar wrappers use 507, 897, and 5,528 logic cells;
   the scalar wrapper has 1,416 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file
@@ -343,6 +348,9 @@
   represent other PPOP/transparency modes or physical request acceptance;
   DRAV model writes are W0 atomic logical replace-mode operations and do not
   represent window/PPOP/transparency/CST or physical request acceptance;
+  FILL model writes are bounded W0 atomic logical replace-mode arrays and do
+  not represent active windows/PPOP/transparency/CST, physical grouping or
+  request acceptance;
   ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM and all nine MOVB store/load/copy forms reject
   BEN=1 and expose logical field transactions rather than physical bus beats
 - Unresolved conflicts: exact game parts and REV values, original/A errata,

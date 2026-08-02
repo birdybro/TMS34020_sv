@@ -1086,6 +1086,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 DRAV, printed pp.13-100..13-102", "TI-TMS34020-UG-1990 CONTROL/DPYCTL, printed pp.4-24..4-27 and 4-35..4-39", "TI-TMS34020-UG-1990 DRAV timing matrix, printed p.15-5", "TI-TMS34010-UG-1988 DRAV, printed pp.12-67..12-69"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Window/PPOP/transparency/CST semantics and the physical request/continuation owner remain unimplemented.", "The TMS34020 DRAV implied-operand table appears to retain the TMS34010 CONTROL address; the independently documented TMS34020 register map governs and RSC-0045 records the conflict."]
+    },
+    {
+      "feature": "processed_array_fill",
+      "tms34010_behavior": "FILL L at 0FC0h and FILL XY at 0FE0h traverse unsigned DYDX rows:columns, process replicated COLOR1 pixels, update DADDR to the following row, support 1/2/4/8/16-bit pixels on a 16-bit path, use CONTROL at C0000080h, use SRT for shift-register transfers, and expose TMS34010-specific continuation/timing.",
+      "tms34020_behavior": "Both exact encodings and the visible array operation remain compatible, but PSIZE additionally supports 32, COLOR1/PMASK and the local path are 32 bits, DPTCH can use all conversion classes, signed XY windows and revised array-window rules apply, CONTROL is at C00000B0h while DPYCTL.CST selects transfers, and timing is classified only as complex.",
+      "rtl_impact": "Reuse no TMS34010 fill sequencer. A TMS34020 owner must capture B2/B3/B4/B5/B6/B7/B9 and I/O state, convert XY, preclassify windows, group 32-bit/dynamic-16 accesses, pipeline writes, checkpoint word/row continuation, and integrate page/fault/retry. The clean-room RTL leaf covers one normalized W0 replace-mode pixel/traversal step only.",
+      "test_impact": "Both exact opcodes and neighbors; primary linear/XY arrays; zero/maximum dimensions; all PSIZE/lane/PMASK cases; final linear DADDR; three conversion classes; W=0/1/2/3 and V/interrupt/common-rectangle results; all PPOP/transparency cells; CST; 16/32-bit grouping; waits/page/fault/retry and word/row continuation.",
+      "source_citation": ["TI-TMS34020-UG-1990 DADDR/DPTCH/DYDX printed pp.4-30..4-34 and 4-50..4-51", "TI-TMS34020-UG-1990 array/window rules printed pp.12-8..12-9 and 12-19..12-23", "TI-TMS34020-UG-1990 FILL L/FILL XY printed pp.13-114..13-120", "TI-TMS34020-UG-1990 timing printed p.15-5", "TI-TMS34010-UG-1988 FILL L/FILL XY printed pp.12-80..12-87"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["The model/RTL cover W=0 replace/no-transparency/CST=0 only; physical grouping, hidden-write overlap, page/wait/fault/retry and continuation remain unimplemented.", "RSC-0045 resolves the stale CONTROL address and RSC-0046 resolves the FILL.XY V-status conflict for future active-window behavior."]
     }
   ]
 }

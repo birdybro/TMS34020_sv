@@ -112,6 +112,19 @@ memory request, commit or timing. Sources: TMS34020 User's Guide DRAV printed
 pp.13-100..13-102, COLOR1 pp.4-18..4-20, plane masking pp.12-39..12-42 and
 timing p.15-5; RSC-0045.
 
+## Processed array-fill boundary
+
+FILL.L (`0FC0h`) and FILL.XY (`0FE0h`) apply B9/COLOR1 to each pixel in the
+unsigned B7/DYDX height:width array. The linear form starts at B2; the XY form
+converts B2 with CONVDP, B3/DPTCH, PSIZE and B4/OFFSET. The bounded model
+implements at most 65,536 W=0 replace/no-transparency/CST=0 pixels, aligned
+COLOR1/PMASK lanes, zero-dimension no-transfer, row pitch, and final linear B2.
+`tms34020_fill_step.sv` implements only one normalized pixel and counter/row
+step. It owns no capture, XY conversion, loop, memory request, commit, window,
+interrupt, timing or continuation state. Sources: User's Guide DADDR/DPTCH/
+DYDX pp.4-30..4-34 and 4-50..4-51, pixel arrays pp.12-8..12-9, FILL
+pp.13-114..13-120, and plane masking pp.12-39..12-42; RSC-0045/RSC-0046.
+
 ## Line initialization boundary
 
 LINIT is the exact `0C57h` TMS34020-only setup operation used before line

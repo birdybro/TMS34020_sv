@@ -217,6 +217,13 @@ and the standalone transform leaf intentionally has no status output. Sources:
 TMS34020 User's Guide DRAV printed pp.13-100..13-102; TMS34010 User's Guide
 DRAV printed pp.12-67..12-69.
 
+FILL.L and FILL.XY preserve every ST bit with W=0; the bounded model seeds and
+checks full-width preservation for both primary replace examples. For active
+FILL.XY window modes, the general pixel-array rules define V even though the
+instruction-page status table says V is unaffected. RSC-0046 records the
+resolution; those active modes are not implemented. Sources: User's Guide
+pixel-array windows pp.12-21..12-23 and FILL pp.13-114..13-120.
+
 CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
 The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide

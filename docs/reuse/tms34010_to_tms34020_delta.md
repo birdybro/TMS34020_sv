@@ -155,6 +155,17 @@ The clean-room TMS34020 leaf reimplements only the normalized pixel transform
 and XY addition. Sources: TMS34020 guide DRAV pp.13-100..13-102 and timing
 p.15-5; TMS34010 guide DRAV pp.12-67..12-69; RSC-0045.
 
+FILL.L and FILL.XY retain exact `0FC0h`/`0FE0h` encodings, unsigned DYDX
+dimensions, COLOR1/PMASK pixel semantics, row pitch, and the final linear DADDR
+checkpoint. Their compatible visible operation does not justify reuse of the
+TMS34010 graphics state machine: TMS34020 adds PSIZE=32, a 32-bit/dynamic-16
+path, arbitrary/two-power conversion, revised signed-window rules, moved
+CONTROL plus DPYCTL.CST, page mode, hidden-write overlap, bus faults, and a
+different continuation implementation. The clean-room leaf implements one
+normalized W0 replace-mode traversal/pixel step only. Sources: TMS34020 guide
+pp.4-30..4-34, 4-50..4-51, 12-8..12-9 and 13-114..13-120; TMS34010 guide
+pp.12-80..12-87; RSC-0045/RSC-0046.
+
 CVXYL retains `E800h`/`FE00h`, same-file explicit operands, implied B3/B4,
 CONVDP/PSIZE inputs, unaffected ST, and the signed XY-to-linear equation. The
 TMS34020 expands pitch handling from the TMS34010's power-of-two display case

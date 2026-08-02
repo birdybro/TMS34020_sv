@@ -893,12 +893,15 @@
   this from ignoring PMASK. This resolution does not infer how the memory
   controller groups pixels into physical reads or checkpoints a grouped read.
 
-## RSC-0045: DRAV table retains the TMS34010 CONTROL address
+## RSC-0045: DRAV and FILL.XY tables retain the TMS34010 CONTROL address
 
 - Status: resolved from the TMS34020 register map and DRAV's CST statement;
   no architectural address ambiguity remains
 - Primary inconsistency: TI *TMS34020 User's Guide*, August 1990, the DRAV
   implied-operand table on printed p.13-100 labels `C0000080h` as CONTROL.
+  The FILL.XY implied-operand table on printed p.13-117 repeats the same stale
+  address, while the adjacent FILL.L table on printed p.13-114 uses the
+  TMS34020 CONTROL address correctly.
   The TMS34020 I/O-register summary on printed pp.4-9..4-11 assigns CONTROL to
   `C00000B0h`/`C0000190h` and assigns `C0000080h` to DPYCTL. The DRAV page on
   printed p.13-101 separately says the CST bit selects serial-register
@@ -911,3 +914,22 @@
   DPYCTL at `C0000080h` for CST. Directed rollback tests discriminate the two
   registers. This does not establish the unimplemented upper CONTROL half at
   `C0000190h` or any physical CST transfer timing.
+
+## RSC-0046: FILL.XY instruction page says V is unaffected
+
+- Status: resolved for architectural classification from the general
+  pixel-array window rules; active-window execution remains unimplemented
+- Primary contradiction: TI *TMS34020 User's Guide*, August 1990, the FILL.XY
+  status table on printed p.13-118 says V is unaffected. Section 12.7.4 on
+  printed pp.12-21..12-23 explicitly defines V for every array window mode:
+  W=1 reports whether the array is wholly outside, W=2 reports any outside
+  pixel, and W=3 reports complete/partial/inside classification. The FILL.XY
+  page itself says W=1, W=2 and W=3 are supported.
+- Corroboration: the TMS34010 FILL.XY page on printed pp.12-85..12-86 says V
+  reports a window violation and is unaffected only when window checking is
+  disabled. This is compatibility evidence, not the controlling source.
+- Decision: the general TMS34020 pixel-array window rules govern active-window
+  V behavior; the instruction-page status row is an incomplete copied table.
+  The current model supports W=0 only, checks complete ST preservation there,
+  and rejects W=1/2/3 atomically rather than implementing this resolution
+  without a window/interrupt/continuation owner.
