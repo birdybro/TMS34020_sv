@@ -1057,6 +1057,8 @@
 
 ### Documentation
 
+- Recorded the verified ordinary field-load implementation baseline as commit
+  `4dc5694298903b68d5c0542f536a00500baee7eb` in the progress ledger.
 - Documented ordinary memory-to-register compatibility separately from the
   TMS34020-owned 32-bit/BEN/timing/request realization.
 - Recorded the verified ordinary field-store implementation baseline as commit
