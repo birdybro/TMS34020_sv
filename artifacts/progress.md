@@ -4,15 +4,19 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `5157e331e3e95cdcae61b02b24b99b7e1cc3a097`
-- Passing tests: foundation, reference/hash, delta, 45-case ISA sweep, 169 directed model
+- Passing tests: foundation, reference/hash, delta, 46-case ISA sweep, 172 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 103 of 104 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. Normal RETI reads
+- Model status: 104 of 105 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. MOVE.RM covers both
+  field banks, all 32 widths and all 32 bit offsets in little-endian mode,
+  including crossing-word preservation, A/B/SP, five alignment classes and
+  hidden writes; BEN=1 rolls back pending an endian-aware memory mapper.
+  Normal RETI reads
   saved ST then PC and atomically restores complete ST/IE, aligned PC and
   SP+64 in seven documented states; IX/BF frames roll back rather than
   inventing the hidden 24/31-word continuation. Normal RETM shares that
@@ -104,7 +108,9 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 104-entry partial decode, a clean-room RETI/RETM
+- RTL status: generated 105-entry partial decode, an exhaustive clean-room
+  two-long-word MOVE.RM little-endian insertion/alignment leaf with explicit
+  noncommit at the absent memory owner, a clean-room RETI/RETM
   mode plus normal/IX/BF context/result/timing/bypass-delay classification
   leaf, an exhaustive
   clean-room MMFM/MMTM list-normalization/pointer/status/timing control leaf,
@@ -227,7 +233,8 @@
   XY-to-linear conversion semantics exist in the model and standalone RTL
   leaves; the full pixel/graphics matrix, I/O/register owner, memory sequencer,
   clipping, and continuation remain (`TMS20-0024`–`TMS20-0026`)
-- Bus status: cache-native completion subset only; no width/page/pin controller
+- Bus status: cache-native completion plus logical MOVE.RM field-store
+  geometry only; no BEN/byte-strobe/RMW/width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
 - Formal status: four cache, four fetch, twenty-three scalar, two commit-owner,
   and three divider
@@ -235,9 +242,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 11,626 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 11,903 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 434, 809, and 5,358 logic cells;
+  the fetch, frontend, and scalar wrappers use 433, 803, and 5,366 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file
@@ -246,7 +253,8 @@
   reference-only, explicitly incomplete, and not copied or adapted
 - Provisional behavior: the cache model represents architecturally
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
-  transactions rather than pin-level dynamic-width cycles
+  transactions rather than pin-level dynamic-width cycles; MOVE.RM rejects
+  BEN=1 and exposes a logical write rather than physical byte-strobe/RMW beats
 - Unresolved conflicts: exact game parts and REV values, original/A errata,
   first-silicon history, the MPYS/MPYU detailed-page/timing-table swap and
   TMS34010 odd-product flag boundary, the unreachable published MODS 41-state result,

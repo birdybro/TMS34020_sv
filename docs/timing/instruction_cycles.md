@@ -88,6 +88,14 @@ counter for the few extracted cases that need this dependency. It is not a
 complete memory-controller schedule. `MWAIT` consumes the abstract pending
 states; full request-by-request validation remains pending.
 
+`MOVE Rs,*Rd[,F]` has one visible state in little-endian mode. Its hidden
+write counts for alignment cases 1..5 are respectively 1, 2, 2, 3, and 4;
+BEN=1 adds one visible state. The model and standalone field-store leaf expose
+the little-endian case classifier, but no physical byte-strobe/RMW or bus
+sequencer exists, so this is not an external-cycle claim. Source: TMS34020
+User's Guide Tables 15-2 and register-to-memory timing rows, printed
+pp.15-10..15-11.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.

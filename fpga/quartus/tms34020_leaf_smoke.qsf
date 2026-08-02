@@ -17,6 +17,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_bin
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_divider.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_multiplier.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_swap_field.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_field_store.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_multiple_register_control.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/interrupts/tms34020_interrupt_return_control.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_bit_test.sv

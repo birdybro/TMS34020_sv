@@ -160,6 +160,16 @@ not reusable. The current model/leaf cover successful valid 32-bit word-local
 semantics only. Sources: TMS34020 guide printed pp.13-247..13-248, 8-13,
 8-26, and 15-9.
 
+The ordinary `MOVE Rs,*Rd[,F]` encoding and visible low-field insertion are
+compatible, but their timing and bus realization are not reusable. The
+TMS34020 uses a 32-bit byte-strobed pipeline with five long-word/byte-
+alignment cases and BEN-dependent visible timing; TMS34010's 16-bit memory
+timing state machine is not evidence for those cycles. The model and field-
+store leaf therefore reuse only independently verified field-size/insertion
+semantics. Dynamic SIZE16, CAS strobes, RMW, page mode, waits, faults/retries,
+and pins require a TMS34020-owned sequencer. Sources: TMS34020 guide printed
+pp.13-159 and 15-10..15-11; TMS34010 guide printed pp.12-127..12-128.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

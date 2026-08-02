@@ -666,6 +666,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 Figure 6-3, printed p.6-10", "TI-TMS34020-UG-1990 RETM, printed p.13-219 and timing p.15-8", "TI-TMS34020-UG-1990 RETI/RETM single-step difference, printed p.6-32"],
       "confidence": "PROVISIONAL",
       "unresolved_questions": ["RSC-0035: the RETM page's boxed cache-read note contradicts its main description and section 6.13 and appears to have RETI/RETM transposed.", "OQ-0023: exact IX/BF hidden-frame layout and fault/retry checkpoints remain unknown.", "Exact pin/page timing of the one-shot bypass and interrupt-recognition gate remains pending."]
+    },
+    {
+      "feature": "ordinary_register_to_memory_field_move",
+      "tms34010_behavior": "MOVE Rs,*Rd[,F] uses 8000h/FC00h, selects FS0/FS1, writes the right-justified low source field to the destination bit address, leaves ST and both registers unchanged, and publishes a 16-bit-bus timing family dependent on field alignment.",
+      "tms34020_behavior": "The encoding and programmer-visible field insertion remain compatible, but the 32-bit byte-strobed memory pipeline classifies five long-word/byte-boundary cases. Little-endian execution has one visible state and 1/2/2/3/4 hidden write states; BEN=1 adds a visible state while retaining those hidden counts.",
+      "rtl_impact": "Reuse only field-size decoding and bit insertion semantics. A TMS34020-owned memory sequencer must capture Rs/Rd/ST, map BEN, generate one/two-word byte-strobe or read/modify/write transactions on 32-bit and dynamic 16-bit targets, retain pending-write state, and make fault/retry idempotent. The current leaf constructs only a two-word little-endian semantic window and classification metadata.",
+      "test_impact": "All 1,024 encodings; both field banks; widths 1..32; every bit offset; all five cases; A/B/SP and Rs=Rd capture; adjacent-bit preservation; BEN modes; visible/hidden timing; pending-write interaction; byte strobes; 16-bit decomposition; page boundaries; waits; faults/retries at every phase; interrupts and host/I/O destinations.",
+      "source_citation": ["TI-TMS34020-UG-1990 field model and MOVE form, printed pp.13-19..13-23 and 13-159", "TI-TMS34020-UG-1990 MOVE/MOVB timing cases, printed pp.15-10..15-11", "TI-TMS34020-UG-1990 BEN, printed pp.3-20..3-21 and 4-20..4-21", "TI-TMS34010-UG-1988 MOVE register-to-indirect, printed pp.12-127..12-128"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact native request decomposition, byte CAS strobes, dynamic SIZE16 beats, page-mode eligibility, and fault/retry checkpoint remain pending the memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

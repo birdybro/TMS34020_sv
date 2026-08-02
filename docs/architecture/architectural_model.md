@@ -20,7 +20,7 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
-  PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM,
+  PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -33,7 +33,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 103 of 104 currently extracted database forms for their
+These handlers cover 104 of 105 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -41,6 +41,18 @@ verified. A directed test proves that attempting REV raises
 `UnsupportedInstruction` and restores the complete preinstruction model/cache
 snapshot. This is coverage of a current partial extraction, not instruction
 completeness.
+
+`MOVE.RM` is the database's internal family name for the ordinary
+`MOVE Rs,*Rd[,F]` spelling. In little-endian mode it captures Rs, Rd, and the
+selected FS0/FS1 width, inserts the right-justified low source field at the
+bit address without changing registers or ST, and records the primary
+long-word/byte alignment class plus 1/2/2/3/4 hidden write states. Exhaustive
+tests cover both field banks, all 32 widths and all 32 starting offsets,
+including crossing-word adjacent-bit preservation and SP aliases. BEN=1
+rolls back atomically because BEN-aware bit mapping is not yet part of the
+memory model. The logical transaction is not evidence for byte strobes,
+dynamic width, RMW, page mode, waits, faults, retry, or pin timing. Sources:
+User's Guide printed pp.3-20..3-21, 13-19..13-23, 13-159, and 15-10..15-11.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

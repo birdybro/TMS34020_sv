@@ -8,6 +8,7 @@ from typing import Any, Callable
 from tools.isa.isa_db import IsaDatabase, Instruction
 from .cache import InstructionCache
 from .state import (
+    CONFIG_ADDRESS,
     CONVDP_ADDRESS,
     CONVMP_ADDRESS,
     CONVSP_ADDRESS,
@@ -128,6 +129,7 @@ class Tms34020Model:
             "MOVI.W": self._execute_movi_word,
             "MOVI.L": self._execute_movi_long,
             "MOVE": self._execute_move,
+            "MOVE.RM": self._execute_move_register_to_memory,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
@@ -1516,6 +1518,60 @@ class Tms34020Model:
         self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
         self._set_status_bit(Z_BIT, result == 0)
         self._set_status_bit(V_BIT, False)
+        return 1
+
+    @staticmethod
+    def _field_alignment_case(bit_address: int, width: int) -> int:
+        bit_offset = bit_address & 0x1F
+        crosses_long_word = bit_offset + width > 32
+        start_byte_aligned = (bit_address & 0x7) == 0
+        end_byte_aligned = ((bit_address + width) & 0x7) == 0
+        if not crosses_long_word:
+            return 1 if start_byte_aligned and end_byte_aligned else 2
+        if start_byte_aligned and end_byte_aligned:
+            return 3
+        if start_byte_aligned or end_byte_aligned:
+            return 4
+        return 5
+
+    def _execute_move_register_to_memory(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                "MOVE.RM big-endian field mapping is classified but not modeled"
+            )
+        first_word = words[0]
+        register_file, source_index, pointer_index = (
+            self._decode_source_destination(first_word)
+        )
+        width = self._selected_field_size(first_word)
+        bit_address = self.state.read_reg(register_file, pointer_index)
+        source = self.state.read_reg(register_file, source_index)
+        field_mask = MASK32 if width == 32 else (1 << width) - 1
+        value = source & field_mask
+        alignment_case = self._field_alignment_case(bit_address, width)
+        hidden_states = (0, 1, 2, 2, 3, 4)[alignment_case]
+        self.state.memory.write_bits(bit_address, width, value)
+        self._new_hidden_write_states = hidden_states
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "data_write",
+                "purpose": "field_move_register_to_memory",
+                "bit_address": bit_address,
+                "width": width,
+                "value": value,
+                "alignment_case": alignment_case,
+                "hidden_write_states": hidden_states,
+            }
+        )
+        self._active_trace.notes.append(
+            "logical little-endian field insertion; physical byte strobes, "
+            "read/modify/write, dynamic width, wait, page, fault, and retry "
+            "sequencing remain pending"
+        )
         return 1
 
     def _execute_rotate_left(

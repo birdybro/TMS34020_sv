@@ -115,6 +115,17 @@ module tb_tms34020_verified_leaves;
     logic swap_n;
     logic swap_z;
     logic swap_v;
+    logic [4:0] field_store_size;
+    logic [4:0] field_store_offset;
+    logic [31:0] field_store_source;
+    logic [31:0] field_store_word0;
+    logic [31:0] field_store_word1;
+    logic [5:0] field_store_decoded_size;
+    logic [2:0] field_store_alignment_case;
+    logic [2:0] field_store_hidden_states;
+    logic field_store_writes_word1;
+    logic [31:0] field_store_word0_result;
+    logic [31:0] field_store_word1_result;
     logic multiple_memory_to_registers;
     logic [15:0] multiple_register_list;
     logic [3:0] multiple_pointer_index;
@@ -384,6 +395,20 @@ module tb_tms34020_verified_leaves;
         .n_o(swap_n),
         .z_o(swap_z),
         .v_o(swap_v)
+    );
+
+    tms34020_field_store field_store_dut (
+        .field_size_encoded_i(field_store_size),
+        .bit_offset_i(field_store_offset),
+        .source_i(field_store_source),
+        .word0_i(field_store_word0),
+        .word1_i(field_store_word1),
+        .field_size_o(field_store_decoded_size),
+        .alignment_case_o(field_store_alignment_case),
+        .hidden_write_states_o(field_store_hidden_states),
+        .writes_word1_o(field_store_writes_word1),
+        .word0_o(field_store_word0_result),
+        .word1_o(field_store_word1_result)
     );
 
     tms34020_multiple_register_control multiple_register_control_dut (
@@ -896,6 +921,35 @@ module tb_tms34020_verified_leaves;
             swap_memory_result == expected_memory_word &&
             swap_register_result == expected_register &&
             {swap_n, swap_z, swap_v} == expected_nzv,
+            message
+        );
+    endtask
+
+    task automatic check_field_store(
+        input logic [4:0] field_size_encoded,
+        input logic [4:0] bit_offset,
+        input logic [31:0] source,
+        input logic [63:0] old_window,
+        input logic [5:0] expected_size,
+        input logic [2:0] expected_case,
+        input logic [2:0] expected_hidden_states,
+        input logic expected_writes_word1,
+        input logic [63:0] expected_window,
+        input string message
+    );
+        field_store_size = field_size_encoded;
+        field_store_offset = bit_offset;
+        field_store_source = source;
+        field_store_word0 = old_window[31:0];
+        field_store_word1 = old_window[63:32];
+        #1;
+        check_condition(
+            field_store_decoded_size == expected_size &&
+            field_store_alignment_case == expected_case &&
+            field_store_hidden_states == expected_hidden_states &&
+            field_store_writes_word1 == expected_writes_word1 &&
+            {field_store_word1_result, field_store_word0_result} ==
+                expected_window,
             message
         );
     endtask
@@ -1914,6 +1968,11 @@ module tb_tms34020_verified_leaves;
         swap_bit_offset = 5'd0;
         swap_memory_word = 32'd0;
         swap_register = 32'd0;
+        field_store_size = 5'd0;
+        field_store_offset = 5'd0;
+        field_store_source = 32'd0;
+        field_store_word0 = 32'd0;
+        field_store_word1 = 32'd0;
         multiple_memory_to_registers = 1'b0;
         multiple_register_list = 16'd0;
         multiple_pointer_index = 4'd0;
@@ -2670,6 +2729,78 @@ module tb_tms34020_verified_leaves;
             1'b0, 32'h9234_5678, 32'd0, 3'b010,
             "SWAPF crossing field is marked unsupported"
         );
+        check_field_store(
+            5'd0, 5'd0, 32'h1234_5678,
+            64'hC33C_F00F_A5A5_5A5A,
+            6'd32, 3'd1, 3'd1, 1'b0,
+            64'hC33C_F00F_1234_5678,
+            "MOVE.RM full aligned field-store boundary"
+        );
+        check_field_store(
+            5'd16, 5'd24, 32'h0000_CDEF,
+            64'hC33C_F00F_A5A5_5A5A,
+            6'd16, 3'd3, 3'd2, 1'b1,
+            64'hC33C_F0CD_EFA5_5A5A,
+            "MOVE.RM byte-aligned crossing field-store boundary"
+        );
+        check_field_store(
+            5'd9, 5'd29, 32'h0000_0155,
+            64'hC33C_F00F_A5A5_5A5A,
+            6'd9, 3'd5, 3'd4, 1'b1,
+            64'hC33C_F02A_A5A5_5A5A,
+            "MOVE.RM non-byte crossing field-store boundary"
+        );
+        for (int unsigned encoded_size = 0; encoded_size < 32;
+             encoded_size++) begin
+            for (int unsigned bit_offset = 0; bit_offset < 32;
+                 bit_offset++) begin
+                logic [5:0] expected_size;
+                logic [6:0] expected_end;
+                logic [63:0] expected_mask;
+                logic [63:0] expected_window;
+                logic [2:0] expected_case;
+                logic [2:0] expected_hidden;
+                expected_size = encoded_size == 0 ? 6'd32 :
+                    encoded_size[5:0];
+                expected_end = bit_offset[6:0] + expected_size;
+                expected_mask = 64'h0000_0000_FFFF_FFFF;
+                if (expected_size != 6'd32) begin
+                    expected_mask = (64'd1 << expected_size) - 64'd1;
+                end
+                expected_mask = expected_mask << bit_offset;
+                expected_window =
+                    (64'hC33C_F00F_A5A5_5A5A & ~expected_mask) |
+                    ((64'h0000_0000_D69A_35C7 << bit_offset) &
+                     expected_mask);
+                if (expected_end <= 7'd32) begin
+                    expected_case =
+                        ((bit_offset[2:0] == 3'd0) &&
+                         (expected_end[2:0] == 3'd0)) ? 3'd1 : 3'd2;
+                end else if ((bit_offset[2:0] == 3'd0) &&
+                             (expected_end[2:0] == 3'd0)) begin
+                    expected_case = 3'd3;
+                end else if ((bit_offset[2:0] == 3'd0) ||
+                             (expected_end[2:0] == 3'd0)) begin
+                    expected_case = 3'd4;
+                end else begin
+                    expected_case = 3'd5;
+                end
+                unique case (expected_case)
+                    3'd1: expected_hidden = 3'd1;
+                    3'd2: expected_hidden = 3'd2;
+                    3'd3: expected_hidden = 3'd2;
+                    3'd4: expected_hidden = 3'd3;
+                    default: expected_hidden = 3'd4;
+                endcase
+                check_field_store(
+                    encoded_size[4:0], bit_offset[4:0], 32'hD69A_35C7,
+                    64'hC33C_F00F_A5A5_5A5A,
+                    expected_size, expected_case, expected_hidden,
+                    expected_end > 7'd32, expected_window,
+                    "MOVE.RM exhaustive little-endian field geometry"
+                );
+            end
+        end
         check_multiple_register_control(
             1'b1, 16'h4015, 4'd15, 32'h0000_0780, 1'b0,
             16'h4015, 5'd4, 1'b1, 32'h0000_0800, 1'b1, 6'd9, 2'd0,
@@ -3265,6 +3396,12 @@ module tb_tms34020_verified_leaves;
             16'h00F0, 32'd0, 32'd0, 32'd0,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "decoded but unsupported register execute instruction"
+        );
+        check_register_execute(
+            16'h8001, 32'hD69A_35C7, 32'h0000_2003,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.RM cannot bypass absent field-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -4912,6 +5049,14 @@ module tb_tms34020_verified_leaves;
                      "MOVE lower-bound decode");
         check_decode(16'h4FFF, TMS20_OP_MOVE, 3'd1,
                      "MOVE upper-bound decode");
+        check_decode(16'h8000, TMS20_OP_MOVE_RM, 3'd1,
+                     "MOVE.RM field-zero lower-bound decode");
+        check_decode(16'h83FF, TMS20_OP_MOVE_RM, 3'd1,
+                     "MOVE.RM field-one upper-bound decode");
+        decode_word = 16'h8400;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+            "unextracted MOVE memory-to-register remains open");
         check_decode(16'h1C00, TMS20_OP_BTST_K, 3'd1,
                      "BTST.K lower-bound decode");
         check_decode(16'h1FFF, TMS20_OP_BTST_K, 3'd1,

@@ -105,6 +105,12 @@ module tms34020_leaf_synth_top (
     logic swap_n;
     logic swap_z;
     logic swap_v;
+    logic [5:0] field_store_size;
+    logic [2:0] field_store_alignment_case;
+    logic [2:0] field_store_hidden_states;
+    logic field_store_writes_word1;
+    logic [31:0] field_store_word0;
+    logic [31:0] field_store_word1;
     logic [15:0] multiple_normalized_mask;
     logic [4:0] multiple_register_count;
     logic multiple_list_valid;
@@ -162,6 +168,8 @@ module tms34020_leaf_synth_top (
         multiplier_product[31:0] ^
         swap_memory_result ^
         swap_register_result ^
+        field_store_word0 ^
+        field_store_word1 ^
         {16'd0, multiple_normalized_mask} ^
         multiple_final_pointer ^
         {26'd0, xy_linear_pitch_class, xy_linear_visible_states} ^
@@ -170,6 +178,8 @@ module tms34020_leaf_synth_top (
         {23'd0, multiplier_legal_field_size, multiplier_n,
          multiplier_z, multiplier_visible_states} ^
         {28'd0, swap_legal_in_word, swap_n, swap_z, swap_v} ^
+        {19'd0, field_store_size, field_store_alignment_case,
+         field_store_hidden_states, field_store_writes_word1} ^
         {17'd0, multiple_register_count, multiple_list_valid, multiple_n,
          multiple_visible_states, multiple_hidden_write_states} ^
         interrupt_return_final_sp ^
@@ -398,6 +408,22 @@ module tms34020_leaf_synth_top (
         .n_o(swap_n),
         .z_o(swap_z),
         .v_o(swap_v)
+    );
+
+    tms34020_field_store field_store (
+        .field_size_encoded_i(
+            first_word_i[9] ? status_value[10:6] : status_value[4:0]
+        ),
+        .bit_offset_i(operand_i[4:0]),
+        .source_i(second_register_data),
+        .word0_i(immediate_i),
+        .word1_i(operand_i),
+        .field_size_o(field_store_size),
+        .alignment_case_o(field_store_alignment_case),
+        .hidden_write_states_o(field_store_hidden_states),
+        .writes_word1_o(field_store_writes_word1),
+        .word0_o(field_store_word0),
+        .word1_o(field_store_word1)
     );
 
     tms34020_multiple_register_control multiple_register_control (

@@ -4,6 +4,15 @@
 
 ### Added
 
+- Primary-page-extracted `MOVE Rs,*Rd[,F]` as the internal MOVE.RM family,
+  covering all 1,024 words, both field banks, five alignment cases, BEN timing,
+  pending writes, and compatibility boundaries.
+- Little-endian architectural MOVE.RM field insertion with logical write
+  traces, hidden-state accounting, adjacent-bit preservation, and atomic BEN
+  rejection.
+- A clean-room combinational two-long-word MOVE.RM store leaf with exhaustive
+  size/offset insertion and alignment classification; register/memory commit
+  remains outside the leaf.
 - Primary-page-extracted TMS34020-only RETM `0860h` metadata with shared
   normal/IX/BF frames, 10/38/52-state cases, full next-instruction direct-
   memory fetch, and one-instruction interrupt/single-step recognition delay.
@@ -435,6 +444,18 @@
 
 ### Verified
 
+- The 46-case ISA suite, 67-entry delta ledger, and 172-case model suite pass.
+  MOVE.RM coverage exhausts both field banks, every 1–32-bit width and every
+  within-long-word offset, all five hidden-write classes, crossing-word
+  preservation, A/B/SP aliases, logical traces, and atomic BEN rollback. The
+  RTL leaf independently exhausts all 1,024 size/offset geometries and cannot
+  commit through the register-only router.
+- Warning-free Cyclone V Analysis & Synthesis reports 11,903 leaf logic
+  cells/2,230 registers/9 DSP, 433 fetch logic cells, 803 frontend logic
+  cells, and 5,366 scalar logic cells for the 105-entry decoder/field-store
+  revision. The frontend/scalar probes retain 4,096 block-memory bits. These
+  are observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
 - The 45-case ISA suite, 66-entry delta ledger, and 169-case model suite pass.
   RETM coverage proves exact decode/nonalias, state restoration, ten normal
   states, all-word one-shot bypass despite a stale cached MOVI.L, snapshot/
@@ -1016,6 +1037,9 @@
 
 ### Documentation
 
+- Documented MOVE.RM's compatible programmer-visible field store separately
+  from the TMS34020-owned 32-bit/BEN/timing realization, plus the explicit
+  byte-strobe/RMW/dynamic-width/page/fault boundary.
 - Recorded the verified bounded RETM implementation baseline as commit
   `5157e331e3e95cdcae61b02b24b99b7e1cc3a097` in the progress ledger.
 - Documented RETM's single-step role, TMS34010 absence, one-shot cache bypass,
@@ -1152,6 +1176,10 @@
 
 ### Known Issues
 
+- MOVE.RM is an instruction-boundary little-endian semantic implementation and
+  combinational two-word leaf only. BEN=1, byte CAS strobes, physical RMW,
+  dynamic SIZE16, page mode, waits, faults/retries, I/O routing, interrupts,
+  and a committing memory sequencer remain unimplemented.
 - RETM's normal return and transaction-level next-packet bypass are modeled,
   and its RTL intents are classified, but no stack/cache composition or
   one-instruction interrupt/single-step recognition scheduler exists. IX/BF,

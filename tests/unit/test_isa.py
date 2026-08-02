@@ -293,6 +293,8 @@ class IsaTests(unittest.TestCase):
             0x5FFF: ("MPYU", 1),
             0x7E00: ("SWAPF", 1),
             0x7FFF: ("SWAPF", 1),
+            0x8000: ("MOVE.RM", 1),
+            0x83FF: ("MOVE.RM", 1),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -320,8 +322,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 31190)
-        self.assertEqual(unclassified, 65536 - 31190)
+        self.assertEqual(matched, 32214)
+        self.assertEqual(unclassified, 65536 - 32214)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -1413,6 +1415,38 @@ class IsaTests(unittest.TestCase):
             same_file.metadata["documented_cycles"]["machine_states"],
             1,
         )
+
+    def test_move_register_to_memory_records_field_and_pipeline_contract(self) -> None:
+        instruction = self.database.decode(0x8000)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.RM")
+        self.assertEqual(instruction.opcode_mask, 0xFC00)
+        self.assertEqual(instruction.opcode_value, 0x8000)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "field_alignment_cases",
+                "visible_machine_states": 1,
+                "little_endian_hidden_write_states": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+                "big_endian_visible_machine_states": 2,
+                "big_endian_hidden_write_states": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)
