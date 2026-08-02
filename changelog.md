@@ -1189,6 +1189,8 @@
 
 ### Documentation
 
+- Recorded the verified signed-offset field-move implementation baseline as
+  commit `a8199e2c7648ee776af17c8ad4212a748478bc17` in the progress ledger.
 - Documented the three signed-offset MOVE compatibility boundaries separately
   from TMS34020-owned 32-bit alignment, BEN, hidden-write, dynamic-width, page
   and fault/retry realization.
