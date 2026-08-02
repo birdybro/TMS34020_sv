@@ -896,6 +896,36 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVB absolute-to-register form/status, printed p.13-156", "TI-TMS34020-UG-1990 MOVB timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible form, printed p.12-122"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact address-fetch/read/data/status retirement relative to waits, interrupts, faults and retry remains pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "indirect_memory_to_memory_byte_move",
+      "tms34010_behavior": "MOVB *Rs,*Rd uses 9C00h/FE00h, captures eight bits at the source bit address, writes them at the destination bit address, and preserves both registers and ST.",
+      "tms34020_behavior": "The encoding, fixed-byte read-before-write operation and state preservation remain compatible. Reachable columns A-F expose 3/4 visible states by source alignment and 1/2/4 hidden write states by destination alignment.",
+      "rtl_impact": "Reuse fixed-byte copy and read-before-write semantics only. A TMS34020-owned sequencer must capture the source before an overlapping write, map BEN, sequence dynamic-width reads and byte-strobed/RMW writes, retain hidden-write state, and make fault/retry idempotent. The current byte-copy leaf is combinational and noncommitting.",
+      "test_impact": "All 512 encodings; every source/destination byte alignment and A-F timing column; every byte value; A/B/SP and aliased pointers; overlap; unchanged registers/ST; BEN; 16/32-bit targets; pages; waits; faults/retries; interrupts and I/O routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVB indirect-to-indirect form, printed p.13-155", "TI-TMS34020-UG-1990 source/destination alignment and timing, printed pp.15-10..15-12", "TI-TMS34010-UG-1988 compatible form, printed p.12-118"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact read/write retirement relative to waits, interrupts, faults and retry remains pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "signed_offset_memory_to_memory_byte_move",
+      "tms34010_behavior": "MOVB *Rs(SOffset),*Rd(DOffset) uses BC00h/FE00h followed by source then destination signed 16-bit bit displacements. It copies one byte between the modulo-2^32 effective addresses without changing either base or ST.",
+      "tms34020_behavior": "The encoding, extension order, effective addresses, read-before-write semantics and state preservation remain compatible. The TMS34020 prints 5/6 visible states by source alignment; p.15-12 uniquely prints two hidden states for column E despite destination case 5 and four hidden states in corresponding cells (RSC-0039/OQ-0026).",
+      "rtl_impact": "Reuse signed-offset and byte-copy semantics only. A TMS34020-owned sequencer must fetch both extensions, preserve shared or distinct bases, map BEN, sequence dynamic-width transfers, retain the selected literal timing cell and prevent duplicate writes after retry. The clean-room leaf exposes the case-E override explicitly.",
+      "test_impact": "All 512 first words; independent signed boundaries/wrap; every source/destination byte alignment and A-F column; every byte value; A/B/SP and same-base offsets; overlap; unchanged bases/ST; BEN; 16/32-bit beats; pages; waits; faults/retries; interrupts and I/O routing; a discriminator for 5(2) versus 5(4).",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVB signed-offset-to-signed-offset form, printed p.13-156", "TI-TMS34020-UG-1990 source/destination alignment and timing, printed pp.15-10..15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-120..12-121", "RSC-0039/OQ-0026"],
+      "confidence": "PROVISIONAL",
+      "unresolved_questions": ["Is p.15-12 column E's 5(2) literal silicon timing or a typo for 5(4)?", "Exact extension/read/write retirement relative to waits, interrupts, faults and retry remains pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "absolute_memory_to_memory_byte_move",
+      "tms34010_behavior": "MOVB @SAddress,@DAddress uses exact 0340h followed by source low/high then destination low/high bit-address halves. It captures the source byte before writing the destination and preserves ST.",
+      "tms34020_behavior": "The five-word encoding, extension order, read-before-write behavior and state preservation remain compatible. With the first extension aligned it takes 5/6 visible states by source alignment and otherwise 7/8, plus 1/2/4 hidden destination states.",
+      "rtl_impact": "Reuse low/high address assembly, extension ordering and byte-copy semantics only. A TMS34020-owned sequencer must fetch four extensions, retain the complete source before overlap, model the two-state unaligned penalty, map BEN, sequence dynamic-width transfers and make fault/retry idempotent. Current leaves remain noncommitting.",
+      "test_impact": "Exact opcode and neighbors; source-low/source-high/destination-low/destination-high order; aligned/unaligned extension timing; every source/destination byte alignment and A-F column; every byte value; overlap; unchanged ST; BEN; 16/32-bit beats; pages; waits; faults/retries; interrupts and I/O routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVB absolute-to-absolute form, printed p.13-156", "TI-TMS34020-UG-1990 source/destination alignment and timing, printed pp.15-10..15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-123..12-124"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact four-extension fetch and read/write retirement relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

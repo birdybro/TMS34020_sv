@@ -146,6 +146,13 @@ all 256 byte values and mixed prior NCZV states; the byte-load RTL leaf exports
 N/Z/V results but cannot preserve C or commit ST without the future memory
 owner. Sources: User's Guide MOVB status, printed p.13-156.
 
+The three memory-to-memory MOVB forms preserve the complete ST value. Their
+fixed-byte source is captured before the destination write, including overlap,
+but no compare or sign extension is performed. Model tests preserve mixed
+full-width ST patterns across indirect, paired signed-offset, and absolute
+forms; the byte-copy RTL leaf has no status or architectural commit port.
+Source: User's Guide MOVB status applicability note, printed p.13-156.
+
 CPW preserves the complete status register except V, which reports whether
 any of its four signed-XY window outcode bits are set. The independent model
 tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;

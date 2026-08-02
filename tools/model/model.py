@@ -168,6 +168,9 @@ class Tms34020Model:
             "MOVB.MR": self._execute_movb_memory_to_register,
             "MOVB.MR.OFFSET": self._execute_movb_memory_to_register,
             "MOVB.MR.ABS": self._execute_movb_memory_to_register,
+            "MOVB.MM": self._execute_movb_memory_to_memory,
+            "MOVB.MM.OFFSET": self._execute_movb_memory_to_memory,
+            "MOVB.MM.ABS": self._execute_movb_memory_to_memory,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
@@ -2296,6 +2299,116 @@ class Tms34020Model:
         self._active_trace.transactions.append(transaction)
         self._active_trace.notes.append(
             "logical little-endian fixed-byte extraction; physical dynamic "
+            "width, wait, page, fault, retry, interrupt, and I/O sequencing "
+            "remain pending"
+        )
+        return machine_states
+
+    def _execute_movb_memory_to_memory(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} big-endian byte mapping is "
+                "classified but not modeled"
+            )
+        first_word = words[0]
+        immediate_aligned: bool | None = None
+        source_base: int | None = None
+        destination_base: int | None = None
+        source_offset: int | None = None
+        destination_offset: int | None = None
+        if instruction.mnemonic == "MOVB.MM.ABS":
+            source_address = self._absolute_bit_address(words, 1)
+            destination_address = self._absolute_bit_address(words, 3)
+            immediate_aligned = self._first_extension_long_word_aligned()
+        else:
+            register_file, source_index, destination_index = (
+                self._decode_source_destination(first_word)
+            )
+            source_base = self.state.read_reg(register_file, source_index)
+            destination_base = self.state.read_reg(
+                register_file, destination_index
+            )
+            source_address = source_base
+            destination_address = destination_base
+            if instruction.mnemonic == "MOVB.MM.OFFSET":
+                source_offset = self._signed_half(words[1])
+                destination_offset = self._signed_half(words[2])
+                source_address = (source_base + source_offset) & MASK32
+                destination_address = (
+                    destination_base + destination_offset
+                ) & MASK32
+        value = self.state.memory.read_bits(source_address, 8)
+        source_case = self._field_alignment_case(source_address, 8)
+        destination_case = self._field_alignment_case(destination_address, 8)
+        source_crosses = source_case == 5
+        if destination_case == 1:
+            timing_column = "B" if source_crosses else "A"
+        elif destination_case == 2:
+            timing_column = "D" if source_crosses else "C"
+        else:
+            timing_column = "F" if source_crosses else "E"
+        if instruction.mnemonic == "MOVB.MM":
+            machine_states = 3 + int(source_crosses)
+        elif instruction.mnemonic == "MOVB.MM.OFFSET":
+            machine_states = 5 + int(source_crosses)
+        else:
+            machine_states = (
+                5 + 2 * int(not immediate_aligned) + int(source_crosses)
+            )
+        hidden_states = {1: 1, 2: 2, 5: 4}[destination_case]
+        offset_case_e_override = (
+            instruction.mnemonic == "MOVB.MM.OFFSET"
+            and timing_column == "E"
+        )
+        if offset_case_e_override:
+            hidden_states = 2
+        self.state.memory.write_bits(destination_address, 8, value)
+        self._new_hidden_write_states = hidden_states
+        assert self._active_trace is not None
+        read_transaction = {
+            "class": "data_read",
+            "purpose": "byte_move_memory_to_memory_source",
+            "bit_address": source_address,
+            "width": 8,
+            "value": value,
+            "alignment_case": source_case,
+            "addressing_mode": instruction.mnemonic,
+            "timing_column": timing_column,
+        }
+        write_transaction = {
+            "class": "data_write",
+            "purpose": "byte_move_memory_to_memory_destination",
+            "bit_address": destination_address,
+            "width": 8,
+            "value": value,
+            "alignment_case": destination_case,
+            "addressing_mode": instruction.mnemonic,
+            "timing_column": timing_column,
+            "hidden_write_states": hidden_states,
+            "offset_case_e_override": int(offset_case_e_override),
+        }
+        if source_base is not None:
+            read_transaction["base_address"] = source_base
+            write_transaction["base_address"] = destination_base
+        if source_offset is not None:
+            read_transaction["signed_offset"] = source_offset
+            write_transaction["signed_offset"] = destination_offset
+        if immediate_aligned is not None:
+            read_transaction["first_extension_long_word_aligned"] = int(
+                immediate_aligned
+            )
+            write_transaction["first_extension_long_word_aligned"] = int(
+                immediate_aligned
+            )
+        self._active_trace.transactions.extend(
+            [read_transaction, write_transaction]
+        )
+        self._active_trace.notes.append(
+            "logical little-endian fixed-byte read-before-write copy; the "
+            "offset column-E 5(2) timing cell is preserved provisionally "
+            "under RSC-0039/OQ-0026; physical byte strobes, RMW, dynamic "
             "width, wait, page, fault, retry, interrupt, and I/O sequencing "
             "remain pending"
         )

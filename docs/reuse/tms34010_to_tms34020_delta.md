@@ -1,6 +1,6 @@
 # TMS34010 to TMS34020 architectural delta
 
-Status: required-topic coverage is complete in the 89-entry generated ledger;
+Status: required-topic coverage is complete in the 92-entry generated ledger;
 instruction-by-instruction and cycle-by-cycle quantification is still in
 progress under `TMS20-0005` and `TMS20-0006`.
 
@@ -46,16 +46,18 @@ graphics-context saves, reset-vector low bits, moved video registers, and
 interrupt stack assumptions. Each becomes a compatibility test, not a reason
 to copy an implementation.
 
-The six currently extracted register/memory MOVB forms retain their TMS34010
-encodings and fixed-byte programmer-visible semantics. Stores preserve ST;
-loads always sign-extend and replace N/Z/V while preserving C independently of
-FS/FE. This permits reuse of independently verified byte insertion/extraction,
-extension and signed/absolute address arithmetic, but not the TMS34010 memory
+The nine extracted MOVB forms retain their TMS34010 encodings and fixed-byte
+programmer-visible semantics. Stores and memory copies preserve ST; loads
+always sign-extend and replace N/Z/V while preserving C independently of
+FS/FE. This permits reuse of independently verified byte insertion/extraction/
+copy, extension and signed/absolute address arithmetic, but not the TMS34010 memory
 sequencer: the TMS34020 guide publishes its own visible/hidden state cases for
 a 32-bit pipeline and the eventual owner must handle BEN, SIZE16, page mode,
-byte CAS selection, read/modify/write, waits, faults and retries. Sources:
+byte CAS selection, read/modify/write, waits, faults and retries. The offset
+memory-copy column-E hidden-state anomaly remains PROVISIONAL under
+RSC-0039/OQ-0026. Sources:
 TMS34020 User's Guide printed pp.13-154..13-156 and 15-10..15-12; TMS34010
-User's Guide printed pp.12-114..12-122.
+User's Guide printed pp.12-114..12-124.
 
 ## Opcode and programmer-visible compatibility
 

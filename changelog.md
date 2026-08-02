@@ -4,6 +4,23 @@
 
 ### Added
 
+- Three primary-page-extracted memory-to-memory MOVB forms at 9C00h,
+  BC00h, and exact 0340h, covering 1,025 first words, fixed-eight-bit
+  read-before-write semantics, indirect/signed-offset/absolute extension
+  ordering, complete ST preservation, and primary timing classes.
+- Exhaustive little-endian architectural byte-copy tests and a clean-room
+  fixed-byte RTL leaf covering every source/destination bit offset and byte
+  value, overlap capture, A/B/SP aliases, signed wrap, absolute word order,
+  timing classification, BEN rollback, and explicit noncommit without a
+  memory owner.
+- RSC-0039/OQ-0026 record the offset MOVB case-E timing contradiction: TI's
+  table prints 5(2) despite its own destination-case definition requiring
+  five writes. The database/model/RTL retain that literal value as
+  PROVISIONAL pending stronger evidence.
+- Rebalanced all four decoder-bearing synthesis digests when the generated
+  opcode identifier grew from seven to eight bits, retaining every identifier
+  bit without the truncation warnings caught by the warning-enforcing Quartus
+  smokes.
 - Three primary-page-extracted memory-to-register MOVB forms at 8E00h,
   AE00h, and 07E0h, covering 1,056 first words, fixed signed-byte semantics,
   indirect/signed-offset/absolute address ordering, N/Z/V with preserved C,
@@ -549,6 +566,18 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis reports 13,102 leaf logic
+  cells/2,230 registers/9 DSP, 474 fetch logic cells, 856 frontend logic cells,
+  and 5,439 scalar logic cells for the 130-entry decoder/fixed-byte-copy
+  revision. The frontend/scalar probes retain 4,096 block-memory bits. These
+  are observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
+- The 71-case ISA suite, 92-entry delta ledger, complete 210-case model
+  regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
+  pass for the fixed-byte memory-copy milestone.
+- The three extracted memory-to-memory MOVB forms pass exhaustive model and
+  RTL byte geometry, overlap, address/timing-class, decode-boundary, ST
+  preservation, BEN rollback, and direct-router noncommit checks.
 - The 68-case ISA suite, 89-entry delta ledger, complete 208-case model
   regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
   pass for the fixed-byte memory-load milestone.

@@ -111,6 +111,34 @@ No request owner yet sequences dynamic-width reads, waits, pages, I/O,
 fault/retry suppression, interrupts, or atomic destination/status retirement.
 BEN=1 remains rejected rather than assigned guessed bit mapping.
 
+## Verified memory-to-memory byte boundaries
+
+`MOVB *Rs,*Rd` (`9C00h`/`FE00h`),
+`MOVB *Rs(SOffset),*Rd(DOffset)` (`BC00h`/`FE00h` plus source then
+destination signed 16-bit displacements), and
+`MOVB @SAddress,@DAddress` (exact `0340h` plus source low/high then
+destination low/high address halves) capture one source byte before writing
+the destination. Registers and ST remain unchanged, including shared-base
+offset addressing and overlapping source/destination fields. Sources: User's
+Guide printed pp.13-155..13-156; compatible TMS34010 forms printed p.12-118,
+pp.12-120..12-121, and pp.12-123..12-124.
+
+The model exhausts every source/destination bit-offset pair and every byte
+value for each form, plus A/B/SP, alias/overlap, signed wrap, extension order,
+exact read-before-write traces, and BEN rollback. The clean-room
+`tms34020_byte_move` leaf fixes the independently verified two-window field
+copy to eight bits, classifies reachable timing columns A-F, and reports
+indirect 3/4, offset 5/6, and aligned/unaligned absolute 5/6 or 7/8 visible
+states. Destination hidden states are 1/2/4 except the offset row's literal
+column-E `5(2)` cell. That two-state override conflicts with Table 15-2 and
+corresponding cells, so it remains PROVISIONAL under RSC-0039/OQ-0026 rather
+than being silently changed. Source: User's Guide Tables 15-2..15-3 and the
+memory-to-memory rows, printed pp.15-10..15-12.
+
+No RTL owner captures addresses, fetches extensions, sequences dynamic-width
+reads and byte-strobed/RMW writes, or makes overlap/fault/retry/interrupt
+retirement atomic. BEN, page mode, waits, I/O and pin behavior remain absent.
+
 ## Verified ordinary memory-to-register boundary
 
 `MOVE *Rs,Rd[,F]` occupies `8400h`/`FC00h`. F selects the corresponding

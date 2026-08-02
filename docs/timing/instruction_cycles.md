@@ -183,6 +183,17 @@ included in those counts. The model and byte-load leaf expose the table values
 without claiming external read, wait, dynamic-width, fault, retry, or BEN
 timing. Source: User's Guide memory-to-register MOVB rows, printed p.15-11.
 
+The fixed-byte memory copies reach timing columns A-F only. `MOVB *Rs,*Rd`
+reports `3(1)`, `4(1)`, `3(2)`, `4(2)`, `3(4)`, and `4(4)` across A-F.
+The signed-offset form adds two visible states, while the absolute form reports
+aligned `5/6` or unaligned `7/8` visible states by source alignment. The
+offset row uniquely prints column E as `5(2)` rather than the four hidden
+states implied by destination case 5, Table 15-2, and the surrounding rows.
+The model and byte-copy leaf preserve that literal value provisionally under
+RSC-0039/OQ-0026 and expose a discriminator; no cycle-accuracy claim includes
+this unresolved cell. Source: User's Guide Tables 15-2..15-3 and memory-to-
+memory rows, printed pp.15-10..15-12.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.

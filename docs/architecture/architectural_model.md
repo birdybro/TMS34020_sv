@@ -27,6 +27,7 @@ Implemented:
   MOVE.RM.ABS, MOVE.MR.ABS, MOVE.MM.SABS_POST, MOVE.MM.ABS,
   MOVB.RM, MOVB.RM.OFFSET, MOVB.RM.ABS,
   MOVB.MR, MOVB.MR.OFFSET, MOVB.MR.ABS,
+  MOVB.MM, MOVB.MM.OFFSET, MOVB.MM.ABS,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -39,7 +40,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 126 of 127 currently extracted database forms for their
+These handlers cover 129 of 130 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -225,6 +226,23 @@ The model reports 4/5, 6/7, or 5–7 visible states over reachable byte cases
 physical request/retirement evidence. Sources: User's Guide printed
 pp.13-155..13-156 and 15-11; compatible TMS34010 forms printed pp.12-117,
 12-119, and 12-122.
+
+`MOVB.MM`, `MOVB.MM.OFFSET`, and `MOVB.MM.ABS` name `MOVB *Rs,*Rd`,
+`MOVB *Rs(SOffset),*Rd(DOffset)`, and `MOVB @SAddress,@DAddress`. They capture
+the source byte before any overlapping destination write and preserve every
+register and ST bit. The signed-offset form consumes source then destination
+offset words and derives both effective addresses from unchanged bases; the
+absolute form consumes source low/high then destination low/high words. Tests
+exhaust all 1,024 source/destination bit-offset pairs and all 256 byte values
+for each form, plus A/B/SP, same-base offsets, overlap, wrap, absolute word
+order, exact logical transaction order, timing columns A-F and atomic BEN
+rollback. The model reports indirect 3/4, offset 5/6, and aligned/unaligned
+absolute 5/6 or 7/8 visible states, plus the published hidden-write values.
+The offset column-E `5(2)` cell is preserved provisionally under
+RSC-0039/OQ-0026 rather than normalized to four hidden states. These are
+logical little-endian instruction boundaries, not physical bus evidence.
+Sources: User's Guide printed pp.13-155..13-156 and 15-10..15-12; compatible
+TMS34010 forms printed pp.12-118, 12-120..12-121, and 12-123..12-124.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

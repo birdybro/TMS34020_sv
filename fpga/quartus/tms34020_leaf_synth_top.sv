@@ -126,6 +126,18 @@ module tms34020_leaf_synth_top (
     logic byte_load_n;
     logic byte_load_z;
     logic byte_load_v;
+    logic byte_move_mode_valid;
+    logic [2:0] byte_move_source_case;
+    logic [2:0] byte_move_destination_case;
+    logic byte_move_reads_word1;
+    logic byte_move_writes_word1;
+    logic [2:0] byte_move_timing_column;
+    logic byte_move_offset_case_e_override;
+    logic [3:0] byte_move_visible_states;
+    logic [2:0] byte_move_hidden_states;
+    logic [31:0] byte_move_value;
+    logic [31:0] byte_move_destination_word0;
+    logic [31:0] byte_move_destination_word1;
     logic [5:0] field_address_size;
     logic [31:0] field_address_effective;
     logic [31:0] field_address_final;
@@ -234,6 +246,14 @@ module tms34020_leaf_synth_top (
          byte_load_n, byte_load_z, byte_load_v} ^
         byte_load_raw ^
         byte_load_result ^
+        byte_move_value ^
+        byte_move_destination_word0 ^
+        byte_move_destination_word1 ^
+        {12'd0, byte_move_mode_valid, byte_move_source_case,
+         byte_move_destination_case, byte_move_reads_word1,
+         byte_move_writes_word1, byte_move_timing_column,
+         byte_move_offset_case_e_override, byte_move_visible_states,
+         byte_move_hidden_states} ^
         field_address_effective ^
         field_address_final ^
         field_pair_source_effective ^
@@ -308,7 +328,7 @@ module tms34020_leaf_synth_top (
         {6'd0, unary_nczv, unary_status_write_mask,
          add_nczv, compare_nczv, rmo_z, decode_valid,
          decode_length, pixel_valid, pixel_states} ^
-        {25'd0, decoded_id};
+        {24'd0, decoded_id};
 
     tms34020_decode decode (
         .first_word_i(first_word_i),
@@ -670,6 +690,29 @@ module tms34020_leaf_synth_top (
         .field_value_o(field_move_value),
         .destination_word0_o(field_move_destination_word0),
         .destination_word1_o(field_move_destination_word1)
+    );
+
+    tms34020_byte_move byte_move (
+        .address_mode_i(first_word_i[1:0]),
+        .first_extension_aligned_i(operand_i[5]),
+        .source_bit_offset_i(operand_i[4:0]),
+        .destination_bit_offset_i(second_register_data[4:0]),
+        .source_word0_i(immediate_i),
+        .source_word1_i(operand_i),
+        .destination_word0_i(register_data),
+        .destination_word1_i(second_register_data),
+        .mode_valid_o(byte_move_mode_valid),
+        .source_case_o(byte_move_source_case),
+        .destination_case_o(byte_move_destination_case),
+        .reads_source_word1_o(byte_move_reads_word1),
+        .writes_destination_word1_o(byte_move_writes_word1),
+        .timing_column_o(byte_move_timing_column),
+        .offset_case_e_override_o(byte_move_offset_case_e_override),
+        .visible_states_o(byte_move_visible_states),
+        .hidden_write_states_o(byte_move_hidden_states),
+        .byte_value_o(byte_move_value),
+        .destination_word0_o(byte_move_destination_word0),
+        .destination_word1_o(byte_move_destination_word1)
     );
 
     tms34020_multiple_register_control multiple_register_control (

@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 127 page-verified encoding records and covers 46,808 of 65,536
+slice contains 130 page-verified encoding records and covers 47,833 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -74,6 +74,9 @@ first words without collisions:
 | MOVB.MR / `MOVB *Rs,Rd` | `8E00h`, mask `FE00h` | 1 | pp.13-155..13-156 |
 | MOVB.MR.OFFSET / `MOVB *Rs(offset),Rd` | `AE00h`, mask `FE00h` | 2 | pp.13-155..13-156 |
 | MOVB.MR.ABS / `MOVB @SAddress,Rd` | `07E0h`, mask `FFE0h` | 3 | p.13-156 |
+| MOVB.MM / `MOVB *Rs,*Rd` | `9C00h`, mask `FE00h` | 1 | p.13-155 |
+| MOVB.MM.OFFSET / `MOVB *Rs(SOffset),*Rd(DOffset)` | `BC00h`, mask `FE00h` | 3 | p.13-156 |
+| MOVB.MM.ABS / `MOVB @SAddress,@DAddress` | `0340h` | 5 | p.13-156 |
 | RL.K / RL constant | `3000h`, mask `FC00h` | 1 | p.13-222 |
 | RL.R / RL register | `6800h`, mask `FE00h` | 1 | p.13-223 |
 | BTST.K / BTST constant | `1C00h`, mask `FC00h` | 1 | p.13-46 |

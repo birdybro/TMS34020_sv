@@ -51,7 +51,7 @@ module tms34020_frontend_synth_top (
             {16'd0, folded_packet_words} ^
             {22'd0, packet_cache_results} ^
             {
-                2'd0,
+                1'd0,
                 pc_load_ready,
                 packet_valid,
                 packet_decode_valid,

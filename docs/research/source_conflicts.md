@@ -779,3 +779,22 @@
   original minus two, and leave the shared pointer at the explicitly specified
   twice-decremented value. This is VERIFIED_PRIMARY for TMS34020 and does not
   claim physical TMS34010 silicon behavior beyond its published sequence.
+
+## RSC-0039: Offset MOVB case E contradicts the published write-cycle count
+
+- Status: open; the literal timing-table cell is implemented provisionally
+- Primary contradiction: TI *TMS34020 User's Guide*, August 1990, Table 15-2
+  on printed p.15-10 says destination alignment case 5 requires five write
+  cycles. Table 15-3 on printed p.15-12 maps source cases 1/2 plus destination
+  case 5 to column E. On that same page, every fixed-byte destination-case-5
+  cell has four hidden write states except `MOVB *Rs(SOffset),
+  *Rd(DOffset)` column E, which uniquely prints `5(2)`. Column F for the same
+  instruction prints `6(4)`, and the corresponding indirect and absolute
+  byte-move rows also print four hidden states for destination case 5.
+- Provisional decision: preserve the literal `5(2)` result in the ISA ledger,
+  model, and clean-room timing leaf rather than silently normalize it to the
+  geometrically expected `5(4)`. Mark that one cell PROVISIONAL and expose an
+  explicit case-E override so tests distinguish it. OQ-0026 requires another
+  guide revision, erratum, diagnostic/XDS trace, or physical timing evidence
+  before the two-versus-four hidden-state question can be resolved. This does
+  not alter the documented five visible states or any byte-copy semantics.

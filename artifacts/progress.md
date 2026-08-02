@@ -4,19 +4,21 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `6cba4ce397437ead837aa5a635c9b28a067719a6`
-- Passing tests: foundation, reference/hash, delta, 68-case ISA sweep, 208 directed model
+- Passing tests: foundation, reference/hash, delta, 71-case ISA sweep, 210 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 126 of 127 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. Six extracted MOVB
-  store/load forms exhaust all 256 byte values and bit offsets through
-  indirect, signed-offset and absolute addressing with store ST preservation,
-  signed-load N/Z/V, preserved C, A/B/SP/alias ordering, primary timing cases,
-  exact traces and BEN rollback. Ordinary,
+- Model status: 129 of 130 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. All nine extracted
+  MOVB store/load/copy forms exhaust all 256 byte values and source/destination
+  bit offsets through indirect, signed-offset and absolute addressing with
+  store/copy ST preservation, signed-load N/Z/V, preserved C, read-before-write
+  overlap, A/B/SP/alias ordering, primary timing cases, exact traces and BEN
+  rollback. Offset-copy case E preserves TI's anomalous 5(2) timing as
+  PROVISIONAL under RSC-0039/OQ-0026. Ordinary,
   postincrement, predecrement, signed-offset, mixed-offset and absolute RM/MR/MM cover both
   field banks, all 32 widths and all 32 bit offsets in little-endian mode,
   including crossing-word preservation, FE extension and status, pointer wrap,
@@ -120,11 +122,12 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 127-entry partial decode, exhaustive clean-room
+- RTL status: generated 130-entry partial decode, exhaustive clean-room
   MOVE.RM insertion, MOVE.MR/MR.POST extraction/extension, MOVE.MM two-sided copy/
   alignment, ordinary/postincrement/predecrement single-pointer, paired-
   increment/decrement, signed-offset, mixed source-offset/destination-
-  postincrement, absolute low/high address, and fixed-byte register-store/load leaves with
+  postincrement, absolute low/high address, and fixed-byte register-store/load/
+  memory-copy leaves with
   explicit noncommit at the absent memory owner, a clean-room RETI/RETM
   mode plus normal/IX/BF context/result/timing/bypass-delay classification
   leaf, an exhaustive
@@ -251,7 +254,7 @@
 - Bus status: cache-native completion plus logical ordinary/postincrement/
   predecrement/signed-offset/mixed-offset/absolute RM/MR/MM
   field-store/load/copy, pointer-update, and indirect/signed-offset/absolute
-  register/memory MOVB byte-store/load
+  MOVB byte-store/load/copy
   geometry only; no BEN/byte-strobe/RMW/width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
 - Formal status: four cache, four fetch, twenty-three scalar, two commit-owner,
@@ -260,10 +263,10 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 13,041 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 13,102 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 456, 825, and 5,371 logic cells;
-  the scalar wrapper has 1,415 registers and 4,096 block-memory bits; Yosys
+  the fetch, frontend, and scalar wrappers use 474, 856, and 5,439 logic cells;
+  the scalar wrapper has 1,416 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file
   pinned MAME source set, and an eleven-file pinned prior FPGA source set; all
@@ -272,7 +275,7 @@
 - Provisional behavior: the cache model represents architecturally
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
   transactions rather than pin-level dynamic-width cycles;
-  ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM and the six MOVB store/load forms reject
+  ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM and all nine MOVB store/load/copy forms reject
   BEN=1 and expose logical field transactions rather than physical bus beats
 - Unresolved conflicts: exact game parts and REV values, original/A errata,
   first-silicon history, the MPYS/MPYU detailed-page/timing-table swap and

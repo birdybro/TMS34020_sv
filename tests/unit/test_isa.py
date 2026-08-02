@@ -76,7 +76,7 @@ class IsaTests(unittest.TestCase):
                         instruction["mnemonic"],
                         {
                             "CVXYL", "DIVS", "MMFM", "MPYS", "MPYU",
-                            "RETI", "RETM",
+                            "MOVB.MM.OFFSET", "RETI", "RETM",
                         },
                     )
                 if instruction["confidence"] == "CORROBORATED":
@@ -350,6 +350,11 @@ class IsaTests(unittest.TestCase):
             0xAFFF: ("MOVB.MR.OFFSET", 2),
             0x07E0: ("MOVB.MR.ABS", 3),
             0x07FF: ("MOVB.MR.ABS", 3),
+            0x9C00: ("MOVB.MM", 1),
+            0x9DFF: ("MOVB.MM", 1),
+            0xBC00: ("MOVB.MM.OFFSET", 3),
+            0xBDFF: ("MOVB.MM.OFFSET", 3),
+            0x0340: ("MOVB.MM.ABS", 5),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -366,7 +371,8 @@ class IsaTests(unittest.TestCase):
     def test_nearby_reserved_or_other_words_do_not_alias_fixed_opcodes(self) -> None:
         for word in (0x0041, 0x0081, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
-                     0x0361, 0x080E, 0x081F, 0x0861, 0x0941, 0x0A01,
+                     0x033F, 0x0341, 0x0361, 0x080E, 0x081F, 0x0861,
+                     0x0941, 0x0A01,
                      0x0D61, 0x0DE1,
                      0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF,
                      0x0AFF, 0x0C20,
@@ -377,8 +383,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 46808)
-        self.assertEqual(unclassified, 65536 - 46808)
+        self.assertEqual(matched, 47833)
+        self.assertEqual(unclassified, 65536 - 47833)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2110,6 +2116,71 @@ class IsaTests(unittest.TestCase):
         })
         self.assertEqual(cases["not_long_word_aligned"], {
             "case_1": 6, "case_2": 6, "case_5": 7
+        })
+
+    def test_movb_memory_to_memory_contract(self) -> None:
+        instruction = self.database.decode(0x9C00)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVB.MM")
+        self.assertEqual(instruction.opcode_mask, 0xFE00)
+        self.assertEqual(instruction.length_words, 1)
+        columns = instruction.metadata["documented_cycles"][
+            "reachable_columns"
+        ]
+        self.assertEqual(
+            {name: (cell["visible_machine_states"],
+                    cell["hidden_write_states"])
+             for name, cell in columns.items()},
+            {
+                "A": (3, 1), "B": (4, 1), "C": (3, 2),
+                "D": (4, 2), "E": (3, 4), "F": (4, 4),
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+
+    def test_movb_offset_to_offset_contract_retains_case_e_anomaly(self) -> None:
+        instruction = self.database.decode(0xBC00)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVB.MM.OFFSET")
+        self.assertEqual(instruction.opcode_mask, 0xFE00)
+        self.assertEqual(instruction.length_words, 3)
+        self.assertEqual(
+            [field["name"] for field in instruction.metadata["immediate_fields"]],
+            ["source_offset", "destination_offset"],
+        )
+        columns = instruction.metadata["documented_cycles"][
+            "reachable_columns"
+        ]
+        self.assertEqual(
+            (columns["E"]["visible_machine_states"],
+             columns["E"]["hidden_write_states"]),
+            (5, 2),
+        )
+        self.assertEqual(columns["E"]["confidence"], "PROVISIONAL")
+        self.assertEqual(columns["F"]["hidden_write_states"], 4)
+
+    def test_movb_absolute_to_absolute_contract(self) -> None:
+        instruction = self.database.decode(0x0340)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVB.MM.ABS")
+        self.assertEqual(instruction.opcode_mask, 0xFFFF)
+        self.assertEqual(instruction.length_words, 5)
+        self.assertEqual(
+            [field["word_order"] for field in
+             instruction.metadata["immediate_fields"]],
+            [
+                ["word1_low", "word2_high"],
+                ["word3_low", "word4_high"],
+            ],
+        )
+        rows = instruction.metadata["documented_cycles"][
+            "reachable_columns_by_immediate_alignment"
+        ]
+        self.assertEqual(rows["long_word_aligned"]["A"], {
+            "visible_machine_states": 5, "hidden_write_states": 1
+        })
+        self.assertEqual(rows["not_long_word_aligned"]["F"], {
+            "visible_machine_states": 8, "hidden_write_states": 4
         })
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
