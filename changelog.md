@@ -915,6 +915,8 @@
 
 ### Documentation
 
+- Recorded the verified MODS/MODU implementation baseline as commit
+  `f8a3ebe7f85ff9174c6e7a8c09a66fbe36d3afaf` in the progress ledger.
 - Recorded RSC-0028 for the inherited MODU "quotient" noun that conflicts with
   the operation and `8 mod 4` zero-remainder/Z-set row; remainder-derived Z is
   primary-verified. RSC-0029/OQ-0019 retain the published MODS
