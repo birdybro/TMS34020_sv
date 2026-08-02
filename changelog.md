@@ -1117,6 +1117,8 @@
 
 ### Documentation
 
+- Recorded the verified postincrement field-load implementation baseline as
+  commit `13821007e7929b9d312c82fa91f5eeabdd5f7bf6` in the progress ledger.
 - Documented postincrement field-load semantic compatibility separately from
   TMS34020-owned 32-bit alignment, BEN, physical dual-write retirement and
   fault sequencing; recorded RSC-0036/OQ-0024 for the primary-source omission
