@@ -1350,6 +1350,8 @@ qualification.
 
 ### Documentation
 
+- Recorded the verified CMOVGC register-transfer implementation milestone as
+  commit `e38834122f2fdc861494cb1a057b8ee7db522eb7` in the progress ledger.
 - Recorded the CEXEC model/RTL milestone commit
   `358dd834248f63a85ad2b40c31d42c743b5059a5` in the progress ledger.
 - Added the Chapter-10 coprocessor command format, long/short CEXEC encoding,

@@ -3,7 +3,7 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest committed baseline: `358dd834248f63a85ad2b40c31d42c743b5059a5`
+- Latest committed baseline: `e38834122f2fdc861494cb1a057b8ee7db522eb7`
 - Passing tests: foundation, reference/hash, delta, 74-case ISA sweep, 214 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
