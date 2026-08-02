@@ -1097,6 +1097,8 @@
 
 ### Documentation
 
+- Recorded the verified postincrement field-store implementation baseline as
+  commit `58d2fe1743557cde1e8a836fba2a96047d8103a0` in the progress ledger.
 - Documented postincrement field-store semantic compatibility separately from
   TMS34020-owned 32-bit alignment, BEN, hidden-write and fault sequencing.
 - Recorded the verified ordinary memory-to-memory field-copy implementation
