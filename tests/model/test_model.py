@@ -1125,6 +1125,149 @@ class ExecutionTests(unittest.TestCase):
                 self.assertEqual(model.state.sp, 0x0000_0140)
                 self.assertEqual(event.machine_states, 1)
 
+    def test_cvxyl_primary_equation_rows_and_pitch_classes(self) -> None:
+        primary_rows = (
+            (0x0040_0030, 0x0000_0000, 16, 0x0014, 0x0002_0300),
+            (0x0040_0030, 0x0000_0000, 8, 0x0014, 0x0002_0180),
+            (0x0040_0030, 0x0000_0000, 4, 0x0014, 0x0002_00C0),
+            (0x0040_0030, 0x0000_8000, 4, 0x0014, 0x0002_80C0),
+            (0x0040_0030, 0x0F00_0000, 4, 0x0014, 0x0F02_00C0),
+            (0x0040_0030, 0x0000_0000, 2, 0x0014, 0x0002_0060),
+            (0x0040_0030, 0x0000_0000, 1, 0x0014, 0x0002_0030),
+            (0x0040_0030, 0x0000_0000, 1, 0x0013, 0x0004_0030),
+            (0x0040_0030, 0x0000_0000, 1, 0x0015, 0x0001_0030),
+        )
+        for xy_value, offset, psize, conversion, expected in primary_rows:
+            with self.subTest(
+                psize=psize,
+                conversion=f"{conversion:04X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([0xE801])  # CVXYL A0,A1
+                model.state.write_reg("A", 0, xy_value)
+                model.state.write_reg("A", 1, 0xDEAD_BEEF)
+                model.state.write_reg("B", 4, offset)
+                model.state.write_io(PSIZE_ADDRESS, psize)
+                model.state.write_io(CONVDP_ADDRESS, conversion)
+                model.state.st = 0xF020_001F
+
+                event = model.step()
+
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(model.state.st, 0xF020_001F)
+                self.assertEqual(event.machine_states, 3)
+                self.assertIn("power_of_two", event.notes[-1])
+
+        for conversion, pitch, expected, states, pitch_class in (
+            (0x1513, 0x0000_1400, 0x0000_1408, 4, "two_powers_of_two"),
+            (0x0000, 0x0000_00E0, 0x0000_00F0, 14, "arbitrary"),
+        ):
+            with self.subTest(pitch_class=pitch_class):
+                model = Tms34020Model()
+                model.load_program([0xE801])
+                model.state.write_reg("A", 0, 0x0001_0001)
+                model.state.write_reg("B", 3, pitch)
+                model.state.write_io(PSIZE_ADDRESS, 16 if not conversion else 8)
+                model.state.write_io(CONVDP_ADDRESS, conversion)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(event.machine_states, states)
+                self.assertIn(pitch_class, event.notes[-1])
+
+    def test_cvd_cvm_cvs_primary_conversion_rows(self) -> None:
+        cvd_rows = (
+            (0x0000_1000, 4, 0x0013, 0x0000_0100, 0x0000_1104, 2),
+            (0x0000_1400, 8, 0x1513, 0x0000_0000, 0x0000_1408, 3),
+            (0x0000_00E0, 16, 0x0000, 0xFF30_0000, 0xFF30_00F0, 14),
+        )
+        for pitch, psize, conversion, offset, expected, states in cvd_rows:
+            with self.subTest(cvd_pitch=f"{pitch:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x0A80])  # CVDXYL A0
+                model.state.write_reg("A", 0, 0x0001_0001)
+                model.state.write_reg("A", 4, offset)
+                model.state.write_reg("B", 3, pitch)
+                model.state.write_io(PSIZE_ADDRESS, psize)
+                model.state.write_io(CONVDP_ADDRESS, conversion)
+                model.state.st = 0xA5A5_5A5A
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), expected)
+                self.assertEqual(model.state.st, 0xA5A5_5A5A)
+                self.assertEqual(event.machine_states, states)
+
+        cvm_rows = (
+            (0x0000_1000, 0x0013, 0x0000_1001, 2),
+            (0x0000_1400, 0x1513, 0x0000_1401, 3),
+            (0x0000_00E0, 0x0000, 0x0000_00E1, 14),
+        )
+        for pitch, conversion, expected, states in cvm_rows:
+            with self.subTest(cvm_pitch=f"{pitch:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x0A60])  # CVMXYL A0
+                model.state.write_reg("A", 0, 0x0001_0001)
+                model.state.write_reg("B", 11, pitch)
+                model.state.write_io(CONVMP_ADDRESS, conversion)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), expected)
+                self.assertEqual(event.machine_states, states)
+
+        for conversion, pitch, expected, states in (
+            (0x0013, 0x0000_1000, 0x0000_1108, 2),
+            (0x1513, 0x0000_1400, 0x0000_1508, 3),
+            (0x0000, 0x0000_00E0, 0x0000_01E8, 14),
+        ):
+            with self.subTest(cvs_conversion=f"{conversion:04X}"):
+                model = Tms34020Model()
+                model.load_program([0xEA01])  # CVSXYL A0,A1
+                model.state.write_reg("A", 0, 0x0000_0100)
+                model.state.write_reg("A", 1, 0x0001_0001)
+                model.state.write_reg("B", 1, pitch)
+                model.state.write_io(PSIZE_ADDRESS, 8)
+                model.state.write_io(CONVSP_ADDRESS, conversion)
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual(event.machine_states, states)
+
+    def test_xy_linear_signed_wrap_and_alias_capture(self) -> None:
+        # Signed Y and signed arbitrary pitch are multiplied modulo 32 bits.
+        model = Tms34020Model()
+        model.load_program([0xE801])
+        model.state.write_reg("A", 0, 0xFFFF_0002)  # Y=-1, X=2
+        model.state.write_reg("B", 3, 0xFFFF_FFF0)  # pitch=-16
+        model.state.write_reg("B", 4, 0xFFFF_FFF0)
+        model.state.write_io(PSIZE_ADDRESS, 4)
+        model.state.write_io(CONVDP_ADDRESS, 0)
+        event = model.step()
+        self.assertEqual(model.state.read_reg("A", 1), 8)
+        self.assertEqual(event.machine_states, 14)
+
+        # Every implementation must capture all explicit and implied operands
+        # before a destination alias is written.
+        cvd_alias = Tms34020Model()
+        cvd_alias.load_program([0x0A84])  # CVDXYL A4 (also A-file OFFSET)
+        cvd_alias.state.write_reg("A", 4, 0x0001_0001)
+        cvd_alias.state.write_io(PSIZE_ADDRESS, 1)
+        cvd_alias.state.write_io(CONVDP_ADDRESS, 0x0013)
+        cvd_alias.step()
+        self.assertEqual(cvd_alias.state.read_reg("A", 4), 0x0001_1002)
+
+        cvs_alias = Tms34020Model()
+        cvs_alias.load_program([0xEA00])  # CVSXYL A0,A0
+        cvs_alias.state.write_reg("A", 0, 0x0001_0001)
+        cvs_alias.state.write_io(PSIZE_ADDRESS, 1)
+        cvs_alias.state.write_io(CONVSP_ADDRESS, 0x0013)
+        cvs_alias.step()
+        self.assertEqual(cvs_alias.state.read_reg("A", 0), 0x0001_1002)
+
+        cvxy_alias = Tms34020Model()
+        cvxy_alias.load_program([0xE800])  # CVXYL A0,A0
+        cvxy_alias.state.write_reg("A", 0, 0x0001_0001)
+        cvxy_alias.state.write_reg("B", 4, 0x20)
+        cvxy_alias.state.write_io(PSIZE_ADDRESS, 1)
+        cvxy_alias.state.write_io(CONVDP_ADDRESS, 0x0013)
+        cvxy_alias.step()
+        self.assertEqual(cvxy_alias.state.read_reg("A", 0), 0x0000_1021)
+
     def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
         model = Tms34020Model()
         model.load_program([

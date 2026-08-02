@@ -26,13 +26,13 @@ Implemented:
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
   ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
-  CMPI.W, CMPI.L, CMPXY, CPW,
+  CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 88 of 89 currently extracted database forms. REV is
+These handlers cover 92 of 93 currently extracted database forms. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
 verified. A directed test proves that attempting REV raises
@@ -134,6 +134,19 @@ documented one-state boundary. The standalone RTL leaf covers the signed
 comparison semantics, but the scalar owner remains absent because the current
 two-read register composition cannot simultaneously acquire Rs, B5, and B6.
 Sources: TMS34020 User's Guide printed pp.13-85..13-86 and p.15-4.
+
+The four XY-to-linear handlers share equation-level arithmetic but retain
+their distinct explicit and implied operands. Signed X/Y halves and signed
+arbitrary pitches produce a modulo-32-bit linear result; encoded one- and
+two-power CONVxP fields select one or two signed-Y shifts. CVDXYL uses
+same-file R4/OFFSET, CVMXYL uses unscaled X with no offset, CVSXYL takes its
+offset from explicit Rs, and CVXYL uses B4/OFFSET. All operands are captured
+before destination writeback, including same-register and implied-register
+aliases, and ST is unchanged. Directed tests cover the primary equations,
+every pitch category, signed wrap, all PSIZE values represented by the guide,
+and exact 2/3/4/14-state classes. The three inconsistent CVXYL PSIZE=4 table
+rows are corrected according to the repeated equation under RSC-0025. Sources:
+TMS34020 User's Guide printed pp.4-28..4-29, 12-47..12-49, and 13-87..13-93.
 
 BTST.K recovers the selected bit from the one's-complement object field.
 BTST.R uses only the low five bits of its same-file source. Both preserve every
@@ -474,6 +487,9 @@ unaligned hidden writes, CALLR signed extremes and PC wrap, and CALLA
 low/high-word target assembly with explicitly incomplete timing,
 all 16 CPW primary outcodes, signed/inclusive bounds, V-only status, explicit
 operand aliases, and implied B5/B6 read-before-write hazards,
+all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
+coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and exact
+2/3/4/14-state classes,
 all BLMOVE S/D modes, alignment guards, zero/self/wrapping ranges, abstract
 transactions, overlap refusal, and final B0/B2/B7/ST state;
 IDLE claim boundaries, no mutation on unclassified instructions, and

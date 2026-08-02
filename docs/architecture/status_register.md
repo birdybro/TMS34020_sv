@@ -119,6 +119,11 @@ tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;
 the standalone RTL comparison leaf emits the V condition but does not own ST
 commit. Sources: User's Guide CPW, printed pp.13-85..13-86.
 
+CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
+The independent model checks full-width preservation rather than only NCZV;
+the standalone conversion RTL has no status output. Sources: User's Guide
+printed pp.13-87..13-93.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

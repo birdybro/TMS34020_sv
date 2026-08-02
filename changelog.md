@@ -4,6 +4,14 @@
 
 ### Added
 
+- Primary-page-verified CVDXYL `0A80h`/`FFE0h`, CVMXYL
+  `0A60h`/`FFE0h`, CVSXYL `EA00h`/`FE00h`, and CVXYL
+  `E800h`/`FE00h` metadata plus model semantics for signed coordinates,
+  one-/two-power and arbitrary pitches, offsets, PSIZE, aliases, unchanged ST,
+  and documented 2/3/4/14-state classes.
+- A portable signed XY-to-linear arithmetic/classification RTL leaf with
+  direct equation, pitch-class, modulo-wrap, timing-selection, and noncommit
+  guard tests pending a complete implied-register/I/O owner.
 - Primary-page-verified CPW `E600h`/`FE00h` metadata, all 16 published model
   rows, signed and inclusive boundary tests, A/B/shared-SP and implied B5/B6
   hazard coverage, V-only status behavior, and one-state execution.
@@ -280,6 +288,8 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 89 to 93 records and from
+  26,452 to 27,540 uniquely classified first words.
 - Expanded the generated partial decoder from 88 to 89 records and from
   25,940 to 26,452 uniquely classified first words.
 - Expanded the generated partial decoder from 85 to 88 records and from
@@ -333,6 +343,17 @@
 
 ### Verified
 
+- All four decoder-bearing Cyclone V Analysis & Synthesis probes pass with zero
+  errors and zero warnings at 9,140 leaf, 423 fetch, 791 frontend, and 5,237
+  scalar logic cells. The diagnostic XY-conversion leaf maps its arbitrary
+  signed pitch products to three DSP blocks; these wrapper figures are not a
+  complete-core area or timing result.
+
+- The 38-case ISA suite, 59-entry delta ledger, and 148-case model suite pass.
+  XY conversion coverage includes all 1,088 encodings, every pitch class,
+  signed arbitrary multiplication, PSIZE/offset variants, aliases, full ST
+  preservation, and exact instruction-boundary states; direct RTL tests cover
+  the shared leaf while all four commit paths remain guarded.
 - The 37-case ISA suite, 58-entry delta ledger, and 145-case model suite pass.
   CPW covers every published outcode row, signed discriminators, alias hazards,
   and exact one-state/V-only behavior; direct RTL tests cover the semantic leaf
@@ -845,6 +866,9 @@
 
 ### Documentation
 
+- Documented the four XY conversion contracts and TMS34010 delta, and recorded
+  the three CVXYL PSIZE=4 example rows that contradict the repeated equation
+  as RSC-0025/OQ-0016 instead of inventing an undocumented exception.
 - Added the required pixel-processing document with an explicitly partial CPW
   window boundary, exact outcode table, citations, and nonclaims; documented
   CPW's TMS34010 compatibility and isolated timing equivalence without
@@ -932,6 +956,9 @@
 
 ### Known Issues
 
+- CVDXYL/CVMXYL/CVSXYL/CVXYL have complete instruction-boundary model
+  semantics and a shared combinational RTL leaf, but no scalar implied-register,
+  CONVxP/PSIZE, destination, pipeline, or internal-I/O ordering owner.
 - CPW has complete instruction-boundary model semantics and a combinational RTL
   leaf, but no scalar three-read/atomic destination-plus-V owner. The rest of
   window checking, clipping, and pixel processing remains unimplemented.

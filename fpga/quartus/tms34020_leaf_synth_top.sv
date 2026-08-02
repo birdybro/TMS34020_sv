@@ -82,6 +82,9 @@ module tms34020_leaf_synth_top (
     logic [31:0] commit_sp;
     logic [31:0] window_outcode;
     logic window_outside;
+    logic [31:0] xy_linear_result;
+    logic [1:0] xy_linear_pitch_class;
+    logic [3:0] xy_linear_visible_states;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -114,6 +117,8 @@ module tms34020_leaf_synth_top (
         commit_status ^
         commit_sp ^
         window_outcode ^
+        xy_linear_result ^
+        {26'd0, xy_linear_pitch_class, xy_linear_visible_states} ^
         {24'd0, commit_supported, commit_accepted,
          commit_register_write_enable, commit_register_write_file,
          commit_register_write_index} ^
@@ -262,6 +267,20 @@ module tms34020_leaf_synth_top (
         .window_end_i({immediate_i[15:0], immediate_i[31:16]}),
         .outcode_o(window_outcode),
         .outside_o(window_outside)
+    );
+
+    tms34020_xy_to_linear xy_to_linear (
+        .xy_i(operand_i),
+        .pitch_i(immediate_i),
+        .offset_i({operand_i[15:0], operand_i[31:16]}),
+        .conversion_value_1_i(first_word_i[4:0]),
+        .conversion_value_2_i(first_word_i[12:8]),
+        .pixel_size_i({10'd0, pixel_size_i}),
+        .scale_x_by_pixel_size_i(first_word_i[0]),
+        .cvxyl_extra_state_i(first_word_i[1]),
+        .linear_o(xy_linear_result),
+        .pitch_class_o(xy_linear_pitch_class),
+        .visible_states_o(xy_linear_visible_states)
     );
 
     tms34020_regfile regfile (

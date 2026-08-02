@@ -3,16 +3,20 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest committed baseline: `028b24e47bd501a5fdc228e94d44b23f07d1f892`
-- Passing tests: foundation, reference/hash, delta, 37-case ISA sweep, 145 directed model
+- Latest committed baseline: `4b1c1b115b82d3a9c37a82bbede0cdbc212fac44`
+- Passing tests: foundation, reference/hash, delta, 38-case ISA sweep, 148 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 88 of 89 currently extracted encoding forms have bounded
-  successful semantics. CPW covers all published outcodes, signed inclusive
+- Model status: 92 of 93 currently extracted encoding forms have bounded
+  successful semantics. CVDXYL/CVMXYL/CVSXYL/CVXYL cover signed coordinates
+  and arbitrary pitches, one-/two-power CONVxP paths, offsets/PSIZE, aliases,
+  unchanged ST, and exact 2/3/4/14-state classes. RSC-0025 discloses three
+  inconsistent PSIZE=4 example rows while the repeated equation is followed.
+  CPW covers all published outcodes, signed inclusive
   bounds, A/B/SP operands, implied B5/B6 hazards, V-only status, and one state.
   CALL covers every A/B/shared-SP target class and
   capture-before-predecrement ordering; CALLR covers signed extremes/wrap;
@@ -65,7 +69,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 89-entry partial decode, A/B/SP and masked ST state,
+- RTL status: generated 93-entry partial decode, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 52 one-word instructions, with externally gated one-edge
@@ -109,6 +113,10 @@
   CPW base/end decode and a standalone signed-window comparison leaf pass,
   while the scalar router rejects CPW until Rs, B5, and B6 can be captured and
   destination/V committed atomically.
+  CVDXYL/CVMXYL/CVSXYL/CVXYL decode and a standalone signed conversion leaf
+  pass all pitch classes, PSIZE/mask-X, offsets, wrap, and 2/3/4/14-state
+  checks; the scalar router rejects them until explicit/implied registers,
+  CONVxP, PSIZE, and destination ownership can be captured atomically.
   CLR requires no duplicate execution opcode: the existing XOR path decodes
   all 32 same-register alias words, routes equal source/destination selectors,
   clears the selected A/B/shared-SP register, sets Z, and preserves N/C/V.
@@ -156,9 +164,10 @@
   retry, fault resume/abort, refill-state reset, and three randomized seeds.
   CPU fault/interrupt state, bus-width/page scheduling and pin timing remain
   (`TMS20-0012`, `TMS20-0017`)
-- Graphics status: CPW signed inclusive window/outcode semantics exist in the
-  model and standalone RTL leaf; the full pixel/graphics matrix, memory
-  sequencer, clipping, and continuation remain (`TMS20-0024`–`TMS20-0026`)
+- Graphics status: CPW signed inclusive window/outcode and all four
+  XY-to-linear conversion semantics exist in the model and standalone RTL
+  leaves; the full pixel/graphics matrix, I/O/register owner, memory sequencer,
+  clipping, and continuation remain (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
 - Formal status: four cache, four fetch, twenty-three scalar, and two commit-owner
@@ -166,9 +175,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 8,846 logic cells
-  and 2,048 registers, while
-  the fetch, frontend, and scalar wrappers use 421, 804, and 5,258 logic cells;
+  warnings; the current decoder-bearing leaf wrapper uses 9,140 logic cells,
+  2,048 registers, and 3 DSP blocks, while
+  the fetch, frontend, and scalar wrappers use 423, 791, and 5,237 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
@@ -176,8 +185,8 @@
 - Provisional behavior: the cache model represents architecturally
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
   transactions rather than pin-level dynamic-width cycles
-- Unresolved conflicts: exact game parts and REV values, original/A errata and
-  first-silicon history
+- Unresolved conflicts: exact game parts and REV values, original/A errata,
+  first-silicon history, and CVXYL's three contradictory PSIZE=4 table rows
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
 - Next task: continue primary ISA extraction and preserve explicit noncommit

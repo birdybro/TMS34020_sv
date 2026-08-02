@@ -477,3 +477,32 @@
   evidence. Confidence: `VERIFIED_PRIMARY` for all encodings and visible
   state, and for CALL/CALLR's instruction-boundary timing; `UNKNOWN` for the
   CALLA timing mapping and physical-cycle decomposition.
+
+## RSC-0025: three CVXYL example rows omit the documented X term
+
+- Status: open primary example-table defect; equation implemented, physical
+  confirmation pending
+- Primary equation evidence: TI *TMS34020 User's Guide*, August 1990,
+  XY-to-linear conversion §12.12.1, printed p.12-47, defines the linear bit
+  address as `(Y × array pitch) + (X × pixel size) + offset`. The CVXYL
+  instruction page, printed p.13-92, repeats that execution equation and says
+  PSIZE supplies the X shift. X is `0030h` in every example on p.13-93.
+- Conflicting primary rows: the p.13-93 PSIZE=`0004h` rows report
+  `0002_0000h`, `0002_8000h`, and `0F02_0000h`. The stated equation instead
+  gives `0002_00C0h`, `0002_80C0h`, and `0F02_00C0h`, because
+  `0030h × 4 = 00C0h`. The adjacent PSIZE 1, 2, 8, and 16 rows do include the
+  X term. TI's independently acquired 1988 *TMS34010 User's Guide*, printed
+  pp.12-59..12-60, contains the same equation and repeats the same three
+  inconsistent result rows.
+- Secondary corroboration: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 21–23 and 182–190 adds the
+  shifted X term for CVXYL. This supports the equation but is not hardware
+  evidence. Its other TMS34020 conversion handlers are incomplete and are not
+  used as an oracle.
+- Decision: implement the repeated equation and retain corrected expected
+  values for those three rows. Do not introduce a PSIZE=4 exception that no
+  prose, figure, or adjacent example defines. OQ-0016 tracks the remaining
+  silicon/errata confirmation. Confidence: `VERIFIED_PRIMARY` for the equation
+  and all nonconflicting rows, `UNKNOWN` for whether an unlocated erratum
+  explicitly corrects the table.

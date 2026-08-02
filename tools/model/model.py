@@ -148,6 +148,10 @@ class Tms34020Model:
             "CMP": self._execute_cmp,
             "CMPXY": self._execute_cmpxy,
             "CPW": self._execute_cpw,
+            "CVDXYL": self._execute_cvdxyl,
+            "CVMXYL": self._execute_cvmxyl,
+            "CVSXYL": self._execute_cvsxyl,
+            "CVXYL": self._execute_cvxyl,
             "AND": self._execute_and,
             "ANDN": self._execute_andn,
             "OR": self._execute_or,
@@ -1530,6 +1534,151 @@ class Tms34020Model:
         self.state.write_reg(register_file, destination_index, result)
         self._set_status_bit(V_BIT, result != 0)
         return 1
+
+    @staticmethod
+    def _signed_word(value: int) -> int:
+        value &= MASK32
+        return value - 0x1_0000_0000 if value & 0x8000_0000 else value
+
+    def _xy_pitch_product(
+        self,
+        y_coordinate: int,
+        conversion: int,
+        pitch: int,
+    ) -> tuple[int, str]:
+        conversion_value_1 = conversion & 0x1F
+        conversion_value_2 = (conversion >> 8) & 0x1F
+        if conversion_value_1 == 0:
+            product = y_coordinate * self._signed_word(pitch)
+            return product & MASK32, "arbitrary"
+
+        shift_1 = (~conversion_value_1) & 0x1F
+        product = y_coordinate << shift_1
+        if conversion_value_2 == 0:
+            return product & MASK32, "power_of_two"
+
+        shift_2 = (~conversion_value_2) & 0x1F
+        product += y_coordinate << shift_2
+        return product & MASK32, "two_powers_of_two"
+
+    def _xy_linear_result(
+        self,
+        xy_value: int,
+        conversion_address: int,
+        pitch: int,
+        x_scale: int,
+        offset: int,
+    ) -> tuple[int, str]:
+        x_coordinate = self._signed_half(xy_value)
+        y_coordinate = self._signed_half(xy_value >> 16)
+        y_product, pitch_class = self._xy_pitch_product(
+            y_coordinate,
+            self.state.read_io(conversion_address),
+            pitch,
+        )
+        result = y_product + x_coordinate * x_scale + offset
+        return result & MASK32, pitch_class
+
+    def _record_xy_pitch_class(self, pitch_class: str) -> None:
+        assert self._active_trace is not None
+        self._active_trace.notes.append(
+            f"XY conversion pitch class: {pitch_class}"
+        )
+
+    def _execute_cvdxyl(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, destination = self._decode_destination(words[0])
+        xy_value = self.state.read_reg(register_file, destination)
+        offset = self.state.read_reg(register_file, 4)
+        pitch = self.state.read_reg("B", 3)
+        result, pitch_class = self._xy_linear_result(
+            xy_value,
+            CONVDP_ADDRESS,
+            pitch,
+            self._read_legal_psize(),
+            offset,
+        )
+        self.state.write_reg(register_file, destination, result)
+        self._record_xy_pitch_class(pitch_class)
+        return {
+            "power_of_two": 2,
+            "two_powers_of_two": 3,
+            "arbitrary": 14,
+        }[pitch_class]
+
+    def _execute_cvmxyl(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, destination = self._decode_destination(words[0])
+        xy_value = self.state.read_reg(register_file, destination)
+        pitch = self.state.read_reg("B", 11)
+        result, pitch_class = self._xy_linear_result(
+            xy_value,
+            CONVMP_ADDRESS,
+            pitch,
+            1,
+            0,
+        )
+        self.state.write_reg(register_file, destination, result)
+        self._record_xy_pitch_class(pitch_class)
+        return {
+            "power_of_two": 2,
+            "two_powers_of_two": 3,
+            "arbitrary": 14,
+        }[pitch_class]
+
+    def _execute_cvsxyl(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source, destination = (
+            self._decode_source_destination(words[0])
+        )
+        offset = self.state.read_reg(register_file, source)
+        xy_value = self.state.read_reg(register_file, destination)
+        pitch = self.state.read_reg("B", 1)
+        result, pitch_class = self._xy_linear_result(
+            xy_value,
+            CONVSP_ADDRESS,
+            pitch,
+            self._read_legal_psize(),
+            offset,
+        )
+        self.state.write_reg(register_file, destination, result)
+        self._record_xy_pitch_class(pitch_class)
+        return {
+            "power_of_two": 2,
+            "two_powers_of_two": 3,
+            "arbitrary": 14,
+        }[pitch_class]
+
+    def _execute_cvxyl(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source, destination = (
+            self._decode_source_destination(words[0])
+        )
+        xy_value = self.state.read_reg(register_file, source)
+        offset = self.state.read_reg("B", 4)
+        pitch = self.state.read_reg("B", 3)
+        result, pitch_class = self._xy_linear_result(
+            xy_value,
+            CONVDP_ADDRESS,
+            pitch,
+            self._read_legal_psize(),
+            offset,
+        )
+        self.state.write_reg(register_file, destination, result)
+        self._record_xy_pitch_class(pitch_class)
+        return {
+            "power_of_two": 3,
+            "two_powers_of_two": 4,
+            "arbitrary": 14,
+        }[pitch_class]
 
     def _execute_logical(
         self,

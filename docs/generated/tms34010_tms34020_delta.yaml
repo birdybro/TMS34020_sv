@@ -586,6 +586,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 CPW, printed pp.13-85..13-86 and timing table p.15-4", "TI-TMS34010-UG-1988 CPW, printed pp.12-57..12-58 and Appendix A p.A-13"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Pipeline placement relative to other graphics operations remains pending; no externally visible data bus cycle occurs."]
+    },
+    {
+      "feature": "xy_to_linear_conversion_instructions",
+      "tms34010_behavior": "CVXYL E800h/FE00h converts a same-file signed XY source with implied B3/B4, CONVDP, and PSIZE. TMS34010 restricts XY display pitch to a power of two and publishes 3,6 timing; it has no CVDXYL, CVMXYL, or CVSXYL.",
+      "tms34020_behavior": "CVXYL retains its encoding and visible register/status contract but supports power-of-two, sum-of-two-powers, and arbitrary DPTCH paths at 3/4/14 states. New CVDXYL 0A80h/FFE0h, CVMXYL 0A60h/FFE0h, and CVSXYL EA00h/FE00h expose destination, mask, and source conversion paths at 2/3/14 states.",
+      "rtl_impact": "Keep the signed coordinate/conversion arithmetic in a TMS34020-owned leaf with explicit CONVxP class inputs and implied-register capture. Do not reuse the TMS34010 power-of-two-only datapath or timing sequencer.",
+      "test_impact": "All opcode forms, A/B/SP aliases, same-register hazards, signed coordinates and pitches, 32-bit wrap, every pitch class, PSIZE values, offset variants, unchanged ST, internal-write ordering, and exact 2/3/4/14-state cases.",
+      "source_citation": ["TI-TMS34020-UG-1990 XY conversion §12.12, printed pp.12-47..12-49", "TI-TMS34020-UG-1990 CVDXYL/CVMXYL/CVSXYL/CVXYL, printed pp.13-87..13-93", "TI-TMS34010-UG-1988 CVXYL, printed pp.12-59..12-60"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["RSC-0025/OQ-0016 tracks the three inconsistent PSIZE=4 example rows; pipeline placement and internal-I/O write ordering still require full timing ownership."]
     }
   ]
 }

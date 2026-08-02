@@ -210,6 +210,14 @@ class IsaTests(unittest.TestCase):
             0xE5FF: ("CMPXY", 1),
             0xE600: ("CPW", 1),
             0xE7FF: ("CPW", 1),
+            0x0A60: ("CVMXYL", 1),
+            0x0A7F: ("CVMXYL", 1),
+            0x0A80: ("CVDXYL", 1),
+            0x0A9F: ("CVDXYL", 1),
+            0xE800: ("CVXYL", 1),
+            0xE9FF: ("CVXYL", 1),
+            0xEA00: ("CVSXYL", 1),
+            0xEBFF: ("CVSXYL", 1),
             0x4A00: ("BTST.R", 1),
             0x4A20: ("BTST.R", 1),
             0x4BFF: ("BTST.R", 1),
@@ -281,8 +289,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 26452)
-        self.assertEqual(unclassified, 65536 - 26452)
+        self.assertEqual(matched, 27540)
+        self.assertEqual(unclassified, 65536 - 27540)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -511,6 +519,56 @@ class IsaTests(unittest.TestCase):
             instruction.metadata["pipeline_interactions"][0],
         )
         self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_xy_conversion_family_records_pitch_classes_and_boundaries(self) -> None:
+        ranges = (
+            (0x0A60, 0x0A80, "CVMXYL"),
+            (0x0A80, 0x0AA0, "CVDXYL"),
+            (0xE800, 0xEA00, "CVXYL"),
+            (0xEA00, 0xEC00, "CVSXYL"),
+        )
+        for start, end, mnemonic in ranges:
+            for word in range(start, end):
+                with self.subTest(word=f"{word:04X}"):
+                    decoded = self.database.decode(word)
+                    self.assertIsNotNone(decoded)
+                    self.assertEqual(decoded.mnemonic, mnemonic)
+
+        expected_cycles = {
+            "CVDXYL": (2, 3, 14),
+            "CVMXYL": (2, 3, 14),
+            "CVSXYL": (2, 3, 14),
+            "CVXYL": (3, 4, 14),
+        }
+        for mnemonic, cycles in expected_cycles.items():
+            instruction = next(
+                item
+                for item in self.database.instructions
+                if item.mnemonic == mnemonic
+            )
+            self.assertEqual(instruction.metadata["status_bits_written"], [])
+            timing = instruction.metadata["documented_cycles"]
+            self.assertEqual(
+                (
+                    timing["power_of_two_machine_states"],
+                    timing["two_powers_of_two_machine_states"],
+                    timing["arbitrary_pitch_machine_states"],
+                ),
+                cycles,
+            )
+        self.assertTrue(self.database.decode(0xE800).metadata[
+            "compatible_with_tms34010"
+        ])
+        for word in (0x0A60, 0x0A80, 0xEA00):
+            self.assertFalse(self.database.decode(word).metadata[
+                "compatible_with_tms34010"
+            ])
+        self.assertIn(
+            "unscaled X",
+            self.database.decode(0x0A60).metadata[
+                "graphics_register_dependencies"
+            ][2],
+        )
 
     def test_btst_forms_record_complemented_constant_and_status_only(self) -> None:
         constant = self.database.decode(0x1FE0)

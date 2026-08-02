@@ -97,6 +97,17 @@ destination alias writes either register. Sources: TMS34020 guide printed
 pp.13-85..13-86 and p.15-4; TMS34010 guide printed pp.12-57..12-58 and
 Appendix A p.A-13.
 
+CVXYL retains `E800h`/`FE00h`, same-file explicit operands, implied B3/B4,
+CONVDP/PSIZE inputs, unaffected ST, and the signed XY-to-linear equation. The
+TMS34020 expands pitch handling from the TMS34010's power-of-two display case
+to power-of-two, sum-of-two-powers, and arbitrary signed DPTCH cases, with
+3/4/14 states instead of the TMS34010's published `3,6`. CVDXYL
+`0A80h`/`FFE0h`, CVMXYL `0A60h`/`FFE0h`, and CVSXYL `EA00h`/`FE00h` are new
+TMS34020 paths with 2/3/14-state pitch cases and distinct offset/pitch
+operands. A TMS34010 power-of-two datapath or timing machine therefore cannot
+be reused unchanged. The three contradictory PSIZE=4 example results are
+isolated as RSC-0025; the repeated equation is the implemented contract.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family

@@ -48,6 +48,15 @@ Pinned MAME is not the oracle for this family. Its SETCDP conversion fields
 disagree with TI and its SETCMP/SETCSP handlers are stubs; see
 `docs/research/source_conflicts.md` RSC-0014.
 
+The dependent CVDXYL, CVMXYL, CVSXYL, and CVXYL conversion operations now
+have instruction-boundary model semantics and a shared standalone RTL
+arithmetic/classification leaf. They consume the CONVxP encoding produced by
+this setup family, select the appropriate B1/B3/B11 arbitrary-pitch source and
+offset rule, preserve ST, and report their documented pitch-class timing. The
+full RTL path remains blocked until conversion-register/PSIZE storage and
+simultaneous implied-register capture have a verified owner. RSC-0025 records
+the guide's inconsistent CVXYL PSIZE=4 examples.
+
 ## VRAM color-register load
 
 VLCOL copies the full 32-bit B9/COLOR1 value to the color registers in all

@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 89 page-verified encoding records and covers 26,452 of 65,536
+slice contains 93 page-verified encoding records and covers 27,540 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -78,6 +78,10 @@ first words without collisions:
 | CMP | `4800h`, mask `FE00h` | 1 | p.13-80 |
 | CMPXY | `E400h`, mask `FE00h` | 1 | p.13-84 |
 | CPW | `E600h`, mask `FE00h` | 1 | pp.13-85..13-86 |
+| CVDXYL | `0A80h`, mask `FFE0h` | 1 | pp.13-87..13-88 |
+| CVMXYL | `0A60h`, mask `FFE0h` | 1 | pp.13-89..13-90 |
+| CVSXYL | `EA00h`, mask `FE00h` | 1 | p.13-91 |
+| CVXYL | `E800h`, mask `FE00h` | 1 | pp.13-92..13-93 |
 | AND | `5000h`, mask `FE00h` | 1 | p.13-40 |
 | ANDN | `5200h`, mask `FE00h` | 1 | p.13-42 |
 | OR | `5400h`, mask `FE00h` | 1 | p.13-182 |
@@ -141,6 +145,22 @@ the signed comparisons; the scalar router deliberately rejects CPW until it
 can read both implied registers atomically. Sources: TMS34020 User's Guide
 printed pp.13-85..13-86 and p.15-4; TMS34010 User's Guide printed
 pp.12-57..12-58 and Appendix A p.A-13.
+
+CVDXYL, CVMXYL, CVSXYL, and CVXYL implement the three CONVxP pitch classes
+defined by §12.12 and Figure 12-20. Conversion value 1 selects a signed
+arbitrary-pitch multiply when zero, one signed-Y shift when nonzero, or two
+signed-Y shifts when conversion value 2 is also nonzero. CVDXYL uses Rd as XY,
+same-file R4 as OFFSET, B3/DPTCH for arbitrary pitch, CONVDP, and PSIZE.
+CVMXYL uses Rd, B11/MPTCH, and CONVMP, with unscaled X and no offset in its
+published execution equation. CVSXYL uses Rd as XY, explicit Rs as offset,
+B1/SPTCH, CONVSP, and PSIZE. CVXYL uses explicit Rs as XY with implied B3,
+B4/OFFSET, CONVDP, and PSIZE. All preserve ST. The first three take 2/3/14
+states for one-power/two-power/arbitrary pitch; CVXYL takes 3/4/14. RSC-0025
+records three PSIZE=4 example rows that omit the X term required by the
+repeated equation; the equation is implemented without inventing a special
+case. Sources: TMS34020 User's Guide printed pp.4-28..4-29, 12-47..12-49,
+and 13-87..13-93; CVXYL compatibility cross-check: TMS34010 User's Guide
+printed pp.12-59..12-60.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

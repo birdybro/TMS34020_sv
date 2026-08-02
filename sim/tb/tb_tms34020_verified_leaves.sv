@@ -68,6 +68,17 @@ module tb_tms34020_verified_leaves;
     logic [31:0] window_end;
     logic [31:0] window_outcode;
     logic window_outside;
+    logic [31:0] xy_linear_xy;
+    logic [31:0] xy_linear_pitch;
+    logic [31:0] xy_linear_offset;
+    logic [4:0] xy_linear_conversion_value_1;
+    logic [4:0] xy_linear_conversion_value_2;
+    logic [15:0] xy_linear_pixel_size;
+    logic xy_linear_scale_x;
+    logic xy_linear_extra_state;
+    logic [31:0] xy_linear_result;
+    logic [1:0] xy_linear_pitch_class;
+    logic [3:0] xy_linear_visible_states;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -249,6 +260,20 @@ module tb_tms34020_verified_leaves;
         .window_end_i(window_end),
         .outcode_o(window_outcode),
         .outside_o(window_outside)
+    );
+
+    tms34020_xy_to_linear xy_to_linear_dut (
+        .xy_i(xy_linear_xy),
+        .pitch_i(xy_linear_pitch),
+        .offset_i(xy_linear_offset),
+        .conversion_value_1_i(xy_linear_conversion_value_1),
+        .conversion_value_2_i(xy_linear_conversion_value_2),
+        .pixel_size_i(xy_linear_pixel_size),
+        .scale_x_by_pixel_size_i(xy_linear_scale_x),
+        .cvxyl_extra_state_i(xy_linear_extra_state),
+        .linear_o(xy_linear_result),
+        .pitch_class_o(xy_linear_pitch_class),
+        .visible_states_o(xy_linear_visible_states)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -599,6 +624,37 @@ module tb_tms34020_verified_leaves;
         check_condition(
             window_outcode == expected_outcode &&
             window_outside == (expected_outcode != 32'd0),
+            message
+        );
+    endtask
+
+    task automatic check_xy_to_linear(
+        input logic [31:0] xy_value,
+        input logic [31:0] pitch,
+        input logic [31:0] offset,
+        input logic [4:0] conversion_value_1,
+        input logic [4:0] conversion_value_2,
+        input logic [15:0] pixel_size_value_input,
+        input logic scale_x,
+        input logic extra_state,
+        input logic [31:0] expected_result,
+        input logic [1:0] expected_pitch_class,
+        input logic [3:0] expected_states,
+        input string message
+    );
+        xy_linear_xy = xy_value;
+        xy_linear_pitch = pitch;
+        xy_linear_offset = offset;
+        xy_linear_conversion_value_1 = conversion_value_1;
+        xy_linear_conversion_value_2 = conversion_value_2;
+        xy_linear_pixel_size = pixel_size_value_input;
+        xy_linear_scale_x = scale_x;
+        xy_linear_extra_state = extra_state;
+        #1;
+        check_condition(
+            xy_linear_result == expected_result &&
+            xy_linear_pitch_class == expected_pitch_class &&
+            xy_linear_visible_states == expected_states,
             message
         );
     endtask
@@ -1519,6 +1575,14 @@ module tb_tms34020_verified_leaves;
         window_point = 32'd0;
         window_start = 32'd0;
         window_end = 32'd0;
+        xy_linear_xy = 32'd0;
+        xy_linear_pitch = 32'd0;
+        xy_linear_offset = 32'd0;
+        xy_linear_conversion_value_1 = 5'd0;
+        xy_linear_conversion_value_2 = 5'd0;
+        xy_linear_pixel_size = 16'd1;
+        xy_linear_scale_x = 1'b0;
+        xy_linear_extra_state = 1'b0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2083,6 +2147,49 @@ module tb_tms34020_verified_leaves;
             "CPW signed positive below-right comparison"
         );
 
+        check_xy_to_linear(
+            32'h0040_0030, 32'h0000_0800, 32'd0,
+            5'h14, 5'd0, 16'd16, 1'b1, 1'b1,
+            32'h0002_0300, 2'd0, 4'd3,
+            "CVXYL primary power-of-two equation row"
+        );
+        check_xy_to_linear(
+            32'h0040_0030, 32'h0000_0800, 32'd0,
+            5'h14, 5'd0, 16'd4, 1'b1, 1'b1,
+            32'h0002_00C0, 2'd0, 4'd3,
+            "CVXYL corrected contradictory PSIZE four row"
+        );
+        check_xy_to_linear(
+            32'h0001_0001, 32'h0000_1400, 32'd0,
+            5'h13, 5'h15, 16'd8, 1'b1, 1'b1,
+            32'h0000_1408, 2'd1, 4'd4,
+            "CVXYL two-power conversion and timing"
+        );
+        check_xy_to_linear(
+            32'h0000_7FFF, 32'h0000_1000, 32'd0,
+            5'h13, 5'd0, 16'd32, 1'b1, 1'b1,
+            32'h000F_FFE0, 2'd0, 4'd3,
+            "CVXYL maximum positive X times 32 retains full product"
+        );
+        check_xy_to_linear(
+            32'h0001_0001, 32'h0000_00E0, 32'hFF30_0000,
+            5'd0, 5'd0, 16'd16, 1'b1, 1'b0,
+            32'hFF30_00F0, 2'd2, 4'd14,
+            "CVDXYL arbitrary conversion and offset"
+        );
+        check_xy_to_linear(
+            32'h0001_0001, 32'h0000_1000, 32'd0,
+            5'h13, 5'd0, 16'd32, 1'b0, 1'b0,
+            32'h0000_1001, 2'd0, 4'd2,
+            "CVMXYL unscaled X and no offset"
+        );
+        check_xy_to_linear(
+            32'hFFFF_0002, 32'hFFFF_FFF0, 32'hFFFF_FFF0,
+            5'd0, 5'd0, 16'd4, 1'b1, 1'b1,
+            32'd8, 2'd2, 4'd14,
+            "CVXYL signed arbitrary pitch and modulo wrap"
+        );
+
         check_pitch_conversion(
             32'h0000_1000, 16'h0013, 3'd4,
             "SETC pitch primary 4096 row"
@@ -2616,6 +2723,26 @@ module tb_tms34020_verified_leaves;
             16'hE600, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "CPW cannot bypass the unimplemented implied B5/B6 read owner"
+        );
+        check_register_execute(
+            16'h0A60, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CVMXYL cannot bypass implied pitch/conversion ownership"
+        );
+        check_register_execute(
+            16'h0A80, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CVDXYL cannot bypass implied offset/pitch/PSIZE ownership"
+        );
+        check_register_execute(
+            16'hE800, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CVXYL cannot bypass implied B3/B4/I/O ownership"
+        );
+        check_register_execute(
+            16'hEA00, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CVSXYL cannot bypass source/destination/implied ownership"
         );
         check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
@@ -4198,6 +4325,22 @@ module tb_tms34020_verified_leaves;
                      "CPW lower-bound decode");
         check_decode(16'hE7FF, TMS20_OP_CPW, 3'd1,
                      "CPW upper-bound decode");
+        check_decode(16'h0A60, TMS20_OP_CVMXYL, 3'd1,
+                     "CVMXYL lower-bound decode");
+        check_decode(16'h0A7F, TMS20_OP_CVMXYL, 3'd1,
+                     "CVMXYL upper-bound decode");
+        check_decode(16'h0A80, TMS20_OP_CVDXYL, 3'd1,
+                     "CVDXYL lower-bound decode");
+        check_decode(16'h0A9F, TMS20_OP_CVDXYL, 3'd1,
+                     "CVDXYL upper-bound decode");
+        check_decode(16'hE800, TMS20_OP_CVXYL, 3'd1,
+                     "CVXYL lower-bound decode");
+        check_decode(16'hE9FF, TMS20_OP_CVXYL, 3'd1,
+                     "CVXYL upper-bound decode");
+        check_decode(16'hEA00, TMS20_OP_CVSXYL, 3'd1,
+                     "CVSXYL lower-bound decode");
+        check_decode(16'hEBFF, TMS20_OP_CVSXYL, 3'd1,
+                     "CVSXYL upper-bound decode");
         check_decode(16'h51FF, TMS20_OP_AND, 3'd1, "AND masked decode");
         check_decode(16'h53FF, TMS20_OP_ANDN, 3'd1, "ANDN masked decode");
         check_decode(16'h55FF, TMS20_OP_OR, 3'd1, "OR masked decode");
