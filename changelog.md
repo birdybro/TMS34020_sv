@@ -4,6 +4,19 @@
 
 ### Added
 
+- Primary-page-extracted register-to-memory, memory-to-register, and paired
+  memory-to-memory predecrement MOVE forms as internal MOVE.RM.PRE,
+  MOVE.MR.PRE, and MOVE.MM.PRE, covering 3,072 words, before-operation pointer
+  ordering, explicit load alias priority, twice-decremented paired aliasing,
+  status effects, five-case timing, and compatible TMS34010 semantic bounds.
+- Little-endian architectural predecrement field-store/load/copy traces with
+  exhaustive bank/FE/width/source/destination geometry, every alignment pair,
+  A/B/SP alias, overlap, pointer wrap, status and atomic BEN rejection.
+- A clean-room paired-predecrement effective/final address leaf with exhaustive
+  size, distinct/alias and wrap verification.
+- RSC-0038 records why the pinned TMS34010 RTL's once-decremented paired alias
+  writeback is not reusable for TMS34020, whose primary guide explicitly
+  requires a twice-decremented final pointer.
 - Primary-page-extracted `MOVE *Rs+,*Rd+[,F]` as internal MOVE.MM.POST,
   covering all 1,024 words, distinct pointer updates, TI-defined same-register
   incremented destination, selected twice-incremented final shared pointer,
@@ -488,6 +501,18 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis reports 12,774 leaf logic
+  cells/2,230 registers/9 DSP, 439 fetch logic cells, 804 frontend logic cells,
+  and 5,365 scalar logic cells for the 113-entry decoder/predecrement revision.
+  The frontend/scalar probes retain 4,096 block-memory bits. These are
+  observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
+- The 54-case ISA suite, 75-entry delta ledger, and 193-case model suite pass.
+  All three predecrement families exhaust both banks, every width/offset,
+  pointer ordering, exact logical traces and BEN rollback; the load exhausts
+  FE/status behavior and the paired copy exhausts all 1,024 source/destination
+  offsets and 25 timing pairs. Exact decoder boundaries, paired-address leaf
+  arithmetic, and memory-owner noncommit pass.
 - Warning-free Cyclone V Analysis & Synthesis reports 12,771 leaf logic
   cells/2,230 registers/9 DSP, 429 fetch logic cells, 806 frontend logic
   cells, and 5,367 scalar logic cells for the 110-entry decoder/paired-
@@ -1143,6 +1168,9 @@
 
 ### Documentation
 
+- Documented all three predecrement MOVE compatibility boundaries separately
+  from TMS34020-owned 32-bit alignment, BEN, hidden-write, dynamic-width, page
+  and fault/retry realization.
 - Recorded the verified paired-postincrement field-copy implementation baseline
   as commit `a4976c969da3746f8e7f4e6d794b98d5fe093b3d` in the progress ledger.
 - Documented paired-postincrement field-copy compatibility separately from
@@ -1308,6 +1336,10 @@
 
 ### Known Issues
 
+- MOVE.RM.PRE/MR.PRE/MM.PRE are logical little-endian instruction-boundary
+  models plus insertion/extraction/copy and address leaves. No RTL owner makes
+  pointer, memory, destination and status retirement fault/retry/interrupt-safe;
+  BEN, byte strobes/RMW, SIZE16, page mode, waits, I/O and pin cycles remain.
 - MOVE.MM.POST is a logical little-endian read-before-write model plus separate
   field-copy and paired-address leaves. Its final same-register pointer is
   CORROBORATED rather than primary-verified under RSC-0037/OQ-0025. No RTL

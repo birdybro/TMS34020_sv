@@ -128,6 +128,17 @@ RSC-0037/OQ-0025. The model/paired-address/field-copy
 leaves expose this factorization without a physical retirement claim. Source:
 User's Guide printed pp.13-161 and 15-10..15-12.
 
+`MOVE Rs,-*Rd[,F]` takes two visible little-endian states and launches
+1/2/2/3/4 hidden write states for destination cases 1..5. The adjacent
+unlabeled second row is the BEN=1 form and takes three visible states with the
+same hidden counts. `MOVE -*Rs,Rd[,F]` takes 4/4/5/5/5 visible states by
+source case, with sign extension adding one. `MOVE -*Rs,-*Rd[,F]` takes
+4/4/5/5/5 visible states by its effective source case and adds the same
+1/2/2/3/4 destination hidden states as the other field writes. The model and
+address/copy leaves expose these counts without claiming physical retirement,
+BEN execution, waits, width decomposition or fault timing. Source: User's Guide
+printed pp.15-10..15-12.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.

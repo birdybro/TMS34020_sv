@@ -8,7 +8,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 110 entries currently present in the canonical ISA database, including 6,144 ordinary MOVE.RM/RM.POST/MR/MR.POST/MM/MM.POST field words, exact RETI/RETM, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 113 entries currently present in the canonical ISA database, including 9,216 ordinary/postincrement/predecrement RM/MR/MM field words, exact RETI/RETM, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent, EXGPC sequential-PC write plus aligned old-register redirect intent, status/register-neutral JUMP aligned redirect intent, JACC all-condition fallthrough or aligned low-word/high-word absolute redirect intent, JR.L all-condition fallthrough or signed 16-bit word redirect intent, DSJ/DSJEQ/DSJNE Z-conditioned decrement plus signed 16-bit word redirect intent, and DSJS unconditional decrement plus encoded unsigned-magnitude/direction redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, EXGPC printed p.13-112, GETPC printed p.13-130, and JUMP printed p.13-141 |
@@ -28,6 +28,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/memory/tms34020_field_store.sv` | Clean-room two-long-word little-endian insertion and five-case alignment/hidden-write classification for `MOVE Rs,*Rd[,F]`; it performs no register capture, BEN mapping, memory request, byte-strobe/RMW, retry, fault, or commit | TI *TMS34020 User's Guide*, August 1990, printed pp.13-159 and 15-10..15-11 |
 | `rtl/memory/tms34020_field_address_update.sv` | Clean-room encoded field-size decoding plus effective/final pointer calculation for ordinary, postincrement and predecrement field addressing, including 32-bit wrap and invalid simultaneous-mode reporting; it performs no operand capture, memory request, or commit | TI *TMS34020 User's Guide*, August 1990, MOVE forms printed pp.13-159..13-161 |
 | `rtl/memory/tms34020_field_pair_postincrement.sv` | Clean-room paired-postincrement effective/final source/destination address calculation, including 32-bit wrap, TI's Rs=Rd once-incremented destination, and the selected CORROBORATED twice-incremented final shared pointer; it performs no operand capture, field transfer, memory request, or commit | TI *TMS34020 User's Guide*, August 1990, paired-postincrement MOVE printed p.13-161; RSC-0037/OQ-0025 |
+| `rtl/memory/tms34020_field_pair_predecrement.sv` | Clean-room paired-predecrement source/destination effective and final pointer calculation, including 32-bit wrap and TI's Rs=Rd once-decremented source/twice-decremented destination and final pointer; it performs no operand capture, field transfer, memory request, or commit | TI *TMS34020 User's Guide*, August 1990, predecrement addressing and paired-predecrement MOVE printed pp.13-8 and 13-161..13-162 |
 | `rtl/memory/tms34020_field_load.sv` | Clean-room two-long-word little-endian extraction, FE-selected extension, N/Z/V result, and five-case visible-state classification for `MOVE *Rs,Rd[,F]`; it performs no pointer capture, C preservation, BEN mapping, memory request, retry, fault, or commit | TI *TMS34020 User's Guide*, August 1990, printed pp.13-160, 13-163, and 15-10..15-11 |
 | `rtl/memory/tms34020_field_move.sv` | Clean-room two-source/two-destination-word little-endian field copy with independent five-case alignment, visible-source and hidden-destination timing classification for `MOVE *Rs,*Rd[,F]`; it performs no pointer capture, BEN mapping, physical read/write, retry, fault, or commit | TI *TMS34020 User's Guide*, August 1990, printed pp.13-160 and 15-10..15-12 |
 | `rtl/memory/tms34020_multiple_register_control.sv` | Clean-room MMFM/MMTM operation-specific mask normalization, register count, pointer-in-list/empty validity, final pointer, MMTM N, and published visible/hidden timing classification. It performs no register capture, memory request, page sequence, partial-list continuation, or commit | TI *TMS34020 User's Guide*, August 1990, MMFM/MMTM printed pp.13-148..13-151 and timing p.15-6; RSC-0033 applies |
@@ -75,7 +76,7 @@ SWAPF base/end guards prevent its word-transform leaf from bypassing the absent
 locked read/write owner, implicit completion wait, host exclusion, complete
 restart point, 16-bit restriction, field-address capture, and atomic Rd/ST
 commit.
-MOVE.RM/RM.POST/MR/MR.POST/MM/MM.POST base/end guards prevent the semantic leaves from bypassing
+MOVE.RM/RM.POST/RM.PRE/MR/MR.POST/MR.PRE/MM/MM.POST/MM.PRE base/end guards prevent the semantic leaves from bypassing
 the absent operand capture, BEN mapper, byte-strobe/RMW or read requester,
 dynamic-width/page/fault controller, and atomic memory/register/status owner.
 MMTM/MMFM base/end guards likewise prevent decoded two-word lists from
@@ -117,6 +118,9 @@ Verilator. It checks:
   decode boundaries and noncommit while reusing the independently exhaustive
   field-load and address-update leaf evidence; MOVE.MM.POST adds exact decode/
   noncommit plus exhaustive distinct/alias paired-address arithmetic;
+  MOVE.RM.PRE/MR.PRE/MM.PRE add exact decode/noncommit, reuse the exhaustive
+  single-pointer address leaf for the one-sided forms, and exhaust distinct/
+  alias/wrap paired-predecrement arithmetic for the two-sided form;
 - exhaustive MOVE.MM source/destination geometry for all 32 sizes and 1,024
   offset pairs, including all 25 alignment-case pairs, value preservation,
   visible/hidden timing, crossing-word writes, and direct-router noncommit;
@@ -345,7 +349,7 @@ observable. It also keeps every output of the register-execution router
 observable and instantiates CMPXY both directly and through the commit
 composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 12,771 logic-cell/2,230-register/9-DSP resource count is not a core-area
+so its 12,774 logic-cell/2,230-register/9-DSP resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -357,17 +361,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 429
+packet assembler and generated decoder. Its observability wrapper uses 439
 logic cells and 175 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 806 logic cells, 373 registers, and 4,096 block-memory
+zero errors/warnings to 804 logic cells, 373 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,367 logic cells, 1,414 registers,
+composition with zero errors/warnings to 5,365 logic cells, 1,414 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

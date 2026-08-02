@@ -133,13 +133,22 @@ class Tms34020Model:
             "MOVE.MM.POST": (
                 self._execute_move_memory_to_memory_postincrement
             ),
+            "MOVE.MM.PRE": (
+                self._execute_move_memory_to_memory_predecrement
+            ),
             "MOVE.MR": self._execute_move_memory_to_register,
             "MOVE.MR.POST": (
                 self._execute_move_memory_to_register_postincrement
             ),
+            "MOVE.MR.PRE": (
+                self._execute_move_memory_to_register_predecrement
+            ),
             "MOVE.RM": self._execute_move_register_to_memory,
             "MOVE.RM.POST": (
                 self._execute_move_register_to_memory_postincrement
+            ),
+            "MOVE.RM.PRE": (
+                self._execute_move_register_to_memory_predecrement
             ),
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
@@ -1549,16 +1558,26 @@ class Tms34020Model:
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_move_register_to_memory_common(words, False)
+        return self._execute_move_register_to_memory_common(words, "ordinary")
 
     def _execute_move_register_to_memory_postincrement(
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_move_register_to_memory_common(words, True)
+        return self._execute_move_register_to_memory_common(
+            words, "postincrement"
+        )
+
+    def _execute_move_register_to_memory_predecrement(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_register_to_memory_common(
+            words, "predecrement"
+        )
 
     def _execute_move_register_to_memory_common(
-        self, words: list[int], postincrement: bool
+        self, words: list[int], address_mode: str
     ) -> int:
         if self.state.read_io(CONFIG_ADDRESS) & 1:
             raise UnsupportedInstruction(
@@ -1569,23 +1588,28 @@ class Tms34020Model:
             self._decode_source_destination(first_word)
         )
         width = self._selected_field_size(first_word)
-        bit_address = self.state.read_reg(register_file, pointer_index)
+        pointer_before = self.state.read_reg(register_file, pointer_index)
+        bit_address = pointer_before
+        if address_mode == "predecrement":
+            bit_address = (pointer_before - width) & MASK32
+            self.state.write_reg(register_file, pointer_index, bit_address)
         source = self.state.read_reg(register_file, source_index)
         field_mask = MASK32 if width == 32 else (1 << width) - 1
         value = source & field_mask
         alignment_case = self._field_alignment_case(bit_address, width)
         hidden_states = (0, 1, 2, 2, 3, 4)[alignment_case]
         self.state.memory.write_bits(bit_address, width, value)
-        pointer_after = (bit_address + width) & MASK32
-        if postincrement:
+        pointer_after = bit_address
+        if address_mode == "postincrement":
+            pointer_after = (bit_address + width) & MASK32
             self.state.write_reg(register_file, pointer_index, pointer_after)
         self._new_hidden_write_states = hidden_states
         assert self._active_trace is not None
         transaction = {
             "class": "data_write",
             "purpose": (
-                "field_move_register_to_memory_postincrement"
-                if postincrement
+                f"field_move_register_to_memory_{address_mode}"
+                if address_mode != "ordinary"
                 else "field_move_register_to_memory"
             ),
             "bit_address": bit_address,
@@ -1594,41 +1618,59 @@ class Tms34020Model:
             "alignment_case": alignment_case,
             "hidden_write_states": hidden_states,
         }
-        if postincrement:
+        if address_mode != "ordinary":
             transaction.update(
                 {
-                    "pointer_before": bit_address,
+                    "pointer_before": pointer_before,
                     "pointer_after": pointer_after,
                 }
             )
+            if address_mode == "predecrement":
+                transaction["same_register_source_after_update"] = int(
+                    source_index == pointer_index
+                )
         self._active_trace.transactions.append(transaction)
         self._active_trace.notes.append(
             "logical little-endian field insertion"
             + (
                 " with captured-address postincrement"
-                if postincrement
-                else ""
+                if address_mode == "postincrement"
+                else (
+                    " with destination predecrement before source capture"
+                    if address_mode == "predecrement"
+                    else ""
+                )
             )
             + "; physical byte strobes, "
             "read/modify/write, dynamic width, wait, page, fault, and retry "
             "sequencing remain pending"
         )
-        return 1
+        return 2 if address_mode == "predecrement" else 1
 
     def _execute_move_memory_to_register(
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_move_memory_to_register_common(words, False)
+        return self._execute_move_memory_to_register_common(words, "ordinary")
 
     def _execute_move_memory_to_register_postincrement(
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_move_memory_to_register_common(words, True)
+        return self._execute_move_memory_to_register_common(
+            words, "postincrement"
+        )
+
+    def _execute_move_memory_to_register_predecrement(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_memory_to_register_common(
+            words, "predecrement"
+        )
 
     def _execute_move_memory_to_register_common(
-        self, words: list[int], postincrement: bool
+        self, words: list[int], address_mode: str
     ) -> int:
         if self.state.read_io(CONFIG_ADDRESS) & 1:
             raise UnsupportedInstruction(
@@ -1643,7 +1685,11 @@ class Tms34020Model:
         sign_extend = bool(
             self.state.st & (1 << (field_bank * 6 + 5))
         )
-        bit_address = self.state.read_reg(register_file, pointer_index)
+        pointer_before = self.state.read_reg(register_file, pointer_index)
+        bit_address = pointer_before
+        if address_mode == "predecrement":
+            bit_address = (pointer_before - width) & MASK32
+            self.state.write_reg(register_file, pointer_index, bit_address)
         raw_value = self.state.memory.read_bits(bit_address, width)
         result = raw_value
         if (
@@ -1654,11 +1700,14 @@ class Tms34020Model:
             result |= MASK32 ^ ((1 << width) - 1)
         result &= MASK32
         alignment_case = self._field_alignment_case(bit_address, width)
-        machine_states = (3 if alignment_case <= 2 else 4) + int(
-            sign_extend
-        )
-        pointer_after = (bit_address + width) & MASK32
-        if postincrement:
+        machine_states = (
+            (4 if alignment_case <= 2 else 5)
+            if address_mode == "predecrement"
+            else (3 if alignment_case <= 2 else 4)
+        ) + int(sign_extend)
+        pointer_after = bit_address
+        if address_mode == "postincrement":
+            pointer_after = (bit_address + width) & MASK32
             self.state.write_reg(register_file, pointer_index, pointer_after)
         self.state.write_reg(register_file, destination_index, result)
         self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
@@ -1668,8 +1717,8 @@ class Tms34020Model:
         transaction = {
             "class": "data_read",
             "purpose": (
-                "field_move_memory_to_register_postincrement"
-                if postincrement
+                f"field_move_memory_to_register_{address_mode}"
+                if address_mode != "ordinary"
                 else "field_move_memory_to_register"
             ),
             "bit_address": bit_address,
@@ -1679,10 +1728,10 @@ class Tms34020Model:
             "alignment_case": alignment_case,
             "sign_extend": int(sign_extend),
         }
-        if postincrement:
+        if address_mode != "ordinary":
             transaction.update(
                 {
-                    "pointer_before": bit_address,
+                    "pointer_before": pointer_before,
                     "pointer_after": pointer_after,
                     "same_register_data_wins": int(
                         pointer_index == destination_index
@@ -1695,8 +1744,13 @@ class Tms34020Model:
             + (
                 " with captured-source postincrement; Rs=Rd loaded-data "
                 "priority is CORROBORATED under RSC-0036/OQ-0024"
-                if postincrement
-                else ""
+                if address_mode == "postincrement"
+                else (
+                    " with source predecrement before read; TI explicitly "
+                    "makes loaded data win when Rs=Rd"
+                    if address_mode == "predecrement"
+                    else ""
+                )
             )
             + "; physical dynamic-width, "
             "wait, page, fault, retry, interrupt, and I/O sequencing remain "
@@ -1708,16 +1762,26 @@ class Tms34020Model:
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_move_memory_to_memory_common(words, False)
+        return self._execute_move_memory_to_memory_common(words, "ordinary")
 
     def _execute_move_memory_to_memory_postincrement(
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
-        return self._execute_move_memory_to_memory_common(words, True)
+        return self._execute_move_memory_to_memory_common(
+            words, "postincrement"
+        )
+
+    def _execute_move_memory_to_memory_predecrement(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_memory_to_memory_common(
+            words, "predecrement"
+        )
 
     def _execute_move_memory_to_memory_common(
-        self, words: list[int], postincrement: bool
+        self, words: list[int], address_mode: str
     ) -> int:
         if self.state.read_io(CONFIG_ADDRESS) & 1:
             raise UnsupportedInstruction(
@@ -1732,44 +1796,65 @@ class Tms34020Model:
         destination_address = self.state.read_reg(
             register_file, destination_index
         )
-        pointer_after = (source_address + width) & MASK32
+        source_pointer_after = source_address
+        if address_mode == "postincrement":
+            source_pointer_after = (source_address + width) & MASK32
+        elif address_mode == "predecrement":
+            source_pointer_after = (source_address - width) & MASK32
         same_register = source_index == destination_index
-        effective_destination_address = (
-            pointer_after
-            if postincrement and same_register
-            else destination_address
+        effective_source_address = (
+            source_pointer_after
+            if address_mode == "predecrement"
+            else source_address
         )
-        value = self.state.memory.read_bits(source_address, width)
-        source_case = self._field_alignment_case(source_address, width)
+        effective_destination_address = destination_address
+        destination_pointer_after = destination_address
+        if address_mode == "postincrement":
+            effective_destination_address = (
+                source_pointer_after if same_register else destination_address
+            )
+            destination_pointer_after = (
+                (source_pointer_after + width) & MASK32
+                if same_register
+                else (destination_address + width) & MASK32
+            )
+        elif address_mode == "predecrement":
+            effective_destination_address = (
+                (source_pointer_after - width) & MASK32
+                if same_register
+                else (destination_address - width) & MASK32
+            )
+            destination_pointer_after = effective_destination_address
+        value = self.state.memory.read_bits(effective_source_address, width)
+        source_case = self._field_alignment_case(
+            effective_source_address, width
+        )
         destination_case = self._field_alignment_case(
             effective_destination_address, width
         )
-        machine_states = 3 if source_case <= 2 else 4
+        machine_states = (3 if source_case <= 2 else 4) + int(
+            address_mode == "predecrement"
+        )
         hidden_states = (0, 1, 2, 2, 3, 4)[destination_case]
         self.state.memory.write_bits(
             effective_destination_address, width, value
         )
-        if postincrement:
-            self.state.write_reg(register_file, source_index, pointer_after)
-            if same_register:
-                self.state.write_reg(
-                    register_file,
-                    destination_index,
-                    (pointer_after + width) & MASK32,
-                )
-            else:
-                self.state.write_reg(
-                    register_file,
-                    destination_index,
-                    (destination_address + width) & MASK32,
-                )
+        if address_mode != "ordinary":
+            self.state.write_reg(
+                register_file, source_index, source_pointer_after
+            )
+            self.state.write_reg(
+                register_file, destination_index, destination_pointer_after
+            )
         self._new_hidden_write_states = hidden_states
         assert self._active_trace is not None
-        suffix = "_postincrement" if postincrement else ""
+        suffix = (
+            f"_{address_mode}" if address_mode != "ordinary" else ""
+        )
         read_transaction = {
             "class": "data_read",
             "purpose": f"field_move_memory_to_memory_source{suffix}",
-            "bit_address": source_address,
+            "bit_address": effective_source_address,
             "width": width,
             "value": value,
             "alignment_case": source_case,
@@ -1783,26 +1868,24 @@ class Tms34020Model:
             "alignment_case": destination_case,
             "hidden_write_states": hidden_states,
         }
-        if postincrement:
+        if address_mode != "ordinary":
             read_transaction.update(
                 {
                     "pointer_before": source_address,
-                    "pointer_after": pointer_after,
+                    "pointer_after": source_pointer_after,
                 }
             )
             write_transaction.update(
                 {
                     "pointer_before": destination_address,
-                    "pointer_after": (
-                        (pointer_after + width) & MASK32
-                        if same_register
-                        else (destination_address + width) & MASK32
-                    ),
-                    "same_register_uses_incremented_destination": int(
-                        same_register
-                    ),
+                    "pointer_after": destination_pointer_after,
                 }
             )
+            write_transaction[
+                "same_register_uses_incremented_destination"
+                if address_mode == "postincrement"
+                else "same_register_uses_decremented_destination"
+            ] = int(same_register)
         self._active_trace.transactions.extend(
             [read_transaction, write_transaction]
         )
@@ -1812,8 +1895,14 @@ class Tms34020Model:
                 " with source/destination postincrement; Rs=Rd uses the "
                 "once-incremented destination address and twice-incremented "
                 "final shared pointer selected under RSC-0037/OQ-0025"
-                if postincrement
-                else ""
+                if address_mode == "postincrement"
+                else (
+                    " with source then destination predecrement; Rs=Rd reads "
+                    "at original minus one field and writes/finishes at "
+                    "original minus two fields"
+                    if address_mode == "predecrement"
+                    else ""
+                )
             )
             + "; physical "
             "byte-strobe/RMW, dynamic-width, wait, page, fault, retry, "

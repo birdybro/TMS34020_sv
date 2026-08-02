@@ -199,6 +199,12 @@ or operands. The selected Rs=Rd final-pointer behavior remains CORROBORATED
 under RSC-0037/OQ-0025 but does not alter this status contract. Source: User's
 Guide printed pp.13-161 and 13-163.
 
+The register-to-memory and paired-memory predecrement forms read only the
+selected FS bank and preserve complete ST. `MOVE -*Rs,Rd[,F]` additionally
+reads the selected FE bit, replaces N/Z/V from the extended field, and
+preserves C; fetched data explicitly wins when Rs=Rd. Source: User's Guide
+printed pp.13-160..13-163.
+
 MMTM replaces only N and preserves C/Z/V plus every lower ST bit. The guide's
 two exceptions to the sign of `0-Rp` make the exact implemented rule
 `N = ~old_Rp[31]`: Rp zero sets N while Rp `80000000h` clears it. MMFM leaves

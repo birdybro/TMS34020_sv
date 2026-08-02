@@ -21,7 +21,8 @@ Implemented:
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
   PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM,
-  MOVE.RM.POST, MOVE.MR, MOVE.MR.POST, MOVE.MM, MOVE.MM.POST,
+  MOVE.RM.POST, MOVE.RM.PRE, MOVE.MR, MOVE.MR.POST, MOVE.MR.PRE, MOVE.MM,
+  MOVE.MM.POST, MOVE.MM.PRE,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -34,7 +35,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 109 of 110 currently extracted database forms for their
+These handlers cover 112 of 113 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -120,6 +121,35 @@ physical two-pointer commit/fault sequencer. Sources: User's Guide printed
 pp.13-161, 13-165..13-166, and 15-10..15-12; pinned MAME commit
 `a562e947b22f4f5acff0c182c26fd649d72dad0e`, `34010ops.hxx` lines
 1311–1324.
+
+`MOVE.RM.PRE` names `MOVE Rs,-*Rd[,F]`. It subtracts the selected field size
+from Rd before the move and stores the low field of the then-current Rs at that
+effective bit address. Consequently, Rs=Rd stores the decremented pointer
+value. The model exhausts both banks, every width/offset and alignment case,
+A/B aliases, wrap, ST preservation, exact logical traces and BEN rollback.
+Visible little-endian timing is two states with destination-case hidden writes.
+
+`MOVE.MR.PRE` names `MOVE -*Rs,Rd[,F]`. It subtracts the field size from Rs
+before reading, applies the selected FE extension, writes Rd, replaces N/Z/V,
+and preserves C. TI explicitly makes fetched data overwrite the pointer for
+Rs=Rd. Tests exhaust both banks and FE modes, every width/offset and timing
+case, alias priority, wrap, status, traces and BEN rollback.
+
+`MOVE.MM.PRE` names `MOVE -*Rs,-*Rd[,F]`. It decrements Rs, captures the
+complete source field, decrements Rd, then writes. Distinct registers each
+finish one field below their originals. For Rs=Rd, TI explicitly specifies a
+twice-field-size final decrement; the operation sequence reads at original
+minus one field and writes at original minus two fields. The model exhausts
+both banks, every source/destination geometry and A–H timing pair, alias/
+overlap ordering, ST preservation and BEN rollback. The clean-room paired-
+predecrement address leaf independently exhausts the pointer arithmetic.
+
+These three implementations are logical little-endian instruction-boundary
+semantics, not physical commit owners. Byte strobes/RMW, dynamic SIZE16, page
+mode, waits, fault/retry idempotence, interrupt checkpoints, I/O routing and pin
+timing remain absent. Sources: User's Guide printed pp.13-8, 13-160..13-163,
+and 15-10..15-12; compatible execution sequences: TMS34010 User's Guide
+printed pp.12-130..12-131, 12-138..12-139, and 12-143..12-144.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

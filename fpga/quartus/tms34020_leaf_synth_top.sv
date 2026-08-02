@@ -121,6 +121,11 @@ module tms34020_leaf_synth_top (
     logic [31:0] field_pair_destination_effective;
     logic [31:0] field_pair_source_final;
     logic [31:0] field_pair_destination_final;
+    logic [5:0] field_pair_pre_size;
+    logic [31:0] field_pair_pre_source_effective;
+    logic [31:0] field_pair_pre_destination_effective;
+    logic [31:0] field_pair_pre_source_updated;
+    logic [31:0] field_pair_pre_destination_final;
     logic [5:0] field_load_size;
     logic [2:0] field_load_alignment_case;
     logic field_load_reads_word1;
@@ -205,6 +210,10 @@ module tms34020_leaf_synth_top (
         field_pair_destination_effective ^
         field_pair_source_final ^
         field_pair_destination_final ^
+        field_pair_pre_source_effective ^
+        field_pair_pre_destination_effective ^
+        field_pair_pre_source_updated ^
+        field_pair_pre_destination_final ^
         field_load_raw ^
         field_load_result ^
         field_move_value ^
@@ -223,6 +232,7 @@ module tms34020_leaf_synth_top (
         {24'd0, field_address_size, field_address_write,
          field_address_mode_valid} ^
         {26'd0, field_pair_size} ^
+        {26'd0, field_pair_pre_size} ^
         {16'd0, field_load_size, field_load_alignment_case,
          field_load_reads_word1, field_load_visible_states,
          field_load_n, field_load_z, field_load_v} ^
@@ -502,6 +512,22 @@ module tms34020_leaf_synth_top (
         .destination_effective_address_o(field_pair_destination_effective),
         .source_final_pointer_o(field_pair_source_final),
         .destination_final_pointer_o(field_pair_destination_final)
+    );
+
+    tms34020_field_pair_predecrement field_pair_predecrement (
+        .field_size_encoded_i(
+            first_word_i[9] ? status_value[10:6] : status_value[4:0]
+        ),
+        .source_pointer_i(second_register_data),
+        .destination_pointer_i(operand_i),
+        .same_register_i(first_word_i[8:5] == first_word_i[3:0]),
+        .field_size_o(field_pair_pre_size),
+        .source_effective_address_o(field_pair_pre_source_effective),
+        .destination_effective_address_o(
+            field_pair_pre_destination_effective
+        ),
+        .source_updated_pointer_o(field_pair_pre_source_updated),
+        .destination_final_pointer_o(field_pair_pre_destination_final)
     );
 
     tms34020_field_load field_load (

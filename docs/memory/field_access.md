@@ -157,6 +157,32 @@ the existing field-copy leaf independently exhausts copy geometry. There is no
 combined memory/pointer owner, so byte strobes/RMW, SIZE16, page mode, waits,
 fault/retry idempotence, interrupt checkpoints, I/O and pin timing remain.
 
+## Verified predecrement field boundaries
+
+`MOVE Rs,-*Rd[,F]` (`A000h`/`FC00h`) decrements Rd by the selected field size
+before observing the register source and writing. When Rs=Rd, the stored field
+therefore comes from the decremented pointer. ST is unchanged. Little-endian
+execution exposes two visible states plus 1/2/2/3/4 destination-case hidden
+writes. `MOVE -*Rs,Rd[,F]` (`A400h`/`FC00h`) decrements Rs before reading and
+uses 4/4/5/5/5 visible states plus one for sign extension; loaded data
+explicitly wins an Rs=Rd collision and updates N/Z/V while preserving C.
+
+`MOVE -*Rs,-*Rd[,F]` (`A800h`/`FC00h`) performs source predecrement and capture
+before destination predecrement and write. Distinct pointers each subtract one
+field size. If Rs=Rd, the source read uses original minus one field size, the
+destination write uses original minus two, and the shared final pointer is the
+twice-decremented value explicitly specified by TI. Its source cases expose
+4/4/5/5/5 visible states and its destination cases contribute 1/2/2/3/4 hidden
+writes.
+
+Model tests exhaust both field banks, all widths/offsets, every paired alignment
+case, A/B/SP alias and overlap ordering, pointer wrap, status, traces and BEN
+rollback. The single-pointer address leaf and new paired-predecrement leaf
+independently exhaust address arithmetic. No combined memory owner exists, so
+BEN mapping, byte strobes/RMW, SIZE16, page mode, waits, fault/retry,
+interrupts, I/O and pin timing remain. Sources: User's Guide printed pp.13-8,
+13-160..13-163 and 15-10..15-12.
+
 ## Locked-cycle requirements
 
 The write immediately follows the read and instruction completion waits for
@@ -169,7 +195,7 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE predecrement, offset and absolute forms,
+Remaining ordinary MOVE offset and absolute forms,
 BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain

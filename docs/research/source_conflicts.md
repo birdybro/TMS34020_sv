@@ -758,3 +758,24 @@
   delta records remain CORROBORATED. OQ-0025 requires another primary revision,
   erratum, diagnostic, XDS trace, or physical hardware discriminator before
   this legal alias corner can be called verified.
+
+## RSC-0038: Reference RTL suppresses a TMS34020 paired predecrement update
+
+- Status: resolved for TMS34020 from explicit primary text; the TMS34010-only
+  silicon corner is not independently qualified
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, printed
+  pp.13-161..13-162 explicitly says that when Rs=Rd for
+  `MOVE -*Rs,-*Rd[,F]`, the final register value is its original value minus
+  twice the field size. The compatible TMS34010 execution sequence on printed
+  pp.12-138..12-139 decrements/captures Rs before decrementing/writing Rd, but
+  does not separately spell out the final alias value.
+- Conflicting implementation: pinned TMS34010 RTL commit
+  `94a258e80a07ceb4303ce0b99818df832e96007f`,
+  `docs/instruction_coverage.md` row 102, explicitly calls its alias handling a
+  documented deviation and leaves the shared register only once-decremented
+  despite using the twice-decremented write address.
+- Decision: do not reuse that writeback suppression. The TMS34020 model and
+  clean-room address leaf read at original minus one field size, write at
+  original minus two, and leave the shared pointer at the explicitly specified
+  twice-decremented value. This is VERIFIED_PRIMARY for TMS34020 and does not
+  claim physical TMS34010 silicon behavior beyond its published sequence.

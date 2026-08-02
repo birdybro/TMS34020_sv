@@ -310,6 +310,12 @@ class IsaTests(unittest.TestCase):
             0x97FF: ("MOVE.MR.POST", 1),
             0x9800: ("MOVE.MM.POST", 1),
             0x9BFF: ("MOVE.MM.POST", 1),
+            0xA000: ("MOVE.RM.PRE", 1),
+            0xA3FF: ("MOVE.RM.PRE", 1),
+            0xA400: ("MOVE.MR.PRE", 1),
+            0xA7FF: ("MOVE.MR.PRE", 1),
+            0xA800: ("MOVE.MM.PRE", 1),
+            0xABFF: ("MOVE.MM.PRE", 1),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -337,8 +343,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 37334)
-        self.assertEqual(unclassified, 65536 - 37334)
+        self.assertEqual(matched, 40406)
+        self.assertEqual(unclassified, 65536 - 40406)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -1639,6 +1645,112 @@ class IsaTests(unittest.TestCase):
             "RSC-0037",
             " ".join(instruction.metadata["source_citations"]),
         )
+
+    def test_move_register_to_memory_predecrement_contract(self) -> None:
+        instruction = self.database.decode(0xA000)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.RM.PRE")
+        self.assertEqual(instruction.opcode_mask, 0xFC00)
+        self.assertEqual(instruction.opcode_value, 0xA000)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertIn(
+            "source capture",
+            " ".join(instruction.metadata["pipeline_interactions"]),
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "field_alignment_cases",
+                "little_endian_visible_machine_states": 2,
+                "little_endian_hidden_write_states": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+                "big_endian_visible_machine_states": 3,
+                "big_endian_hidden_write_states": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_move_memory_to_register_predecrement_contract(self) -> None:
+        instruction = self.database.decode(0xA400)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.MR.PRE")
+        self.assertEqual(instruction.opcode_mask, 0xFC00)
+        self.assertEqual(instruction.opcode_value, 0xA400)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertIn(
+            "loaded data has explicit priority",
+            " ".join(instruction.metadata["pipeline_interactions"]),
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "field_alignment_cases",
+                "zero_extended_visible_machine_states": {
+                    "case_1": 4,
+                    "case_2": 4,
+                    "case_3": 5,
+                    "case_4": 5,
+                    "case_5": 5,
+                },
+                "sign_extended_visible_machine_states": {
+                    "case_1": 5,
+                    "case_2": 5,
+                    "case_3": 6,
+                    "case_4": 6,
+                    "case_5": 6,
+                },
+            },
+        )
+        self.assertEqual(
+            instruction.metadata["status_bits_written"], ["N", "Z", "V"]
+        )
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_move_memory_to_memory_paired_predecrement_contract(self) -> None:
+        instruction = self.database.decode(0xA800)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.MM.PRE")
+        self.assertEqual(instruction.opcode_mask, 0xFC00)
+        self.assertEqual(instruction.opcode_value, 0xA800)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertIn(
+            "original minus twice the field size",
+            " ".join(instruction.metadata["pipeline_interactions"]),
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "source_destination_field_alignment",
+                "visible_machine_states_by_source_case": {
+                    "case_1": 4,
+                    "case_2": 4,
+                    "case_3": 5,
+                    "case_4": 5,
+                    "case_5": 5,
+                },
+                "hidden_write_states_by_destination_case": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

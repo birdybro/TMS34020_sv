@@ -218,6 +218,23 @@ TMS34010 timing FSM is reused. Sources: TMS34020 guide printed pp.13-161,
 13-165..13-166, and 15-10..15-12; TMS34010 guide printed pp.12-140..12-141;
 pinned MAME `34010ops.hxx` lines 1311–1324.
 
+The three predecrement forms retain `A000h`, `A400h`, and `A800h` with mask
+`FC00h`. Their compatible semantic ordering is reusable only at the leaf level:
+register-to-memory decrements Rd before observing an aliased Rs; memory-to-
+register decrements Rs before reading and explicitly makes loaded data win an
+Rs=Rd collision; paired memory-to-memory decrements/captures the source before
+decrementing/writing the destination and explicitly leaves an aliased pointer
+two field sizes below its original value. The pinned TMS34010 RTL deliberately
+suppresses that second shared-register writeback, so RSC-0038 prohibits reuse
+of its alias handling. TMS34020 replaces the 16-bit timing
+environment with five-case 32-bit alignment: two visible states for the store,
+4/4/5/5/5 plus FE for the load, and 4/4/5/5/5 visible source states plus
+1/2/2/3/4 hidden destination writes for the copy. BEN, byte strobes/RMW,
+dynamic width, pages, waits and fault/retry retirement remain TMS34020-owned;
+no upstream timing FSM is reused. Sources: TMS34020 guide printed pp.13-8,
+13-160..13-163 and 15-10..15-12; TMS34010 guide printed pp.12-130..12-131,
+12-138..12-139 and 12-143..12-144.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

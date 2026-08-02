@@ -144,6 +144,11 @@ module tb_tms34020_verified_leaves;
     logic [31:0] field_pair_destination_effective;
     logic [31:0] field_pair_source_final;
     logic [31:0] field_pair_destination_final;
+    logic [5:0] field_pair_pre_decoded_size;
+    logic [31:0] field_pair_pre_source_effective;
+    logic [31:0] field_pair_pre_destination_effective;
+    logic [31:0] field_pair_pre_source_updated;
+    logic [31:0] field_pair_pre_destination_final;
     logic [4:0] field_load_size;
     logic field_load_sign_extend;
     logic [4:0] field_load_offset;
@@ -484,6 +489,20 @@ module tb_tms34020_verified_leaves;
         .destination_final_pointer_o(field_pair_destination_final)
     );
 
+    tms34020_field_pair_predecrement field_pair_predecrement_dut (
+        .field_size_encoded_i(field_pair_size),
+        .source_pointer_i(field_pair_source_pointer),
+        .destination_pointer_i(field_pair_destination_pointer),
+        .same_register_i(field_pair_same_register),
+        .field_size_o(field_pair_pre_decoded_size),
+        .source_effective_address_o(field_pair_pre_source_effective),
+        .destination_effective_address_o(
+            field_pair_pre_destination_effective
+        ),
+        .source_updated_pointer_o(field_pair_pre_source_updated),
+        .destination_final_pointer_o(field_pair_pre_destination_final)
+    );
+
     tms34020_field_load field_load_dut (
         .field_size_encoded_i(field_load_size),
         .sign_extend_i(field_load_sign_extend),
@@ -737,6 +756,34 @@ module tb_tms34020_verified_leaves;
             $display("FAIL: %s", message);
             $fatal(1);
         end
+    endtask
+
+    task automatic check_field_pair_predecrement(
+        input logic [4:0] field_size_encoded,
+        input logic [31:0] source_pointer,
+        input logic [31:0] destination_pointer,
+        input logic same_register,
+        input logic [5:0] expected_size,
+        input logic [31:0] expected_source_effective,
+        input logic [31:0] expected_destination_effective,
+        input logic [31:0] expected_source_updated,
+        input logic [31:0] expected_destination_final,
+        input string message
+    );
+        field_pair_size = field_size_encoded;
+        field_pair_source_pointer = source_pointer;
+        field_pair_destination_pointer = destination_pointer;
+        field_pair_same_register = same_register;
+        #1;
+        check_condition(
+            field_pair_pre_decoded_size == expected_size &&
+            field_pair_pre_source_effective == expected_source_effective &&
+            field_pair_pre_destination_effective ==
+                expected_destination_effective &&
+            field_pair_pre_source_updated == expected_source_updated &&
+            field_pair_pre_destination_final == expected_destination_final,
+            message
+        );
     endtask
 
     function automatic logic reference_condition_true(
@@ -3102,6 +3149,26 @@ module tb_tms34020_verified_leaves;
                     {26'd0, expected_size},
                 "paired alias writes after first increment and finishes after two"
             );
+            check_field_pair_predecrement(
+                encoded_size[4:0], pointer, 32'h8000_0010, 1'b0,
+                expected_size,
+                pointer - {26'd0, expected_size},
+                32'h8000_0010 - {26'd0, expected_size},
+                pointer - {26'd0, expected_size},
+                32'h8000_0010 - {26'd0, expected_size},
+                "paired predecrement uses independently updated pointers"
+            );
+            check_field_pair_predecrement(
+                encoded_size[4:0], pointer, pointer, 1'b1,
+                expected_size,
+                pointer - {26'd0, expected_size},
+                pointer - {26'd0, expected_size} -
+                    {26'd0, expected_size},
+                pointer - {26'd0, expected_size},
+                pointer - {26'd0, expected_size} -
+                    {26'd0, expected_size},
+                "paired alias reads after one decrement and finishes after two"
+            );
         end
         check_field_address_update(
             5'd16, 32'h1234_5678, 1'b1, 1'b1,
@@ -3910,6 +3977,24 @@ module tb_tms34020_verified_leaves;
             32'hA020_0010,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MOVE.MM.POST cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'hA001, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.RM.PRE cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'hA401, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MR.PRE cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'hA801, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MM.PRE cannot bypass absent field-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -5581,6 +5666,18 @@ module tb_tms34020_verified_leaves;
                      "MOVE.MM.POST field-zero lower-bound decode");
         check_decode(16'h9BFF, TMS20_OP_MOVE_MM_POST, 3'd1,
                      "MOVE.MM.POST field-one upper-bound decode");
+        check_decode(16'hA000, TMS20_OP_MOVE_RM_PRE, 3'd1,
+                     "MOVE.RM.PRE field-zero lower-bound decode");
+        check_decode(16'hA3FF, TMS20_OP_MOVE_RM_PRE, 3'd1,
+                     "MOVE.RM.PRE field-one upper-bound decode");
+        check_decode(16'hA400, TMS20_OP_MOVE_MR_PRE, 3'd1,
+                     "MOVE.MR.PRE field-zero lower-bound decode");
+        check_decode(16'hA7FF, TMS20_OP_MOVE_MR_PRE, 3'd1,
+                     "MOVE.MR.PRE field-one upper-bound decode");
+        check_decode(16'hA800, TMS20_OP_MOVE_MM_PRE, 3'd1,
+                     "MOVE.MM.PRE field-zero lower-bound decode");
+        check_decode(16'hABFF, TMS20_OP_MOVE_MM_PRE, 3'd1,
+                     "MOVE.MM.PRE field-one upper-bound decode");
         decode_word = 16'h8C00;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,

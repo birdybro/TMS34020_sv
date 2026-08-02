@@ -1637,6 +1637,446 @@ class ExecutionTests(unittest.TestCase):
 
         self.assertEqual(model.snapshot(), before)
 
+    def test_move_register_to_memory_predecrement_exhaustive(self) -> None:
+        initial_window = 0x6996_3CC3_5AA5_C33C
+        source = 0xD69A_35C7
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for width in range(1, 33):
+                for bit_offset in range(32):
+                    with self.subTest(
+                        bank=field_bank, width=width, offset=bit_offset
+                    ):
+                        model = Tms34020Model(isa=shared_isa)
+                        opcode = 0xA001 | (field_bank << 9)
+                        model.load_program([opcode])
+                        pointer_before = 0x2000 + bit_offset + width
+                        model.state.write_reg("A", 0, source)
+                        model.state.write_reg("A", 1, pointer_before)
+                        encoded_width = 0 if width == 32 else width
+                        model.state.st = (
+                            0xD020_1000
+                            | (encoded_width << (field_bank * 6))
+                        )
+                        status_before = model.state.st
+                        model.state.memory.write_bits(
+                            0x2000, 32, initial_window & 0xFFFF_FFFF
+                        )
+                        model.state.memory.write_bits(
+                            0x2020, 32, initial_window >> 32
+                        )
+
+                        event = model.step()
+
+                        field_mask = (
+                            0xFFFF_FFFF if width == 32 else (1 << width) - 1
+                        )
+                        value = source & field_mask
+                        positioned_mask = field_mask << bit_offset
+                        expected_window = (
+                            (initial_window & ~positioned_mask)
+                            | (value << bit_offset)
+                        ) & 0xFFFF_FFFF_FFFF_FFFF
+                        crosses = bit_offset + width > 32
+                        start_byte = bit_offset % 8 == 0
+                        end_byte = (bit_offset + width) % 8 == 0
+                        if not crosses:
+                            alignment_case = 1 if start_byte and end_byte else 2
+                        elif start_byte and end_byte:
+                            alignment_case = 3
+                        elif start_byte or end_byte:
+                            alignment_case = 4
+                        else:
+                            alignment_case = 5
+                        hidden_states = (0, 1, 2, 2, 3, 4)[alignment_case]
+                        actual_window = model.state.memory.read_bits(
+                            0x2000, 32
+                        ) | (model.state.memory.read_bits(0x2020, 32) << 32)
+                        self.assertEqual(event.mnemonic, "MOVE.RM.PRE")
+                        self.assertEqual(event.machine_states, 2)
+                        self.assertEqual(model.state.st, status_before)
+                        self.assertEqual(
+                            model.state.read_reg("A", 1), 0x2000 + bit_offset
+                        )
+                        self.assertEqual(actual_window, expected_window)
+                        self.assertEqual(
+                            model.state.pending_write_states, hidden_states
+                        )
+                        self.assertEqual(
+                            event.transactions[-1],
+                            {
+                                "class": "data_write",
+                                "purpose": (
+                                    "field_move_register_to_memory_"
+                                    "predecrement"
+                                ),
+                                "bit_address": 0x2000 + bit_offset,
+                                "width": width,
+                                "value": value,
+                                "alignment_case": alignment_case,
+                                "hidden_write_states": hidden_states,
+                                "pointer_before": pointer_before,
+                                "pointer_after": 0x2000 + bit_offset,
+                                "same_register_source_after_update": 0,
+                            },
+                        )
+
+    def test_move_register_to_memory_predecrement_alias_wrap_and_ben(self) -> None:
+        same = Tms34020Model()
+        same.load_program([0xA000])
+        same.state.write_reg("A", 0, 0x4003)
+        same.state.st = 13 | 0xA000_0000
+        status_before = same.state.st
+        event = same.step()
+        decremented = 0x4003 - 13
+        self.assertEqual(same.state.read_reg("A", 0), decremented)
+        self.assertEqual(
+            same.state.memory.read_bits(decremented, 13),
+            decremented & ((1 << 13) - 1),
+        )
+        self.assertEqual(same.state.st, status_before)
+        self.assertEqual(
+            event.transactions[-1]["same_register_source_after_update"], 1
+        )
+
+        wrapped = Tms34020Model()
+        wrapped.load_program([0xA011])
+        wrapped.state.write_reg("B", 0, 0x1234_5678)
+        wrapped.state.write_reg("B", 1, 0x0000_0010)
+        wrapped.state.st = 0
+        wrapped.step()
+        self.assertEqual(wrapped.state.read_reg("B", 1), 0xFFFF_FFF0)
+        self.assertEqual(
+            wrapped.state.memory.read_bits(0xFFFF_FFF0, 32), 0x1234_5678
+        )
+
+        rejected = Tms34020Model()
+        rejected.load_program([0xA001])
+        rejected.state.write_reg("A", 0, 0xA5)
+        rejected.state.write_reg("A", 1, 0x7108)
+        rejected.state.write_io(CONFIG_ADDRESS, 1)
+        before = rejected.snapshot()
+        with self.assertRaisesRegex(
+            UnsupportedInstruction, "big-endian field mapping"
+        ):
+            rejected.step()
+        self.assertEqual(rejected.snapshot(), before)
+
+    def test_move_memory_to_register_predecrement_exhaustive(self) -> None:
+        initial_window = 0xC33C_F00F_A5A5_5A5A
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for sign_extend in (0, 1):
+                for width in range(1, 33):
+                    for bit_offset in range(32):
+                        with self.subTest(
+                            bank=field_bank,
+                            sign=sign_extend,
+                            width=width,
+                            offset=bit_offset,
+                        ):
+                            model = Tms34020Model(isa=shared_isa)
+                            opcode = 0xA402 | (field_bank << 9)
+                            model.load_program([opcode])
+                            pointer_before = 0x2000 + bit_offset + width
+                            model.state.write_reg("A", 0, pointer_before)
+                            model.state.write_reg("A", 2, 0xDEAD_BEEF)
+                            encoded_width = 0 if width == 32 else width
+                            model.state.st = (
+                                0xD020_1000
+                                | (encoded_width << (field_bank * 6))
+                                | (sign_extend << (field_bank * 6 + 5))
+                            )
+                            c_before = (model.state.st >> 30) & 1
+                            model.state.memory.write_bits(
+                                0x2000, 32, initial_window & 0xFFFF_FFFF
+                            )
+                            model.state.memory.write_bits(
+                                0x2020, 32, initial_window >> 32
+                            )
+
+                            event = model.step()
+
+                            field_mask = (
+                                0xFFFF_FFFF
+                                if width == 32
+                                else (1 << width) - 1
+                            )
+                            raw_value = (initial_window >> bit_offset) & field_mask
+                            result = raw_value
+                            if (
+                                sign_extend
+                                and width < 32
+                                and raw_value & (1 << (width - 1))
+                            ):
+                                result |= 0xFFFF_FFFF ^ field_mask
+                            result &= 0xFFFF_FFFF
+                            crosses = bit_offset + width > 32
+                            start_byte = bit_offset % 8 == 0
+                            end_byte = (bit_offset + width) % 8 == 0
+                            if not crosses:
+                                alignment_case = (
+                                    1 if start_byte and end_byte else 2
+                                )
+                            elif start_byte and end_byte:
+                                alignment_case = 3
+                            elif start_byte or end_byte:
+                                alignment_case = 4
+                            else:
+                                alignment_case = 5
+                            expected_states = (
+                                4 if alignment_case <= 2 else 5
+                            ) + sign_extend
+                            expected_nczv = (
+                                (int(bool(result & 0x8000_0000)) << 3)
+                                | (c_before << 2)
+                                | (int(result == 0) << 1)
+                            )
+                            self.assertEqual(event.mnemonic, "MOVE.MR.PRE")
+                            self.assertEqual(event.machine_states, expected_states)
+                            self.assertEqual(
+                                model.state.read_reg("A", 0),
+                                0x2000 + bit_offset,
+                            )
+                            self.assertEqual(model.state.read_reg("A", 2), result)
+                            self.assertEqual(
+                                (model.state.st >> 28) & 0xF, expected_nczv
+                            )
+                            self.assertEqual(
+                                event.transactions[-1],
+                                {
+                                    "class": "data_read",
+                                    "purpose": (
+                                        "field_move_memory_to_register_"
+                                        "predecrement"
+                                    ),
+                                    "bit_address": 0x2000 + bit_offset,
+                                    "width": width,
+                                    "value": raw_value,
+                                    "extended_result": result,
+                                    "alignment_case": alignment_case,
+                                    "sign_extend": sign_extend,
+                                    "pointer_before": pointer_before,
+                                    "pointer_after": 0x2000 + bit_offset,
+                                    "same_register_data_wins": 0,
+                                },
+                            )
+
+    def test_move_memory_to_register_predecrement_alias_wrap_and_ben(self) -> None:
+        same = Tms34020Model()
+        same.load_program([0xA400])
+        same.state.write_reg("A", 0, 0x4008)
+        same.state.st = 5 | (1 << 5) | 0xF000_0000
+        same.state.memory.write_bits(0x4003, 5, 0x1F)
+        event = same.step()
+        self.assertEqual(same.state.read_reg("A", 0), 0xFFFF_FFFF)
+        self.assertEqual(event.transactions[-1]["bit_address"], 0x4003)
+        self.assertEqual(event.transactions[-1]["pointer_after"], 0x4003)
+        self.assertEqual(event.transactions[-1]["same_register_data_wins"], 1)
+
+        wrapped = Tms34020Model()
+        wrapped.load_program([0xA411], bit_address=0x100)
+        wrapped.state.write_reg("B", 0, 0x0000_0010)
+        wrapped.state.st = 0
+        wrapped.state.memory.write_bits(0xFFFF_FFF0, 32, 0x1234_5678)
+        wrapped.step()
+        self.assertEqual(wrapped.state.read_reg("B", 0), 0xFFFF_FFF0)
+        self.assertEqual(wrapped.state.read_reg("B", 1), 0x1234_5678)
+
+        rejected = Tms34020Model()
+        rejected.load_program([0xA401])
+        rejected.state.write_reg("A", 0, 0x7108)
+        rejected.state.write_io(CONFIG_ADDRESS, 1)
+        before = rejected.snapshot()
+        with self.assertRaisesRegex(
+            UnsupportedInstruction, "big-endian field mapping"
+        ):
+            rejected.step()
+        self.assertEqual(rejected.snapshot(), before)
+
+    def test_move_memory_to_memory_paired_predecrement_exhaustive(self) -> None:
+        source_window = 0xC33C_F00F_A5A5_5A5A
+        destination_window = 0x6996_3CC3_5AA5_C33C
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for width in range(1, 33):
+                for source_offset in range(32):
+                    for destination_offset in range(32):
+                        with self.subTest(
+                            bank=field_bank,
+                            width=width,
+                            source_offset=source_offset,
+                            destination_offset=destination_offset,
+                        ):
+                            model = Tms34020Model(isa=shared_isa)
+                            opcode = 0xA801 | (field_bank << 9)
+                            model.load_program([opcode])
+                            source_before = 0x2000 + source_offset + width
+                            destination_before = (
+                                0x3000 + destination_offset + width
+                            )
+                            model.state.write_reg("A", 0, source_before)
+                            model.state.write_reg("A", 1, destination_before)
+                            encoded_width = 0 if width == 32 else width
+                            model.state.st = (
+                                0xD020_1000
+                                | (encoded_width << (field_bank * 6))
+                            )
+                            status_before = model.state.st
+                            model.state.memory.write_bits(
+                                0x2000, 32, source_window & 0xFFFF_FFFF
+                            )
+                            model.state.memory.write_bits(
+                                0x2020, 32, source_window >> 32
+                            )
+                            model.state.memory.write_bits(
+                                0x3000,
+                                32,
+                                destination_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x3020, 32, destination_window >> 32
+                            )
+
+                            event = model.step()
+
+                            field_mask = (
+                                0xFFFF_FFFF
+                                if width == 32
+                                else (1 << width) - 1
+                            )
+                            value = (source_window >> source_offset) & field_mask
+                            positioned_mask = field_mask << destination_offset
+                            expected_destination = (
+                                (destination_window & ~positioned_mask)
+                                | (value << destination_offset)
+                            ) & 0xFFFF_FFFF_FFFF_FFFF
+
+                            def alignment_case(offset: int) -> int:
+                                crosses = offset + width > 32
+                                start_byte = offset % 8 == 0
+                                end_byte = (offset + width) % 8 == 0
+                                if not crosses:
+                                    return 1 if start_byte and end_byte else 2
+                                if start_byte and end_byte:
+                                    return 3
+                                if start_byte or end_byte:
+                                    return 4
+                                return 5
+
+                            source_case = alignment_case(source_offset)
+                            destination_case = alignment_case(destination_offset)
+                            hidden_states = (0, 1, 2, 2, 3, 4)[
+                                destination_case
+                            ]
+                            actual_destination = (
+                                model.state.memory.read_bits(0x3000, 32)
+                                | (
+                                    model.state.memory.read_bits(0x3020, 32)
+                                    << 32
+                                )
+                            )
+                            self.assertEqual(event.mnemonic, "MOVE.MM.PRE")
+                            self.assertEqual(
+                                event.machine_states,
+                                4 if source_case <= 2 else 5,
+                            )
+                            self.assertEqual(model.state.st, status_before)
+                            self.assertEqual(
+                                model.state.read_reg("A", 0),
+                                0x2000 + source_offset,
+                            )
+                            self.assertEqual(
+                                model.state.read_reg("A", 1),
+                                0x3000 + destination_offset,
+                            )
+                            self.assertEqual(
+                                actual_destination, expected_destination
+                            )
+                            self.assertEqual(
+                                model.state.pending_write_states, hidden_states
+                            )
+                            self.assertEqual(
+                                event.transactions[-2:],
+                                [
+                                    {
+                                        "class": "data_read",
+                                        "purpose": (
+                                            "field_move_memory_to_memory_"
+                                            "source_predecrement"
+                                        ),
+                                        "bit_address": 0x2000 + source_offset,
+                                        "width": width,
+                                        "value": value,
+                                        "alignment_case": source_case,
+                                        "pointer_before": source_before,
+                                        "pointer_after": 0x2000 + source_offset,
+                                    },
+                                    {
+                                        "class": "data_write",
+                                        "purpose": (
+                                            "field_move_memory_to_memory_"
+                                            "destination_predecrement"
+                                        ),
+                                        "bit_address": (
+                                            0x3000 + destination_offset
+                                        ),
+                                        "width": width,
+                                        "value": value,
+                                        "alignment_case": destination_case,
+                                        "hidden_write_states": hidden_states,
+                                        "pointer_before": destination_before,
+                                        "pointer_after": (
+                                            0x3000 + destination_offset
+                                        ),
+                                        "same_register_uses_decremented_destination": 0,
+                                    },
+                                ],
+                            )
+
+    def test_move_memory_to_memory_paired_predecrement_alias_wrap_and_ben(
+        self,
+    ) -> None:
+        same = Tms34020Model()
+        same.load_program([0xA800])
+        same.state.write_reg("A", 0, 0x4020)
+        same.state.st = 13 | 0xA000_0000
+        same.state.memory.write_bits(0x4000, 32, 0xD69A_35C7)
+        captured = same.state.memory.read_bits(0x4013, 13)
+        event = same.step()
+        self.assertEqual(same.state.read_reg("A", 0), 0x4006)
+        self.assertEqual(same.state.memory.read_bits(0x4006, 13), captured)
+        self.assertEqual(event.transactions[-2]["bit_address"], 0x4013)
+        self.assertEqual(event.transactions[-1]["bit_address"], 0x4006)
+        self.assertEqual(event.transactions[-1]["pointer_after"], 0x4006)
+        self.assertEqual(
+            event.transactions[-1][
+                "same_register_uses_decremented_destination"
+            ],
+            1,
+        )
+
+        shared_sp = Tms34020Model()
+        shared_sp.load_program([0xA9EF])
+        shared_sp.state.sp = 0x6000
+        shared_sp.state.st = 8
+        shared_sp.state.memory.write_bits(0x5FF8, 8, 0xA5)
+        shared_sp.step()
+        self.assertEqual(shared_sp.state.sp, 0x5FF0)
+        self.assertEqual(shared_sp.state.memory.read_bits(0x5FF0, 8), 0xA5)
+
+        rejected = Tms34020Model()
+        rejected.load_program([0xA801])
+        rejected.state.write_reg("A", 0, 0x7008)
+        rejected.state.write_reg("A", 1, 0x7108)
+        rejected.state.write_io(CONFIG_ADDRESS, 1)
+        before = rejected.snapshot()
+        with self.assertRaisesRegex(
+            UnsupportedInstruction, "big-endian field mapping"
+        ):
+            rejected.step()
+        self.assertEqual(rejected.snapshot(), before)
+
     def test_move_memory_to_memory_big_endian_rolls_back(self) -> None:
         model = Tms34020Model()
         model.load_program([0x8801])

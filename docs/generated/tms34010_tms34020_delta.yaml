@@ -726,6 +726,36 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVE paired-postincrement form and example, printed pp.13-161 and 13-165..13-166", "TI-TMS34020-UG-1990 MOVE/MOVB alignment matrix and memory-to-memory timing, printed pp.15-10..15-12", "TI-TMS34010-UG-1988 paired-postincrement execution sequence, printed pp.12-140..12-141", "Pinned MAME a562e947b22f4f5acff0c182c26fd649d72dad0e 34010ops.hxx lines 1311-1324", "Pinned TMS34010 RTL 94a258e80a07ceb4303ce0b99818df832e96007f instruction_coverage.md row 101"],
       "confidence": "CORROBORATED",
       "unresolved_questions": ["OQ-0025: physical TMS34020 confirmation of the final Rs=Rd pointer after both logical postincrements.", "Exact pointer and hidden-write commit order relative to waits, interrupt recognition, fault and retry remains pending the TMS34020 memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "predecrement_register_to_memory_field_move",
+      "tms34010_behavior": "MOVE Rs,-*Rd[,F] uses A000h/FC00h, decrements Rd by the selected field size before the move, writes the low source field at that address, and preserves ST. If Rs=Rd, the source value observed after predecrement is the decremented pointer.",
+      "tms34020_behavior": "The encoding, pre-update ordering, field value and ST contract remain compatible. TMS34020 little-endian execution exposes two visible states and 1/2/2/3/4 hidden states by 32-bit destination case; BEN=1 adds one visible state.",
+      "rtl_impact": "Reuse field-size, subtract-before-capture and insertion semantics only. A TMS34020-owned sequencer must update the logical destination before capturing an aliased source, issue the byte-strobed/RMW write, atomically retire or roll back the pointer, and make fault/retry idempotent across dynamic 32/16-bit targets. The current leaves calculate little-endian insertion and single-pointer effective/final values only.",
+      "test_impact": "All 1,024 encodings; both FS banks; every width/offset/case; A/B/SP; Rs=Rd decremented-source ordering; pointer wrap; unchanged ST; BEN; hidden writes; 16/32-bit beats; pages; waits; faults/retries; interrupts and I/O destinations.",
+      "source_citation": ["TI-TMS34020-UG-1990 predecrement addressing, printed p.13-8", "TI-TMS34020-UG-1990 register-to-predecrement-indirect MOVE, printed p.13-160", "TI-TMS34020-UG-1990 register-to-memory timing, printed pp.15-10..15-11", "TI-TMS34010-UG-1988 compatible form, printed pp.12-130..12-131"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact pointer/write retirement relative to waits, interrupts, faults and retry remains pending the TMS34020 memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "predecrement_memory_to_register_field_move",
+      "tms34010_behavior": "MOVE -*Rs,Rd[,F] uses A400h/FC00h, decrements Rs before reading, extends the selected field into Rd, updates N/Z/V while preserving C, and makes loaded data win explicitly when Rs=Rd.",
+      "tms34020_behavior": "The encoding, pre-update/read/data priority and status contract remain compatible. TMS34020 uses five 32-bit alignment cases with 4/4/5/5/5 visible states for FE=0 and one extra for FE=1.",
+      "rtl_impact": "Reuse field-size, pointer subtraction, extraction, extension and status semantics only. A TMS34020-owned sequencer must predecrement before its read request, suppress pointer/data/status on fault, make retry idempotent, and arbitrate the explicit data-winning shared-register update. Current leaves separately calculate address and little-endian extraction/timing results.",
+      "test_impact": "All 1,024 encodings; both FS/FE banks; every width/offset/case; zero/sign extension; N/C/Z/V; A/B/SP; Rs=Rd data priority; wrap; BEN; 16/32-bit traces; pages; waits; faults/retries; interrupts and I/O reads.",
+      "source_citation": ["TI-TMS34020-UG-1990 predecrement addressing, printed p.13-8", "TI-TMS34020-UG-1990 predecrement-indirect-to-register MOVE, explicit alias priority and status, printed pp.13-161 and 13-163", "TI-TMS34020-UG-1990 memory-to-register timing, printed pp.15-10..15-11", "TI-TMS34010-UG-1988 compatible form, printed pp.12-143..12-144"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact pointer/read/data/status commit checkpoints relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "paired_predecrement_memory_to_memory_field_move",
+      "tms34010_behavior": "MOVE -*Rs,-*Rd[,F] uses A800h/FC00h, decrements Rs then reads the selected field, decrements Rd then writes the captured field, and preserves ST. The primary sequence implies a twice-decremented final alias pointer but does not state it separately; pinned TMS34010 RTL instead suppresses the second writeback as a documented deviation under RSC-0038.",
+      "tms34020_behavior": "The encoding and operation remain compatible, and the TMS34020 page explicitly states the twice-field-size final shared pointer. Its 32-bit A-H matrix exposes 4/4/5/5/5 visible states by effective source alignment and 1/2/2/3/4 hidden writes by effective destination alignment.",
+      "rtl_impact": "Reuse field-size, source-before-destination decrement, complete-source capture and pointer arithmetic semantics only. A TMS34020-owned sequencer must preserve the once-decremented source and twice-decremented alias destination, map BEN, sequence 32/16-bit reads and writes, and atomically retire both logical decrements without retry duplication. The current paired-address and field-copy leaves remain noncommitting.",
+      "test_impact": "All 1,024 encodings; both FS banks; every width and source/destination offset; all 25 timing pairs; A/B/SP; distinct pointers; Rs=Rd once-decremented read/twice-decremented write/final pointer; wrap; overlap; unchanged ST; BEN; hidden writes; 16/32-bit beats; pages; waits; faults/retries; interrupts and I/O routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 predecrement addressing, printed p.13-8", "TI-TMS34020-UG-1990 paired-predecrement MOVE and explicit alias final pointer, printed pp.13-161..13-162", "TI-TMS34020-UG-1990 memory-to-memory timing, printed pp.15-10..15-12", "TI-TMS34010-UG-1988 compatible execution sequence, printed pp.12-138..12-139", "Pinned TMS34010 RTL 94a258e80a07ceb4303ce0b99818df832e96007f instruction_coverage.md row 102; RSC-0038"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact decrement/read/write retirement relative to waits, interrupts, faults and retry remains pending the TMS34020 memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }
