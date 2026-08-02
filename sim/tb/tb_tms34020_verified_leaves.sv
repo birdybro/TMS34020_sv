@@ -127,6 +127,18 @@ module tb_tms34020_verified_leaves;
     logic multiple_n;
     logic [5:0] multiple_visible_states;
     logic [1:0] multiple_hidden_write_states;
+    logic [31:0] interrupt_return_old_sp;
+    logic [31:0] interrupt_return_saved_st;
+    logic [31:0] interrupt_return_saved_pc;
+    logic interrupt_return_normal_context;
+    logic interrupt_return_ix_context;
+    logic interrupt_return_bf_context;
+    logic [5:0] interrupt_return_extra_words;
+    logic [5:0] interrupt_return_visible_states;
+    logic [31:0] interrupt_return_final_sp;
+    logic [31:0] interrupt_return_aligned_pc;
+    logic interrupt_return_saved_pc_misaligned;
+    logic [31:0] interrupt_return_post_st;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -384,6 +396,21 @@ module tb_tms34020_verified_leaves;
         .n_o(multiple_n),
         .visible_states_o(multiple_visible_states),
         .hidden_write_states_o(multiple_hidden_write_states)
+    );
+
+    tms34020_interrupt_return_control interrupt_return_control_dut (
+        .old_sp_i(interrupt_return_old_sp),
+        .saved_st_i(interrupt_return_saved_st),
+        .saved_pc_i(interrupt_return_saved_pc),
+        .normal_context_o(interrupt_return_normal_context),
+        .ix_context_o(interrupt_return_ix_context),
+        .bf_context_o(interrupt_return_bf_context),
+        .extra_context_words_o(interrupt_return_extra_words),
+        .visible_states_o(interrupt_return_visible_states),
+        .normal_final_sp_o(interrupt_return_final_sp),
+        .aligned_pc_o(interrupt_return_aligned_pc),
+        .saved_pc_misaligned_o(interrupt_return_saved_pc_misaligned),
+        .post_context_st_o(interrupt_return_post_st)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -894,6 +921,40 @@ module tb_tms34020_verified_leaves;
             multiple_n == expected_n &&
             multiple_visible_states == expected_visible_states &&
             multiple_hidden_write_states == expected_hidden_write_states,
+            message
+        );
+    endtask
+
+    task automatic check_interrupt_return_control(
+        input logic [31:0] old_sp,
+        input logic [31:0] saved_st,
+        input logic [31:0] saved_pc,
+        input logic expected_normal_context,
+        input logic expected_ix_context,
+        input logic expected_bf_context,
+        input logic [5:0] expected_extra_words,
+        input logic [5:0] expected_visible_states,
+        input logic [31:0] expected_final_sp,
+        input logic [31:0] expected_aligned_pc,
+        input logic expected_saved_pc_misaligned,
+        input logic [31:0] expected_post_st,
+        input string message
+    );
+        interrupt_return_old_sp = old_sp;
+        interrupt_return_saved_st = saved_st;
+        interrupt_return_saved_pc = saved_pc;
+        #1;
+        check_condition(
+            interrupt_return_normal_context == expected_normal_context &&
+            interrupt_return_ix_context == expected_ix_context &&
+            interrupt_return_bf_context == expected_bf_context &&
+            interrupt_return_extra_words == expected_extra_words &&
+            interrupt_return_visible_states == expected_visible_states &&
+            interrupt_return_final_sp == expected_final_sp &&
+            interrupt_return_aligned_pc == expected_aligned_pc &&
+            interrupt_return_saved_pc_misaligned ==
+                expected_saved_pc_misaligned &&
+            interrupt_return_post_st == expected_post_st,
             message
         );
     endtask
@@ -1843,6 +1904,9 @@ module tb_tms34020_verified_leaves;
         multiple_pointer_index = 4'd0;
         multiple_pointer = 32'd0;
         multiple_instruction_misaligned = 1'b0;
+        interrupt_return_old_sp = 32'd0;
+        interrupt_return_saved_st = 32'd0;
+        interrupt_return_saved_pc = 32'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2659,6 +2723,24 @@ module tb_tms34020_verified_leaves;
                 "MMTM exhaustive reverse-mask normalization"
             );
         end
+        check_interrupt_return_control(
+            32'h0000_0400, 32'hF123_4567, 32'h1234_567F,
+            1'b1, 1'b0, 1'b0, 6'd0, 6'd7,
+            32'h0000_0440, 32'h1234_5670, 1'b1, 32'hF123_4567,
+            "RETI normal-context classification and outputs"
+        );
+        check_interrupt_return_control(
+            32'hFFFF_FFE7, 32'hA200_0010, 32'hFFFF_FFF0,
+            1'b0, 1'b1, 1'b0, 6'd24, 6'd38,
+            32'h0000_0027, 32'hFFFF_FFF0, 1'b0, 32'hA000_0010,
+            "RETI IX-context classification and IX clearing"
+        );
+        check_interrupt_return_control(
+            32'h0000_0400, 32'hA600_0010, 32'h1234_567F,
+            1'b0, 1'b0, 1'b1, 6'd31, 6'd52,
+            32'h0000_0440, 32'h1234_5670, 1'b1, 32'hA000_0010,
+            "RETI BF context takes priority and clears IX/BF"
+        );
 
         check_pitch_conversion(
             32'h0000_1000, 16'h0013, 3'd4,
@@ -3158,6 +3240,11 @@ module tb_tms34020_verified_leaves;
             16'h091F, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "TRAP 31 cannot bypass unimplemented stack/vector ownership"
+        );
+        check_register_execute(
+            16'h0940, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "RETI cannot bypass stack/context/redirect ownership"
         );
         check_register_execute(
             16'h0960, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -4673,6 +4760,8 @@ module tb_tms34020_verified_leaves;
                      "TRAP 0 lower-bound decode");
         check_decode(16'h091F, TMS20_OP_TRAP, 3'd1,
                      "TRAP 31 upper-bound decode");
+        check_decode(16'h0940, TMS20_OP_RETI, 3'd1,
+                     "RETI exact decode");
         check_decode(16'h0920, TMS20_OP_CALL, 3'd1,
                      "CALL A0 lower-bound decode");
         check_decode(16'h093F, TMS20_OP_CALL, 3'd1,

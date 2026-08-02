@@ -646,6 +646,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 MMFM/MMTM, printed pp.13-148..13-151 and timing p.15-6", "TI-TMS34020-UG-1990 page mode, printed pp.8-16..8-17", "TI-TMS34010-UG-1988 MMFM/MMTM, printed pp.12-109..12-112"],
       "confidence": "PROVISIONAL",
       "unresolved_questions": ["RSC-0033/OQ-0022: exact TMS34020 MMFM pointer-alignment timing.", "Exact interrupt/fault continuation checkpoint, page grouping, dynamic-width beats, and hidden-write completion remain pending."]
+    },
+    {
+      "feature": "interrupt_return_context",
+      "tms34010_behavior": "RETI uses the same 0940h encoding and pops saved ST then PC. The 1988 guide resumes an interrupted PIXBLT/FILL when restored PBX is set and publishes cache/alignment-dependent 11/14 or 15/18 timing.",
+      "tms34020_behavior": "RETI retains 0940h and the normal ST/PC postincrement stack order, but restored IX selects a 24-word internal instruction-continuation context and restored BF selects a 31-word bus-fault context. Those bits are cleared after restoration. Timing is 7 normal, 38 for IX, or 52 for BF, and restored IE can admit a pending enabled interrupt immediately after RETI.",
+      "rtl_impact": "Reuse neither the TMS34010 PBX continuation format nor its timing FSM. A TMS34020 return sequencer must read saved ST first, select normal/IX/BF context length, restore internal S-file/controller state without partial commit, clear IX/BF, read/align PC, update SP exactly once, and expose a final interrupt checkpoint. The current control leaf classifies context only and normal execution remains noncommitting in RTL.",
+      "test_impact": "Exact 0940h decode; normal aligned/unaligned/wrapping stacks; ST/PC/SP restoration and transaction order; all IE/IX/BF combinations; 7/38/52 timing classes; 24/31 context words and padding; faults/retries at every read; nested faults; no duplicate state restoration; pending interrupt on the final state; TRAP/interrupt round trips.",
+      "source_citation": ["TI-TMS34020-UG-1990 system stack, printed pp.3-29..3-30", "TI-TMS34020-UG-1990 Figures 6-2/6-3, printed pp.6-9..6-10", "TI-TMS34020-UG-1990 RETI, printed pp.13-217..13-218 and timing p.15-8", "TI-TMS34010-UG-1988 RETI, printed pp.12-230..12-231"],
+      "confidence": "PROVISIONAL",
+      "unresolved_questions": ["Exact order/content of the 24 IX and 31 BF internal words and the IX alignment-padding discriminator require the S-file/continuation documentation or hardware evidence.", "Fault/retry and pending-interrupt ordering during the return itself remain pending a physical sequencer."]
     }
   ]
 }

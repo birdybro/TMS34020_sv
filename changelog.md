@@ -4,6 +4,16 @@
 
 ### Added
 
+- Primary-page-extracted exact RETI `0940h` metadata with ordinary and IX/BF
+  saved-context contracts, ordered stack reads, complete ST/PC/SP effects,
+  restored-IE checkpoint, and documented 7/38/52-state cases.
+- Independent normal-context RETI model semantics covering ordered ST/PC
+  reads, complete status/IE restoration, saved-PC alignment, SP wrap, a
+  TRAP/RETI round trip, and atomic rollback for unsupported IX/BF frames.
+- A clean-room synthesizable RETI context-control leaf that classifies
+  normal/IX/BF with BF priority, exposes 0/24/31 extra words and 7/38/52
+  states, computes normal return results and saved-PC misalignment, and remains
+  noncommitting until a stack/continuation sequencer exists.
 - Primary-page-extracted MMFM `09A0h`/`FFE0h` and MMTM
   `0980h`/`FFE0h` metadata for all 64 first words, including deliberately
   opposite extension-mask directions, A/B/shared-SP rules, logical transfer
@@ -416,6 +426,16 @@
 
 ### Verified
 
+- The 44-case ISA suite, 65-entry delta ledger, and 166-case model suite pass.
+  RETI coverage includes exact decode/nonalias, ordered normal-frame reads,
+  full ST/IE restoration, PC alignment, SP wrap, TRAP round trip, and atomic
+  IX/BF rejection. Direct RTL checks cover all three context classes and
+  prevent RETI from bypassing absent stack ownership.
+- Warning-free Cyclone V Analysis & Synthesis reports 11,522 leaf logic
+  cells/2,230 registers/9 DSP, 434 fetch logic cells, 812 frontend logic
+  cells, and 5,355 scalar logic cells. The frontend/scalar probes retain 4,096
+  block-memory bits. These are observability-wrapper analysis results, not
+  fit, TimeQuest, or core-area qualification.
 - Warning-free Cyclone V Analysis & Synthesis now reports 11,479 leaf logic
   cells/2,230 registers/9 DSP, 441 fetch logic cells, 811 frontend logic cells,
   and 5,366 scalar logic cells. The frontend/scalar probes retain 4,096
@@ -976,6 +996,11 @@
 
 ### Documentation
 
+- Documented RETI's normal frame, restored-IE checkpoint, TMS34010 timing/
+  continuation delta, and strict model/RTL boundary. RSC-0034 resolves the
+  instruction page's stray `SF` label to defined ST.BF bit 26; OQ-0023 tracks
+  the undisclosed IX/BF hidden-word layout, padding, restore order, and nested
+  checkpoints.
 - Recorded the verified bounded MMFM/MMTM implementation baseline as commit
   `95b84aeb0342bb379eadfe5d165bf0457b8b36ba` in the progress ledger.
 - Documented MMFM/MMTM register-list encoding, pointer/status behavior,
@@ -1099,6 +1124,11 @@
 
 ### Known Issues
 
+- RETI normal-context behavior is implemented only at the atomic model
+  boundary; RTL provides classification/result metadata but no stack reader or
+  state owner. IX/BF 24/31-word continuation frames, padding, restore order,
+  nested faults, retry, restored-IE interrupt recognition, and pin timing are
+  unimplemented under OQ-0023.
 - MMFM/MMTM have successful instruction-boundary model semantics and a
   combinational control leaf, but no physical read/write owner, page-mode
   controller, dynamic 16-bit decomposition, wait/fault/retry handling,

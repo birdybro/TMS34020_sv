@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 102 page-verified encoding records and covers 31,188 of 65,536
+slice contains 103 page-verified encoding records and covers 31,189 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -19,6 +19,7 @@ first words without collisions:
 | CALL | `0920h`, mask `FFE0h` | 1 | p.13-48 |
 | CALLA | `0D5Fh` plus low/high target words | 3 | p.13-49 |
 | CALLR | `0D3Fh` plus signed word displacement | 2 | p.13-50 |
+| RETI | `0940h` | 1 | pp.13-217..13-218 |
 | RETS | `0960h`, mask `FFE0h` | 1 | p.13-220 |
 | ABS | `0380h`, mask `FFE0h` | 1 | p.13-32 |
 | NEG | `03A0h`, mask `FFE0h` | 1 | p.13-178 |
@@ -231,6 +232,16 @@ obligations, and the complete published timing tables. MMFM `n+5` remains
 provisional under RSC-0033/OQ-0022 because its detailed page claims an absent
 alignment discriminator. Sources: TMS34020 User's Guide printed
 pp.8-16..8-17, 13-148..13-151, and 15-6.
+
+RETI is the exact word `0940h`. Its normal frame reads saved ST at old SP and
+saved PC at old SP+32, then restores ST, aligned PC, and SP+64 in seven states.
+A saved IX or BF selects 24 or 31 additional internal-state words and published
+38- or 52-state cases. Because the guide does not expose a sufficient
+field-by-field continuation format, the database marks the complete operation
+PROVISIONAL: the model executes and tests only the normal context, atomically
+rejects IX/BF, and the RTL leaf only classifies the three cases. Sources:
+TMS34020 User's Guide printed pp.3-29..3-30, 6-9..6-10, 13-217..13-218, and
+15-8; OQ-0023/RSC-0034.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

@@ -27,6 +27,7 @@ SOURCES = [
     ROOT / "rtl/execute/tms34020_multiplier.sv",
     ROOT / "rtl/memory/tms34020_swap_field.sv",
     ROOT / "rtl/memory/tms34020_multiple_register_control.sv",
+    ROOT / "rtl/interrupts/tms34020_interrupt_return_control.sv",
     ROOT / "rtl/execute/tms34020_bit_test.sv",
     ROOT / "rtl/execute/tms34020_field_extend.sv",
     ROOT / "rtl/execute/tms34020_cmpk.sv",

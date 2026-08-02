@@ -3569,6 +3569,95 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(event.next_pc, 0xFFFF_FFF0)
         self.assertEqual(event.status_before, event.status_after)
 
+    def test_reti_normal_context_restores_st_pc_sp_and_trace(self) -> None:
+        for old_sp in (0x0000_0400, 0x0000_0407, 0xFFFF_FFE7):
+            for restored_st in (0xF123_4567, 0x0020_0010):
+                with self.subTest(
+                    old_sp=f"{old_sp:08X}",
+                    restored_st=f"{restored_st:08X}",
+                ):
+                    model = Tms34020Model()
+                    model.load_program([0x0940], bit_address=0x80)
+                    model.state.sp = old_sp
+                    model.state.st = 0xA000_0010
+                    pc_address = (old_sp + 32) & 0xFFFF_FFFF
+                    model.state.memory.write_bits(old_sp, 32, restored_st)
+                    model.state.memory.write_bits(
+                        pc_address, 32, 0x1234_567F
+                    )
+
+                    event = model.step()
+
+                    self.assertEqual(model.state.st, restored_st)
+                    self.assertEqual(model.state.pc, 0x1234_5670)
+                    self.assertEqual(
+                        model.state.sp,
+                        (old_sp + 64) & 0xFFFF_FFFF,
+                    )
+                    self.assertEqual(event.machine_states, 7)
+                    self.assertEqual(
+                        event.transactions[-2:],
+                        [
+                            {
+                                "class": "data_read",
+                                "purpose": "return_interrupt_st",
+                                "bit_address": old_sp,
+                                "width": 32,
+                                "value": restored_st,
+                            },
+                            {
+                                "class": "data_read",
+                                "purpose": "return_interrupt_pc",
+                                "bit_address": pc_address,
+                                "width": 32,
+                                "value": 0x1234_567F,
+                            },
+                        ],
+                    )
+                    self.assertIn(
+                        "normal-context RETI abstraction",
+                        event.notes[-1],
+                    )
+
+    def test_reti_rejects_ix_bf_contexts_atomically(self) -> None:
+        for context_bits, name in (
+            (1 << 25, "IX"),
+            (1 << 26, "BF"),
+            ((1 << 25) | (1 << 26), "BF"),
+        ):
+            with self.subTest(context=name, bits=f"{context_bits:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x0940], bit_address=0x80)
+                model.state.sp = 0x400
+                model.state.memory.write_bits(
+                    0x400, 32, 0xA000_0010 | context_bits
+                )
+                model.state.memory.write_bits(0x420, 32, 0x1234_5670)
+                before = model.snapshot()
+                with self.assertRaisesRegex(
+                    UnsupportedInstruction, f"RETI {name}"
+                ):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
+    def test_trap_reti_normal_context_round_trip(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0905], bit_address=0x100)
+        model.load_program([0x0940], bit_address=0x200, set_pc=False)
+        model.state.sp = 0x800
+        model.state.st = 0xF123_4567
+        model.state.memory.write_bits(0xFFFF_FF40, 32, 0x200)
+
+        trap = model.step()
+        returned = model.step()
+
+        self.assertEqual(trap.mnemonic, "TRAP")
+        self.assertEqual(returned.mnemonic, "RETI")
+        self.assertEqual(model.state.pc, 0x110)
+        self.assertEqual(model.state.sp, 0x800)
+        self.assertEqual(model.state.st, 0xF123_4567)
+        self.assertEqual(returned.machine_states, 7)
+
     def test_call_all_register_sources_capture_target_before_stack_write(self) -> None:
         for register_file, file_bit in (("A", 0), ("B", 1)):
             for source_index in (0, 14, 15):

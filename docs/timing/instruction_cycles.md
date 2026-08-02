@@ -124,6 +124,18 @@ p.A-16. The model reports the two instruction-boundary cases; external
 stack-read waits, dynamic width, page mode, faults, retries, and redirect
 pipeline timing remain absent.
 
+RETI takes 7 machine states for an ordinary saved ST with IX=BF=0, 38 when IX
+selects the interrupted-instruction continuation frame, and 52 when BF selects
+the bus-fault continuation frame. The normal model boundary reports seven and
+atomically restores ST/PC/SP after two abstract reads. IX/BF execution is not
+implemented: the standalone RTL leaf classifies 24/31 additional words and the
+published state count, but it is not a sequencer. Sources: TMS34020 User's
+Guide printed pp.3-29..3-30, Figure 6-3 p.6-10, RETI pp.13-217..13-218, and
+timing p.15-8. RSC-0034 resolves the page's stray `SF` label to ST.BF;
+OQ-0023 retains the hidden-frame layout. Stack waits, bus width, page mode,
+fault/retry, continuation restore, and immediate interrupt recognition from
+restored IE remain unqualified.
+
 CALL and CALLR each take three visible states followed by a hidden stack write
 of one state when SP is long-word aligned or four states otherwise. The model
 records that hidden dependency in `pending_write_states`; it does not claim

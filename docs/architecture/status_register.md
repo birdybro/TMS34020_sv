@@ -107,6 +107,17 @@ both TMS34020 5/6-state stack-alignment cases are tested. RETS remains blocked
 in RTL pending stack-read and direct-PC ownership. Source: User's Guide RETS,
 printed p.13-220.
 
+Normal-context RETI restores the entire saved ST word before completion; this
+includes IE and every reserved position represented in the model. A pending
+enabled interrupt may be recognized after the last RETI state because restored
+IE is then effective. Saved IX or BF instead requires restoration of 24 or 31
+hidden internal-state words and clearing the corresponding continuation bit.
+The model therefore executes only IX=BF=0 and rolls an IX/BF attempt back
+atomically. The RTL return-control leaf classifies all three contexts and
+computes the post-continuation IX/BF clear value, but owns neither ST nor stack
+memory. Sources: User's Guide printed pp.3-29..3-30, Figure 6-3 p.6-10, RETI
+pp.13-217..13-218; OQ-0023/RSC-0034.
+
 The independent model verifies complete ST preservation across CALL, CALLA,
 and CALLR while SP and PC change and the return-PC write occurs. This includes
 CALL's shared-SP read-before-write hazard and both stack alignment classes.
@@ -172,7 +183,8 @@ The following are not yet implemented:
   architectural retirement timing also remains;
 - retirement/timing and interrupt-recognition ordering for the model and
   write-intent paths for GETST, SETC, CLRC, EINT, and DINT;
-- interrupt/fault ownership of IX and BF;
+- interrupt/fault ownership of IX and BF, including RETI's 24/31-word
+  continuation restore and final interrupt checkpoint;
 - general interrupt/fault status save/restore ordering beyond the successful
   TRAPL model boundary;
 - single-step recognition;

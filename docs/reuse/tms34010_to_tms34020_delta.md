@@ -173,6 +173,17 @@ page, fault/retry and timing state machines require a TMS34020 owner. Sources:
 TMS34020 guide printed pp.8-16..8-17, 13-148..13-151, and 15-6; TMS34010
 guide printed pp.12-109..12-112.
 
+RETI retains exact word `0940h` and the ordinary ST/PC stack-return semantics,
+but its continuation architecture and timing are not reusable. TMS34010
+publishes normal and PBX-interrupted cases with 11/14-or-15 states. TMS34020
+uses IX and BF saved-context selectors, 24- and 31-word internal frames, and
+7/38/52 states. The TMS34020 normal model path is independently implemented;
+IX/BF are classified but rejected until their own sequencer and exact hidden
+frame are established. No TMS34010 return state machine is copied. Sources:
+TMS34020 guide printed pp.3-29..3-30, 6-9..6-10, 13-217..13-218, and 15-8;
+TMS34010 guide printed pp.12-230..12-231 and Appendix A p.A-18;
+OQ-0023/RSC-0034.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family

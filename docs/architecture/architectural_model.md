@@ -20,7 +20,7 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
-  PUTST, RETS, MMFM, MMTM,
+  PUTST, RETI (normal context), RETS, MMFM, MMTM,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -33,7 +33,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 101 of 102 currently extracted database forms for their
+These handlers cover 102 of 103 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -82,6 +82,19 @@ wrap are tested. The model reports TI's 5/6-state alignment cases. This is an
 instruction-boundary success abstraction; stack-read width, page mode, waits,
 faults, retries, and redirect pipeline timing remain unmodeled. Source:
 TMS34020 User's Guide, printed p.13-220.
+
+RETI implements the successful normal interrupt return when the stacked ST has
+IX=BF=0. It reads the complete saved ST at old SP and the saved PC at old
+SP+32, then atomically restores ST, the aligned PC, and SP+64. Directed tests
+cover both old-SP alignment classes, address wrap, restored IE clear/set,
+ordered transaction traces, saved-PC alignment, and a TRAP/RETI round trip.
+The model reports the documented seven normal states. A stacked IX or BF
+selects a 24- or 31-word internal continuation frame and is deliberately
+rejected with complete pre-step rollback; those hidden frames are not guessed.
+Physical stack waits, dynamic width, page mode, bus faults/retry, pending-
+interrupt recognition at restored IE, and redirected fetch timing remain
+unmodeled. Sources: TMS34020 User's Guide printed pp.3-29..3-30, Figure 6-3
+p.6-10, RETI pp.13-217..13-218, and timing p.15-8; OQ-0023/RSC-0034.
 
 CALL, CALLA, and CALLR share an independently written atomic success helper
 that captures the post-instruction return PC, predecrements SP by 32 bit
@@ -545,6 +558,8 @@ TRAPL primary vector examples, signed extremes, stack order, ST/PC changes,
 aligned/unaligned timing, and vector-target alignment,
 all RETS argument counts, both stack alignment cases, exact PC-pop traces,
 redirect alignment, SP wrap, and status preservation,
+normal RETI ordered ST/PC pops, status and IE restoration, PC alignment, SP
+wrap, TRAP round trip, plus atomic IX/BF refusal,
 all CALL A/B/shared-SP target classes, old-SP capture ordering, aligned and
 unaligned hidden writes, CALLR signed extremes and PC wrap, and CALLA
 low/high-word target assembly with explicitly incomplete timing,

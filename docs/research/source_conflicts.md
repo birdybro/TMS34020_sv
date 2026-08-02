@@ -678,3 +678,17 @@
   TMS34020 value but marks timing incomplete and confidence provisional.
   OQ-0022 tracks the missing alignment discriminator. No cycle-accuracy claim
   follows from the selected table.
+
+## RSC-0034: RETI page calls the bus-fault context bit SF
+
+- Status: resolved as a local terminology error; continuation layout remains
+  open under OQ-0023
+- Primary evidence: the status-register definition in Figure 4-1/Table 4-1,
+  printed pp.4-2..4-3, names bit 26 `BF`. Interrupt-entry Figure 6-2 on p.6-9
+  also says the bus-fault path sets `BF`, and Figure 6-3 on p.6-10 selects the
+  bus-fault restore from that saved context. The RETI execution/timing text on
+  pp.13-217..13-218 instead labels the 52-state selection `BF/SF` in adjacent
+  presentations even though no corresponding ST `SF` bit is defined.
+- Decision: metadata and the classification leaf use ST.BF bit 26. No `SF`
+  status bit is invented. This resolves only the selector name, not the hidden
+  31-word continuation format or nested-fault behavior.

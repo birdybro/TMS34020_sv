@@ -4,15 +4,18 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `95b84aeb0342bb379eadfe5d165bf0457b8b36ba`
-- Passing tests: foundation, reference/hash, delta, 43-case ISA sweep, 163 directed model
+- Passing tests: foundation, reference/hash, delta, 44-case ISA sweep, 166 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 101 of 102 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. MMFM/MMTM cover all
+- Model status: 102 of 103 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. Normal RETI reads
+  saved ST then PC and atomically restores complete ST/IE, aligned PC and
+  SP+64 in seven documented states; IX/BF frames roll back rather than
+  inventing the hidden 24/31-word continuation. MMFM/MMTM cover all
   65,536 mask words in both opposite mask directions, every A/B/SP register,
   pointer wrap, logical transaction order, exact MMTM status, and published
   successful timing classes. Empty and pointer-containing lists roll back;
@@ -49,7 +52,9 @@
   CALLA state is exact while timing remains explicitly incomplete. RETS covers
   all 32 argument counts, both old-SP
   alignment classes, exact stack reads, PC alignment, SP wrap, unchanged ST,
-  and 5/6-state cases. TRAP covers every vector, trap-zero no-save behavior,
+  and 5/6-state cases. RETI normal context covers ordered stack reads,
+  wrap/alignment, complete ST/IE restoration, TRAP round trip and seven states;
+  OQ-0023 retains IX/BF continuation. TRAP covers every vector, trap-zero no-save behavior,
   aligned/unaligned stack frames, wrap/alignment, and 7/10/12-state cases. REV
   is decoded but atomically rolls back as unsupported
   until a physical-device profile supplies an evidence-backed complete result.
@@ -95,8 +100,9 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 102-entry partial decode, an exhaustive clean-room
-  MMFM/MMTM list-normalization/pointer/status/timing control leaf,
+- RTL status: generated 103-entry partial decode, a clean-room RETI
+  normal/IX/BF context/result/timing classification leaf, an exhaustive
+  clean-room MMFM/MMTM list-normalization/pointer/status/timing control leaf,
   clean-room iterative
   DIVS/DIVU/MODS/MODU and combinational MPYS/MPYU leaves, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
@@ -224,9 +230,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 11,479 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 11,522 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 441, 811, and 5,366 logic cells;
+  the fetch, frontend, and scalar wrappers use 434, 812, and 5,355 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file
@@ -241,9 +247,10 @@
   TMS34010 odd-product flag boundary, the unreachable published MODS 41-state result,
   signed even-pair DIVS nonzero early-overflow behavior,
   CVXYL's three contradictory PSIZE=4 table rows, its arbitrary-pitch
-  14/15-state primary timing disagreement, and MMFM's unexplained statement
+  14/15-state primary timing disagreement, MMFM's unexplained statement
   that original-Rp alignment affects timing despite no corresponding timing
-  table class
+  table class, and RETI's undisclosed IX/BF internal-frame layout/padding/
+  restore order
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
 - Next task: continue primary ISA extraction and preserve explicit noncommit

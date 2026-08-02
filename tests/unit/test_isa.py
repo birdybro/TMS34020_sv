@@ -74,7 +74,7 @@ class IsaTests(unittest.TestCase):
                 if instruction["confidence"] == "PROVISIONAL":
                     self.assertIn(
                         instruction["mnemonic"],
-                        {"CVXYL", "DIVS", "MMFM", "MPYS", "MPYU"},
+                        {"CVXYL", "DIVS", "MMFM", "MPYS", "MPYU", "RETI"},
                     )
 
     def test_independent_hand_checked_first_words(self) -> None:
@@ -253,6 +253,7 @@ class IsaTests(unittest.TestCase):
             0x091F: ("TRAP", 1),
             0x0920: ("CALL", 1),
             0x093F: ("CALL", 1),
+            0x0940: ("RETI", 1),
             0x0960: ("RETS", 1),
             0x097F: ("RETS", 1),
             0x0D3F: ("CALLR", 2),
@@ -304,7 +305,7 @@ class IsaTests(unittest.TestCase):
     def test_nearby_reserved_or_other_words_do_not_alias_fixed_opcodes(self) -> None:
         for word in (0x0041, 0x0081, 0x0250, 0x0252,
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
-                     0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
+                     0x0361, 0x080E, 0x081F, 0x0941, 0x0A01, 0x0D61, 0x0DE1,
                      0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF, 0xD000,
                      0x0AFF, 0x0C20,
                      0x79FF, 0x7C00,
@@ -314,8 +315,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 31188)
-        self.assertEqual(unclassified, 65536 - 31188)
+        self.assertEqual(matched, 31189)
+        self.assertEqual(unclassified, 65536 - 31189)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -404,6 +405,40 @@ class IsaTests(unittest.TestCase):
             },
         )
         self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_reti_records_context_selection_and_timing_contracts(self) -> None:
+        instruction = self.database.decode(0x0940)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "RETI")
+        self.assertEqual(instruction.opcode_mask, 0xFFFF)
+        self.assertEqual(instruction.opcode_value, 0x0940)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(
+            instruction.metadata["status_bits_written"],
+            [
+                "entire ST from the stack; restored IX/BF is cleared after "
+                "its corresponding internal state is restored"
+            ],
+        )
+        self.assertEqual(
+            instruction.metadata["memory_transactions"][0],
+            "read 32-bit saved ST at old SP, then saved PC at old SP+32",
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "saved_context_cases",
+                "normal_machine_states": 7,
+                "ix_machine_states": 38,
+                "bf_machine_states": 52,
+                "selection": (
+                    "BF has the longest published case; otherwise IX; "
+                    "otherwise normal"
+                ),
+            },
+        )
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+        self.assertEqual(instruction.metadata["confidence"], "PROVISIONAL")
 
     def test_call_family_records_primary_stack_and_timing_contracts(self) -> None:
         for word in range(0x0920, 0x0940):

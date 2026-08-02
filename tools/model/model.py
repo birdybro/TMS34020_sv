@@ -23,6 +23,8 @@ C_BIT = 30
 Z_BIT = 29
 V_BIT = 28
 IE_BIT = 21
+IX_BIT = 25
+BF_BIT = 26
 
 
 class ModelError(RuntimeError):
@@ -115,6 +117,7 @@ class Tms34020Model:
             "POPST": self._execute_popst,
             "PUSHST": self._execute_pushst,
             "PUTST": self._execute_putst,
+            "RETI": self._execute_reti,
             "RETS": self._execute_rets,
             "MMFM": self._execute_mmfm,
             "MMTM": self._execute_mmtm,
@@ -1168,6 +1171,51 @@ class Tms34020Model:
             "dynamic-width, page-mode, and redirect timing pending"
         )
         return 5 if old_sp & 0x1F == 0 else 6
+
+    def _execute_reti(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        old_sp = self.state.sp
+        restored_st = self.state.memory.read_bits(old_sp, 32)
+        continuation_mask = (1 << IX_BIT) | (1 << BF_BIT)
+        if restored_st & continuation_mask:
+            context = "BF" if restored_st & (1 << BF_BIT) else "IX"
+            raise UnsupportedInstruction(
+                f"RETI {context} internal-state continuation is classified "
+                "but not implemented"
+            )
+
+        saved_pc_address = (old_sp + 32) & MASK32
+        restored_pc = self.state.memory.read_bits(saved_pc_address, 32)
+        self.state.st = restored_st
+        self.state.pc = restored_pc & 0xFFFF_FFF0
+        self.state.sp = (old_sp + 64) & MASK32
+        assert self._active_trace is not None
+        self._active_trace.transactions.extend(
+            [
+                {
+                    "class": "data_read",
+                    "purpose": "return_interrupt_st",
+                    "bit_address": old_sp,
+                    "width": 32,
+                    "value": restored_st,
+                },
+                {
+                    "class": "data_read",
+                    "purpose": "return_interrupt_pc",
+                    "bit_address": saved_pc_address,
+                    "width": 32,
+                    "value": restored_pc,
+                },
+            ]
+        )
+        self._active_trace.notes.append(
+            "successful atomic normal-context RETI abstraction; IX/BF "
+            "internal-state restore, stack fault/retry, dynamic-width, "
+            "page-mode, and final pending-interrupt recognition remain pending"
+        )
+        return 7
 
     @staticmethod
     def _multiple_register_indices(
