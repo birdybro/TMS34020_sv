@@ -400,9 +400,10 @@ TMS34020 family tag, and bits `[23:16]` identify spin-offs; the guide gives
 same TMS34010 encoding instead uses family bit 3 and its guide example returns
 `0000_0008h`. Pinned MAME shares that TMS34010 constant with its TMS34020
 implementation, as recorded in RSC-0021. Because the target-game silicon
-steppings remain unknown, the database classifies REV but model and RTL tests
-require execution to remain unsupported until an explicit evidence-backed
-device profile supplies the complete result.
+steppings remain unknown, model and RTL default to an unselected profile and
+reject REV without mutation. An explicit format-valid profile can execute it;
+tests use only clearly named guide-example identities plus a synthetic valid
+spin-off-field discriminator. Neither game profile supplies a guessed value.
 
 TRAP embeds an unsigned trap number 0–31 in bits `[4:0]` of the
 `0900h`/`FFE0h` form. Nonzero traps predecrement SP twice, save the address

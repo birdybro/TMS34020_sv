@@ -9,7 +9,7 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 15,534 logic cells after synthesis, 2,230 registers,
+- Analysis resources: 15,561 logic cells after synthesis, 2,230 registers,
   127 pins, 0 block-memory bits, 9 DSP blocks, and 0 PLLs
 - Scope: generated 149-entry partial decoder, A/B/SP register file, masked ST state,
   instruction semantic leaves including pitch conversion and a clean-room
@@ -50,10 +50,14 @@
   leaf,
   decoder-controlled
   register-execution and direct-PC intents, and externally gated state commit
-  for 69 register/status/direct-PC instructions, including CMPXY, JAcc and long JRcc,
+  for 70 configured register/status/direct-PC instructions, including REV,
+  CMPXY, JAcc and long JRcc,
   DSJ/DSJEQ/DSJNE/DSJS,
   JUMP, PUTST, SETF/EXGF/SEXT/ZEXT, ADDXY/SUBXY/CMPXY, BTST.K/R, LMO, and all eight scalar shift forms,
   and an observability-only synthesis wrapper
+- REV synthesis profile: explicitly selected User's Guide example
+  `0000_0010h` for portability coverage only; this is not a Battletoads or
+  Revolution X device selection, and the generic RTL default is unselected
 - Utilization caveat: the diagnostic top deliberately instantiates both the raw
   register/status leaves and a second integrated register/status pair inside
   the commit composition. This total is a portability regression metric, not a
@@ -117,13 +121,16 @@
 
 - Command: `make quartus-scalar-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 5,500 logic cells, 1,416 registers, 82 pins, 4,096
+- Analysis resources: 5,517 logic cells, 1,416 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`
-- Scope: cache/fetch frontend, 69-operation register/direct-PC execution,
+- Scope: cache/fetch frontend, 70-operation configured register/direct-PC execution,
   A/B/SP and ST state, held EXGPC/JUMP/JACC/JR.L/DSJ/DSJS-family completion redirects,
   bounded acceptance/completion, and observability wrapper
+- REV synthesis profile: explicitly selected User's Guide example
+  `0000_0010h`; generic default remains unselected and no game identity is
+  inferred
 - Fit/placement/routing and TimeQuest: not run; no timing-closure claim
 - Qualification claim: warning-free Analysis & Synthesis for only the bounded
   scalar composition

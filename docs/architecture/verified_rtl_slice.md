@@ -17,8 +17,8 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent, EXGPC sequential-PC write plus aligned old-register redirect intent, status/register-neutral JUMP aligned redirect intent, JACC all-condition fallthrough or aligned low-word/high-word absolute redirect intent, JR.L all-condition fallthrough or signed 16-bit word redirect intent, DSJ/DSJEQ/DSJNE Z-conditioned decrement plus signed 16-bit word redirect intent, and DSJS unconditional decrement plus encoded unsigned-magnitude/direction redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, EXGPC printed p.13-112, GETPC printed p.13-130, and JUMP printed p.13-141 |
 | `rtl/core/tms34020_regfile.sv` | Two 32-bit combinational read ports, one synchronous write port, independent A0–A14 and B0–B14 storage, and shared A15/B15 stack-pointer storage | TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3 |
-| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit and direct-PC redirect event for 52 one-word operations including CMPXY and DSJS, eight two-word operations including JR.L/DSJ/DSJEQ/DSJNE, and nine complete three-word operations including JACC and ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L; CMPXY is nondestructive and replaces NCZV; JACC and JR.L are register/status neutral and redirect only when their selected condition is true; DSJ-family decrement is condition-controlled while DSJS always decrements; both are status-neutral and redirect only for a nonzero result; PUTST replaces all 32 ST bits without register writeback; EXGF atomically writes its destination and selected status bank; GETPC/EXGPC consume the packet's sequential PC; EXGPC captures the old destination before writeback; JUMP redirects through the aligned old source without state writeback; unsupported or length-mismatched packets cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1, CMPXY printed p.13-84, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, PUTST printed p.13-216, EXGF printed p.13-111, EXGPC printed p.13-112, GETPC printed p.13-130, JUMP printed p.13-141, and the individual instruction pages cited for `tms34020_register_execute` |
-| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for 69 verified scalar/control-flow operations, including CMPXY, JACC, JR.L, DSJ/DSJEQ/DSJNE/DSJS, PUTST, SETF/EXGF/SEXT/ZEXT, ADDXY/SUBXY, BTST.K/R, LMO, all eight scalar shift forms, and held control-flow completion redirects; other unsupported or unclassified packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for the execution leaves |
+| `rtl/core/tms34020_register_commit.sv` | Externally gated, single-edge register/ST state commit and direct-PC redirect event for 53 one-word operations including configured REV, CMPXY and DSJS, eight two-word operations including JR.L/DSJ/DSJEQ/DSJNE, and nine complete three-word operations including JACC and ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L; REV writes only an explicitly selected, format-valid TMS34020 identity and otherwise remains unsupported; CMPXY is nondestructive and replaces NCZV; JACC and JR.L are register/status neutral and redirect only when their selected condition is true; DSJ-family decrement is condition-controlled while DSJS always decrements; both are status-neutral and redirect only for a nonzero result; PUTST replaces all 32 ST bits without register writeback; EXGF atomically writes its destination and selected status bank; GETPC/EXGPC consume the packet's sequential PC; EXGPC captures the old destination before writeback; JUMP redirects through the aligned old source without state writeback; unsupported or length-mismatched packets cannot mutate state | TI *TMS34020 User's Guide*, August 1990, §4.1, REV printed p.13-221, CMPXY p.13-84, JAcc pp.13-135..13-136, long JR pp.13-138..13-140, DSJ family pp.13-103..13-108, PUTST p.13-216, EXGF p.13-111, EXGPC p.13-112, GETPC p.13-130, JUMP p.13-141, and the individual instruction pages cited for `tms34020_register_execute` |
+| `rtl/core/tms34020_scalar_slice.sv` | Conservative cache/fetch-to-register composition for 70 verified scalar/control-flow operations when a valid REV identity is selected, including REV, CMPXY, JACC, JR.L, DSJ/DSJEQ/DSJNE/DSJS, PUTST, SETF/EXGF/SEXT/ZEXT, ADDXY/SUBXY, BTST.K/R, LMO, all eight scalar shift forms, and held control-flow completion redirects; the generic default leaves REV unsupported, and other unsupported or unclassified packets remain stable and noncommitting | TI *TMS34020 User's Guide*, August 1990, §4.1 and the individual instruction pages cited for the execution leaves |
 | `rtl/core/tms34020_status.sv` | Synchronous reset to `00000010h` and masked 32-bit state updates for exact partial instruction writes | TI *TMS34020 User's Guide*, August 1990, §4.1, Figure 4-1 and Table 4-1, printed pp.4-2..4-3 |
 | `rtl/execute/tms34020_addxyi.sv` | Independent 16-bit X/Y addition and the instruction-specific N/C/Z/V results | TI *TMS34020 User's Guide*, August 1990, ADDXYI, printed p.13-39 |
 | `rtl/execute/tms34020_binary_arithmetic.sv` | ADD, ADDC, SUB, SUBB, and nondestructive CMP result/flag paths with carry/borrow inputs | TI *TMS34020 User's Guide*, August 1990, printed pp.13-33..13-34, 13-80, and 13-241..13-242 |
@@ -45,7 +45,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/interrupts/tms34020_interrupt_return_control.sv` | Clean-room RETI/RETM saved-context classification: BF-priority normal/IX/BF selection, 0/24/31 extra-word metadata, RETI 7/38/52 and RETM 10/38/52 state selection, normal SP+64 result, aligned saved PC with misalignment diagnostic, post-continuation IX/BF clearing, and RETM next-packet-bypass/interrupt-delay intents. It performs no stack access, cache request, hidden-state restore, interrupt checkpoint, or architectural commit | TI *TMS34020 User's Guide*, August 1990, Figure 6-3 p.6-10, RETI pp.13-217..13-218, RETM p.13-219, comparison p.6-32, and timing p.15-8; OQ-0023/RSC-0034/RSC-0035 apply |
 | `rtl/execute/tms34020_lmo.sv` | Leading-zero count in the range 0–31 and zero-source Z result | TI *TMS34020 User's Guide*, August 1990, LMO, printed p.13-147 |
 | `rtl/execute/tms34020_logical.sv` | AND, ANDN, OR, and XOR register results plus Z; CLR uses XOR with equal register-number fields; N/C/V remain outside the write mask | TI *TMS34020 User's Guide*, August 1990, printed pp.13-40, 13-42, 13-57, 13-182, and 13-266 |
-| `rtl/execute/tms34020_register_execute.sv` | Packet-length-checked independent source/destination file selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, PUTST, SETF, EXGF, SEXT, ZEXT, ADDK/INC, SUBK/DEC, MOVK, MOVI.W/L, MOVE, MOVX, MOVY, RL.K/R, BTST.K/R, SLA.K/R, SLL.K/R, SRA.K/R, SRL.K/R, SETC, ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPXY, CMPI.W/L, CMPK, LMO, RMO, AND, ANDN, OR, XOR/CLR, ANDNI, ORI, XORI, ADDXYI, ADDI.W/L, and SUBI.W/L | TI *TMS34020 User's Guide*, August 1990, §4.1 and printed pp.13-32..13-47, 13-57..13-58, 13-80..13-84, 13-94..13-95, 13-109, 13-111, 13-132, 13-134, 13-147, 13-158, 13-167..13-183, 13-216, 13-222..13-246, and 13-266..13-268 |
+| `rtl/execute/tms34020_register_execute.sv` | Packet-length-checked independent source/destination file selectors and register/ST write intents for NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, EINT, GETST, PUTST, format-validated explicitly configured REV, SETF, EXGF, SEXT, ZEXT, ADDK/INC, SUBK/DEC, MOVK, MOVI.W/L, MOVE, MOVX, MOVY, RL.K/R, BTST.K/R, SLA.K/R, SLL.K/R, SRA.K/R, SRL.K/R, SETC, ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPXY, CMPI.W/L, CMPK, LMO, RMO, AND, ANDN, OR, XOR/CLR, ANDNI, ORI, XORI, ADDXYI, ADDI.W/L, and SUBI.W/L. Its default has no selected REV value; selected values with reserved bits, no TMS34020 family bit, or the TMS34010 family bit remain unsupported | TI *TMS34020 User's Guide*, August 1990, §4.1 and REV p.13-221 plus printed pp.13-32..13-47, 13-57..13-58, 13-80..13-84, 13-94..13-95, 13-109, 13-111, 13-132, 13-134, 13-147, 13-158, 13-167..13-183, 13-216, 13-222..13-246, and 13-266..13-268 |
 | `rtl/execute/tms34020_rotate_left.sv` | 32-bit rotate-left result for counts 0–31, count-zero C clearing, last-bit-out C, and result-derived Z | TI *TMS34020 User's Guide*, August 1990, RL, printed pp.13-222..13-223 |
 | `rtl/execute/tms34020_shift.sv` | SLA/SLL/SRA/SRL results for counts 0–31, arithmetic or zero fill, count-zero C clearing, last-bit-out C, instruction-specific N/C/Z/V write masks, and SLA sign-change overflow | TI *TMS34020 User's Guide*, August 1990, printed pp.13-233..13-240 |
 | `rtl/execute/tms34020_rmo.sv` | Least-significant set-bit index and Z result | TI *TMS34020 User's Guide*, August 1990, RMO, printed p.13-224 |
@@ -65,13 +65,16 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/graphics/tms34020_xy_to_linear.sv` | Signed XY and arbitrary-pitch arithmetic, one-/two-power CONVxP shifts, optional PSIZE scaling or unscaled mask X, modulo-32-bit offset addition, pitch classification, and visible state selection; CVXYL arbitrary pitch provisionally selects 14 under RSC-0026, while implied-register/I/O capture and commit ownership remain outside the leaf | TI *TMS34020 User's Guide*, August 1990, CONVxP printed pp.4-28..4-29, §12.12 printed pp.12-47..12-49, CVDXYL/CVMXYL/CVSXYL/CVXYL printed pp.13-87..13-93, and timing p.15-4 |
 | `rtl/cache/tms34020_icache.sv` | Bounded native-completion cache leaf: four segments, 32 subsegments, 128×32 data RAM, lookup classifications, demand-long-word-last refill, move-to-front LRU, reset abstraction, `CD` bypass, idle `CF`, backpressure, current-beat retry, and fault pause/resume/abort | TI *TMS34020 User's Guide*, August 1990, §§5.1–5.3.6, printed pp.5-2..5-8; fault/retry §§6.9 and 8.6, printed pp.6-19..6-20 and 8-12..8-14; reset §6.12.2, printed p.6-23 |
 
-REV, TRAP, RETS, CALL, CALLA, and CALLR are classified but intentionally absent
-from the execution lists above. Leaf tests drive `0020h`, `0900h`, `091Fh`,
-`0920h`, `093Fh`, `0960h`, `097Fh`, `0D3Fh`, and `0D5Fh` through
+TRAP, RETS, CALL, CALLA, and CALLR are classified but intentionally absent
+from the execution lists above. Leaf tests drive `0900h`, `091Fh`, `0920h`,
+`093Fh`, `0960h`, `097Fh`, `0D3Fh`, and `0D5Fh` through
 `tms34020_register_execute` and require zero support, register-write, and
-status-write intents. This prevents a shared TMS34010 REV constant from
-becoming architectural RTL and prevents TRAP from bypassing the unimplemented
-stack/vector sequencer, fault/retry state, and physical timing. It likewise
+status-write intents. Separate REV tests exhaust all 32 destinations for the
+guide-example `0000_0010h` profile and prove the unselected default and an
+invalid both-family-bits profile are noncommitting. This prevents a shared
+TMS34010 REV constant from becoming architectural RTL and prevents TRAP from
+bypassing the unimplemented stack/vector sequencer, fault/retry state, and
+physical timing. It likewise
 prevents RETS from bypassing absent stack-read and direct-PC completion
 ownership. CALL-family guards likewise prevent decoded packets from bypassing
 the absent stack-write/direct-PC owner or silently assigning CALLA timing.
@@ -435,7 +438,7 @@ register-execution router explicitly
 rejects LINIT, CLIP, DRAV, FILL.L, FILL.XY, PFILL.XY, FLINE, FPIXEQ and FPIXNE because their implied-register/memory
 architectural owners do not exist. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 15,534 logic-cell/2,230-register/9-DSP resource count is not a core-area
+so its 15,561 logic-cell/2,230-register/9-DSP resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -457,14 +460,15 @@ bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,500 logic cells, 1,416 registers,
+composition with zero errors/warnings to 5,517 logic cells, 1,416 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 
 ## Explicitly absent
 
-There is a bounded serialized opcode-to-register execution path for only 69
-register/status/control-flow operations. There is no timing sequencer,
+There is a bounded serialized opcode-to-register execution path for only 70
+configured register/status/control-flow operations; the generic unselected
+profile exposes 69. There is no timing sequencer,
 processor-derived retirement boundary, interrupt logic, complete memory
 access, page mode,
 complete bus-fault/retry subsystem, host interface, multiprocessor interface,

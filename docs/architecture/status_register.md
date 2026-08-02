@@ -231,6 +231,12 @@ same controlling-rule resolution used for FILL.XY. Active PFILL windows are
 not implemented. Sources: User's Guide pixel-array windows pp.12-21..12-23,
 PFILL overview pp.12-15..12-16 and PFILL pp.13-184..13-189.
 
+REV preserves every ST bit while writing only its selected A/B/SP destination.
+The model verifies this for every destination and three valid identities; the
+configured RTL commit path exposes no status-write intent. Unselected or
+malformed profiles reject before any state mutation. Source: User's Guide REV,
+printed p.13-221.
+
 CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
 The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide

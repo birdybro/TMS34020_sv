@@ -124,7 +124,8 @@ first-word records.
 
 The independent model consumes inbound data only from an explicit deterministic
 queue. Queue underflow or a reserved CMOVCG packet rolls back PC, registers,
-ST, cache, queue, and trace atomically. Version-4 snapshots include this queue;
+ST, cache, queue, and trace atomically. Version-5 snapshots include this queue
+and the optional REV identity;
 older schema numbers are accepted only when their recorded executable-coverage
 list matches the current model.
 The clean-room RTL read formatter exports destinations, command packets,

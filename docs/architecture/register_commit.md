@@ -8,7 +8,7 @@ fetch/cache/pipeline sequencer is introduced.
 ## Contract
 
 The module decodes the packet first word continuously. `supported_o` is
-asserted only when its declared length matches one of the 52 one-word, eight
+asserted only when its declared length matches one of the 53 configured one-word, eight
 two-word, or nine three-word operations supported by the regular register
 executor or direct-PC executor. State changes only on a rising `clk_i` edge for
 which both `commit_i` and `supported_o` are asserted. The conjunction is
@@ -22,7 +22,7 @@ produces no register, status, or redirect event.
 
 Supported operations are:
 
-- NOP, ABS, NEG, NEGB, NOT;
+- NOP, ABS, NEG, NEGB, NOT, configured REV;
 - CLRC, DINT, EINT, GETST, PUTST, SETF, EXGF, SEXT, ZEXT, ADDK/INC, SUBK/DEC,
   MOVK,
   SETC;
@@ -41,6 +41,11 @@ The instruction definitions and primary citations are maintained in
 by TI *TMS34020 User's Guide*, August 1990, §4.1, printed pp.4-2..4-3. The
 specific operation semantics are cited in
 `docs/architecture/verified_rtl_slice.md`.
+
+REV is included only when `DEVICE_REVISION_SELECTED` is true and the value has
+the documented TMS34020 family/reserved-bit format. The module's default is
+unselected and therefore noncommitting; exact target-game values remain
+unknown under OQ-0014.
 
 ## Claim boundary
 
@@ -96,6 +101,8 @@ atomic register/selected-bank exchange through ordinary A and shared-SP
 destinations in both field banks,
 PUTST full-width status replacement from a dependent ordinary A register and
 the B-file shared-SP alias,
+configured REV across all A/B/SP destinations plus default-unselected and
+invalid-family noncommit,
 state-neutral NOP, GETPC into a B register, EXGPC old-value capture and aligned
 redirect through an A register and shared SP, JUMP redirect-only ownership,
 JR.L true redirect and false fallthrough with complete state preservation,

@@ -1,7 +1,10 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-module tms34020_register_commit (
+module tms34020_register_commit #(
+    parameter logic DEVICE_REVISION_SELECTED = 1'b0,
+    parameter logic [31:0] DEVICE_REVISION_VALUE = 32'd0
+) (
     input  logic        clk_i,
     input  logic        reset_i,
     input  logic        commit_i,
@@ -71,7 +74,10 @@ module tms34020_register_commit (
         .status_o(status_o)
     );
 
-    tms34020_register_execute execute (
+    tms34020_register_execute #(
+        .DEVICE_REVISION_SELECTED(DEVICE_REVISION_SELECTED),
+        .DEVICE_REVISION_VALUE(DEVICE_REVISION_VALUE)
+    ) execute (
         .first_word_i(packet_words_i[15:0]),
         .packet_length_words_i(packet_length_words_i),
         .immediate_i(packet_words_i[47:16]),
@@ -142,8 +148,20 @@ module tms34020_register_commit (
                 pc_redirect_bit_address_o[3:0] == 4'd0;
     endproperty
 
+    property p_rev_commit_uses_selected_identity;
+        @(posedge clk_i) disable iff (reset_i)
+            commit_accepted_o &&
+            ((packet_words_i[15:0] & 16'hFFE0) == 16'h0020)
+            |-> DEVICE_REVISION_SELECTED &&
+                register_write_enable_o &&
+                register_write_data_o == DEVICE_REVISION_VALUE &&
+                !status_write_enable_o &&
+                !pc_redirect_enable_o;
+    endproperty
+
     assert property (p_execute_owners_are_mutually_exclusive);
     assert property (p_redirect_is_aligned_and_committed);
+    assert property (p_rev_commit_uses_selected_identity);
 `endif
 
 endmodule

@@ -4,15 +4,19 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `4d1adaab5f83782bbefc8b508660d639d55f5ff1`
-- Passing tests: foundation, reference/hash, 110-entry delta, 83-case ISA sweep, 248 directed model
+- Passing tests: foundation, reference/hash, 110-entry delta, 83-case ISA sweep, 250 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 148 of 149 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. PFILL.XY adds
+- Model status: all 149 currently extracted encoding forms have bounded
+  handlers over disclosed operand domains. REV succeeds only with an explicit
+  format-valid TMS34020 identity; the evidence-neutral default and malformed
+  profiles reject without mutation. Guide examples, a valid spin-off
+  discriminator, every A/B/SP destination, ST preservation, one state, and
+  schema-5 replay are covered without selecting a game device. PFILL.XY adds
   at-most-65,536-pixel atomic W0 COLOR0/COLOR1 pattern rows, the primary
   96-pixel repeat and x=0/1/7/8 starts, every legal size/lane/PMASK, zero
   dimensions and final linear B2. Active windows/PPOP/transparency/CST, B14
@@ -131,8 +135,8 @@
   wrap/alignment, complete ST/IE restoration, TRAP round trip and seven states;
   OQ-0023 retains IX/BF continuation. TRAP covers every vector, trap-zero no-save behavior,
   aligned/unaligned stack frames, wrap/alignment, and 7/10/12-state cases. REV
-  is decoded but atomically rolls back as unsupported
-  until a physical-device profile supplies an evidence-backed complete result.
+  conditionally writes the explicitly configured identity in one state and
+  otherwise rolls back; exact game-device values remain OQ-0014.
   CMPXY reproduces all primary rows, result-sign C/V
   rather than borrow/overflow, nondestructive A/B/same-register/shared-SP
   behavior, and one state. JACC covers all 16 conditions, every possible false
@@ -201,7 +205,8 @@
   DIVS/DIVU/MODS/MODU and combinational MPYS/MPYU leaves, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
-  write intents for 52 one-word instructions, with externally gated one-edge
+  write intents for 53 configured one-word instructions, including format-
+  validated explicit REV with an unselected default, with externally gated one-edge
   state commit and
   ordered-state tests, including same-file and cross-file MOVE with N/Z/V
   replacement and C preservation, MOVX/MOVY half-register merges with
@@ -211,7 +216,7 @@
   standalone native-completion cache lookup/refill RTL;
   a dedicated GETPC/EXGPC/JUMP/JACC/JR.L direct-PC leaf, an integrated serialized
   cache/instruction-packet frontend with explicit completion and abort/reload;
-  and a bounded fetch-to-commit path for those 52
+  and a bounded fetch-to-commit path for those 53 configured
   one-word operations plus complete two-word ADDI.W/CMPI.W/MOVI.W/SUBI.W and
   three-word JACC/ANDNI/ORI/XORI/ADDXYI/ADDI.L/CMPI.L/MOVI.L/SUBI.L packets.
   GETPC consumes the packet sequential PC, while EXGPC atomically writes that
@@ -330,15 +335,15 @@
   MOVB byte-store/load/copy
   geometry only; no BEN/byte-strobe/RMW/width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
-- Formal status: four cache, four fetch, twenty-three scalar, two commit-owner,
+- Formal status: four cache, four fetch, twenty-three scalar, three commit-owner,
   and three divider
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 15,534 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 15,561 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 528, 903, and 5,500 logic cells;
+  the fetch, frontend, and scalar wrappers use 528, 903, and 5,517 logic cells;
   the scalar wrapper has 1,416 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file

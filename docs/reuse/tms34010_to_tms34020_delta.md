@@ -389,6 +389,10 @@ spin-off in bits `[23:16]`; its revision-1.0/revision-2.0 examples are
 constant or TMS34010 execution leaf is therefore incorrect. Sources:
 TMS34020 guide printed p.13-221; TMS34010 guide printed p.12-233. Exact
 target-game revision words remain OQ-0014.
+The bounded model and register/scalar RTL therefore require an explicitly
+selected, format-valid TMS34020 value and default to noncommit. Verification
+uses the TMS34020 guide's `0000_0010h` example under a named test profile; no
+TMS34010 identity constant or target-game inference is reused.
 
 TRAP retains its `0900h`/`FFE0h` encoding, vector map, stack frame, complete-ST
 replacement, and trap-zero no-save exception, but not its TMS34010 timing. The

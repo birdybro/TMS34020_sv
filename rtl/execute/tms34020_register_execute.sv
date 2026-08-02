@@ -1,7 +1,10 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-module tms34020_register_execute (
+module tms34020_register_execute #(
+    parameter logic DEVICE_REVISION_SELECTED = 1'b0,
+    parameter logic [31:0] DEVICE_REVISION_VALUE = 32'd0
+) (
     input  logic [15:0] first_word_i,
     input  logic [2:0]  packet_length_words_i,
     input  logic [31:0] immediate_i,
@@ -83,6 +86,11 @@ module tms34020_register_execute (
     logic [31:0] subk_result;
     logic [3:0] subk_nczv;
     logic subk_write_enable;
+    localparam logic DEVICE_REVISION_FORMAT_VALID =
+        (DEVICE_REVISION_VALUE[31:24] == 8'd0) &&
+        (DEVICE_REVISION_VALUE[15:5] == 11'd0) &&
+        DEVICE_REVISION_VALUE[4] &&
+        !DEVICE_REVISION_VALUE[3];
 
     tms34020_decode decode (
         .first_word_i(first_word_i),
@@ -793,6 +801,16 @@ module tms34020_register_execute (
                     supported_o = 1'b1;
                     register_write_enable_o = 1'b1;
                     register_write_data_o = constant_value;
+                end
+
+                TMS20_OP_REV: begin
+                    supported_o =
+                        DEVICE_REVISION_SELECTED &&
+                        DEVICE_REVISION_FORMAT_VALID;
+                    register_write_enable_o = supported_o;
+                    if (supported_o) begin
+                        register_write_data_o = DEVICE_REVISION_VALUE;
+                    end
                 end
 
                 default: begin

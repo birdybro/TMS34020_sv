@@ -49,7 +49,10 @@ module tb_tms34020_scalar_slice;
     integer commit_count;
     integer native_request_count;
 
-    tms34020_scalar_slice dut (
+    tms34020_scalar_slice #(
+        .DEVICE_REVISION_SELECTED(1'b1),
+        .DEVICE_REVISION_VALUE(32'h0000_0010)
+    ) dut (
         .clk_i(clk),
         .reset_i(reset),
         .pc_load_valid_i(pc_load_valid),
@@ -210,6 +213,7 @@ module tb_tms34020_scalar_slice;
                 32'h0000_0590: memory_word = 16'hD501;
                 32'h0000_05A0: memory_word = 16'hD701;
                 32'h0000_05B0: memory_word = 16'h01A0;
+                32'h0000_05C0: memory_word = 16'h0023;
                 32'h2468_ACF0: memory_word = 16'h0154;
                 32'h2468_AD00: memory_word = 16'h0160;
                 default: memory_word = 16'hFFFF;
@@ -1440,6 +1444,17 @@ module tb_tms34020_scalar_slice;
         check_condition(
             commit_count == 12,
             "twelve dependent field, XY arithmetic, bit-test, and PUTST commits"
+        );
+        serve_and_commit(
+            32'h5C0, TMS20_OP_REV,
+            1'b1, 1'b0, 4'd3, 32'h0000_0010,
+            1'b0, 32'd0, 32'd0,
+            32'h0000_0003, 32'd0,
+            "scalar REV returns explicitly selected guide-example profile"
+        );
+        check_condition(
+            commit_count == 13,
+            "thirteen commits include configured REV"
         );
 
         apply_reset();

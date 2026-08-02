@@ -2,10 +2,11 @@
 
 `rtl/core/tms34020_scalar_slice.sv` composes the serialized cache/fetch
 frontend with `tms34020_register_commit`. It is a deliberately bounded
-execution path for 69 register/status/control-flow operations already verified
+execution path for 70 register/status/control-flow operations when an explicit
+format-valid REV identity is selected, already verified
 against their individual TI instruction pages:
 
-- NOP, CLRC, DINT, EINT, SETC, GETST, and PUTST;
+- NOP, CLRC, DINT, EINT, SETC, GETST, PUTST, and configured REV;
 - ABS, NEG, NEGB, and NOT;
 - ADD, ADDC, ADDXY, SUB, SUBB, SUBXY, CMP, CMPXY, ADDK/INC, SUBK/DEC, and
   MOVK; and
@@ -64,7 +65,18 @@ destination and only its selected six-bit status bank; PUTST must write all ST
 bits without register writeback or redirect. Two additional
 assertions in
 the commit owner check execution-owner exclusion and committed redirect
-alignment.
+alignment; a third requires every accepted REV to write exactly the selected
+identity with no status write or redirect.
+
+REV is supported only when `DEVICE_REVISION_SELECTED` is true and
+`DEVICE_REVISION_VALUE` has zero reserved bits, bit 4 set, and the TMS34010
+family bit 3 clear. The module defaults to no selection. Directed leaf tests
+cover every A/B/SP destination using the guide's revision-1.0 example, and
+prove unselected and malformed profiles are noncommitting. The cache-fed
+scalar test commits that explicitly named guide-example value through A3.
+This is a configuration mechanism, not evidence that either target game used
+that stepping. Source: TI *TMS34020 User's Guide*, August 1990, REV, printed
+p.13-221; OQ-0014 retains exact board identities.
 
 PUTST commits only a full-width status write: the selected A/B source port
 supplies all 32 data bits, register writeback is suppressed, and the mask is
@@ -248,7 +260,7 @@ PC progression, and register/ST dependencies without assigning those FPGA
 handshakes a TMS34020 cycle count.
 
 `make quartus-scalar-smoke` performs warning-free Cyclone V Analysis &
-Synthesis for this composition. The diagnostic wrapper uses 5,500 logic cells,
+Synthesis for this composition. The diagnostic wrapper uses 5,517 logic cells,
 1,416 registers, 82 pins, and 4,096 block-memory bits with the current
 149-entry decoder, with no DSP blocks or
 PLLs. Quartus retains the cache data array as a 128×32 dual-port `altsyncram`.

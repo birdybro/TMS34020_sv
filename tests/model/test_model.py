@@ -74,6 +74,69 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(event.machine_states, 1)
         self.assertEqual(event.register_writes, [])
 
+    def test_rev_explicit_profiles_all_destinations_and_snapshot(self) -> None:
+        shared_isa = Tms34020Model().isa
+        for revision in (0x0000_0010, 0x0000_0011, 0x00AB_0017):
+            for register_file_bit in (0, 1):
+                for index in range(16):
+                    with self.subTest(
+                        revision=f"{revision:08X}",
+                        register_file=register_file_bit,
+                        index=index,
+                    ):
+                        first_word = (
+                            0x0020 | (register_file_bit << 4) | index
+                        )
+                        model = Tms34020Model(
+                            isa=shared_isa,
+                            device_revision=revision,
+                        )
+                        model.load_program([first_word])
+                        model.state.st = 0xD123_4567
+                        replay = Tms34020Model.from_snapshot(
+                            json.loads(json.dumps(model.snapshot()))
+                        )
+
+                        event = model.step()
+                        replay_event = replay.step()
+
+                        register_file = "B" if register_file_bit else "A"
+                        self.assertEqual(
+                            event.snapshot(), replay_event.snapshot()
+                        )
+                        self.assertEqual(event.mnemonic, "REV")
+                        self.assertEqual(event.machine_states, 1)
+                        self.assertEqual(
+                            model.state.read_reg(register_file, index),
+                            revision,
+                        )
+                        self.assertEqual(model.state.st, 0xD123_4567)
+                        self.assertEqual(model.snapshot(), replay.snapshot())
+
+    def test_rev_unselected_and_invalid_profiles_are_rejected(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0020])
+        before = model.snapshot()
+        with self.assertRaisesRegex(
+            UnsupportedInstruction,
+            "explicitly selected",
+        ):
+            model.step()
+        self.assertEqual(model.snapshot(), before)
+
+        for revision in (
+            -1,
+            0x1_0000_0000,
+            0x0000_0000,
+            0x0000_0008,
+            0x0000_0018,
+            0x0000_0020,
+            0x0100_0010,
+        ):
+            with self.subTest(revision=revision):
+                with self.assertRaises(ValueError):
+                    Tms34020Model(device_revision=revision)
+
     def test_cold_fetch_records_demand_longword_last_refill(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0300])

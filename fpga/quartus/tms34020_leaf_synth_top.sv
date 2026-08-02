@@ -1302,7 +1302,10 @@ module tms34020_leaf_synth_top (
         .status_o(status_value)
     );
 
-    tms34020_register_execute register_execute (
+    tms34020_register_execute #(
+        .DEVICE_REVISION_SELECTED(1'b1),
+        .DEVICE_REVISION_VALUE(32'h0000_0010)
+    ) register_execute (
         .first_word_i(first_word_i),
         .packet_length_words_i(decode_length),
         .immediate_i(immediate_i),
@@ -1323,7 +1326,10 @@ module tms34020_leaf_synth_top (
         .status_write_mask_o(execute_status_write_mask)
     );
 
-    tms34020_register_commit register_commit (
+    tms34020_register_commit #(
+        .DEVICE_REVISION_SELECTED(1'b1),
+        .DEVICE_REVISION_VALUE(32'h0000_0010)
+    ) register_commit (
         .clk_i(clk_i),
         .reset_i(reset_i),
         .commit_i(write_enable_i),

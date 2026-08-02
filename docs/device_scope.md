@@ -46,6 +46,10 @@ TMS34020 family bit 4. Until readable target-board markings or physical
 execution establish the fitted stepping and spin-off fields, no Battletoads or
 Revolution X profile may guess a REV result. RSC-0021 records that pinned MAME
 incorrectly returns the TMS34010 example value for its TMS34020 class.
+The independent model and bounded scalar RTL therefore default to an
+unselected identity. They accept an explicit format-valid value, and their
+positive tests label `0000_0010h` as a User's Guide example rather than a game
+device selection.
 
 ## Established original-to-A delta
 

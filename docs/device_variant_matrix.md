@@ -63,11 +63,15 @@ RTL.
 
 ## Revision-selector implications
 
-A future device parameter must at minimum determine whether CONFIG.CSE exists
+A complete future device parameter must at minimum determine whether CONFIG.CSE exists
 and whether eligible machine cycles may enter Q4b. It must also provide an
 explicit, cited 32-bit REV result: TMS34020 family bit 4 is established, but
 the silicon-revision and spin-off fields must not be inferred merely from the
-profile name. It must not alter opcode, cache, status, host, graphics, display,
+profile name. The current model and bounded scalar RTL expose an evidence-
+neutral unselected default and accept only an explicit format-valid revision
+word; verification uses the guide's revision-1.0 example under a clearly named
+test profile, not as a game default. A future complete device parameter must
+not alter opcode, cache, status, host, graphics, display,
 interrupt, fault, multiprocessor, or coprocessor behavior without a cited
 delta.
 

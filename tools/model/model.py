@@ -84,10 +84,23 @@ class Tms34020Model:
         state: ProcessorState | None = None,
         isa: IsaDatabase | None = None,
         cache: InstructionCache | None = None,
+        device_revision: int | None = None,
     ) -> None:
+        if device_revision is not None:
+            if not 0 <= device_revision <= MASK32:
+                raise ValueError("device revision must fit in 32 bits")
+            if (
+                (device_revision & 0xFF00_FFE8) != 0
+                or (device_revision & 0x10) == 0
+            ):
+                raise ValueError(
+                    "device revision must use the documented TMS34020 "
+                    "family format"
+                )
         self.state = state or ProcessorState()
         self.isa = isa or IsaDatabase.load()
         self.cache = cache or InstructionCache()
+        self.device_revision = device_revision
         self.trace: list[StepTrace] = []
         self._handlers: dict[str, Callable[[Instruction, list[int]], int | None]] = {
             "NOP": self._execute_nop,
@@ -125,6 +138,7 @@ class Tms34020Model:
             "RETI": self._execute_reti,
             "RETM": self._execute_retm,
             "RETS": self._execute_rets,
+            "REV": self._execute_rev,
             "MMFM": self._execute_mmfm,
             "MMTM": self._execute_mmtm,
             "ADDK": self._execute_addk,
@@ -289,9 +303,10 @@ class Tms34020Model:
 
     def snapshot(self) -> dict[str, Any]:
         return {
-            "model_schema_version": 4,
+            "model_schema_version": 5,
             "state": self.state.snapshot(),
             "cache": self.cache.snapshot(),
+            "device_revision": self.device_revision,
             "trace": [event.snapshot() for event in self.trace],
             "supported_mnemonics": list(self.supported_mnemonics),
             "coprocessor_read_data": list(self.coprocessor_read_data),
@@ -300,7 +315,7 @@ class Tms34020Model:
     @classmethod
     def from_snapshot(cls, snapshot: dict[str, Any]) -> "Tms34020Model":
         version = snapshot.get("model_schema_version")
-        if version not in (1, 2, 3, 4):
+        if version not in (1, 2, 3, 4, 5):
             raise ValueError("unsupported model snapshot")
         cache = (
             InstructionCache()
@@ -310,6 +325,11 @@ class Tms34020Model:
         model = cls(
             ProcessorState.from_snapshot(snapshot["state"]),
             cache=cache,
+            device_revision=(
+                snapshot.get("device_revision")
+                if version >= 5
+                else None
+            ),
         )
         for raw in snapshot["trace"]:
             model.trace.append(StepTrace(**raw))
@@ -1277,6 +1297,24 @@ class Tms34020Model:
     ) -> int:
         del instruction, words
         return self._execute_interrupt_return(monitor_return=True)
+
+    def _execute_rev(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        if self.device_revision is None:
+            raise UnsupportedInstruction(
+                "REV requires an explicitly selected, evidenced device "
+                "revision value"
+            )
+        register_file, index = self._decode_destination(words[0])
+        self.state.write_reg(register_file, index, self.device_revision)
+        assert self._active_trace is not None
+        self._active_trace.notes.append(
+            "REV returned the explicitly configured TMS34020 revision "
+            "identity; this value is not inferred from a target-game name"
+        )
+        return 1
 
     def _execute_interrupt_return(self, monitor_return: bool) -> int:
         old_sp = self.state.sp

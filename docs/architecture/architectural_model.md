@@ -42,15 +42,16 @@ Implemented:
   XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LINIT, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
-  TRAP, TRAPL, and VLCOL.
+  REV, TRAP, TRAPL, and VLCOL.
 
-These handlers cover 148 of 149 currently extracted database forms for their
-documented operand domains. REV is
-decoded but deliberately has no handler: its complete result is a physical-
-device profile value, and exact target-board silicon identity is not yet
-verified. A directed test proves that attempting REV raises
+All 149 currently extracted database forms now have handlers over their
+disclosed operand domains. REV succeeds only when `device_revision` explicitly
+supplies a format-valid TMS34020 identity; the evidence-neutral default raises
 `UnsupportedInstruction` and restores the complete preinstruction model/cache
-snapshot. This is coverage of a current partial extraction, not instruction
+snapshot. Tests cover the guide's `0000_0010h`/`0000_0011h` examples, a valid
+spin-off field, all 32 A/B/SP destinations, invalid formats, default rejection,
+one-state metadata, unchanged ST, and snapshot replay. No target-game identity
+is inferred. This remains coverage of a partial extraction, not instruction
 completeness.
 
 `MOVE.RM` is the database's internal family name for the ordinary
@@ -855,11 +856,12 @@ their architectural I/O addresses. A miss or bypass leaves the instruction's
 documented execution-state count intact but marks aggregate timing incomplete
 and records why; no unverified refill overlap is added. Decode or execution
 failure rolls processor and cache state back to the pre-step checkpoint.
-Version-4 JSON snapshots include all cache state, pending transactions, the
-RETM one-instruction bypass state, and deterministic queued coprocessor input.
-The reader accepts schema versions 1 through 3 and defaults later fields
-inactive or empty, but still rejects any snapshot whose recorded executable-
-coverage list differs from the current model.
+Version-5 JSON snapshots include all cache state, pending transactions, the
+RETM one-instruction bypass state, deterministic queued coprocessor input, and
+the optional configured REV identity. The reader accepts schema versions 1
+through 4 and defaults later fields inactive, empty, or unselected, but still
+rejects any snapshot whose recorded executable-coverage list differs from the
+current model.
 
 `load_program()` flushes the cache by default because it is a test/program
 loader, not a modeled CPU data write. Tests of self-modifying code write

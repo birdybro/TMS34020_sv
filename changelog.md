@@ -4,6 +4,11 @@
 
 ### Added
 
+- Evidence-safe REV execution: the model and bounded register/scalar RTL accept
+  only an explicitly selected, format-valid TMS34020 identity, default to no
+  selection, preserve ST, and cover the documented one-state result. Snapshot
+  schema 5 retains the optional identity without assigning either game's
+  unresolved silicon stepping.
 - Primary-page-extracted exact TMS34020-only `0A37h` PFILL.XY, including the
   destination-long-word pattern start, cyclic PATTERN selection of aligned
   COLOR0/COLOR1, XY conversion, power-of-two multirow pitch requirement,
@@ -609,6 +614,9 @@
 
 ### Changed
 
+- Expanded the configured bounded scalar path from 69 to 70 operations by
+  adding REV while preserving the unselected generic default and invalid-
+  profile noncommit boundary.
 - Expanded the generated partial decoder from 99 to 100 records and from
   30,612 to 31,124 uniquely classified first words.
 - Expanded the generated partial decoder from 97 to 99 records and from
@@ -688,6 +696,19 @@
 
 ### Verified
 
+- The 250-test model suite covers both primary REV example identities, a valid
+  spin-off discriminator, all 32 A/B/SP destinations, unchanged ST, one state,
+  schema-5 replay, default rollback, and malformed-profile rejection. Direct
+  RTL tests exhaust the destinations and unselected/invalid noncommit; the
+  configured cache/fetch/register slice commits the guide-example identity to
+  A3. A runtime assertion constrains every accepted REV write and forbids ST or
+  redirect side effects. No game-device identity is claimed.
+- Five warning-free Cyclone V Analysis & Synthesis smokes report 15,561 logic
+  cells/2,230 registers/9 DSPs for the configured REV leaf wrapper,
+  375/200/4,096 RAM bits for cache, 528/177 for fetch,
+  903/375/4,096 RAM bits for frontend, and 5,517/1,416/4,096 RAM bits for the
+  configured 70-operation scalar composition. These are slice-only analysis
+  metrics, not core area, fit, TimeQuest, or timing closure.
 - The 149-entry ISA database classifies 48,739 first words through 83 ISA
   tests; the 110-entry delta ledger passes schema checks. The 248-test model
   suite covers PFILL's primary 96-pixel repeat and x=0/1/7/8 starts, every
@@ -1889,14 +1910,14 @@ qualification.
 - TRAP has instruction-boundary model semantics only. RTL execution, external
   stack/vector transaction decomposition, waits, dynamic width, page mode,
   bus faults, retries, and exact pin/machine-state timing remain unimplemented.
-- REV execution is intentionally unsupported until an evidence-backed
-  physical-device profile provides the complete 32-bit identity. Exact
-  Battletoads and Revolution X silicon results remain unknown, and pinned MAME
-  is not a valid TMS34020 oracle for this instruction.
+- REV execution requires an explicitly supplied format-valid identity; the
+  generic default remains unselected. Exact Battletoads and Revolution X
+  silicon results remain unknown, and pinned MAME is not a valid TMS34020
+  oracle for this instruction.
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 52 one-word, eight two-word, and nine
-  three-word operations, and every other packet blocks. There is no
+  bounded scalar composition accepts only 53 configured one-word, eight two-word,
+  and nine three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.
 - Target-game chip markings, first-silicon history, and silicon errata remain

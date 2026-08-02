@@ -85,7 +85,10 @@ module tms34020_scalar_synth_top (
             };
     end
 
-    tms34020_scalar_slice scalar_slice (
+    tms34020_scalar_slice #(
+        .DEVICE_REVISION_SELECTED(1'b1),
+        .DEVICE_REVISION_VALUE(32'h0000_0010)
+    ) scalar_slice (
         .clk_i(clk_i),
         .reset_i(reset_i),
         .pc_load_valid_i(control_i[0]),

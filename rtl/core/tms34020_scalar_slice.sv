@@ -1,7 +1,10 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-module tms34020_scalar_slice (
+module tms34020_scalar_slice #(
+    parameter logic DEVICE_REVISION_SELECTED = 1'b0,
+    parameter logic [31:0] DEVICE_REVISION_VALUE = 32'd0
+) (
     input  logic        clk_i,
     input  logic        reset_i,
 
@@ -147,7 +150,10 @@ module tms34020_scalar_slice (
         .cache_tag_valid_debug_o(cache_tag_valid_debug_o)
     );
 
-    tms34020_register_commit register_commit (
+    tms34020_register_commit #(
+        .DEVICE_REVISION_SELECTED(DEVICE_REVISION_SELECTED),
+        .DEVICE_REVISION_VALUE(DEVICE_REVISION_VALUE)
+    ) register_commit (
         .clk_i(clk_i),
         .reset_i(reset_i),
         .commit_i(execution_eligible),

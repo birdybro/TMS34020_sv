@@ -22,6 +22,7 @@ module tb_tms34020_verified_leaves;
     integer coprocessor_source2_index;
     integer find_size_loop;
     integer find_lane_loop;
+    integer revision_register_index;
     logic [31:0] find_loop_mask;
     logic [31:0] find_loop_value;
     logic [15:0] constant_opcode;
@@ -615,6 +616,26 @@ module tb_tms34020_verified_leaves;
     logic execute_status_write_enable;
     logic [31:0] execute_status_write_data;
     logic [31:0] execute_status_write_mask;
+    logic unselected_revision_supported;
+    logic unselected_revision_source_file;
+    logic unselected_revision_destination_file;
+    logic [3:0] unselected_revision_source_index;
+    logic [3:0] unselected_revision_destination_index;
+    logic unselected_revision_register_write;
+    logic [31:0] unselected_revision_register_data;
+    logic unselected_revision_status_write;
+    logic [31:0] unselected_revision_status_data;
+    logic [31:0] unselected_revision_status_mask;
+    logic invalid_revision_supported;
+    logic invalid_revision_source_file;
+    logic invalid_revision_destination_file;
+    logic [3:0] invalid_revision_source_index;
+    logic [3:0] invalid_revision_destination_index;
+    logic invalid_revision_register_write;
+    logic [31:0] invalid_revision_register_data;
+    logic invalid_revision_status_write;
+    logic [31:0] invalid_revision_status_data;
+    logic [31:0] invalid_revision_status_mask;
 
     logic commit_valid;
     logic [47:0] commit_packet_words;
@@ -1384,7 +1405,10 @@ module tb_tms34020_verified_leaves;
         .status_o(status_value)
     );
 
-    tms34020_register_execute register_execute_dut (
+    tms34020_register_execute #(
+        .DEVICE_REVISION_SELECTED(1'b1),
+        .DEVICE_REVISION_VALUE(32'h0000_0010)
+    ) register_execute_dut (
         .first_word_i(execute_first_word),
         .packet_length_words_i(execute_packet_length),
         .immediate_i(execute_immediate),
@@ -1405,7 +1429,55 @@ module tb_tms34020_verified_leaves;
         .status_write_mask_o(execute_status_write_mask)
     );
 
-    tms34020_register_commit register_commit_dut (
+    tms34020_register_execute unselected_revision_dut (
+        .first_word_i(execute_first_word),
+        .packet_length_words_i(execute_packet_length),
+        .immediate_i(execute_immediate),
+        .source_i(execute_source),
+        .destination_i(execute_destination),
+        .status_i(execute_status),
+        .supported_o(unselected_revision_supported),
+        .source_register_file_o(unselected_revision_source_file),
+        .destination_register_file_o(
+            unselected_revision_destination_file
+        ),
+        .source_index_o(unselected_revision_source_index),
+        .destination_index_o(unselected_revision_destination_index),
+        .register_write_enable_o(unselected_revision_register_write),
+        .register_write_data_o(unselected_revision_register_data),
+        .status_write_enable_o(unselected_revision_status_write),
+        .status_write_data_o(unselected_revision_status_data),
+        .status_write_mask_o(unselected_revision_status_mask)
+    );
+
+    tms34020_register_execute #(
+        .DEVICE_REVISION_SELECTED(1'b1),
+        .DEVICE_REVISION_VALUE(32'h0000_0018)
+    ) invalid_revision_dut (
+        .first_word_i(execute_first_word),
+        .packet_length_words_i(execute_packet_length),
+        .immediate_i(execute_immediate),
+        .source_i(execute_source),
+        .destination_i(execute_destination),
+        .status_i(execute_status),
+        .supported_o(invalid_revision_supported),
+        .source_register_file_o(invalid_revision_source_file),
+        .destination_register_file_o(
+            invalid_revision_destination_file
+        ),
+        .source_index_o(invalid_revision_source_index),
+        .destination_index_o(invalid_revision_destination_index),
+        .register_write_enable_o(invalid_revision_register_write),
+        .register_write_data_o(invalid_revision_register_data),
+        .status_write_enable_o(invalid_revision_status_write),
+        .status_write_data_o(invalid_revision_status_data),
+        .status_write_mask_o(invalid_revision_status_mask)
+    );
+
+    tms34020_register_commit #(
+        .DEVICE_REVISION_SELECTED(1'b1),
+        .DEVICE_REVISION_VALUE(32'h0000_0010)
+    ) register_commit_dut (
         .clk_i(clk),
         .reset_i(reset),
         .commit_i(commit_valid),
@@ -6184,11 +6256,50 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "CMOVMC.PRE.C cannot bypass absent bus ownership"
         );
-        check_register_execute(
-            16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
-            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
-            "REV cannot execute without a selected device revision profile"
-        );
+        for (revision_register_index = 0; revision_register_index < 32;
+             revision_register_index = revision_register_index + 1) begin
+            check_register_execute(
+                16'h0020 |
+                    {11'd0, revision_register_index[4:0]},
+                32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
+                1'b1, 1'b1, 32'h0000_0010,
+                1'b0, 32'd0, 32'd0,
+                "REV selected-profile register execute"
+            );
+            check_condition(
+                execute_destination_register_file ==
+                    revision_register_index[4] &&
+                execute_destination_index ==
+                    revision_register_index[3:0] &&
+                !unselected_revision_supported &&
+                !unselected_revision_register_write &&
+                unselected_revision_register_data == 32'd0 &&
+                !unselected_revision_status_write &&
+                unselected_revision_status_data == 32'd0 &&
+                unselected_revision_status_mask == 32'd0 &&
+                unselected_revision_source_file ==
+                    revision_register_index[4] &&
+                unselected_revision_destination_file ==
+                    revision_register_index[4] &&
+                unselected_revision_source_index == 4'd1 &&
+                unselected_revision_destination_index ==
+                    revision_register_index[3:0] &&
+                !invalid_revision_supported &&
+                !invalid_revision_register_write &&
+                invalid_revision_register_data == 32'd0 &&
+                !invalid_revision_status_write &&
+                invalid_revision_status_data == 32'd0 &&
+                invalid_revision_status_mask == 32'd0 &&
+                invalid_revision_source_file ==
+                    revision_register_index[4] &&
+                invalid_revision_destination_file ==
+                    revision_register_index[4] &&
+                invalid_revision_source_index == 4'd1 &&
+                invalid_revision_destination_index ==
+                    revision_register_index[3:0],
+                "REV unselected/invalid profiles remain noncommitting"
+            );
+        end
         check_register_execute(
             16'h0900, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
@@ -7208,6 +7319,13 @@ module tb_tms34020_verified_leaves;
             1'b1, 32'hA000_0000, 32'hF000_0000,
             32'hA020_0010, 32'd0,
             "register commit CMPXY B2,B2 is nondestructive"
+        );
+        commit_register_instruction(
+            16'h0023, 1'b1,
+            1'b1, 1'b0, 4'd3, 32'h0000_0010,
+            1'b0, 32'd0, 32'd0,
+            32'hA020_0010, 32'd0,
+            "register commit explicitly selected REV A3"
         );
         commit_register_instruction(
             16'h1032, 1'b1,

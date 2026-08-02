@@ -377,8 +377,8 @@
 
 ## RSC-0021: pinned MAME returns the TMS34010 identity for TMS34020 REV
 
-- Status: open secondary-reference device-identity defect; decode classified,
-  execution deliberately blocked pending a selected physical profile
+- Status: resolved implementation policy; secondary-reference identity defect
+  remains and target-board profile values remain open under OQ-0014
 - Primary evidence: TI *TMS34020 User's Guide*, August 1990, REV, printed
   p.13-221 defines bits `[2:0]` as the silicon revision, bit 3 as the
   TMS34010 family tag, bit 4 as the TMS34020 family tag, and bits `[23:16]`
@@ -394,13 +394,14 @@
   REV macro for both processor classes, always writes `0000_0008h`, and
   charges one cycle. Its disassembler correctly recognizes the `0020h`
   register form in `34010dsm.cpp`, lines 217–235.
-- Decision: classify all 32 REV words from the primary encoding, but do not
-  execute them in the model or RTL until a device profile supplies an
-  evidence-backed complete revision word. Tests require atomic rejection
-  rather than a guessed result. Pinned MAME is not a valid TMS34020
-  differential oracle for this instruction. Confidence: `VERIFIED_PRIMARY`
-  for encoding, layout, examples, status, and timing; `UNKNOWN` for the
-  exact target-board silicon and spin-off fields.
+- Decision: classify all 32 REV words and execute them only when a caller
+  explicitly supplies a format-valid TMS34020 profile value. The unselected
+  default and malformed family/reserved-bit values remain noncommitting. Tests
+  use the two primary guide examples and a clearly synthetic valid spin-off
+  discriminator; no game name selects a value. Pinned MAME is not a valid
+  TMS34020 differential oracle for this instruction. Confidence:
+  `VERIFIED_PRIMARY` for encoding, layout, examples, status, and timing;
+  `UNKNOWN` for the exact target-board silicon and spin-off fields.
 
 ## RSC-0022: pinned MAME applies one shared TRAP cycle count
 
