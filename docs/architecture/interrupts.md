@@ -141,6 +141,14 @@ one-step leaf have no recognition, hidden-write drain, frame save, or resume
 owner; their completed logical arrays are not continuation evidence. Sources:
 User's Guide graphics interruption pp.6-13..6-14 and FILL pp.13-114..13-118.
 
+PFILL.XY is a long Chapter-12 graphics array operation and therefore uses the
+general inaccessible-temporary save/resume mechanism. Unlike FILL's
+instruction page, the PFILL page publishes no exact word/row recognition
+boundary. The atomic model and one-step leaf provide no evidence for the
+recognition point, B14/POFFSET frame value, hidden-write drain or resume
+ordering. Sources: User's Guide general graphics interruption pp.6-13..6-14,
+PFILL overview pp.12-15..12-16 and PFILL pp.13-184..13-189.
+
 ## RETM monitor return
 
 RETM is exact word `0860h` and is TMS34020-only. It restores the same

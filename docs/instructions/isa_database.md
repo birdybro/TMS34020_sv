@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 148 page-verified encoding records and covers 48,738 of 65,536
+slice contains 149 page-verified encoding records and covers 48,739 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -136,6 +136,7 @@ first words without collisions:
 | DRAV | `F600h`, mask `FE00h` | 1 | pp.13-100..13-102 |
 | FILL.L | exact `0FC0h` | 1 | pp.13-114..13-116 |
 | FILL.XY | exact `0FE0h` | 1 | pp.13-117..13-120 |
+| PFILL.XY | exact `0A37h` | 1 | pp.13-184..13-189 |
 | FLINE | `DE1Ah`/`DE9Ah`, mask `FF7Fh` | 1 | pp.13-121..13-125 |
 | FPIXEQ | `0ABBh` | 1 | pp.13-126..13-127 |
 | FPIXNE | `0ADBh` | 1 | pp.13-128..13-129 |
@@ -244,6 +245,22 @@ pp.13-114..13-120, and timing p.15-5. RSC-0045 and RSC-0046 apply. Pinned
 MAME commit `a562e947b22f4f5acff0c182c26fd649d72dad0e` corroborates only the
 exact decode in `tms34010.h` lines 528–529 and the basic array traversal in
 `34010gfx.hxx` lines 1797–1978; it is not timing or bus evidence.
+
+PFILL.XY (`0A37h`) is TMS34020-only. It converts B2/DADDR from signed XY once,
+then fills each row with cyclic B13/PATTERN bits selecting aligned B8/COLOR0
+or B9/COLOR1 pixels. The first pattern index is the destination pixel's
+position in its 32-bit long word; the hardware selects that bit and does not
+rotate PATTERN. A defined repeated multirow pattern requires power-of-two
+DPTCH. The bounded model covers at most 65,536 pixels in W=0 replace,
+transparency-off, CST=0 mode and deliberately leaves B14/POFFSET's undocumented
+visible postcondition unchanged. The normalized RTL leaf implements one
+already-converted pixel plus pattern/row/column traversal only. Sources:
+User's Guide DADDR/DPTCH/OFFSET/PATTERN pp.4-30..4-34 and 4-73..4-74, XY
+conversion p.9-46, pixel arrays pp.12-8..12-9 and 12-15..12-16, PFILL
+pp.13-184..13-189, and timing p.15-5; RSC-0046/RSC-0047 apply. Pinned MAME
+commit `a562e947b22f4f5acff0c182c26fd649d72dad0e` corroborates the exact decode
+only in `34010ops.hxx` line 1994; its `pfill_xy` body at lines 2348–2352 is a
+logging stub and supplies no semantic or timing evidence.
 
 `CLR Rd` is the documented alternate mnemonic for `XOR Rd,Rd`, not a separate
 decode range. Its instruction word repeats the same four-bit register number

@@ -8,7 +8,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 148 entries currently present in the canonical ISA database, including exact FILL.L/FILL.XY, all 512 DRAV words, 13,506 ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM field words and 3,137 MOVB words, exact CLIP/FLINE/FPIXEQ/FPIXNE/LINIT/RETI/RETM and CEXEC.L, all 128 CEXEC.S first words, both 32-word CMOVGC forms, the 32-word CMOVCG/CMOVCS packet family, all five 32-word CMOVCM/CMOVMC memory-sequence families, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 149 entries currently present in the canonical ISA database, including exact PFILL.XY/FILL.L/FILL.XY, all 512 DRAV words, 13,506 ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM field words and 3,137 MOVB words, exact CLIP/FLINE/FPIXEQ/FPIXNE/LINIT/RETI/RETM and CEXEC.L, all 128 CEXEC.S first words, both 32-word CMOVGC forms, the 32-word CMOVCG/CMOVCS packet family, all five 32-word CMOVCM/CMOVMC memory-sequence families, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/coprocessor/tms34020_coprocessor_command.sv` | Purely combinational classification and LAD command formatting for exact long CEXEC and all 128 short first words, including length, legal reserved bits, ID, 21-bit command, size, SF, BCST, I, S, and visible/hidden state metadata; no local-bus pins, request state, completion, retry, fault, or external coprocessor ownership | TI *TMS34020 User's Guide*, August 1990, §§10.3..10.4.5 printed pp.10-5..10-10 and CEXEC printed pp.13-51..13-54 |
 | `rtl/coprocessor/tms34020_coprocessor_register_write.sv` | Purely combinational classification and packet formatting for one- and two-register CMOVGC, including independent source selectors, legal reserved fields, ID/command/size, initial and I=1 reissue LAD values, ordered source data, SF/BCST/S and visible/hidden metadata; no register-file capture, page decision, request state, completion, retry, fault, interrupt, pin, or external coprocessor ownership | TI *TMS34020 User's Guide*, August 1990, §§10.3.3..10.4.6 printed pp.10-6..10-12 and CMOVGC printed pp.13-67..13-70 |
 | `rtl/coprocessor/tms34020_coprocessor_register_read.sv` | Purely combinational CMOVCG/CMOVCS packet refinement and inbound intent formatting, including independent destinations, legal required-zero fields, ID/command/size, initial/I=1 LAD values, one/two ordered data, NCZV masks/values and 4–6-state metadata; no external input queue, page decision, register/ST commit, request state, completion, retry, fault, interrupt, pin, or coprocessor ownership | TI *TMS34020 User's Guide*, August 1990, §10.4.7 printed pp.10-12..10-13, CMOVCG pp.13-59..13-60, and CMOVCS p.13-66 |
@@ -58,6 +58,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/graphics/tms34020_find_pixel_step.sv` | One legal-PSIZE FPIXEQ/FPIXNE comparison step: signed postincrement/predecrement effective address, aligned PMASK/COLOR0 lanes, masked pixel, match, next B10/B11 intent, terminal and Z predicates. It performs no memory request, loop, grouping, wait, page, fault/retry, interrupt continuation or commit | TI *TMS34020 User's Guide*, August 1990, FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129, plane masking pp.12-39..12-40, and interrupt exception p.6-14; RSC-0044 applies |
 | `rtl/graphics/tms34020_drav_step.sv` | One legal-PSIZE W0/replace-mode DRAV transform from an already-converted linear address: aligned COLOR1/PMASK result plus independent wrapping X/Y half-add. It performs no decode/register capture, XY conversion, CONTROL/DPYCTL/window validation, memory request, commit, wait/page/fault/retry, interrupt recognition or timing | TI *TMS34020 User's Guide*, August 1990, DRAV pp.13-100..13-102, COLOR1 pp.4-18..4-20, plane masking pp.12-39..12-42 and timing p.15-5; RSC-0045 applies |
 | `rtl/graphics/tms34020_fill_step.sv` | One legal-PSIZE normalized W0/replace-mode FILL pixel plus column/row traversal step: aligned COLOR1/PMASK result, next current/row address, counters and terminal flag. It performs no opcode/I/O/implied-register capture, XY conversion, loop, memory request, architectural commit, active window, wait/page/fault/retry, interrupt recognition or timing | TI *TMS34020 User's Guide*, August 1990, DADDR/DPTCH/DYDX pp.4-30..4-34 and 4-50..4-51, FILL pp.13-114..13-120, plane masking pp.12-39..12-42; RSC-0045/RSC-0046 apply |
+| `rtl/graphics/tms34020_pfill_step.sv` | One legal-PSIZE normalized W0/replace-mode PFILL pixel plus cyclic PATTERN/COLOR0/COLOR1 selection and column/row/pattern traversal step. It performs no opcode/I/O/implied-register capture, XY conversion, DPTCH-domain or B14 validation, loop, memory request, architectural commit, active window, wait/page/fault/retry, interrupt recognition or timing | TI *TMS34020 User's Guide*, August 1990, DADDR/DPTCH/OFFSET/PATTERN pp.4-30..4-34 and 4-73..4-74, PFILL pp.13-184..13-189, plane masking pp.12-39..12-42; RSC-0046/RSC-0047 apply |
 | `rtl/graphics/tms34020_fline_step.sv` | One legal-PSIZE replace-mode FLINE step from normalized linear increments: algorithm-zero/one decision boundary, aligned PATTERN-selected COLOR0/1 and PMASK result, next decision/DADDR/COUNT/PATTERN, and terminal predicate. It performs no XY conversion, CONTROL/DPYCTL validation, memory request, loop, commit, page, wait, fault/retry, interrupt continuation or timing | TI *TMS34020 User's Guide*, August 1990, §3.6 pp.3-15..3-16, FLINE pp.13-121..13-125, COLOR0/1 pp.4-17..4-20, plane masking pp.12-39..12-42, and timing p.15-5 |
 | `rtl/graphics/tms34020_line_initialize.sv` | Signed endpoint/window LINIT major/minor/decision/count/increment results, NCZV and fixed state metadata; no implied-register capture, atomic commit or graphics sequencer | TI *TMS34020 User's Guide*, August 1990, §12.7.5.2 p.12-26, FLINE pp.13-121..13-123, and LINIT p.13-146 |
 | `rtl/graphics/tms34020_window_compare.sv` | Signed XY comparison against inclusive WSTART/WEND bounds, zero-extended CPW outcode bits 8:5, and outside/V condition; register capture and commit ownership remain outside the leaf | TI *TMS34020 User's Guide*, August 1990, CPW, printed pp.13-85..13-86 |
@@ -427,13 +428,14 @@ and every extended-coordinate intersection, adjusted rectangle, geometry-
 valid, and Z/V result of the standalone CLIP leaf, plus every effective-
 address, mask/compare, direction, result, next-pointer/count and terminal
 output of the one-step FPIX leaf, every normalized DRAV address/color/mask/
-result/XY-add output, every FILL pixel/traversal/counter output, and every
+result/XY-add output, every FILL pixel/traversal/counter output, every PFILL
+pattern/color/pixel/traversal/counter output, and every
 normalized FLINE pixel/next-state output. The
 register-execution router explicitly
-rejects LINIT, CLIP, DRAV, FILL.L, FILL.XY, FLINE, FPIXEQ and FPIXNE because their implied-register/memory
+rejects LINIT, CLIP, DRAV, FILL.L, FILL.XY, PFILL.XY, FLINE, FPIXEQ and FPIXNE because their implied-register/memory
 architectural owners do not exist. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 15,185 logic-cell/2,230-register/9-DSP resource count is not a core-area
+so its 15,534 logic-cell/2,230-register/9-DSP resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -445,17 +447,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 507
+packet assembler and generated decoder. Its observability wrapper uses 528
 logic cells and 177 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 897 logic cells, 375 registers, and 4,096 block-memory
+zero errors/warnings to 903 logic cells, 375 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,528 logic cells, 1,416 registers,
+composition with zero errors/warnings to 5,500 logic cells, 1,416 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

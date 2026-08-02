@@ -224,6 +224,7 @@ class Tms34020Model:
             "DRAV": self._execute_drav,
             "FILL.L": self._execute_fill,
             "FILL.XY": self._execute_fill,
+            "PFILL.XY": self._execute_pfill,
             "FLINE": self._execute_fline,
             "FPIXEQ": self._execute_find_pixel,
             "FPIXNE": self._execute_find_pixel,
@@ -4010,6 +4011,129 @@ class Tms34020Model:
             "no-transparency logical array; dimensions above the bounded "
             "model limit, physical grouping, hidden writes, page mode, waits, "
             "fault/retry, and interrupt continuation remain pending"
+        )
+        return None
+
+    def _execute_pfill(
+        self, instruction: Instruction, words: list[int]
+    ) -> None:
+        del instruction, words
+        config = self.state.read_io(CONFIG_ADDRESS)
+        if config & 1:
+            raise UnsupportedInstruction(
+                "PFILL.XY big-endian pixel mapping is classified but not "
+                "modeled"
+            )
+        if self.state.read_io(DPYCTL_ADDRESS) & (1 << 11):
+            raise UnsupportedInstruction(
+                "PFILL.XY CST-converted VRAM transfers are classified but "
+                "not modeled"
+            )
+        control = self.state.read_io(CONTROL_ADDRESS)
+        if (control >> 10) & 0x1F:
+            raise UnsupportedInstruction(
+                "PFILL.XY pixel processing is currently limited to replace"
+            )
+        if control & (1 << 5):
+            raise UnsupportedInstruction(
+                "PFILL.XY transparency is classified but not modeled"
+            )
+        if (control >> 6) & 0x3:
+            raise UnsupportedInstruction(
+                "PFILL.XY window checking is classified but not modeled"
+            )
+
+        pixel_size = self._read_legal_psize()
+        pixel_mask = MASK32 if pixel_size == 32 else (1 << pixel_size) - 1
+        plane_mask = (
+            self.state.read_io(PMASKL_ADDRESS)
+            | (self.state.read_io(PMASKH_ADDRESS) << 16)
+        )
+        daddr_xy = self.state.read_reg("B", 2)
+        dptch = self.state.read_reg("B", 3)
+        dimensions = self.state.read_reg("B", 7)
+        color0 = self.state.read_reg("B", 8)
+        color1 = self.state.read_reg("B", 9)
+        pattern = self.state.read_reg("B", 13)
+        width = dimensions & 0xFFFF
+        height = (dimensions >> 16) & 0xFFFF
+        total_pixels = width * height
+        if total_pixels > MAX_BOUNDED_GRAPHICS_PIXELS:
+            raise UnsupportedInstruction(
+                "PFILL.XY atomic model is limited to "
+                f"{MAX_BOUNDED_GRAPHICS_PIXELS} pixels"
+            )
+        if dptch & (pixel_size - 1):
+            raise ModelError("PFILL.XY requires a pixel-aligned DPTCH")
+        if height > 1 and (dptch == 0 or (dptch & (dptch - 1))):
+            raise UnsupportedInstruction(
+                "PFILL.XY multirow pattern is documented only for a "
+                "power-of-two DPTCH"
+            )
+
+        linear_start, pitch_class = self._xy_linear_result(
+            daddr_xy,
+            CONVDP_ADDRESS,
+            dptch,
+            pixel_size,
+            self.state.read_reg("B", 4),
+        )
+        if linear_start & (pixel_size - 1):
+            raise ModelError("PFILL.XY requires a pixel-aligned DADDR")
+
+        assert self._active_trace is not None
+        for row in range(height):
+            row_start = (linear_start + row * dptch) & MASK32
+            row_pattern_offset = (row_start & 0x1F) // pixel_size
+            for column in range(width):
+                address = (row_start + column * pixel_size) & MASK32
+                lane = address & 0x1F
+                if lane + pixel_size > 32:
+                    raise ModelError(
+                        "PFILL.XY pixel crosses a long-word boundary"
+                    )
+                pattern_index = (row_pattern_offset + column) & 0x1F
+                pattern_bit = (pattern >> pattern_index) & 1
+                selected_color = color1 if pattern_bit else color0
+                raw_destination = self.state.memory.read_bits(
+                    address, pixel_size
+                )
+                source_pixel = (selected_color >> lane) & pixel_mask
+                pixel_plane_mask = (plane_mask >> lane) & pixel_mask
+                result_pixel = (
+                    (raw_destination & pixel_plane_mask)
+                    | (source_pixel & (~pixel_plane_mask & pixel_mask))
+                )
+                self.state.memory.write_bits(
+                    address, pixel_size, result_pixel
+                )
+                self._active_trace.transactions.append(
+                    {
+                        "class": "pixel_write",
+                        "purpose": "pfill_xy_replace",
+                        "bit_address": address,
+                        "width": pixel_size,
+                        "row": row,
+                        "column": column,
+                        "pattern_index": pattern_index,
+                        "pattern_bit": pattern_bit,
+                        "raw_destination": raw_destination,
+                        "source_value": source_pixel,
+                        "plane_mask": pixel_plane_mask,
+                        "value": result_pixel,
+                    }
+                )
+
+        if total_pixels != 0:
+            self.state.write_reg(
+                "B", 2, (linear_start + height * dptch) & MASK32
+            )
+        self._record_xy_pitch_class(pitch_class)
+        self._active_trace.notes.append(
+            "successful atomic PFILL.XY W0 replace/no-transparency logical "
+            "array; B14 POFFSET's undocumented visible postcondition is not "
+            "modeled, and physical grouping, hidden writes, page mode, "
+            "waits, fault/retry, and interrupt continuation remain pending"
         )
         return None
 

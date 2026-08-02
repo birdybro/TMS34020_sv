@@ -5656,6 +5656,238 @@ class ExecutionTests(unittest.TestCase):
                     model.step()
                 self.assertEqual(model.snapshot(), before)
 
+    def test_pfill_primary_pattern_repeat_and_wrap(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0A37])
+        model.state.write_io(PSIZE_ADDRESS, 4)
+        model.state.write_io(CONVDP_ADDRESS, 0x001A)
+        model.state.write_reg("B", 2, 0)
+        model.state.write_reg("B", 3, 0)
+        model.state.write_reg("B", 4, 0)
+        model.state.write_reg("B", 7, 0x0001_0060)
+        model.state.write_reg("B", 8, 0)
+        model.state.write_reg("B", 9, 0xFFFF_FFFF)
+        model.state.write_reg("B", 13, 0x0FFF_00FF)
+        model.state.write_reg("B", 14, 0x1234_5678)
+        model.state.st = 0xDABC_DEF0
+
+        event = model.step()
+
+        self.assertIsNone(event.machine_states)
+        writes = [
+            item for item in event.transactions
+            if item["class"] == "pixel_write"
+        ]
+        self.assertEqual(len(writes), 96)
+        self.assertEqual(
+            [writes[index]["pattern_index"] for index in (0, 31, 32, 95)],
+            [0, 31, 0, 31],
+        )
+        self.assertEqual(
+            [writes[index]["pattern_bit"] for index in (0, 7, 8, 16)],
+            [1, 1, 0, 1],
+        )
+        self.assertEqual(model.state.read_reg("B", 2), 0)
+        self.assertEqual(model.state.read_reg("B", 13), 0x0FFF_00FF)
+        self.assertEqual(model.state.read_reg("B", 14), 0x1234_5678)
+        self.assertEqual(model.state.st, 0xDABC_DEF0)
+
+    def test_pfill_primary_destination_alignment_examples(self) -> None:
+        for x, expected_index in ((0, 0), (1, 1), (7, 7), (8, 0)):
+            with self.subTest(x=x):
+                model = Tms34020Model()
+                model.load_program([0x0A37])
+                model.state.write_io(PSIZE_ADDRESS, 4)
+                model.state.write_io(CONVDP_ADDRESS, 0x001A)
+                model.state.write_reg("B", 2, x)
+                model.state.write_reg("B", 3, 0x100)
+                model.state.write_reg("B", 7, 0x0001_0002)
+                model.state.write_reg("B", 8, 0)
+                model.state.write_reg("B", 9, 0xFFFF_FFFF)
+                model.state.write_reg("B", 13, 1 << expected_index)
+
+                event = model.step()
+
+                writes = [
+                    item for item in event.transactions
+                    if item["class"] == "pixel_write"
+                ]
+                self.assertEqual(
+                    [item["pattern_index"] for item in writes],
+                    [expected_index, (expected_index + 1) & 31],
+                )
+                self.assertEqual(writes[0]["pattern_bit"], 1)
+                self.assertEqual(writes[0]["bit_address"], x * 4)
+
+    def test_pfill_all_pixel_sizes_lanes_colors_patterns_and_masks(self) -> None:
+        for pixel_size in (1, 2, 4, 8, 16, 32):
+            pixel_mask = (
+                0xFFFF_FFFF
+                if pixel_size == 32
+                else (1 << pixel_size) - 1
+            )
+            for lane in range(0, 32, pixel_size):
+                pattern_index = lane // pixel_size
+                for pattern_bit in (0, 1):
+                    with self.subTest(
+                        pixel_size=pixel_size,
+                        lane=lane,
+                        pattern_bit=pattern_bit,
+                    ):
+                        color0 = 0x5A5A_A5A4 & pixel_mask
+                        color1 = 0xA5A5_5A5B & pixel_mask
+                        raw = 0x3C3C_C3C3 & pixel_mask
+                        protected = 0xAAAA_AAAA & pixel_mask
+                        source = color1 if pattern_bit else color0
+                        expected = (
+                            (raw & protected)
+                            | (source & ~protected & pixel_mask)
+                        )
+                        address = 0x400 + lane
+                        model = Tms34020Model()
+                        model.load_program([0x0A37])
+                        model.state.write_io(PSIZE_ADDRESS, pixel_size)
+                        model.state.write_io(CONVDP_ADDRESS, 0x001A)
+                        model.state.write_io(
+                            PMASKL_ADDRESS,
+                            (protected << lane) & 0xFFFF,
+                        )
+                        model.state.write_io(
+                            PMASKH_ADDRESS,
+                            (protected << lane) >> 16,
+                        )
+                        model.state.write_reg("B", 2, 0)
+                        model.state.write_reg("B", 3, 0x20)
+                        model.state.write_reg("B", 4, address)
+                        model.state.write_reg("B", 7, 0x0001_0001)
+                        model.state.write_reg("B", 8, color0 << lane)
+                        model.state.write_reg("B", 9, color1 << lane)
+                        model.state.write_reg(
+                            "B", 13, pattern_bit << pattern_index
+                        )
+                        model.state.memory.write_bits(
+                            address, pixel_size, raw
+                        )
+
+                        event = model.step()
+
+                        write = next(
+                            item for item in event.transactions
+                            if item["class"] == "pixel_write"
+                        )
+                        self.assertEqual(
+                            write["pattern_index"], pattern_index
+                        )
+                        self.assertEqual(write["pattern_bit"], pattern_bit)
+                        self.assertEqual(write["source_value"], source)
+                        self.assertEqual(write["plane_mask"], protected)
+                        self.assertEqual(write["value"], expected)
+
+    def test_pfill_rows_zero_dimensions_final_daddr_and_state(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0A37])
+        model.state.write_io(PSIZE_ADDRESS, 8)
+        model.state.write_io(CONVDP_ADDRESS, 0x001A)
+        model.state.write_reg("B", 2, 1)
+        model.state.write_reg("B", 3, 0x40)
+        model.state.write_reg("B", 4, 0x100)
+        model.state.write_reg("B", 7, 0x0002_0003)
+        model.state.write_reg("B", 8, 0x1111_1111)
+        model.state.write_reg("B", 9, 0xEEEE_EEEE)
+        model.state.write_reg("B", 13, 0x0000_000A)
+        model.state.write_reg("B", 14, 0xCAFE_BABE)
+        model.state.st = 0x5ABC_DEF0
+
+        event = model.step()
+
+        writes = [
+            item for item in event.transactions
+            if item["class"] == "pixel_write"
+        ]
+        self.assertEqual(
+            [item["bit_address"] for item in writes],
+            [0x108, 0x110, 0x118, 0x148, 0x150, 0x158],
+        )
+        self.assertEqual(
+            [item["pattern_index"] for item in writes],
+            [1, 2, 3, 1, 2, 3],
+        )
+        self.assertEqual(model.state.read_reg("B", 2), 0x188)
+        self.assertEqual(model.state.read_reg("B", 7), 0x0002_0003)
+        self.assertEqual(model.state.read_reg("B", 13), 0x0000_000A)
+        self.assertEqual(model.state.read_reg("B", 14), 0xCAFE_BABE)
+        self.assertEqual(model.state.st, 0x5ABC_DEF0)
+
+        for dimensions in (0x0000_0003, 0x0002_0000):
+            with self.subTest(dimensions=f"{dimensions:08X}"):
+                empty = Tms34020Model()
+                empty.load_program([0x0A37])
+                empty.state.write_io(PSIZE_ADDRESS, 8)
+                empty.state.write_io(CONVDP_ADDRESS, 0x001A)
+                empty.state.write_reg("B", 2, 0x0002_0003)
+                empty.state.write_reg("B", 3, 0x40)
+                empty.state.write_reg("B", 7, dimensions)
+                event = empty.step()
+                self.assertFalse(
+                    any(
+                        item["class"] == "pixel_write"
+                        for item in event.transactions
+                    )
+                )
+                self.assertEqual(
+                    empty.state.read_reg("B", 2), 0x0002_0003
+                )
+
+    def test_pfill_unsupported_modes_bounds_pitch_and_alignment_roll_back(
+        self,
+    ) -> None:
+        for (
+            config, dpyctl, control, pixel_size,
+            daddr, dptch, dimensions, error_type,
+        ) in (
+            (1, 0, 0, 4, 0, 0x20, 0x0001_0001,
+             UnsupportedInstruction),
+            (0, 1 << 11, 0, 4, 0, 0x20, 0x0001_0001,
+             UnsupportedInstruction),
+            (0, 0, 1 << 10, 4, 0, 0x20, 0x0001_0001,
+             UnsupportedInstruction),
+            (0, 0, 1 << 5, 4, 0, 0x20, 0x0001_0001,
+             UnsupportedInstruction),
+            (0, 0, 1 << 6, 4, 0, 0x20, 0x0001_0001,
+             UnsupportedInstruction),
+            (0, 0, 0, 3, 0, 0x20, 0x0001_0001, ModelError),
+            (0, 0, 0, 4, 0, 0x22, 0x0001_0001, ModelError),
+            (0, 0, 0, 4, 1, 0x20, 0x0001_0001, ModelError),
+            (0, 0, 0, 4, 0, 0x30, 0x0002_0001,
+             UnsupportedInstruction),
+            (0, 0, 0, 4, 0, 0x20, 0x0002_FFFF,
+             UnsupportedInstruction),
+        ):
+            with self.subTest(
+                config=config,
+                dpyctl=dpyctl,
+                control=control,
+                pixel_size=pixel_size,
+                daddr=f"{daddr:08X}",
+                dptch=f"{dptch:08X}",
+                dimensions=f"{dimensions:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([0x0A37])
+                model.state.write_io(CONFIG_ADDRESS, config)
+                model.state.write_io(DPYCTL_ADDRESS, dpyctl)
+                model.state.write_io(CONTROL_ADDRESS, control)
+                model.state.write_io(PSIZE_ADDRESS, pixel_size)
+                model.state.write_io(CONVDP_ADDRESS, 0x001A)
+                model.state.write_reg("B", 2, daddr)
+                model.state.write_reg("B", 3, dptch)
+                model.state.write_reg("B", 4, 1 if daddr == 1 else 0)
+                model.state.write_reg("B", 7, dimensions)
+                before = model.snapshot()
+                with self.assertRaises(error_type):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
     def test_fline_horizontal_pattern_draw_and_primary_timing(self) -> None:
         model = Tms34020Model()
         model.load_program([0xDE1A])

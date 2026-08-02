@@ -166,6 +166,15 @@ normalized W0 replace-mode traversal/pixel step only. Sources: TMS34020 guide
 pp.4-30..4-34, 4-50..4-51, 12-8..12-9 and 13-114..13-120; TMS34010 guide
 pp.12-80..12-87; RSC-0045/RSC-0046.
 
+PFILL.XY is a TMS34020-only exact `0A37h` array instruction with no TMS34010
+sequencer to reuse. It performs one XY conversion, derives a PATTERN start
+index from the destination long-word position, selects aligned COLOR0/COLOR1,
+and layers window/PPOP/transparency/PMASK behavior on a 32-bit/dynamic-16 bus.
+The clean-room model/leaf cover only bounded/normalized W=0 replace mode; B14,
+physical grouping, page/fault/retry and continuation owners remain absent.
+Sources: TMS34020 guide pp.4-30..4-34, 4-73..4-74, 9-46, 12-15..12-16,
+13-184..13-189 and 15-5; RSC-0046/RSC-0047.
+
 CVXYL retains `E800h`/`FE00h`, same-file explicit operands, implied B3/B4,
 CONVDP/PSIZE inputs, unaffected ST, and the signed XY-to-linear equation. The
 TMS34020 expands pitch handling from the TMS34010's power-of-two display case

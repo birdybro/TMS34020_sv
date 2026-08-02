@@ -123,6 +123,20 @@ module tms34020_leaf_synth_top (
     logic [15:0] fill_next_columns_remaining;
     logic [15:0] fill_next_rows_remaining;
     logic fill_done;
+    logic pfill_inputs_valid;
+    logic pfill_active;
+    logic [31:0] pfill_access_address;
+    logic [4:0] pfill_pattern_index;
+    logic pfill_pattern_bit;
+    logic [31:0] pfill_source_pixel;
+    logic [31:0] pfill_plane_mask;
+    logic [31:0] pfill_result_pixel;
+    logic [31:0] pfill_next_address;
+    logic [31:0] pfill_next_row_start;
+    logic [15:0] pfill_next_columns_remaining;
+    logic [15:0] pfill_next_rows_remaining;
+    logic [4:0] pfill_next_pattern_offset;
+    logic pfill_done;
     logic fline_inputs_valid;
     logic fline_active;
     logic fline_diagonal;
@@ -395,6 +409,16 @@ module tms34020_leaf_synth_top (
         fill_next_row_start ^
         {fill_next_rows_remaining, fill_next_columns_remaining} ^
         {29'd0, fill_inputs_valid, fill_active, fill_done} ^
+        pfill_access_address ^
+        pfill_source_pixel ^
+        pfill_plane_mask ^
+        pfill_result_pixel ^
+        pfill_next_address ^
+        pfill_next_row_start ^
+        {pfill_next_rows_remaining, pfill_next_columns_remaining} ^
+        {20'd0, pfill_pattern_index, pfill_next_pattern_offset,
+         pfill_inputs_valid, pfill_active} ^
+        {30'd0, pfill_pattern_bit, pfill_done} ^
         fline_access_address ^
         fline_source_pixel ^
         fline_plane_mask ^
@@ -778,6 +802,36 @@ module tms34020_leaf_synth_top (
         .next_columns_remaining_o(fill_next_columns_remaining),
         .next_rows_remaining_o(fill_next_rows_remaining),
         .done_o(fill_done)
+    );
+
+    tms34020_pfill_step pfill_step (
+        .current_address_i(operand_i + immediate_i),
+        .row_start_i(operand_i),
+        .dptch_i(immediate_i),
+        .columns_remaining_i(operand_i[15:0]),
+        .rows_remaining_i(operand_i[31:16]),
+        .row_width_i(immediate_i[15:0]),
+        .pattern_offset_i(first_word_i[4:0]),
+        .color0_i({operand_i[7:0], operand_i[31:8]}),
+        .color1_i({immediate_i[23:0], immediate_i[31:24]}),
+        .pattern_i(operand_i ^ immediate_i),
+        .pmask_i({immediate_i[15:0], immediate_i[31:16]}),
+        .raw_destination_i(operand_i | immediate_i),
+        .psize_i({10'd0, pixel_size_i}),
+        .inputs_valid_o(pfill_inputs_valid),
+        .active_o(pfill_active),
+        .access_address_o(pfill_access_address),
+        .pattern_index_o(pfill_pattern_index),
+        .pattern_bit_o(pfill_pattern_bit),
+        .source_pixel_o(pfill_source_pixel),
+        .plane_mask_o(pfill_plane_mask),
+        .result_pixel_o(pfill_result_pixel),
+        .next_address_o(pfill_next_address),
+        .next_row_start_o(pfill_next_row_start),
+        .next_columns_remaining_o(pfill_next_columns_remaining),
+        .next_rows_remaining_o(pfill_next_rows_remaining),
+        .next_pattern_offset_o(pfill_next_pattern_offset),
+        .done_o(pfill_done)
     );
 
     tms34020_fline_step fline_step (

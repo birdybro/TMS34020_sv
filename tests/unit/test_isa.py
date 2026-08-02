@@ -266,6 +266,7 @@ class IsaTests(unittest.TestCase):
             0xF7FF: ("DRAV", 1),
             0x0FC0: ("FILL.L", 1),
             0x0FE0: ("FILL.XY", 1),
+            0x0A37: ("PFILL.XY", 1),
             0x0ABB: ("FPIXEQ", 1),
             0x0ADB: ("FPIXNE", 1),
             0xDE1A: ("FLINE", 1),
@@ -417,8 +418,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 48738)
-        self.assertEqual(unclassified, 65536 - 48738)
+        self.assertEqual(matched, 48739)
+        self.assertEqual(unclassified, 65536 - 48739)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2513,6 +2514,27 @@ class IsaTests(unittest.TestCase):
             linear.metadata["destination_registers"][0],
         )
         self.assertIn("RSC-0046", xy.metadata["status_bits_written"][0])
+
+    def test_pfill_records_pattern_alignment_and_complex_timing(self) -> None:
+        instruction = self.database.decode(0x0A37)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "PFILL.XY")
+        self.assertEqual(instruction.opcode_mask, 0xFFFF)
+        self.assertFalse(
+            instruction.metadata["compatible_with_tms34010"]
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"]["kind"],
+            "complex_instruction",
+        )
+        self.assertIn(
+            "PATTERN bit n",
+            instruction.metadata["memory_transactions"][0],
+        )
+        self.assertIn(
+            "not internally rotated",
+            instruction.metadata["pipeline_interactions"][1],
+        )
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

@@ -334,6 +334,13 @@ interrupt checkpoints, waits and retry can all change the externally observed
 schedule. Sources: User's Guide general assumptions pp.15-1..15-2, FILL table
 p.15-5, and FILL instruction pages pp.13-114..13-120.
 
+PFILL.XY is also listed only as `complex instruction`. The model event leaves
+`machine_states` unset and the normalized leaf makes no timing claim. Pattern
+index setup, XY conversion, window preclassification, long-word grouping,
+hidden writes, interrupts, waits and retries all remain outside the current
+boundary. Sources: User's Guide general assumptions pp.15-1..15-2, PFILL
+instruction pp.13-184..13-189 and timing table p.15-5.
+
 CVDXYL, CVMXYL, and CVSXYL take 2 machine states for a power-of-two pitch, 3
 for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3 and 4
 states for the first two classes. Its instruction page specifies 14 for an

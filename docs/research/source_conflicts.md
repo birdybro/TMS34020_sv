@@ -915,21 +915,46 @@
   registers. This does not establish the unimplemented upper CONTROL half at
   `C0000190h` or any physical CST transfer timing.
 
-## RSC-0046: FILL.XY instruction page says V is unaffected
+## RSC-0046: FILL.XY and PFILL.XY pages say V is unaffected
 
 - Status: resolved for architectural classification from the general
   pixel-array window rules; active-window execution remains unimplemented
 - Primary contradiction: TI *TMS34020 User's Guide*, August 1990, the FILL.XY
-  status table on printed p.13-118 says V is unaffected. Section 12.7.4 on
+  status table on printed p.13-118 and PFILL.XY table on printed p.13-188 say V
+  is unaffected. Section 12.7.4 on
   printed pp.12-21..12-23 explicitly defines V for every array window mode:
   W=1 reports whether the array is wholly outside, W=2 reports any outside
   pixel, and W=3 reports complete/partial/inside classification. The FILL.XY
-  page itself says W=1, W=2 and W=3 are supported.
+  FILL.XY page itself says W=1, W=2 and W=3 are supported; the PFILL overview
+  on printed p.12-16 and instruction page say window checking is supported.
 - Corroboration: the TMS34010 FILL.XY page on printed pp.12-85..12-86 says V
   reports a window violation and is unaffected only when window checking is
   disabled. This is compatibility evidence, not the controlling source.
 - Decision: the general TMS34020 pixel-array window rules govern active-window
   V behavior; the instruction-page status row is an incomplete copied table.
-  The current model supports W=0 only, checks complete ST preservation there,
-  and rejects W=1/2/3 atomically rather than implementing this resolution
-  without a window/interrupt/continuation owner.
+  The current FILL model supports W=0 only, checks complete ST preservation
+  there, and rejects W=1/2/3 atomically rather than implementing this
+  resolution without a window/interrupt/continuation owner. PFILL follows the
+  same classification boundary.
+
+## RSC-0047: PFILL implied-operand tables omit required state
+
+- Status: resolved for operand classification from dedicated register and
+  graphics sections; B14's visible completion value remains unknown
+- Primary inconsistency: TI *TMS34020 User's Guide*, August 1990, the PFILL
+  implied tables on printed p.13-187 list B2/B3/B7/B13/B14 plus CONTROL
+  PPOP/T/TM, PSIZE and PMASK. They omit OFFSET, CONVDP, COLOR0, COLOR1,
+  W[CONTROL] and DPYCTL.CST. However, the instruction description explicitly
+  selects COLOR0/COLOR1, the overview says window checking is available, and
+  the worked routine assumes OFFSET, COLOR0/COLOR1 and CONVDP.
+- Controlling cross-references: dedicated OFFSET and PATTERN descriptions on
+  printed pp.4-73..4-74 list PFILL.XY; the XY conversion inventory on printed
+  p.9-46 says PFILL performs one conversion; pixel-array rules on printed
+  pp.12-8..12-9 govern window/PPOP/transparency/plane masking; and CST applies
+  to pixel accesses on printed pp.9-46..9-47. These specific architectural
+  descriptions govern the incomplete instruction-page tables.
+- Decision: classify all of those operands and reject their unsupported active
+  modes atomically in the bounded model. B14 is still recorded as a hardware
+  POFFSET temporary whose post-instruction value is undocumented; neither the
+  model nor RTL may claim that visible postcondition without new evidence.
+  OQ-0030 tracks the required evidence and continuation-checkpoint question.

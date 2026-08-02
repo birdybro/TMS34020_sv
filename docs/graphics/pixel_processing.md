@@ -125,6 +125,22 @@ interrupt, timing or continuation state. Sources: User's Guide DADDR/DPTCH/
 DYDX pp.4-30..4-34 and 4-50..4-51, pixel arrays pp.12-8..12-9, FILL
 pp.13-114..13-120, and plane masking pp.12-39..12-42; RSC-0045/RSC-0046.
 
+## Pattern array-fill boundary
+
+PFILL.XY (`0A37h`) expands cyclic B13/PATTERN bits into aligned B8/COLOR0 or
+B9/COLOR1 pixels. The converted starting pixel's position within its 32-bit
+long word selects the first pattern bit; successive pixels advance modulo 32
+without rotating PATTERN. The bounded model covers at most 65,536 W=0
+replace/no-transparency/CST=0 pixels, every PSIZE/lane/COLOR/PATTERN/PMASK
+case, defined power-of-two-pitch rows and final linear B2. B14/POFFSET's
+visible completion value remains undocumented and is preserved only as a
+model abstraction. `tms34020_pfill_step.sv` implements one normalized pixel
+and pattern/row/column step without capture, conversion, loop, memory request,
+commit, window, interrupt, timing or continuation ownership. Sources: User's
+Guide DADDR/DPTCH/OFFSET/PATTERN pp.4-30..4-34 and 4-73..4-74, PFILL overview
+pp.12-15..12-16, PFILL pp.13-184..13-189, and plane masking
+pp.12-39..12-42; RSC-0046/RSC-0047.
+
 ## Line initialization boundary
 
 LINIT is the exact `0C57h` TMS34020-only setup operation used before line

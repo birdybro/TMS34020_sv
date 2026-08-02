@@ -149,6 +149,33 @@ module tb_tms34020_verified_leaves;
     logic [15:0] fill_next_columns_remaining;
     logic [15:0] fill_next_rows_remaining;
     logic fill_done;
+    logic [31:0] pfill_current_address;
+    logic [31:0] pfill_row_start;
+    logic [31:0] pfill_dptch;
+    logic [15:0] pfill_columns_remaining;
+    logic [15:0] pfill_rows_remaining;
+    logic [15:0] pfill_row_width;
+    logic [4:0] pfill_pattern_offset;
+    logic [31:0] pfill_color0;
+    logic [31:0] pfill_color1;
+    logic [31:0] pfill_pattern;
+    logic [31:0] pfill_pmask;
+    logic [31:0] pfill_raw_destination;
+    logic [15:0] pfill_psize;
+    logic pfill_inputs_valid;
+    logic pfill_active;
+    logic [31:0] pfill_access_address;
+    logic [4:0] pfill_pattern_index;
+    logic pfill_pattern_bit;
+    logic [31:0] pfill_source_pixel;
+    logic [31:0] pfill_plane_mask;
+    logic [31:0] pfill_result_pixel;
+    logic [31:0] pfill_next_address;
+    logic [31:0] pfill_next_row_start;
+    logic [15:0] pfill_next_columns_remaining;
+    logic [15:0] pfill_next_rows_remaining;
+    logic [4:0] pfill_next_pattern_offset;
+    logic pfill_done;
     logic fline_algorithm_one;
     logic [31:0] fline_decision;
     logic [31:0] fline_daddr;
@@ -750,6 +777,36 @@ module tb_tms34020_verified_leaves;
         .next_columns_remaining_o(fill_next_columns_remaining),
         .next_rows_remaining_o(fill_next_rows_remaining),
         .done_o(fill_done)
+    );
+
+    tms34020_pfill_step pfill_step_dut (
+        .current_address_i(pfill_current_address),
+        .row_start_i(pfill_row_start),
+        .dptch_i(pfill_dptch),
+        .columns_remaining_i(pfill_columns_remaining),
+        .rows_remaining_i(pfill_rows_remaining),
+        .row_width_i(pfill_row_width),
+        .pattern_offset_i(pfill_pattern_offset),
+        .color0_i(pfill_color0),
+        .color1_i(pfill_color1),
+        .pattern_i(pfill_pattern),
+        .pmask_i(pfill_pmask),
+        .raw_destination_i(pfill_raw_destination),
+        .psize_i(pfill_psize),
+        .inputs_valid_o(pfill_inputs_valid),
+        .active_o(pfill_active),
+        .access_address_o(pfill_access_address),
+        .pattern_index_o(pfill_pattern_index),
+        .pattern_bit_o(pfill_pattern_bit),
+        .source_pixel_o(pfill_source_pixel),
+        .plane_mask_o(pfill_plane_mask),
+        .result_pixel_o(pfill_result_pixel),
+        .next_address_o(pfill_next_address),
+        .next_row_start_o(pfill_next_row_start),
+        .next_columns_remaining_o(pfill_next_columns_remaining),
+        .next_rows_remaining_o(pfill_next_rows_remaining),
+        .next_pattern_offset_o(pfill_next_pattern_offset),
+        .done_o(pfill_done)
     );
 
     tms34020_fline_step fline_step_dut (
@@ -1817,6 +1874,70 @@ module tb_tms34020_verified_leaves;
                 expected_next_columns_remaining &&
             fill_next_rows_remaining == expected_next_rows_remaining &&
             fill_done == expected_done,
+            message
+        );
+    endtask
+
+    task automatic check_pfill_step(
+        input logic [31:0] current_address,
+        input logic [31:0] row_start,
+        input logic [31:0] dptch,
+        input logic [15:0] columns_remaining,
+        input logic [15:0] rows_remaining,
+        input logic [15:0] row_width,
+        input logic [4:0] pattern_offset,
+        input logic [31:0] color0,
+        input logic [31:0] color1,
+        input logic [31:0] pattern,
+        input logic [31:0] pmask,
+        input logic [31:0] raw_destination,
+        input logic [15:0] psize,
+        input logic expected_valid,
+        input logic expected_active,
+        input logic [31:0] expected_access_address,
+        input logic [4:0] expected_pattern_index,
+        input logic expected_pattern_bit,
+        input logic [31:0] expected_source_pixel,
+        input logic [31:0] expected_plane_mask,
+        input logic [31:0] expected_result_pixel,
+        input logic [31:0] expected_next_address,
+        input logic [31:0] expected_next_row_start,
+        input logic [15:0] expected_next_columns_remaining,
+        input logic [15:0] expected_next_rows_remaining,
+        input logic [4:0] expected_next_pattern_offset,
+        input logic expected_done,
+        input string message
+    );
+        pfill_current_address = current_address;
+        pfill_row_start = row_start;
+        pfill_dptch = dptch;
+        pfill_columns_remaining = columns_remaining;
+        pfill_rows_remaining = rows_remaining;
+        pfill_row_width = row_width;
+        pfill_pattern_offset = pattern_offset;
+        pfill_color0 = color0;
+        pfill_color1 = color1;
+        pfill_pattern = pattern;
+        pfill_pmask = pmask;
+        pfill_raw_destination = raw_destination;
+        pfill_psize = psize;
+        #1;
+        check_condition(
+            pfill_inputs_valid == expected_valid &&
+            pfill_active == expected_active &&
+            pfill_access_address == expected_access_address &&
+            pfill_pattern_index == expected_pattern_index &&
+            pfill_pattern_bit == expected_pattern_bit &&
+            pfill_source_pixel == expected_source_pixel &&
+            pfill_plane_mask == expected_plane_mask &&
+            pfill_result_pixel == expected_result_pixel &&
+            pfill_next_address == expected_next_address &&
+            pfill_next_row_start == expected_next_row_start &&
+            pfill_next_columns_remaining ==
+                expected_next_columns_remaining &&
+            pfill_next_rows_remaining == expected_next_rows_remaining &&
+            pfill_next_pattern_offset == expected_next_pattern_offset &&
+            pfill_done == expected_done,
             message
         );
     endtask
@@ -3298,6 +3419,19 @@ module tb_tms34020_verified_leaves;
         fill_pmask = 32'd0;
         fill_raw_destination = 32'd0;
         fill_psize = 16'd1;
+        pfill_current_address = 32'd0;
+        pfill_row_start = 32'd0;
+        pfill_dptch = 32'd0;
+        pfill_columns_remaining = 16'd0;
+        pfill_rows_remaining = 16'd0;
+        pfill_row_width = 16'd0;
+        pfill_pattern_offset = 5'd0;
+        pfill_color0 = 32'd0;
+        pfill_color1 = 32'd0;
+        pfill_pattern = 32'd0;
+        pfill_pmask = 32'd0;
+        pfill_raw_destination = 32'd0;
+        pfill_psize = 16'd1;
         fline_algorithm_one = 1'b0;
         fline_decision = 32'd0;
         fline_daddr = 32'd0;
@@ -4279,6 +4413,106 @@ module tb_tms34020_verified_leaves;
                     32'h0000_0400 + find_lane_loop,
                     16'd1, 16'd1, 1'b0,
                     "FILL every legal PSIZE and long-word lane"
+                );
+            end
+        end
+
+        check_pfill_step(
+            32'd0, 32'd0, 32'd0,
+            16'd96, 16'd1, 16'd96, 5'd0,
+            32'd0, 32'hFFFF_FFFF, 32'h0FFF_00FF,
+            32'd0, 32'd0, 16'd4,
+            1'b1, 1'b1, 32'd0, 5'd0, 1'b1,
+            32'h0000_000F, 32'd0, 32'h0000_000F,
+            32'd4, 32'd0, 16'd95, 16'd1, 5'd1, 1'b0,
+            "PFILL primary unaligned-pattern first pixel"
+        );
+        check_pfill_step(
+            32'd4, 32'd4, 32'h0000_0100,
+            16'd2, 16'd1, 16'd2, 5'd1,
+            32'd0, 32'hFFFF_FFFF, 32'h0FFF_00FF,
+            32'd0, 32'd0, 16'd4,
+            1'b1, 1'b1, 32'd4, 5'd1, 1'b1,
+            32'h0000_000F, 32'd0, 32'h0000_000F,
+            32'd8, 32'd4, 16'd1, 16'd1, 5'd2, 1'b0,
+            "PFILL primary x=1 begins at PATTERN bit one"
+        );
+        check_pfill_step(
+            32'd32, 32'd32, 32'h0000_0100,
+            16'd2, 16'd1, 16'd2, 5'd0,
+            32'd0, 32'hFFFF_FFFF, 32'h0FFF_00FF,
+            32'd0, 32'd0, 16'd4,
+            1'b1, 1'b1, 32'd32, 5'd0, 1'b1,
+            32'h0000_000F, 32'd0, 32'h0000_000F,
+            32'd36, 32'd32, 16'd1, 16'd1, 5'd1, 1'b0,
+            "PFILL primary x=8 restarts at PATTERN bit zero"
+        );
+        check_pfill_step(
+            32'd0, 32'd0, 32'h0000_0040,
+            16'd2, 16'd1, 16'd2, 5'd0,
+            32'h1111_1111, 32'hEEEE_EEEE, 32'd0,
+            32'h0000_000A, 32'h0000_000F, 16'd4,
+            1'b1, 1'b1, 32'd0, 5'd0, 1'b0,
+            32'h0000_0001, 32'h0000_000A, 32'h0000_000B,
+            32'd4, 32'd0, 16'd1, 16'd1, 5'd1, 1'b0,
+            "PFILL zero pattern selects COLOR0 through PMASK"
+        );
+        check_pfill_step(
+            32'h0000_0158, 32'h0000_0148, 32'h0000_0040,
+            16'd1, 16'd2, 16'd3, 5'd3,
+            32'h1111_1111, 32'hEEEE_EEEE, 32'h0000_0008,
+            32'd0, 32'd0, 16'd8,
+            1'b1, 1'b1, 32'h0000_0158, 5'd3, 1'b1,
+            32'h0000_00EE, 32'd0, 32'h0000_00EE,
+            32'h0000_0188, 32'h0000_0188, 16'd3, 16'd1, 5'd1,
+            1'b0,
+            "PFILL row boundary derives the following row pattern offset"
+        );
+        check_pfill_step(
+            32'h0000_0158, 32'h0000_0148, 32'h0000_0040,
+            16'd1, 16'd1, 16'd3, 5'd3,
+            32'h1111_1111, 32'hEEEE_EEEE, 32'h0000_0008,
+            32'd0, 32'd0, 16'd8,
+            1'b1, 1'b1, 32'h0000_0158, 5'd3, 1'b1,
+            32'h0000_00EE, 32'd0, 32'h0000_00EE,
+            32'h0000_0188, 32'h0000_0188, 16'd0, 16'd0, 5'd1,
+            1'b1,
+            "PFILL final pixel points to the following row"
+        );
+        check_pfill_step(
+            32'h0000_0200, 32'h0000_0200, 32'h0000_0040,
+            16'd4, 16'd1, 16'd3, 5'd0,
+            32'd0, 32'd0, 32'd0, 32'd0, 32'd0, 16'd8,
+            1'b0, 1'b1, 32'h0000_0200, 5'd0, 1'b0,
+            32'd0, 32'd0, 32'd0,
+            32'h0000_0200, 32'h0000_0200, 16'd4, 16'd1, 5'd0,
+            1'b0,
+            "PFILL rejects inconsistent column state"
+        );
+        for (find_size_loop = 1; find_size_loop <= 32;
+             find_size_loop = find_size_loop * 2) begin
+            find_loop_mask =
+                32'hFFFF_FFFF >> (32 - find_size_loop);
+            find_loop_value = 32'hA5A5_5A5B & find_loop_mask;
+            for (find_lane_loop = 0; find_lane_loop < 32;
+                 find_lane_loop = find_lane_loop + find_size_loop) begin
+                check_pfill_step(
+                    32'h0000_0400 + find_lane_loop,
+                    32'h0000_0400 + find_lane_loop,
+                    32'h0000_0080,
+                    16'd2, 16'd1, 16'd2, 5'd0,
+                    32'd0,
+                    find_loop_value << find_lane_loop,
+                    32'd1, 32'd0, 32'd0,
+                    find_size_loop[15:0],
+                    1'b1, 1'b1,
+                    32'h0000_0400 + find_lane_loop,
+                    5'd0, 1'b1,
+                    find_loop_value, 32'd0, find_loop_value,
+                    32'h0000_0400 + find_lane_loop + find_size_loop,
+                    32'h0000_0400 + find_lane_loop,
+                    16'd1, 16'd1, 5'd1, 1'b0,
+                    "PFILL every legal PSIZE and long-word lane"
                 );
             end
         end
@@ -6049,6 +6283,11 @@ module tb_tms34020_verified_leaves;
             16'h0FE0, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "FILL.XY cannot bypass conversion/array/window ownership"
+        );
+        check_register_execute(
+            16'h0A37, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "PFILL.XY cannot bypass pattern/array/memory ownership"
         );
         check_register_execute(
             16'hDE1A, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
@@ -7843,6 +8082,8 @@ module tb_tms34020_verified_leaves;
                      "FILL.L exact decode");
         check_decode(16'h0FE0, TMS20_OP_FILL_XY, 3'd1,
                      "FILL.XY exact decode");
+        check_decode(16'h0A37, TMS20_OP_PFILL_XY, 3'd1,
+                     "PFILL.XY exact decode");
         check_decode(16'hDE1A, TMS20_OP_FLINE, 3'd1,
                      "FLINE algorithm zero decode");
         check_decode(16'hDE9A, TMS20_OP_FLINE, 3'd1,
@@ -8000,6 +8241,14 @@ module tb_tms34020_verified_leaves;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
                "FILL.XY neighbor must remain unclassified");
+        decode_word = 16'h0A36;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "PFILL.XY lower neighbor must remain unclassified");
+        decode_word = 16'h0A38;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "PFILL.XY upper neighbor must remain unclassified");
         decode_word = 16'h061F;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,

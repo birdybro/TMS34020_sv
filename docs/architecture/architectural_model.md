@@ -36,7 +36,7 @@ Implemented:
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
-  CEXEC.S, CLIP, DRAV, FILL.L, FILL.XY, FLINE, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
+  CEXEC.S, CLIP, DRAV, FILL.L, FILL.XY, PFILL.XY, FLINE, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
   CMOVMC.POST.C, CMOVCM.POST.C, CMOVCM.PRE.C, CMOVMC.POST.R,
   CMOVMC.PRE.C,
   XORI,
@@ -44,7 +44,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LINIT, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 147 of 148 currently extracted database forms for their
+These handlers cover 148 of 149 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -478,6 +478,22 @@ active windows, physical long-word grouping, hidden writes, page/wait/fault/
 retry behavior and word/row continuation remain absent. Sources: User's Guide
 DADDR/DPTCH/DYDX pp.4-30..4-34 and 4-50..4-51, FILL pp.13-114..13-120,
 array interruption pp.6-13..6-14 and timing p.15-5; RSC-0045/RSC-0046.
+
+PFILL.XY extends the bounded W=0 array path with cyclic B13/PATTERN selection
+between aligned B8/COLOR0 and B9/COLOR1 pixels. The initial pattern index is
+the converted destination pixel's position within its 32-bit long word; each
+pixel advances the index modulo 32 and each row rederives it from the row
+start. The model converts B2 once through CONVDP, DPTCH, PSIZE and B4/OFFSET,
+requires a power-of-two DPTCH for defined nonempty multirow patterns, and
+leaves nonempty B2 at the linear start of the following row. Tests cover the
+primary 96-pixel repeat and x=0/1/7/8 alignment examples, every legal
+PSIZE/lane/COLOR/PATTERN/PMASK selection, row traversal, zero dimensions,
+state preservation and atomic guard rollback. The 65,536-pixel bound and all
+FILL physical exclusions apply. B14/POFFSET is named as a hardware temporary,
+but its visible completion value is not documented; the model preserves it
+and does not claim silicon parity for that field. Sources: User's Guide
+DADDR/DPTCH/OFFSET/PATTERN pp.4-30..4-34 and 4-73..4-74, PFILL overview
+pp.12-15..12-16, PFILL pp.13-184..13-189, timing p.15-5, and RSC-0046/RSC-0047.
 
 The four XY-to-linear handlers share equation-level arithmetic but retain
 their distinct explicit and implied operands. Signed X/Y halves and signed
@@ -945,6 +961,10 @@ status preservation and atomic unsupported-mode rollback,
 FILL.L/FILL.XY primary replace arrays, every PSIZE/lane/PMASK, row traversal,
 zero dimensions, final linear B2, full ST preservation, the atomic pixel bound,
 and unsupported-mode/alignment rollback,
+PFILL.XY's primary 96-pixel cyclic pattern and x=0/1/7/8 starts, every legal
+PSIZE/lane/COLOR/PATTERN/PMASK selection, multirow traversal, zero dimensions,
+final linear B2, B7/B13/B14/ST preservation, bounded execution and atomic
+undefined-pitch/unsupported-mode rollback,
 all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
 coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and the
 published state cases plus provisional CVXYL arbitrary-pitch selection,

@@ -4,6 +4,16 @@
 
 ### Added
 
+- Primary-page-extracted exact TMS34020-only `0A37h` PFILL.XY, including the
+  destination-long-word pattern start, cyclic PATTERN selection of aligned
+  COLOR0/COLOR1, XY conversion, power-of-two multirow pitch requirement,
+  window/status classification and complex timing. The independent model
+  implements bounded W0 replace/no-transparency/CST=0 logical arrays; a
+  clean-room RTL leaf implements one normalized pattern/pixel/traversal step.
+- RSC-0047 resolves PFILL's incomplete implied-operand tables from dedicated
+  register and graphics sections. RSC-0046 now also covers PFILL's
+  V-unaffected/window contradiction, while OQ-0030 keeps B14/POFFSET's visible
+  postcondition and exact continuation checkpoint open.
 - Primary-page-extracted exact `0FC0h` FILL.L and `0FE0h` FILL.XY, including
   unsigned DYDX dimensions, zero-transfer behavior, linear/XY starts, row
   pitch, final linear DADDR, COLOR1/PMASK, windows, complex timing, word/row
@@ -678,6 +688,23 @@
 
 ### Verified
 
+- The 149-entry ISA database classifies 48,739 first words through 83 ISA
+  tests; the 110-entry delta ledger passes schema checks. The 248-test model
+  suite covers PFILL's primary 96-pixel repeat and x=0/1/7/8 starts, every
+  legal PSIZE/lane/COLOR/PATTERN/PMASK, row traversal, zero dimensions, final
+  linear B2, state preservation, the atomic bound and guarded rollback. Active
+  windows/PPOP/transparency/CST, B14 parity and physical timing remain absent.
+- The normalized PFILL leaf passes standalone warning-free lint and shared
+  exhaustive simulation, including pattern/color/mask selection, row/final
+  transitions, all PSIZE/lanes, exact opcode/neighbors and scalar noncommit.
+  This is not XY conversion, a loop, memory owner, commit, continuation or
+  cycle accuracy.
+- Five warning-free Cyclone V Analysis & Synthesis smokes report 15,534 logic
+  cells/2,230 registers/9 DSPs for the observability-heavy PFILL-expanded leaf
+  wrapper, 375/200/4,096 RAM bits for cache, 528/177 for fetch,
+  903/375/4,096 RAM bits for frontend, and 5,500/1,416/4,096 RAM bits for the
+  bounded scalar composition. These remain slice-only analysis metrics, not
+  core area, fit, TimeQuest, or timing closure.
 - The 148-entry ISA database classifies 48,738 first words through 82 ISA
   tests; the 109-entry delta ledger passes schema checks. The 243-test model
   suite covers both primary FILL replace arrays, every legal PSIZE/lane/PMASK,
@@ -1769,6 +1796,11 @@ qualification.
 
 ### Known Issues
 
+- OQ-0030 records that PFILL.XY names B14/POFFSET as a hardware temporary but
+  does not document its visible completion value or exact interrupt/fault
+  checkpoint. The bounded model preserves B14 and the normalized RTL leaf owns
+  no architectural register commit; neither behavior is a silicon-parity
+  claim.
 - OQ-0029 records that the guide defines zero DYDX dimensions as a no-transfer
   block but does not specify CLIP's Z/V result for that input. Model and RTL
   architectural entry reject zero dimensions until stronger evidence exists.

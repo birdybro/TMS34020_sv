@@ -54,6 +54,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_ar
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_find_pixel_step.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_drav_step.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_fill_step.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_pfill_step.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_fline_step.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/graphics/tms34020_xy_to_linear.sv
 set_global_assignment -name SYSTEMVERILOG_FILE tms34020_leaf_synth_top.sv

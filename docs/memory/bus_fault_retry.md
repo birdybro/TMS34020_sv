@@ -167,6 +167,13 @@ contains the final logical pixel and old/increment/new XY values only; it does
 not describe physical read/modify/write acceptance, SIZE16 beats or BUSFLT
 sampling.
 
+PFILL's atomic logical pattern-pixel list and final B2 update are likewise not
+fault/retry evidence. A physical owner must checkpoint PATTERN index, accepted
+destination words, rows and any B14/POFFSET temporary, and prove that retry
+cannot select a color twice, skip a pattern bit, duplicate a partial write or
+advance B2 twice. The current `pfill_xy_replace` trace is logical only and
+contains no 32/16-bit grouping, page acceptance, strobes or BUSFLT sampling.
+
 FILL's atomic logical pixel list and final B2 update are not bus-fault or retry
 evidence. A physical owner must checkpoint accepted destination words and row
 state, drain or cancel hidden writes correctly, and prove that retry cannot

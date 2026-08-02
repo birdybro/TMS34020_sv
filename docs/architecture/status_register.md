@@ -224,6 +224,13 @@ instruction-page status table says V is unaffected. RSC-0046 records the
 resolution; those active modes are not implemented. Sources: User's Guide
 pixel-array windows pp.12-21..12-23 and FILL pp.13-114..13-120.
 
+PFILL.XY preserves every ST bit with W=0 in the bounded model. Its instruction
+page says V is unaffected even while saying window checking is supported; the
+general pixel-array window rules define V for W=1/2/3. RSC-0046 extends the
+same controlling-rule resolution used for FILL.XY. Active PFILL windows are
+not implemented. Sources: User's Guide pixel-array windows pp.12-21..12-23,
+PFILL overview pp.12-15..12-16 and PFILL pp.13-184..13-189.
+
 CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
 The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide

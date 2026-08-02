@@ -1096,6 +1096,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 DADDR/DPTCH/DYDX printed pp.4-30..4-34 and 4-50..4-51", "TI-TMS34020-UG-1990 array/window rules printed pp.12-8..12-9 and 12-19..12-23", "TI-TMS34020-UG-1990 FILL L/FILL XY printed pp.13-114..13-120", "TI-TMS34020-UG-1990 timing printed p.15-5", "TI-TMS34010-UG-1988 FILL L/FILL XY printed pp.12-80..12-87"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["The model/RTL cover W=0 replace/no-transparency/CST=0 only; physical grouping, hidden-write overlap, page/wait/fault/retry and continuation remain unimplemented.", "RSC-0045 resolves the stale CONTROL address and RSC-0046 resolves the FILL.XY V-status conflict for future active-window behavior."]
+    },
+    {
+      "feature": "horizontal_pattern_fill",
+      "tms34010_behavior": "No PFILL instruction exists.",
+      "tms34020_behavior": "Exact opcode 0A37h converts an XY destination once, fills rows with a cyclic 32-bit PATTERN selecting aligned COLOR0/COLOR1 pixels, supports PPOP/window/transparency/PMASK and 1/2/4/8/16/32-bit pixels, requires power-of-two DPTCH for a defined multirow pattern, and has complex timing.",
+      "rtl_impact": "Add a TMS34020-only pattern-array owner with XY conversion, starting pattern-index derivation, COLOR0/COLOR1 selection, row traversal, B14/continuation handling, window/PPOP/transparency, 32/16-bit grouping, page/fault/retry and hidden-write retirement. The clean-room leaf is limited to one normalized W0 replace-mode pixel/traversal step.",
+      "test_impact": "Exact opcode/neighbors; primary x=0/1/7/8 alignment cases; 32-bit cyclic wrap; all PSIZE/lane/PATTERN/COLOR/PMASK combinations; zero/multirow/final DADDR; power-of-two versus undefined pitch; window/V/common rectangle; PPOP/transparency/CST; 16/32-bit grouping; waits/page/fault/retry/interrupt continuation; B14 visible postcondition when evidence exists.",
+      "source_citation": ["TI-TMS34020-UG-1990 DADDR/DPTCH/OFFSET/PATTERN printed pp.4-30..4-34 and 4-73..4-74", "TI-TMS34020-UG-1990 pixel arrays/PFILL printed pp.12-8..12-9 and 12-15..12-16", "TI-TMS34020-UG-1990 PFILL XY printed pp.13-184..13-189", "TI-TMS34020-UG-1990 new-instruction list and timing printed pp.13-30 and 15-5"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["The PFILL page omits OFFSET/CONVDP, COLOR0/COLOR1, W and CST from its implied tables even though dedicated register/graphics sections require them; RSC-0047 records the cross-reference resolution.", "The visible B14 POFFSET completion value and exact interrupt checkpoint are not documented and remain unimplemented."]
     }
   ]
 }
