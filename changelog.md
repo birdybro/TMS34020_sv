@@ -1536,6 +1536,9 @@ qualification.
 
 ### Documentation
 
+- Recorded bounded FILL.L/FILL.XY semantics, primary-example, regression, and
+  synthesis evidence, plus explicit active-window and physical-sequencing
+  limits at commit `5169ade24edd7d84aeb256c762eee86d534e1ff8`.
 - Recorded bounded DRAV semantics, the corrected complete timing matrix,
   regression and synthesis evidence, and explicit physical-sequencing limits
   at commit `0019883de207b8eee54f45d650385205c15642cf`.
