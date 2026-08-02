@@ -1511,6 +1511,9 @@ qualification.
 
 ### Documentation
 
+- Recorded bounded DRAV semantics, the corrected complete timing matrix,
+  regression and synthesis evidence, and explicit physical-sequencing limits
+  at commit `0019883de207b8eee54f45d650385205c15642cf`.
 - Recorded bounded FLINE semantics, tests, synthesis evidence, and explicit
   physical-sequencing limitations at commit
   `2b02ddd90bf7ebcaa3832e49f8b15689cfba0235`.
