@@ -4,6 +4,17 @@
 
 ### Added
 
+- Primary-page-extracted `MOVE *Rs(offset),*Rd+[,F]` as internal
+  MOVE.MM.SOFF_POST at D000h/FC00h, covering 1,024 first words, signed source
+  displacement, original destination address, post-write destination update,
+  unchanged ST, all A–H timing cases, and compatible TMS34010 semantics.
+- Little-endian architectural mixed-address field-copy traces with exhaustive
+  bank/width/source/destination geometry, every alignment pair, signed
+  immediate boundaries, A/B/SP alias, overlap, destination wrap, and atomic
+  BEN rejection.
+- A clean-room source-offset/destination-postincrement address leaf whose RTL
+  test covers all 65,536 signed displacements, all field-size encodings, alias,
+  and wrap.
 - Primary-page-extracted signed-offset MOVE.RM/MR/MM forms at B000h/B400h/
   B800h, covering 3,072 first words, source/destination extension-word order,
   modulo-2^32 bit-address addition, unchanged bases, status effects, five-case
@@ -511,6 +522,17 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis reports 12,843 leaf logic
+  cells/2,230 registers/9 DSP, 451 fetch logic cells, 829 frontend logic cells,
+  and 5,399 scalar logic cells for the 117-entry decoder/mixed-address
+  revision. The frontend/scalar probes retain 4,096 block-memory bits. These
+  are observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
+- The 58-case ISA suite, 79-entry delta ledger, complete 199-case model
+  regression, and decoder/leaf RTL suite pass. Exact D000h/D3FFh
+  boundaries, all signed-16 source offsets, every field-size encoding, complete
+  little-endian field geometry, all 25 timing pairs, alias/overlap/wrap and BEN
+  rollback are covered.
 - Warning-free Cyclone V Analysis & Synthesis reports 12,826 leaf logic
   cells/2,230 registers/9 DSP, 453 fetch logic cells, 806 frontend logic cells,
   and 5,365 scalar logic cells for the 116-entry decoder/signed-offset revision.
@@ -1189,6 +1211,9 @@
 
 ### Documentation
 
+- Documented the source-offset/destination-postincrement compatibility boundary
+  separately from TMS34020-owned 32-bit A–H timing, BEN, dynamic-width, hidden-
+  write, page, interrupt and fault/retry realization.
 - Recorded the verified signed-offset field-move implementation baseline as
   commit `a8199e2c7648ee776af17c8ad4212a748478bc17` in the progress ledger.
 - Documented the three signed-offset MOVE compatibility boundaries separately

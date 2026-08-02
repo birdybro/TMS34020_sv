@@ -127,6 +127,10 @@ module tms34020_leaf_synth_top (
     logic [31:0] field_pair_pre_source_updated;
     logic [31:0] field_pair_pre_destination_final;
     logic [31:0] field_offset_effective;
+    logic [5:0] field_source_offset_post_size;
+    logic [31:0] field_source_offset_post_source_effective;
+    logic [31:0] field_source_offset_post_destination_effective;
+    logic [31:0] field_source_offset_post_destination_final;
     logic [5:0] field_load_size;
     logic [2:0] field_load_alignment_case;
     logic field_load_reads_word1;
@@ -216,6 +220,10 @@ module tms34020_leaf_synth_top (
         field_pair_pre_source_updated ^
         field_pair_pre_destination_final ^
         field_offset_effective ^
+        {26'd0, field_source_offset_post_size} ^
+        field_source_offset_post_source_effective ^
+        field_source_offset_post_destination_effective ^
+        field_source_offset_post_destination_final ^
         field_load_raw ^
         field_load_result ^
         field_move_value ^
@@ -536,6 +544,25 @@ module tms34020_leaf_synth_top (
         .base_address_i(second_register_data),
         .signed_offset_i(operand_i[15:0]),
         .effective_address_o(field_offset_effective)
+    );
+
+    tms34020_field_source_offset_postincrement field_source_offset_post (
+        .field_size_encoded_i(
+            first_word_i[9] ? status_value[10:6] : status_value[4:0]
+        ),
+        .source_base_i(second_register_data),
+        .signed_source_offset_i(immediate_i[15:0]),
+        .destination_pointer_i(operand_i),
+        .field_size_o(field_source_offset_post_size),
+        .source_effective_address_o(
+            field_source_offset_post_source_effective
+        ),
+        .destination_effective_address_o(
+            field_source_offset_post_destination_effective
+        ),
+        .destination_final_pointer_o(
+            field_source_offset_post_destination_final
+        )
     );
 
     tms34020_field_load field_load (

@@ -23,7 +23,7 @@ Implemented:
   PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM,
   MOVE.RM.POST, MOVE.RM.PRE, MOVE.RM.OFFSET, MOVE.MR, MOVE.MR.POST,
   MOVE.MR.PRE, MOVE.MR.OFFSET, MOVE.MM,
-  MOVE.MM.POST, MOVE.MM.PRE, MOVE.MM.OFFSET,
+  MOVE.MM.POST, MOVE.MM.PRE, MOVE.MM.OFFSET, MOVE.MM.SOFF_POST,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -36,7 +36,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 115 of 116 currently extracted database forms for their
+These handlers cover 116 of 117 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -164,6 +164,18 @@ five-case table values, not physical bus-cycle evidence. Sources: User's Guide
 printed pp.13-14, 13-160..13-163 and 15-10..15-12; compatible forms:
 TMS34010 User's Guide printed pp.12-132..12-133, 12-147..12-148 and
 12-151..12-152.
+
+`MOVE.MM.SOFF_POST` names `MOVE *Rs(offset),*Rd+[,F]` at `D000h`. It reads
+the complete field from original `Rs + sign_extend(offset)`, writes it at the
+original Rd bit address, and only then advances Rd by the field size. When the
+registers alias, the shared original value supplies both bases and the final
+shared value is original plus one field size. The model exhausts both field
+banks, all source/destination geometry and A–H timing pairs, signed-offset
+boundaries, overlap, A/B/SP aliases, destination wrap, unchanged ST, exact
+logical traces and BEN rollback. This is instruction-boundary ordering, not a
+physical write/increment retirement or fault/retry checkpoint. Sources:
+User's Guide printed pp.13-14, 13-162, 13-166 and 15-12; compatible form:
+TMS34010 User's Guide printed pp.12-149..12-150.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

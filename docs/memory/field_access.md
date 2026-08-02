@@ -212,6 +212,19 @@ Guide printed pp.13-14, 13-160..13-163 and 15-10..15-12; compatible forms:
 TMS34010 User's Guide printed pp.12-132..12-133, 12-147..12-148 and
 12-151..12-152.
 
+`MOVE *Rs(offset),*Rd+[,F]` (`D000h`/`FC00h`) consumes one signed source
+offset, reads at original `Rs + sign_extend(offset)`, writes at original Rd,
+and increments Rd after the move. Source cases expose 5/5/6/6/6 visible states
+and destination cases add 1/2/2/3/4 hidden writes. When Rs=Rd, both addresses
+derive from the original shared value and the final shared pointer is original
+plus the selected field size. Model tests exhaust both banks, every width and
+source/destination alignment pair, signed extremes, alias, overlap, wrap,
+unchanged ST and BEN rollback. The clean-room mixed-address leaf independently
+covers every signed displacement and field-size encoding. Physical retirement
+and bus behavior remain outside these leaves. Sources: User's Guide printed
+pp.13-14, 13-162, 13-166 and 15-12; compatible form: TMS34010 User's Guide
+printed pp.12-149..12-150.
+
 ## Locked-cycle requirements
 
 The write immediately follows the read and instruction completion waits for
@@ -224,8 +237,7 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE absolute forms and the source-offset/destination-
-postincrement form,
+Remaining ordinary MOVE absolute forms,
 BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain

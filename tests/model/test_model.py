@@ -2373,6 +2373,230 @@ class ExecutionTests(unittest.TestCase):
                                 event.transactions[-1]["value"], value
                             )
 
+    def test_move_source_offset_destination_postincrement_exhaustive(
+        self,
+    ) -> None:
+        source_window = 0xC33C_F00F_A5A5_5A5A
+        destination_window = 0x6996_3CC3_5AA5_C33C
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for width in range(1, 33):
+                for source_bit_offset in range(32):
+                    for destination_bit_offset in range(32):
+                        with self.subTest(
+                            bank=field_bank,
+                            width=width,
+                            source_offset=source_bit_offset,
+                            destination_offset=destination_bit_offset,
+                        ):
+                            model = Tms34020Model(isa=shared_isa)
+                            opcode = 0xD001 | (field_bank << 9)
+                            model.load_program([opcode, 0xFFE0])
+                            source_base = 0x2020 + source_bit_offset
+                            destination_base = (
+                                0x3000 + destination_bit_offset
+                            )
+                            model.state.write_reg("A", 0, source_base)
+                            model.state.write_reg("A", 1, destination_base)
+                            encoded_width = 0 if width == 32 else width
+                            model.state.st = (
+                                0xD020_1000
+                                | (encoded_width << (field_bank * 6))
+                            )
+                            status_before = model.state.st
+                            model.state.memory.write_bits(
+                                0x2000,
+                                32,
+                                source_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x2020, 32, source_window >> 32
+                            )
+                            model.state.memory.write_bits(
+                                0x3000,
+                                32,
+                                destination_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x3020, 32, destination_window >> 32
+                            )
+
+                            event = model.step()
+
+                            field_mask = (
+                                0xFFFF_FFFF
+                                if width == 32
+                                else (1 << width) - 1
+                            )
+                            value = (
+                                source_window >> source_bit_offset
+                            ) & field_mask
+                            positioned_mask = (
+                                field_mask << destination_bit_offset
+                            )
+                            expected_destination = (
+                                (destination_window & ~positioned_mask)
+                                | (value << destination_bit_offset)
+                            ) & 0xFFFF_FFFF_FFFF_FFFF
+
+                            def alignment_case(offset: int) -> int:
+                                crosses = offset + width > 32
+                                start_byte = offset % 8 == 0
+                                end_byte = (offset + width) % 8 == 0
+                                if not crosses:
+                                    return (
+                                        1
+                                        if start_byte and end_byte
+                                        else 2
+                                    )
+                                if start_byte and end_byte:
+                                    return 3
+                                if start_byte or end_byte:
+                                    return 4
+                                return 5
+
+                            source_case = alignment_case(source_bit_offset)
+                            destination_case = alignment_case(
+                                destination_bit_offset
+                            )
+                            hidden_states = (0, 1, 2, 2, 3, 4)[
+                                destination_case
+                            ]
+                            actual_destination = (
+                                model.state.memory.read_bits(0x3000, 32)
+                                | (
+                                    model.state.memory.read_bits(0x3020, 32)
+                                    << 32
+                                )
+                            )
+                            self.assertEqual(
+                                event.mnemonic, "MOVE.MM.SOFF_POST"
+                            )
+                            self.assertEqual(
+                                event.machine_states,
+                                5 if source_case <= 2 else 6,
+                            )
+                            self.assertEqual(model.state.st, status_before)
+                            self.assertEqual(
+                                model.state.read_reg("A", 0), source_base
+                            )
+                            self.assertEqual(
+                                model.state.read_reg("A", 1),
+                                (destination_base + width) & 0xFFFF_FFFF,
+                            )
+                            self.assertEqual(
+                                actual_destination, expected_destination
+                            )
+                            self.assertEqual(
+                                model.state.pending_write_states,
+                                hidden_states,
+                            )
+                            self.assertEqual(
+                                event.transactions[-2]["base_address"],
+                                source_base,
+                            )
+                            self.assertEqual(
+                                event.transactions[-2]["signed_offset"], -32
+                            )
+                            self.assertEqual(
+                                event.transactions[-2]["bit_address"],
+                                0x2000 + source_bit_offset,
+                            )
+                            self.assertEqual(
+                                event.transactions[-1]["pointer_before"],
+                                destination_base,
+                            )
+                            self.assertEqual(
+                                event.transactions[-1]["pointer_after"],
+                                (destination_base + width) & 0xFFFF_FFFF,
+                            )
+                            self.assertEqual(
+                                event.transactions[-1]["bit_address"],
+                                destination_base,
+                            )
+                            self.assertEqual(
+                                event.transactions[-1]["value"], value
+                            )
+
+    def test_move_source_offset_destination_postincrement_boundaries(
+        self,
+    ) -> None:
+        for offset_word, signed_offset in (
+            (0x0000, 0),
+            (0x0001, 1),
+            (0x7FFF, 32767),
+            (0x8000, -32768),
+            (0xFFFF, -1),
+        ):
+            with self.subTest(offset=offset_word):
+                model = Tms34020Model()
+                model.load_program([0xD001, offset_word], bit_address=0x100)
+                source_base = 0x0001_0000
+                destination_base = 0x0002_0000
+                effective_source = (
+                    source_base + signed_offset
+                ) & 0xFFFF_FFFF
+                model.state.write_reg("A", 0, source_base)
+                model.state.write_reg("A", 1, destination_base)
+                model.state.st = 8
+                model.state.memory.write_bits(
+                    effective_source, 8, offset_word & 0xFF
+                )
+                model.step()
+                self.assertEqual(
+                    model.state.memory.read_bits(destination_base, 8),
+                    offset_word & 0xFF,
+                )
+                self.assertEqual(model.state.read_reg("A", 0), source_base)
+                self.assertEqual(
+                    model.state.read_reg("A", 1), destination_base + 8
+                )
+
+        alias = Tms34020Model()
+        alias.load_program([0xD000, 0x0020], bit_address=0x100)
+        alias.state.write_reg("A", 0, 0x4000)
+        alias.state.st = 8
+        alias.state.memory.write_bits(0x4020, 8, 0xA5)
+        alias.step()
+        self.assertEqual(alias.state.memory.read_bits(0x4000, 8), 0xA5)
+        self.assertEqual(alias.state.read_reg("A", 0), 0x4008)
+
+        b_file = Tms34020Model()
+        b_file.load_program([0xD011, 0x0000], bit_address=0x100)
+        b_file.state.write_reg("B", 0, 0x5000)
+        b_file.state.write_reg("B", 1, 0x6000)
+        b_file.state.st = 8
+        b_file.state.memory.write_bits(0x5000, 8, 0x5A)
+        b_file.step()
+        self.assertEqual(b_file.state.memory.read_bits(0x6000, 8), 0x5A)
+        self.assertEqual(b_file.state.read_reg("B", 0), 0x5000)
+        self.assertEqual(b_file.state.read_reg("B", 1), 0x6008)
+
+        shared_sp = Tms34020Model()
+        shared_sp.load_program([0xD00F, 0x0000], bit_address=0x100)
+        shared_sp.state.write_reg("A", 0, 0x5000)
+        shared_sp.state.sp = 0x6000
+        shared_sp.state.st = 8
+        shared_sp.state.memory.write_bits(0x5000, 8, 0x3C)
+        shared_sp.step()
+        self.assertEqual(shared_sp.state.memory.read_bits(0x6000, 8), 0x3C)
+        self.assertEqual(shared_sp.state.read_reg("A", 0), 0x5000)
+        self.assertEqual(shared_sp.state.sp, 0x6008)
+
+        wrapped = Tms34020Model()
+        wrapped.load_program([0xD001, 0x0000], bit_address=0x100)
+        wrapped.state.write_reg("A", 0, 0x2000)
+        wrapped.state.write_reg("A", 1, 0xFFFF_FFF0)
+        wrapped.state.st = 32
+        wrapped.state.memory.write_bits(0x2000, 32, 0x1234_5678)
+        wrapped.step()
+        self.assertEqual(wrapped.state.read_reg("A", 0), 0x2000)
+        self.assertEqual(wrapped.state.read_reg("A", 1), 0x0000_0010)
+        self.assertEqual(
+            wrapped.state.memory.read_bits(0xFFFF_FFF0, 32),
+            0x1234_5678,
+        )
+
     def test_move_offset_boundaries_alias_wrap_and_ben(self) -> None:
         for offset_word, signed_offset in (
             (0x0000, 0),
@@ -2427,6 +2651,7 @@ class ExecutionTests(unittest.TestCase):
             [0xB001, 0x0000],
             [0xB401, 0x0000],
             [0xB801, 0x0000, 0x0000],
+            [0xD001, 0x0000],
         ):
             with self.subTest(opcode=words[0]):
                 rejected = Tms34020Model()

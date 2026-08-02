@@ -137,6 +137,9 @@ class Tms34020Model:
                 self._execute_move_memory_to_memory_predecrement
             ),
             "MOVE.MM.OFFSET": self._execute_move_memory_to_memory_offset,
+            "MOVE.MM.SOFF_POST": (
+                self._execute_move_memory_to_memory_source_offset_postincrement
+            ),
             "MOVE.MR": self._execute_move_memory_to_register,
             "MOVE.MR.POST": (
                 self._execute_move_memory_to_register_postincrement
@@ -1842,6 +1845,14 @@ class Tms34020Model:
         del instruction
         return self._execute_move_memory_to_memory_common(words, "offset")
 
+    def _execute_move_memory_to_memory_source_offset_postincrement(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_memory_to_memory_common(
+            words, "source_offset_destination_postincrement"
+        )
+
     def _execute_move_memory_to_memory_common(
         self, words: list[int], address_mode: str
     ) -> int:
@@ -1900,6 +1911,14 @@ class Tms34020Model:
             effective_destination_address = (
                 destination_address + destination_offset
             ) & MASK32
+        elif address_mode == "source_offset_destination_postincrement":
+            source_offset = self._signed_half(words[1])
+            effective_source_address = (
+                source_address + source_offset
+            ) & MASK32
+            destination_pointer_after = (
+                destination_address + width
+            ) & MASK32
         value = self.state.memory.read_bits(effective_source_address, width)
         source_case = self._field_alignment_case(
             effective_source_address, width
@@ -1909,7 +1928,10 @@ class Tms34020Model:
         )
         machine_states = (3 if source_case <= 2 else 4) + (
             2
-            if address_mode == "offset"
+            if address_mode in (
+                "offset",
+                "source_offset_destination_postincrement",
+            )
             else int(address_mode == "predecrement")
         )
         hidden_states = (0, 1, 2, 2, 3, 4)[destination_case]
@@ -1920,6 +1942,10 @@ class Tms34020Model:
             self.state.write_reg(
                 register_file, source_index, source_pointer_after
             )
+            self.state.write_reg(
+                register_file, destination_index, destination_pointer_after
+            )
+        elif address_mode == "source_offset_destination_postincrement":
             self.state.write_reg(
                 register_file, destination_index, destination_pointer_after
             )
@@ -1976,6 +2002,22 @@ class Tms34020Model:
                     "signed_offset": destination_offset,
                 }
             )
+        elif address_mode == "source_offset_destination_postincrement":
+            read_transaction.update(
+                {
+                    "base_address": source_address,
+                    "signed_offset": source_offset,
+                }
+            )
+            write_transaction.update(
+                {
+                    "pointer_before": destination_address,
+                    "pointer_after": destination_pointer_after,
+                    "same_register_final_destination_update": int(
+                        same_register
+                    ),
+                }
+            )
         self._active_trace.transactions.extend(
             [read_transaction, write_transaction]
         )
@@ -1995,7 +2037,13 @@ class Tms34020Model:
                         " with independent signed 16-bit source/destination "
                         "offsets and unmodified base registers"
                         if address_mode == "offset"
-                        else ""
+                        else (
+                            " with a signed source offset and destination "
+                            "postincrement after the write"
+                            if address_mode
+                            == "source_offset_destination_postincrement"
+                            else ""
+                        )
                     )
                 )
             )

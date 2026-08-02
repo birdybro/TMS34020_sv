@@ -786,6 +786,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-14", "TI-TMS34020-UG-1990 paired signed-offset MOVE, printed p.13-162", "TI-TMS34020-UG-1990 memory-to-memory timing, printed p.15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-151..12-152"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact two-extension fetch and read/write retirement relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "source_offset_destination_postincrement_field_move",
+      "tms34010_behavior": "MOVE *Rs(offset),*Rd+[,F] uses D000h/FC00h plus a signed 16-bit bit displacement. It captures the selected field at Rs+offset modulo 2^32, writes it at the original Rd address, increments Rd by the field size after the move, and preserves ST.",
+      "tms34020_behavior": "The encoding, effective-source arithmetic, original destination address, postincrement and status contract remain compatible. The TMS34020 exposes 5/5/6/6/6 visible states by source case and 1/2/2/3/4 hidden writes by destination case.",
+      "rtl_impact": "Reuse signed-offset, read-before-write, field-copy and destination-add semantics only. A TMS34020-owned sequencer must fetch the extension, capture original source/destination bases including Rs=Rd, map BEN, sequence dynamic 32/16-bit reads and byte-strobed/RMW writes, increment the destination exactly once after a successful move, retain hidden-write state, and avoid retry duplication. Current address/copy leaves remain noncommitting.",
+      "test_impact": "All 1,024 first words; signed-offset boundaries and wrap; both FS banks; every width/source/destination alignment and all 25 timing pairs; A/B/SP and Rs=Rd original-base/final-increment ordering; overlap; unchanged ST; BEN; 16/32-bit beats; pages; waits; faults/retries; interrupts and I/O routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-14", "TI-TMS34020-UG-1990 source-offset/destination-postincrement MOVE, printed p.13-162", "TI-TMS34020-UG-1990 source-offset examples, printed p.13-166", "TI-TMS34020-UG-1990 memory-to-memory timing, printed p.15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-149..12-150"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact extension fetch, read/write and destination-increment retirement relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

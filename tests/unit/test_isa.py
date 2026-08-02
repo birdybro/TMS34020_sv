@@ -322,6 +322,8 @@ class IsaTests(unittest.TestCase):
             0xB7FF: ("MOVE.MR.OFFSET", 2),
             0xB800: ("MOVE.MM.OFFSET", 3),
             0xBBFF: ("MOVE.MM.OFFSET", 3),
+            0xD000: ("MOVE.MM.SOFF_POST", 2),
+            0xD3FF: ("MOVE.MM.SOFF_POST", 2),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -340,7 +342,7 @@ class IsaTests(unittest.TestCase):
                      0x0272, 0x0274, 0x02FA, 0x02FC, 0x0301, 0x0321,
                      0x0361, 0x080E, 0x081F, 0x0861, 0x0941, 0x0A01,
                      0x0D61, 0x0DE1,
-                     0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF, 0xD000,
+                     0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF,
                      0x0AFF, 0x0C20,
                      0x79FF, 0x7C00,
                      0xD4FF, 0xD520, 0xD6FF, 0xD720):
@@ -349,8 +351,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 43478)
-        self.assertEqual(unclassified, 65536 - 43478)
+        self.assertEqual(matched, 44502)
+        self.assertEqual(unclassified, 65536 - 44502)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -1839,6 +1841,48 @@ class IsaTests(unittest.TestCase):
                 for field in instruction.metadata["immediate_fields"]
             ],
             ["source_offset", "destination_offset"],
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "source_destination_field_alignment",
+                "visible_machine_states_by_source_case": {
+                    "case_1": 5,
+                    "case_2": 5,
+                    "case_3": 6,
+                    "case_4": 6,
+                    "case_5": 6,
+                },
+                "hidden_write_states_by_destination_case": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_move_source_offset_destination_postincrement_contract(self) -> None:
+        instruction = self.database.decode(0xD000)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.MM.SOFF_POST")
+        self.assertEqual(instruction.opcode_mask, 0xFC00)
+        self.assertEqual(instruction.opcode_value, 0xD000)
+        self.assertEqual(instruction.length_words, 2)
+        self.assertEqual(
+            instruction.metadata["immediate_fields"],
+            [
+                {
+                    "name": "source_offset",
+                    "width": 16,
+                    "signed": True,
+                    "word_order": ["word1"],
+                    "extension": "sign_extend_to_32_bit_address",
+                }
+            ],
         )
         self.assertEqual(
             instruction.metadata["documented_cycles"],

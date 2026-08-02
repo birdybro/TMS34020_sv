@@ -152,6 +152,14 @@ module tb_tms34020_verified_leaves;
     logic [31:0] field_offset_base;
     logic [15:0] field_offset_value;
     logic [31:0] field_offset_effective;
+    logic [4:0] field_source_offset_post_size_encoded;
+    logic [31:0] field_source_offset_post_source_base;
+    logic [15:0] field_source_offset_post_offset;
+    logic [31:0] field_source_offset_post_destination_pointer;
+    logic [5:0] field_source_offset_post_size;
+    logic [31:0] field_source_offset_post_source_effective;
+    logic [31:0] field_source_offset_post_destination_effective;
+    logic [31:0] field_source_offset_post_destination_final;
     logic [4:0] field_load_size;
     logic field_load_sign_extend;
     logic [4:0] field_load_offset;
@@ -512,6 +520,26 @@ module tb_tms34020_verified_leaves;
         .effective_address_o(field_offset_effective)
     );
 
+    tms34020_field_source_offset_postincrement
+        field_source_offset_postincrement_dut (
+            .field_size_encoded_i(field_source_offset_post_size_encoded),
+            .source_base_i(field_source_offset_post_source_base),
+            .signed_source_offset_i(field_source_offset_post_offset),
+            .destination_pointer_i(
+                field_source_offset_post_destination_pointer
+            ),
+            .field_size_o(field_source_offset_post_size),
+            .source_effective_address_o(
+                field_source_offset_post_source_effective
+            ),
+            .destination_effective_address_o(
+                field_source_offset_post_destination_effective
+            ),
+            .destination_final_pointer_o(
+                field_source_offset_post_destination_final
+            )
+        );
+
     tms34020_field_load field_load_dut (
         .field_size_encoded_i(field_load_size),
         .sign_extend_i(field_load_sign_extend),
@@ -805,6 +833,34 @@ module tb_tms34020_verified_leaves;
         field_offset_value = signed_offset;
         #1;
         check_condition(field_offset_effective == expected_effective, message);
+    endtask
+
+    task automatic check_field_source_offset_postincrement(
+        input logic [4:0] field_size_encoded,
+        input logic [31:0] source_base,
+        input logic [15:0] signed_offset,
+        input logic [31:0] destination_pointer,
+        input logic [5:0] expected_size,
+        input logic [31:0] expected_source_effective,
+        input logic [31:0] expected_destination_effective,
+        input logic [31:0] expected_destination_final,
+        input string message
+    );
+        field_source_offset_post_size_encoded = field_size_encoded;
+        field_source_offset_post_source_base = source_base;
+        field_source_offset_post_offset = signed_offset;
+        field_source_offset_post_destination_pointer = destination_pointer;
+        #1;
+        check_condition(
+            field_source_offset_post_size == expected_size
+            && field_source_offset_post_source_effective
+                == expected_source_effective
+            && field_source_offset_post_destination_effective
+                == expected_destination_effective
+            && field_source_offset_post_destination_final
+                == expected_destination_final,
+            message
+        );
     endtask
 
     function automatic logic reference_condition_true(
@@ -2291,6 +2347,10 @@ module tb_tms34020_verified_leaves;
         field_pair_same_register = 1'b0;
         field_offset_base = 32'd0;
         field_offset_value = 16'd0;
+        field_source_offset_post_size_encoded = 5'd0;
+        field_source_offset_post_source_base = 32'd0;
+        field_source_offset_post_offset = 16'd0;
+        field_source_offset_post_destination_pointer = 32'd0;
         field_load_size = 5'd0;
         field_load_sign_extend = 1'b0;
         field_load_offset = 5'd0;
@@ -3213,6 +3273,34 @@ module tb_tms34020_verified_leaves;
             32'h0000_0010, 16'hFFE0, 32'hFFFF_FFF0,
             "negative field offset wraps modulo 2^32"
         );
+        for (int unsigned offset_value = 0; offset_value < 65536;
+             offset_value++) begin
+            logic [4:0] encoded_size;
+            logic [5:0] decoded_size;
+            logic [31:0] sign_extended_offset;
+            encoded_size = offset_value[4:0];
+            decoded_size = encoded_size == 5'd0
+                ? 6'd32 : {1'b0, encoded_size};
+            sign_extended_offset = {
+                {16{offset_value[15]}}, offset_value[15:0]
+            };
+            check_field_source_offset_postincrement(
+                encoded_size,
+                32'h7000_8000,
+                offset_value[15:0],
+                32'hFFFF_FFF0,
+                decoded_size,
+                32'h7000_8000 + sign_extended_offset,
+                32'hFFFF_FFF0,
+                32'hFFFF_FFF0 + {26'd0, decoded_size},
+                "source-offset/destination-postincrement exhausts offsets"
+            );
+        end
+        check_field_source_offset_postincrement(
+            5'd8, 32'h0000_4000, 16'h0020, 32'h0000_4000,
+            6'd8, 32'h0000_4020, 32'h0000_4000, 32'h0000_4008,
+            "source-offset alias uses original base then one destination update"
+        );
         check_field_address_update(
             5'd16, 32'h1234_5678, 1'b1, 1'b1,
             6'd16, 32'h1234_5678, 32'h1234_5678,
@@ -4056,6 +4144,12 @@ module tb_tms34020_verified_leaves;
             32'hA020_0010,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MOVE.MM.OFFSET cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'hD001, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MM.SOFF_POST cannot bypass absent field-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -5751,6 +5845,10 @@ module tb_tms34020_verified_leaves;
                      "MOVE.MM.OFFSET field-zero lower-bound decode");
         check_decode(16'hBBFF, TMS20_OP_MOVE_MM_OFFSET, 3'd3,
                      "MOVE.MM.OFFSET field-one upper-bound decode");
+        check_decode(16'hD000, TMS20_OP_MOVE_MM_SOFF_POST, 3'd2,
+                     "MOVE.MM.SOFF_POST field-zero lower-bound decode");
+        check_decode(16'hD3FF, TMS20_OP_MOVE_MM_SOFF_POST, 3'd2,
+                     "MOVE.MM.SOFF_POST field-one upper-bound decode");
         decode_word = 16'h8C00;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,

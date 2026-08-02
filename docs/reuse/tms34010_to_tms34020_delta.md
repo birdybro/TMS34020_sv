@@ -248,6 +248,16 @@ remain TMS34020-specific; no TMS34010 timing FSM is reused. Sources: TMS34020
 guide printed pp.13-14, 13-160..13-163 and 15-10..15-12; TMS34010 guide
 printed pp.12-132..12-133, 12-147..12-148 and 12-151..12-152.
 
+The mixed `MOVE *Rs(offset),*Rd+[,F]` form retains `D000h`/`FC00h`, one
+signed 16-bit source displacement, the original destination write address,
+post-write destination increment, unchanged ST and read-before-write field
+semantics. Compatible arithmetic and ordering may be reused only after
+independent tests. The TMS34020 owns its 5/5/6/6/6 visible source-case timing,
+1/2/2/3/4 hidden destination writes, BEN mapping, byte strobes/RMW, dynamic
+width, page behavior, waits, interrupts and fault/retry retirement; no upstream
+timing FSM is reused. Sources: TMS34020 guide printed pp.13-14, 13-162, 13-166
+and 15-12; TMS34010 guide printed pp.12-149..12-150.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

@@ -211,6 +211,11 @@ selected FE bit, replaces N/Z/V from the extended result, and preserves C;
 neither offset form modifies an address-base register. Source: User's Guide
 printed pp.13-160..13-163.
 
+The mixed `MOVE *Rs(offset),*Rd+[,F]` form reads only the selected FS bank,
+preserves complete ST, leaves the source base unchanged when distinct, and
+increments the destination pointer after the field write. Source: User's Guide
+printed pp.13-162..13-163.
+
 MMTM replaces only N and preserves C/Z/V plus every lower ST bit. The guide's
 two exceptions to the sign of `0-Rp` make the exact implemented rule
 `N = ~old_Rp[31]`: Rp zero sets N while Rp `80000000h` clears it. MMFM leaves

@@ -148,6 +148,12 @@ states by destination case. The model reports these primary-table values; the
 current RTL only classifies instruction length and signed effective addresses.
 Source: User's Guide printed pp.15-10..15-12.
 
+`MOVE *Rs(SOffset),*Rd+[,F]` uses the same A–H memory-to-memory timing row as
+the paired-offset form: 5/5/6/6/6 visible states by source case and
+1/2/2/3/4 hidden writes by destination case. The current model reports those
+counts, while the RTL leaf only calculates effective/final addresses. Source:
+User's Guide printed pp.15-10..15-12.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.
