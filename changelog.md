@@ -1415,6 +1415,9 @@ qualification.
 
 ### Documentation
 
+- Recorded the bounded LINIT ISA/model/RTL milestone as commit
+  `e523eb8e833de90b627a1bffc00e23dcc2b484d0` with no instruction-completeness,
+  architectural-timing, graphics-engine, or release-readiness claim.
 - Recorded the bounded CMOVCM/CMOVMC memory-sequence milestone as commit
   `5f0d7e25e50162f20f4eb393eed669f07ad85608` in the progress ledger.
 - Recorded the verified CMOVCG/CMOVCS inbound-transfer implementation milestone
