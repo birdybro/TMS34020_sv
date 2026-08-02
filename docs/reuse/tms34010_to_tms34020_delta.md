@@ -110,6 +110,19 @@ be reused unchanged. The three contradictory PSIZE=4 example results are
 isolated as RSC-0025; the repeated equation is the implemented contract.
 RSC-0026 records the TMS34020 instruction-page/timing-table disagreement.
 
+DIVS and DIVU retain `5800h`/`FE00h` and `5A00h`/`FE00h`, same-file
+odd-destination 32-by-32 and even-destination 64-by-32 forms, quotient/
+remainder placement, overflow-preserve behavior, and status masks. Their
+TMS34020 timing is not inherited: the older guide publishes paired
+alignment-dependent normal/special counts, while the TMS34020 pages collapse
+these to DIVS 39/40 normal, 41 for result `80000000h`, and 7 for early cases,
+and DIVU 37 normal, 7 for odd divide-by-zero, and 5 for even early cases.
+RSC-0027 keeps the signed nonzero early-overflow comparison/timing provisional.
+The upstream restoring divider is `COPY_AND_ADAPT` reference material only;
+the new leaf is a clean-room TMS34020-owned implementation and no upstream
+timing FSM is compiled. Sources: TMS34020 guide printed pp.13-96..13-99 and
+15-4; TMS34010 guide printed pp.12-63..12-66 and Appendix A p.A-15.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family

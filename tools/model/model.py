@@ -90,6 +90,8 @@ class Tms34020Model:
             "NOT": self._execute_not,
             "CLRC": self._execute_clrc,
             "DINT": self._execute_dint,
+            "DIVS": self._execute_divs,
+            "DIVU": self._execute_divu,
             "DSJ": self._execute_dsj_family,
             "DSJEQ": self._execute_dsj_family,
             "DSJNE": self._execute_dsj_family,
@@ -480,6 +482,159 @@ class Tms34020Model:
         del instruction, words
         self._set_status_bit(IE_BIT, False)
         return 3
+
+    @staticmethod
+    def _signed_divmod_toward_zero(
+        dividend: int, divisor: int
+    ) -> tuple[int, int]:
+        quotient_magnitude = abs(dividend) // abs(divisor)
+        quotient = (
+            -quotient_magnitude
+            if (dividend < 0) != (divisor < 0)
+            else quotient_magnitude
+        )
+        remainder = dividend - quotient * divisor
+        return quotient, remainder
+
+    def _record_divide_result(
+        self,
+        mnemonic: str,
+        pair: bool,
+        overflow: bool,
+        raw_early_overflow: bool,
+    ) -> None:
+        assert self._active_trace is not None
+        width = 64 if pair else 32
+        result = "overflow; destination preserved" if overflow else "success"
+        self._active_trace.notes.append(
+            f"{mnemonic} {width}-bit dividend: {result}"
+        )
+        if raw_early_overflow:
+            self._active_trace.notes.append(
+                "divide terminated by divisor-zero/high-half early-overflow path"
+            )
+
+    def _execute_divu(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        divisor = self.state.read_reg(register_file, source_index)
+        high_or_dividend = self.state.read_reg(
+            register_file, destination_index
+        )
+        pair = destination_index & 1 == 0
+        low = (
+            self.state.read_reg(register_file, destination_index + 1)
+            if pair
+            else high_or_dividend
+        )
+        dividend = (
+            (high_or_dividend << 32) | low
+            if pair
+            else high_or_dividend
+        )
+        divisor_zero = divisor == 0
+        quotient = 0 if divisor_zero else dividend // divisor
+        remainder = 0 if divisor_zero else dividend % divisor
+        overflow = divisor_zero or quotient > MASK32
+
+        if not overflow:
+            self.state.write_reg(
+                register_file, destination_index, quotient
+            )
+            if pair:
+                self.state.write_reg(
+                    register_file, destination_index + 1, remainder
+                )
+        self._set_status_bit(Z_BIT, not overflow and quotient == 0)
+        self._set_status_bit(V_BIT, overflow)
+
+        raw_early_overflow = divisor_zero or (pair and quotient > MASK32)
+        self._record_divide_result(
+            "DIVU", pair, overflow, raw_early_overflow
+        )
+        if pair and raw_early_overflow:
+            return 5
+        if not pair and divisor_zero:
+            return 7
+        return 37
+
+    def _execute_divs(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        divisor_word = self.state.read_reg(register_file, source_index)
+        high_or_dividend = self.state.read_reg(
+            register_file, destination_index
+        )
+        pair = destination_index & 1 == 0
+        low = (
+            self.state.read_reg(register_file, destination_index + 1)
+            if pair
+            else high_or_dividend
+        )
+        divisor = self._signed_word(divisor_word)
+        if pair:
+            dividend_word = (high_or_dividend << 32) | low
+            dividend = (
+                dividend_word - (1 << 64)
+                if dividend_word & (1 << 63)
+                else dividend_word
+            )
+        else:
+            dividend = self._signed_word(high_or_dividend)
+
+        divisor_zero = divisor == 0
+        if divisor_zero:
+            quotient = 0
+            remainder = 0
+        else:
+            quotient, remainder = self._signed_divmod_toward_zero(
+                dividend, divisor
+            )
+        overflow = divisor_zero or not (
+            -0x8000_0000 <= quotient <= 0x7FFF_FFFF
+        )
+        raw_early_overflow = divisor_zero or abs(quotient) > MASK32
+
+        if not overflow:
+            self.state.write_reg(
+                register_file, destination_index, quotient
+            )
+            if pair:
+                self.state.write_reg(
+                    register_file, destination_index + 1, remainder
+                )
+        result_word = quotient & MASK32
+        n_value = (
+            not raw_early_overflow
+            and (quotient < 0 or result_word == 0x8000_0000)
+        )
+        self._set_status_bit(N_BIT, n_value)
+        self._set_status_bit(Z_BIT, not overflow and quotient == 0)
+        self._set_status_bit(V_BIT, overflow)
+
+        self._record_divide_result(
+            "DIVS", pair, overflow, raw_early_overflow
+        )
+        if raw_early_overflow and not divisor_zero:
+            assert self._active_trace is not None
+            self._active_trace.notes.append(
+                "7-state nonzero early-overflow timing provisionally uses "
+                "the magnitude comparison tracked by RSC-0027/OQ-0018"
+            )
+            self.state.timing_complete = False
+        if raw_early_overflow:
+            return 7
+        if result_word == 0x8000_0000:
+            return 41
+        return 40 if pair else 39
 
     def _execute_eint(
         self, instruction: Instruction, words: list[int]

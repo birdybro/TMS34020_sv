@@ -72,7 +72,7 @@ class IsaTests(unittest.TestCase):
                     {"VERIFIED_PRIMARY", "PROVISIONAL"},
                 )
                 if instruction["confidence"] == "PROVISIONAL":
-                    self.assertEqual(instruction["mnemonic"], "CVXYL")
+                    self.assertIn(instruction["mnemonic"], {"CVXYL", "DIVS"})
 
     def test_independent_hand_checked_first_words(self) -> None:
         fixtures = {
@@ -271,6 +271,10 @@ class IsaTests(unittest.TestCase):
             0x0251: ("SETCSP", 1),
             0x080F: ("TRAPL", 2),
             0x0A00: ("VLCOL", 1),
+            0x5800: ("DIVS", 1),
+            0x59FF: ("DIVS", 1),
+            0x5A00: ("DIVU", 1),
+            0x5BFF: ("DIVU", 1),
         }
         for word, expected in fixtures.items():
             with self.subTest(word=f"{word:04X}"):
@@ -286,7 +290,6 @@ class IsaTests(unittest.TestCase):
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF, 0xD000,
                      0x0AFF, 0x0C20,
-                     0x5800,
                      0x79FF, 0x7C00,
                      0xD4FF, 0xD520, 0xD6FF, 0xD720):
             with self.subTest(word=f"{word:04X}"):
@@ -294,8 +297,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 27540)
-        self.assertEqual(unclassified, 65536 - 27540)
+        self.assertEqual(matched, 28564)
+        self.assertEqual(unclassified, 65536 - 28564)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -582,6 +585,44 @@ class IsaTests(unittest.TestCase):
             self.assertFalse(self.database.decode(word).metadata[
                 "compatible_with_tms34010"
             ])
+
+    def test_divide_family_records_pair_status_and_timing_contracts(self) -> None:
+        for start, end, mnemonic in (
+            (0x5800, 0x5A00, "DIVS"),
+            (0x5A00, 0x5C00, "DIVU"),
+        ):
+            for word in range(start, end):
+                with self.subTest(word=f"{word:04X}"):
+                    decoded = self.database.decode(word)
+                    self.assertIsNotNone(decoded)
+                    self.assertEqual(decoded.mnemonic, mnemonic)
+
+        divs = self.database.decode(0x5800)
+        divu = self.database.decode(0x5A00)
+        self.assertEqual(divs.metadata["confidence"], "PROVISIONAL")
+        self.assertEqual(divu.metadata["confidence"], "VERIFIED_PRIMARY")
+        self.assertEqual(divs.metadata["status_bits_written"], ["N", "Z", "V"])
+        self.assertEqual(divu.metadata["status_bits_written"], ["Z", "V"])
+        for instruction in (divs, divu):
+            self.assertIn("Rd+1 remainder", instruction.metadata[
+                "destination_registers"
+            ][1])
+            self.assertIn("Rd=14 pairs Rd with SP", instruction.metadata[
+                "register_file"
+            ])
+            self.assertTrue(instruction.metadata[
+                "compatible_with_tms34010"
+            ])
+        self.assertEqual(
+            divs.metadata["documented_cycles"]["result_80000000_machine_states"],
+            41,
+        )
+        self.assertEqual(
+            divu.metadata["documented_cycles"][
+                "even_divisor_zero_or_early_overflow_machine_states"
+            ],
+            5,
+        )
         self.assertIn(
             "unscaled X",
             self.database.decode(0x0A60).metadata[

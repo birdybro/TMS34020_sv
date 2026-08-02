@@ -4,6 +4,16 @@
 
 ### Added
 
+- Primary-page-verified DIVS `5800h`/`FE00h` and DIVU
+  `5A00h`/`FE00h` metadata plus independent model semantics for odd 32/32 and
+  even 64/32 register-pair forms, signed/unsigned quotient and remainder,
+  A/B/shared-SP pairing, zero-divisor and range-overflow preservation,
+  instruction-specific status changes, and documented selected state cases.
+- A clean-room, portable 32-step restoring-divider RTL leaf with signed
+  magnitude normalization, pair/single classification, early overflow and
+  divide-by-zero outcomes, and direct handshake/result/status tests. Its FPGA
+  step count is explicitly separate from architectural machine-state timing,
+  and the scalar commit path remains blocked pending atomic pair ownership.
 - Primary-page-verified CVDXYL `0A80h`/`FFE0h`, CVMXYL
   `0A60h`/`FFE0h`, CVSXYL `EA00h`/`FE00h`, and CVXYL
   `E800h`/`FE00h` metadata plus model semantics for signed coordinates,
@@ -289,6 +299,8 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 93 to 95 records and from
+  27,540 to 28,564 uniquely classified first words.
 - Expanded the generated partial decoder from 89 to 93 records and from
   26,452 to 27,540 uniquely classified first words.
 - Expanded the generated partial decoder from 88 to 89 records and from
@@ -350,6 +362,17 @@
 
 ### Verified
 
+- The 39-case ISA suite, 60-entry delta ledger, and 150-case model suite pass.
+  DIVS/DIVU coverage includes all 1,024 encodings, primary example rows,
+  odd/even destinations, shared-SP pair aliasing, zero/range exceptions,
+  instruction-specific status masks, and selected state counts. Direct RTL
+  tests cover the clean-room iterative leaf and prove the scalar router does
+  not commit either opcode without an architectural sequencer.
+- All four decoder-bearing Cyclone V Analysis & Synthesis probes pass with zero
+  errors and zero warnings at 10,246 leaf, 443 fetch, 812 frontend, and 5,336
+  scalar logic cells. The diagnostic divider adds state and datapath resources
+  only to the leaf wrapper; these remain portability probes, not complete-core
+  area, fit, or timing results.
 - All four decoder-bearing Cyclone V Analysis & Synthesis probes pass with zero
   errors and zero warnings at 9,140 leaf, 423 fetch, 791 frontend, and 5,237
   scalar logic cells. The diagnostic XY-conversion leaf maps its arbitrary
@@ -873,6 +896,11 @@
 
 ### Documentation
 
+- Recorded RSC-0027/OQ-0018 for the signed even-pair nonzero early-overflow
+  ambiguity: the DIVS instruction page omits that shortcut, while chapter 15
+  prints a raw `Rs <= Rd` rule that is inconsistent with mixed-sign arithmetic.
+  The current model and RTL leaf provisionally compare normalized magnitudes;
+  this is not promoted to verified behavior.
 - Documented the four XY conversion contracts and TMS34010 delta, and recorded
   the three CVXYL PSIZE=4 example rows that contradict the repeated equation
   as RSC-0025/OQ-0016 instead of inventing an undocumented exception.
@@ -963,6 +991,11 @@
 
 ### Known Issues
 
+- DIVS/DIVU have instruction-boundary model semantics and a clean-room
+  iterative RTL leaf, but no scalar sequencer owns paired operand capture,
+  pair-atomic commit, exception write suppression, or documented retirement
+  timing. Signed even-pair nonzero early-overflow behavior remains provisional
+  under RSC-0027/OQ-0018.
 - CVDXYL/CVMXYL/CVSXYL/CVXYL have complete instruction-boundary model
   semantics and a shared combinational RTL leaf, but no scalar implied-register,
   CONVxP/PSIZE, destination, pipeline, or internal-I/O ordering owner.

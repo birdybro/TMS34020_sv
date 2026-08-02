@@ -30,6 +30,16 @@ PC request to completion. Cache miss/fill, disabled-cache fetch, local-memory
 arbitration, wait, retry, and dynamic-width costs must be composed from their
 own documented cases.
 
+DIVU takes 37 states normally, 7 for odd-Rd divisor zero, and 5 for even-Rd
+divisor zero or high-half early overflow. DIVS takes 39 states normally for
+odd Rd, 40 for even Rd, 41 when the result word is `80000000h`, and 7 for
+divisor zero. Chapter 15 also assigns 7 to the signed even-Rd `Rs <= Rd`
+early-overflow condition that the instruction page does not separately list;
+the model/leaf provisionally interpret this as a magnitude-normalized
+high-half comparison under RSC-0027/OQ-0018. The leaf's 32 FPGA iteration
+clocks are an implementation handshake, not these machine states. Sources:
+User's Guide printed pp.13-96..13-99 and 15-4.
+
 ## Hidden trailing writes
 
 Parenthesized states in chapter 15 are hidden memory-write states at the end of

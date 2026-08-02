@@ -124,6 +124,15 @@ The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide
 printed pp.13-87..13-93.
 
+DIVS replaces N/Z/V and preserves C and every lower status field. DIVU
+replaces only Z/V and preserves N/C and all lower fields. A successful zero
+quotient sets Z; divisor zero or an unrepresentable quotient clears Z and sets
+V while preserving the destination. DIVS additionally sets N for a negative
+quotient or `80000000h` result except on the raw early-overflow path. The model
+and standalone divider leaf cover these masks and results; architectural pair
+commit remains absent. Sources: User's Guide DIVS/DIVU printed
+pp.13-96..13-99.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

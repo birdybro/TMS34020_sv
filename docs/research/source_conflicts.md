@@ -528,3 +528,30 @@
   cycle-accuracy claim for this case. OQ-0017 tracks evidence capable of
   resolving the discrepancy. Confidence: `VERIFIED_PRIMARY` that the two
   publications conflict; `UNKNOWN` for real-device arbitrary-pitch timing.
+
+## RSC-0027: DIVS even-destination early-overflow timing scope
+
+- Status: open primary wording ambiguity; chapter-15 condition implemented
+  provisionally
+- Primary instruction-page evidence: TI *TMS34020 User's Guide*, August 1990,
+  DIVS, printed p.13-96 lists even-Rd timing as 40 states normally, 41 when
+  the result is `80000000h`, and 7 when Rs is zero. It does not separately
+  name a nonzero-divisor quotient-overflow timing case.
+- Primary timing-table evidence: the consolidated table on printed p.15-4
+  gives the same three numbers but expands the 7-state even-Rd condition to
+  `Rs = 0 or Rs <= Rd`. The status rules on p.13-97 likewise mention even Rd
+  and `Rd >= Rs`, but the prose does not state whether that comparison is
+  applied to raw signed words or the magnitude-normalized operands used by a
+  signed divider. A raw signed or unsigned comparison contradicts successful
+  mixed-sign example rows; a magnitude high-half comparison matches the
+  mathematical condition for a quotient of at least 2^32.
+- Compatibility evidence: TI *TMS34010 User's Guide*, 1988, DIVS, printed
+  p.12-63 explicitly lists its even-Rd `Rd >= Rs` case as a short path, but its
+  alignment-dependent 7/10-state timing is not TMS34020 timing. The pinned
+  TMS34010 RTL is therefore only a semantic cross-check.
+- Decision: the independent model and restoring-divider leaf use the
+  magnitude-normalized high-half comparison for the raw early-overflow path
+  and select the TMS34020 timing table's 7 states. Destination preservation
+  and N/Z/V follow the quotient-range rules. This selection is
+  `PROVISIONAL`; no cycle-accuracy claim is made for the nonzero early path.
+  OQ-0018 tracks a diagnostic or hardware discriminator.

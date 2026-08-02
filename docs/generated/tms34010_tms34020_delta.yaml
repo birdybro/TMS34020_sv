@@ -596,6 +596,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 XY conversion §12.12, printed pp.12-47..12-49", "TI-TMS34020-UG-1990 CVDXYL/CVMXYL/CVSXYL/CVXYL, printed pp.13-87..13-93", "TI-TMS34020-UG-1990 timing table, printed p.15-4", "TI-TMS34010-UG-1988 CVXYL, printed pp.12-59..12-60"],
       "confidence": "PROVISIONAL",
       "unresolved_questions": ["RSC-0025/OQ-0016 tracks the three inconsistent PSIZE=4 example rows; pipeline placement and internal-I/O write ordering still require full timing ownership.", "RSC-0026/OQ-0017: arbitrary-pitch CVXYL is 14 states on p.13-92 but 15 on p.15-4."]
+    },
+    {
+      "feature": "signed_unsigned_divide_timing",
+      "tms34010_behavior": "DIVS 5800h/FE00h and DIVU 5A00h/FE00h have the same odd-Rd 32-by-32 and even-Rd 64-by-32 programmer-visible forms, but publish paired alignment-dependent timings: DIVS normal 39/42 odd and 40/43 even, result-80000000h 41/44, special 7/10; DIVU normal 37/40 and special 5/8.",
+      "tms34020_behavior": "The encodings, quotient/remainder pair, overflow preservation and status contracts remain compatible, while DIVS publishes 39 odd/40 even normal, 41 result-80000000h, and 7 early cases; DIVU publishes 37 normal, 7 odd divisor-zero, and 5 even divisor-zero/early-overflow states. RSC-0027 keeps the signed nonzero early-overflow comparison/timing provisional.",
+      "rtl_impact": "Reuse only a verified arithmetic algorithm, not the TMS34010 timing FSM. Capture Rs/Rd/Rd+1 atomically, condition signed magnitudes/results, suppress both pair writes on overflow, and couple a TMS34020-owned sequencer to eventual pair commit.",
+      "test_impact": "All 1,024 encodings, A/B/SP and source/destination/Rd+1 aliases, primary quotient/remainder rows, signed truncation toward zero, remainder sign, divide by zero, raw and signed-range overflow, pair-write suppression, status masks, and every documented TMS34020 timing class.",
+      "source_citation": ["TI-TMS34020-UG-1990 DIVS/DIVU, printed pp.13-96..13-99 and timing p.15-4", "TI-TMS34010-UG-1988 DIVS/DIVU, printed pp.12-63..12-66 and Appendix A p.A-15"],
+      "confidence": "PROVISIONAL",
+      "unresolved_questions": ["RSC-0027/OQ-0018: exact operand interpretation and real-device timing of the signed even-Rd nonzero early-overflow path.", "Internal interrupt recognition and atomic pair-write scheduling remain pending."]
     }
   ]
 }

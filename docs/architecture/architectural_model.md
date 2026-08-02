@@ -26,13 +26,13 @@ Implemented:
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
   ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
-  CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL,
+  CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 92 of 93 currently extracted database forms. REV is
+These handlers cover 94 of 95 currently extracted database forms. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
 verified. A directed test proves that attempting REV raises
@@ -150,6 +150,19 @@ remains RSC-0026/OQ-0017, so that case is not timing-verified. The three
 inconsistent CVXYL PSIZE=4 table rows are corrected according to the repeated
 equation under RSC-0025. Sources: TMS34020 User's Guide printed pp.4-28..4-29,
 12-47..12-49, 13-87..13-93, and 15-4.
+
+DIVS and DIVU capture Rs, Rd, and conditional Rd+1 before any write. Odd Rd
+uses a 32-bit dividend; even Rd forms a 64-bit pair and returns the remainder
+to Rd+1. Python integer arithmetic is explicitly conditioned to signed
+truncation toward zero, and quotient overflow suppresses every destination
+write while still updating the documented status subset. Directed cases cover
+the primary tables, both register files through decode, shared-SP pair/source
+aliasing, divisor zero, valid `80000000h`, positive and negative signed-range
+overflow, raw high-half overflow, remainder sign, and 5/7/37/39/40/41-state
+classes. The nonzero signed early-overflow 7-state selection is marked timing
+incomplete under RSC-0027/OQ-0018. Sources: TMS34020 User's Guide printed
+pp.13-96..13-99 and 15-4; compatibility cross-check: TMS34010 User's Guide
+printed pp.12-63..12-66 and Appendix A p.A-15.
 
 BTST.K recovers the selected bit from the one's-complement object field.
 BTST.R uses only the low five bits of its same-file source. Both preserve every

@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 93 page-verified encoding records and covers 27,540 of 65,536
+slice contains 95 page-verified encoding records and covers 28,564 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -26,6 +26,8 @@ first words without collisions:
 | NOT | `03E0h`, mask `FFE0h` | 1 | p.13-181 |
 | CLRC | `0320h` | 1 | p.13-58 |
 | DINT | `0360h` | 1 | p.13-95 |
+| DIVS | `5800h`, mask `FE00h` | 1 | pp.13-96..13-97 |
+| DIVU | `5A00h`, mask `FE00h` | 1 | pp.13-98..13-99 |
 | EINT | `0D60h` | 1 | p.13-109 |
 | JUMP | `0160h`, mask `FFE0h` | 1 | p.13-141 |
 | JACC / JAcondition | `C080h`, mask `F0FFh` | 3 | pp.13-135..13-136 |
@@ -163,6 +165,20 @@ equation; the equation is implemented without inventing a special case.
 RSC-0026 tracks the timing contradiction. Sources: TMS34020 User's Guide
 printed pp.4-28..4-29, 12-47..12-49, 13-87..13-93, and timing p.15-4; CVXYL
 compatibility cross-check: TMS34010 User's Guide printed pp.12-59..12-60.
+
+DIVS and DIVU use same-file Rs/Rd fields. Odd Rd divides one 32-bit dividend
+and writes only the quotient; even Rd divides the signed or unsigned 64-bit
+`Rd:Rd+1` pair, writes the quotient to Rd and the remainder to Rd+1, and can
+therefore pair A14 or B14 with the shared SP. All operands are captured before
+writeback, and overflow—including divisor zero—preserves the complete
+destination or pair. DIVS defines N/Z/V and leaves C unchanged; DIVU defines
+Z/V and leaves N/C unchanged. The model covers signed truncation toward zero,
+remainder sign, primary tables, alias hazards, signed-range and raw early
+overflow, and documented normal/special state classes. RSC-0027 makes the
+signed nonzero early-overflow magnitude comparison/7-state choice
+provisional. Sources: TMS34020 User's Guide printed pp.13-96..13-99 and
+15-4; TMS34010 compatibility cross-check printed pp.12-63..12-66 and
+Appendix A p.A-15.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

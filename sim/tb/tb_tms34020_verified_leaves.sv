@@ -79,6 +79,21 @@ module tb_tms34020_verified_leaves;
     logic [31:0] xy_linear_result;
     logic [1:0] xy_linear_pitch_class;
     logic [3:0] xy_linear_visible_states;
+    logic divider_start;
+    logic divider_signed;
+    logic divider_pair;
+    logic [31:0] divider_dividend_high;
+    logic [31:0] divider_dividend_low;
+    logic [31:0] divider_divisor;
+    logic divider_busy;
+    logic divider_done;
+    logic [31:0] divider_quotient;
+    logic [31:0] divider_remainder;
+    logic divider_overflow;
+    logic divider_n;
+    logic divider_z;
+    logic divider_v;
+    logic [5:0] divider_visible_states;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -274,6 +289,26 @@ module tb_tms34020_verified_leaves;
         .linear_o(xy_linear_result),
         .pitch_class_o(xy_linear_pitch_class),
         .visible_states_o(xy_linear_visible_states)
+    );
+
+    tms34020_divider divider_dut (
+        .clk_i(clk),
+        .reset_i(reset),
+        .start_i(divider_start),
+        .signed_i(divider_signed),
+        .pair_i(divider_pair),
+        .dividend_high_i(divider_dividend_high),
+        .dividend_low_i(divider_dividend_low),
+        .divisor_i(divider_divisor),
+        .busy_o(divider_busy),
+        .done_o(divider_done),
+        .quotient_o(divider_quotient),
+        .remainder_o(divider_remainder),
+        .overflow_o(divider_overflow),
+        .n_o(divider_n),
+        .z_o(divider_z),
+        .v_o(divider_v),
+        .visible_states_o(divider_visible_states)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -657,6 +692,46 @@ module tb_tms34020_verified_leaves;
             xy_linear_visible_states == expected_states,
             message
         );
+    endtask
+
+    task automatic check_divider(
+        input logic signed_operation,
+        input logic pair_operation,
+        input logic [31:0] dividend_high,
+        input logic [31:0] dividend_low,
+        input logic [31:0] divisor,
+        input logic [31:0] expected_quotient,
+        input logic [31:0] expected_remainder,
+        input logic expected_overflow,
+        input logic [2:0] expected_nzv,
+        input logic [5:0] expected_states,
+        input string message
+    );
+        divider_signed = signed_operation;
+        divider_pair = pair_operation;
+        divider_dividend_high = dividend_high;
+        divider_dividend_low = dividend_low;
+        divider_divisor = divisor;
+        divider_start = 1'b1;
+        @(posedge clk);
+        #1;
+        divider_start = 1'b0;
+        while (!divider_done) begin
+            @(posedge clk);
+            #1;
+        end
+        check_condition(
+            !divider_busy &&
+            divider_quotient == expected_quotient &&
+            divider_remainder == expected_remainder &&
+            divider_overflow == expected_overflow &&
+            {divider_n, divider_z, divider_v} == expected_nzv &&
+            divider_visible_states == expected_states,
+            message
+        );
+        @(posedge clk);
+        #1;
+        check_condition(!divider_done, "divider done is a single-cycle pulse");
     endtask
 
     task automatic check_cmpxy_register_execute(
@@ -1583,6 +1658,12 @@ module tb_tms34020_verified_leaves;
         xy_linear_pixel_size = 16'd1;
         xy_linear_scale_x = 1'b0;
         xy_linear_extra_state = 1'b0;
+        divider_start = 1'b0;
+        divider_signed = 1'b0;
+        divider_pair = 1'b0;
+        divider_dividend_high = 32'd0;
+        divider_dividend_low = 32'd0;
+        divider_divisor = 32'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2190,6 +2271,50 @@ module tb_tms34020_verified_leaves;
             "CVXYL signed arbitrary pitch and modulo wrap"
         );
 
+        check_divider(
+            1'b0, 1'b1, 32'h1234_5678, 32'h8765_4321,
+            32'h789A_BCDF, 32'h26A4_39F6, 32'h15CA_1DD7,
+            1'b0, 3'b000, 6'd37,
+            "DIVU primary 64-by-32 quotient and remainder"
+        );
+        check_divider(
+            1'b0, 1'b0, 32'd0, 32'd0, 32'h8765_4321,
+            32'd0, 32'd0, 1'b0, 3'b010, 6'd37,
+            "DIVU odd-destination zero quotient"
+        );
+        check_divider(
+            1'b0, 1'b1, 32'h8765_4321, 32'd0,
+            32'h8765_4321, 32'd0, 32'd0,
+            1'b1, 3'b001, 6'd5,
+            "DIVU even-destination early overflow"
+        );
+        check_divider(
+            1'b1, 1'b1, 32'h1234_5678, 32'h8765_4321,
+            32'h8765_4321, 32'hD95B_C60A, 32'h15CA_1DD7,
+            1'b0, 3'b100, 6'd40,
+            "DIVS primary signed pair quotient and remainder"
+        );
+        check_divider(
+            1'b1, 1'b0, 32'd0, 32'h8000_0000, 32'd1,
+            32'h8000_0000, 32'd0, 1'b0, 3'b100, 6'd41,
+            "DIVS valid minimum result special timing"
+        );
+        check_divider(
+            1'b1, 1'b0, 32'd0, 32'h8000_0000, 32'hFFFF_FFFF,
+            32'h8000_0000, 32'd0, 1'b1, 3'b101, 6'd41,
+            "DIVS positive signed-range overflow"
+        );
+        check_divider(
+            1'b1, 1'b1, 32'hFFFF_FFFF, 32'h7FFF_FFFF, 32'd1,
+            32'h7FFF_FFFF, 32'd0, 1'b1, 3'b101, 6'd40,
+            "DIVS negative signed-range overflow"
+        );
+        check_divider(
+            1'b1, 1'b1, 32'h8000_0000, 32'd0, 32'd1,
+            32'd0, 32'd0, 1'b1, 3'b001, 6'd7,
+            "DIVS raw high-half early overflow"
+        );
+
         check_pitch_conversion(
             32'h0000_1000, 16'h0013, 3'd4,
             "SETC pitch primary 4096 row"
@@ -2743,6 +2868,16 @@ module tb_tms34020_verified_leaves;
             16'hEA00, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "CVSXYL cannot bypass source/destination/implied ownership"
+        );
+        check_register_execute(
+            16'h5800, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "DIVS cannot bypass iterative divide/pair commit ownership"
+        );
+        check_register_execute(
+            16'h5BFF, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "DIVU cannot bypass iterative divide/pair commit ownership"
         );
         check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
@@ -4337,6 +4472,14 @@ module tb_tms34020_verified_leaves;
                      "CVXYL lower-bound decode");
         check_decode(16'hE9FF, TMS20_OP_CVXYL, 3'd1,
                      "CVXYL upper-bound decode");
+        check_decode(16'h5800, TMS20_OP_DIVS, 3'd1,
+                     "DIVS lower-bound decode");
+        check_decode(16'h59FF, TMS20_OP_DIVS, 3'd1,
+                     "DIVS upper-bound decode");
+        check_decode(16'h5A00, TMS20_OP_DIVU, 3'd1,
+                     "DIVU lower-bound decode");
+        check_decode(16'h5BFF, TMS20_OP_DIVU, 3'd1,
+                     "DIVU upper-bound decode");
         check_decode(16'hEA00, TMS20_OP_CVSXYL, 3'd1,
                      "CVSXYL lower-bound decode");
         check_decode(16'hEBFF, TMS20_OP_CVSXYL, 3'd1,

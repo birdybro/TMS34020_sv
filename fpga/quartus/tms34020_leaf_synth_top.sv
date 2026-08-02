@@ -85,6 +85,15 @@ module tms34020_leaf_synth_top (
     logic [31:0] xy_linear_result;
     logic [1:0] xy_linear_pitch_class;
     logic [3:0] xy_linear_visible_states;
+    logic divider_busy;
+    logic divider_done;
+    logic [31:0] divider_quotient;
+    logic [31:0] divider_remainder;
+    logic divider_overflow;
+    logic divider_n;
+    logic divider_z;
+    logic divider_v;
+    logic [5:0] divider_visible_states;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -118,7 +127,11 @@ module tms34020_leaf_synth_top (
         commit_sp ^
         window_outcode ^
         xy_linear_result ^
+        divider_quotient ^
+        divider_remainder ^
         {26'd0, xy_linear_pitch_class, xy_linear_visible_states} ^
+        {20'd0, divider_busy, divider_done, divider_overflow,
+         divider_n, divider_z, divider_v, divider_visible_states} ^
         {24'd0, commit_supported, commit_accepted,
          commit_register_write_enable, commit_register_write_file,
          commit_register_write_index} ^
@@ -281,6 +294,28 @@ module tms34020_leaf_synth_top (
         .linear_o(xy_linear_result),
         .pitch_class_o(xy_linear_pitch_class),
         .visible_states_o(xy_linear_visible_states)
+    );
+
+    tms34020_divider divider (
+        .clk_i(clk_i),
+        .reset_i(reset_i),
+        .start_i(write_enable_i &&
+                 ((decoded_id == TMS20_OP_DIVS) ||
+                  (decoded_id == TMS20_OP_DIVU))),
+        .signed_i(decoded_id == TMS20_OP_DIVS),
+        .pair_i(~first_word_i[0]),
+        .dividend_high_i(operand_i),
+        .dividend_low_i(immediate_i),
+        .divisor_i(second_register_data),
+        .busy_o(divider_busy),
+        .done_o(divider_done),
+        .quotient_o(divider_quotient),
+        .remainder_o(divider_remainder),
+        .overflow_o(divider_overflow),
+        .n_o(divider_n),
+        .z_o(divider_z),
+        .v_o(divider_v),
+        .visible_states_o(divider_visible_states)
     );
 
     tms34020_regfile regfile (

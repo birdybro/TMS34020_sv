@@ -1268,6 +1268,130 @@ class ExecutionTests(unittest.TestCase):
         cvxy_alias.step()
         self.assertEqual(cvxy_alias.state.read_reg("A", 0), 0x0000_1021)
 
+    def test_divu_primary_rows_overflow_timing_and_alias_capture(self) -> None:
+        even_rows = (
+            # high, low, divisor, quotient, remainder, NCZV, states, writes
+            (0x1234_5678, 0x8765_4321, 0x789A_BCDF,
+             0x26A4_39F6, 0x15CA_1DD7, 0xC, 37, True),
+            (0x0000_0000, 0x0000_0000, 0x8765_4321,
+             0x0000_0000, 0x0000_0000, 0xE, 37, True),
+            (0x8765_4321, 0x0000_0000, 0x8765_4321,
+             0x8765_4321, 0x0000_0000, 0xD, 5, False),
+            (0x1234_5678, 0x8765_4321, 0x0000_0000,
+             0x1234_5678, 0x8765_4321, 0xD, 5, False),
+        )
+        for high, low, divisor, quotient, remainder, nczv, states, writes in (
+            even_rows
+        ):
+            with self.subTest(
+                high=f"{high:08X}", divisor=f"{divisor:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x5A40])  # DIVU A2,A0
+                model.state.write_reg("A", 0, high)
+                model.state.write_reg("A", 1, low)
+                model.state.write_reg("A", 2, divisor)
+                model.state.st = 0xF020_001F
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), quotient)
+                self.assertEqual(model.state.read_reg("A", 1), remainder)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, states)
+                self.assertTrue(any(
+                    ("success" if writes else "overflow") in note
+                    for note in event.notes
+                ))
+
+        odd_rows = (
+            (0x789A_BCDF, 0x1234_5678, 0x0000_0006, 0xC, 37),
+            (0x0000_0000, 0x8765_4321, 0x0000_0000, 0xE, 37),
+            (0x1234_5678, 0x0000_0000, 0x1234_5678, 0xD, 7),
+        )
+        for dividend, divisor, expected, nczv, states in odd_rows:
+            with self.subTest(
+                odd_dividend=f"{dividend:08X}",
+                odd_divisor=f"{divisor:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([0x5A41])  # DIVU A2,A1
+                model.state.write_reg("A", 1, dividend)
+                model.state.write_reg("A", 2, divisor)
+                model.state.st = 0xF020_001F
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, states)
+
+        # Source SP is captured before the Rd=14 pair writes its remainder
+        # back through the shared A15/B15 alias.
+        alias = Tms34020Model()
+        alias.load_program([0x5BFE])  # DIVU SP,B14
+        alias.state.write_reg("B", 14, 0)
+        alias.state.sp = 10
+        alias_event = alias.step()
+        self.assertEqual(alias.state.read_reg("B", 14), 1)
+        self.assertEqual(alias.state.sp, 0)
+        self.assertEqual(alias_event.machine_states, 37)
+
+    def test_divs_primary_rows_signed_overflow_and_timing(self) -> None:
+        even_rows = (
+            # high, low, divisor, quotient/high-after, remainder/low-after,
+            # NCZV, states
+            (0x1234_5678, 0x8765_4321, 0x8765_4321,
+             0xD95B_C60A, 0x15CA_1DD7, 0xC, 40),
+            (0xEDCB_A987, 0x789A_BCDF, 0x8765_4321,
+             0x26A4_39F6, 0xEA35_E229, 0x4, 40),
+            (0x0000_0000, 0x0000_0000, 0x8765_4321,
+             0x0000_0000, 0x0000_0000, 0x6, 40),
+            (0x1234_5678, 0x8765_4321, 0x0000_0000,
+             0x1234_5678, 0x8765_4321, 0x5, 7),
+            # -2147483649 / 1 is a signed-range overflow below the raw
+            # 2^32 early-overflow threshold; the pair is preserved.
+            (0xFFFF_FFFF, 0x7FFF_FFFF, 0x0000_0001,
+             0xFFFF_FFFF, 0x7FFF_FFFF, 0xD, 40),
+            # -2^63 / 1 takes the documented early-overflow path.
+            (0x8000_0000, 0x0000_0000, 0x0000_0001,
+             0x8000_0000, 0x0000_0000, 0x5, 7),
+        )
+        for high, low, divisor, quotient, remainder, nczv, states in even_rows:
+            with self.subTest(
+                high=f"{high:08X}", divisor=f"{divisor:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x5840])  # DIVS A2,A0
+                model.state.write_reg("A", 0, high)
+                model.state.write_reg("A", 1, low)
+                model.state.write_reg("A", 2, divisor)
+                model.state.st = 0xF020_001F
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), quotient)
+                self.assertEqual(model.state.read_reg("A", 1), remainder)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, states)
+
+        odd_rows = (
+            (0x8765_4321, 0x1234_5678, 0xFFFF_FFFA, 0xC, 39),
+            (0x8000_0000, 0x0000_0001, 0x8000_0000, 0xC, 41),
+            # Positive +2^31 quotient is unrepresentable; Rd is preserved,
+            # but the documented 80000000h result class sets N and takes 41.
+            (0x8000_0000, 0xFFFF_FFFF, 0x8000_0000, 0xD, 41),
+            (0x8765_4321, 0x0000_0000, 0x8765_4321, 0x5, 7),
+        )
+        for dividend, divisor, expected, nczv, states in odd_rows:
+            with self.subTest(
+                odd_dividend=f"{dividend:08X}",
+                odd_divisor=f"{divisor:08X}",
+            ):
+                model = Tms34020Model()
+                model.load_program([0x5841])  # DIVS A2,A1
+                model.state.write_reg("A", 1, dividend)
+                model.state.write_reg("A", 2, divisor)
+                model.state.st = 0xF020_001F
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), expected)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, states)
+
     def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
         model = Tms34020Model()
         model.load_program([
