@@ -80,6 +80,22 @@ ordering, zero/negative/positive status, logical read traces, and atomic BEN
 rollback. No request owner yet supplies dynamic-width beats, waits, page
 mode, I/O routing, fault/retry suppression, interrupts, or pin timing.
 
+## Verified ordinary memory-to-memory boundary
+
+`MOVE *Rs,*Rd[,F]` occupies `8800h`/`FC00h`, captures both same-file bit
+addresses, copies the selected FS0/FS1 field, and changes neither pointer nor
+ST. The source field is fully captured before the destination write, including
+when fields overlap. Source cases 1/2 take three visible states and 3–5 take
+four; destination cases 1..5 contribute 1/2/2/3/4 hidden write states through
+the A–H matrix. Sources: User's Guide printed pp.13-160 and 15-10..15-12; the
+compatible TMS34010 form is printed pp.12-137..12-138.
+
+The model exhausts both banks, all widths, and all 1,024 source/destination
+offset pairs, while the independent `tms34020_field_move` leaf exhausts every
+size/offset geometry and case pair. This evidence is little-endian and
+logical: BEN, byte strobes/RMW, dynamic SIZE16, page turnaround, waits, I/O,
+fault/retry idempotence, interrupts, and physical commit remain absent.
+
 ## Locked-cycle requirements
 
 The write immediately follows the read and instruction completion waits for
@@ -92,7 +108,7 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE addressing/update/absolute/memory-to-memory forms,
+Remaining ordinary MOVE addressing-update and absolute forms,
 BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain

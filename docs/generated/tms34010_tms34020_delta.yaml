@@ -686,6 +686,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVE indirect-to-register form and status, printed pp.13-160 and 13-163", "TI-TMS34020-UG-1990 MOVE/MOVB timing cases, printed pp.15-10..15-11", "TI-TMS34020-UG-1990 BEN, printed pp.3-20..3-21 and 4-20..4-21", "TI-TMS34010-UG-1988 MOVE indirect-to-register, printed pp.12-135..12-136"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact native request decomposition, dynamic SIZE16 beats, page-mode eligibility, and fault/retry checkpoint remain pending the memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "ordinary_memory_to_memory_field_move",
+      "tms34010_behavior": "MOVE *Rs,*Rd[,F] uses 8800h/FC00h, copies the selected field between captured bit addresses, leaves registers and ST unchanged, and publishes a 16-bit source/destination alignment timing family.",
+      "tms34020_behavior": "The encoding and programmer-visible field copy remain compatible, but Table 15-3 maps independent five-case 32-bit source/destination alignments to 2/3 read and 2/3/4/5 write cycles. The instruction exposes 3/3/4/4/4 visible states by source case and 1/2/2/3/4 hidden states by destination case.",
+      "rtl_impact": "Reuse only field-size and complete-source-before-write semantics. A TMS34020-owned sequencer must capture both pointers, map BEN, sequence read then byte-strobed/RMW write across 32-bit and dynamic 16-bit targets, retain pending writes, manage page turnaround, and make read/write retry idempotent. The current wrapper only composes little-endian two-word semantic leaves.",
+      "test_impact": "All 1,024 encodings; both FS banks; widths 1..32; all 25 source/destination case pairs; every source and destination offset; A/B/SP and Rs=Rd; overlapping fields; ST/register preservation; BEN; read-before-write trace; hidden writes; 16/32-bit decomposition; pages; waits; read/write faults/retries; interrupts and I/O routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE indirect-to-indirect form, printed p.13-160", "TI-TMS34020-UG-1990 MOVE/MOVB source/destination case matrix and timing, printed pp.15-10..15-12", "TI-TMS34020-UG-1990 BEN, printed pp.3-20..3-21 and 4-20..4-21", "TI-TMS34010-UG-1988 MOVE indirect-to-indirect, printed pp.12-137..12-138"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact native read/write request decomposition, byte CAS strobes, dynamic SIZE16 beats, page turnaround, and fault/retry checkpoint remain pending the memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

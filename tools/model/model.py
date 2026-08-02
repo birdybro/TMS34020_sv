@@ -129,6 +129,7 @@ class Tms34020Model:
             "MOVI.W": self._execute_movi_word,
             "MOVI.L": self._execute_movi_long,
             "MOVE": self._execute_move,
+            "MOVE.MM": self._execute_move_memory_to_memory,
             "MOVE.MR": self._execute_move_memory_to_register,
             "MOVE.RM": self._execute_move_register_to_memory,
             "MOVX": self._execute_movx,
@@ -1627,6 +1628,61 @@ class Tms34020Model:
             "logical little-endian field extraction; physical dynamic-width, "
             "wait, page, fault, retry, interrupt, and I/O sequencing remain "
             "pending"
+        )
+        return machine_states
+
+    def _execute_move_memory_to_memory(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                "MOVE.MM big-endian field mapping is classified but not modeled"
+            )
+        first_word = words[0]
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(first_word)
+        )
+        width = self._selected_field_size(first_word)
+        source_address = self.state.read_reg(register_file, source_index)
+        destination_address = self.state.read_reg(
+            register_file, destination_index
+        )
+        value = self.state.memory.read_bits(source_address, width)
+        source_case = self._field_alignment_case(source_address, width)
+        destination_case = self._field_alignment_case(
+            destination_address, width
+        )
+        machine_states = 3 if source_case <= 2 else 4
+        hidden_states = (0, 1, 2, 2, 3, 4)[destination_case]
+        self.state.memory.write_bits(destination_address, width, value)
+        self._new_hidden_write_states = hidden_states
+        assert self._active_trace is not None
+        self._active_trace.transactions.extend(
+            [
+                {
+                    "class": "data_read",
+                    "purpose": "field_move_memory_to_memory_source",
+                    "bit_address": source_address,
+                    "width": width,
+                    "value": value,
+                    "alignment_case": source_case,
+                },
+                {
+                    "class": "data_write",
+                    "purpose": "field_move_memory_to_memory_destination",
+                    "bit_address": destination_address,
+                    "width": width,
+                    "value": value,
+                    "alignment_case": destination_case,
+                    "hidden_write_states": hidden_states,
+                },
+            ]
+        )
+        self._active_trace.notes.append(
+            "logical little-endian read-before-write field copy; physical "
+            "byte-strobe/RMW, dynamic-width, wait, page, fault, retry, "
+            "interrupt, and I/O sequencing remain pending"
         )
         return machine_states
 

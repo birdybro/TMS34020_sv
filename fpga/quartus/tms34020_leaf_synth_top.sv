@@ -120,6 +120,16 @@ module tms34020_leaf_synth_top (
     logic field_load_n;
     logic field_load_z;
     logic field_load_v;
+    logic [5:0] field_move_size;
+    logic [2:0] field_move_source_case;
+    logic [2:0] field_move_destination_case;
+    logic field_move_reads_word1;
+    logic field_move_writes_word1;
+    logic [2:0] field_move_visible_states;
+    logic [2:0] field_move_hidden_states;
+    logic [31:0] field_move_value;
+    logic [31:0] field_move_destination_word0;
+    logic [31:0] field_move_destination_word1;
     logic [15:0] multiple_normalized_mask;
     logic [4:0] multiple_register_count;
     logic multiple_list_valid;
@@ -181,6 +191,9 @@ module tms34020_leaf_synth_top (
         field_store_word1 ^
         field_load_raw ^
         field_load_result ^
+        field_move_value ^
+        field_move_destination_word0 ^
+        field_move_destination_word1 ^
         {16'd0, multiple_normalized_mask} ^
         multiple_final_pointer ^
         {26'd0, xy_linear_pitch_class, xy_linear_visible_states} ^
@@ -194,6 +207,10 @@ module tms34020_leaf_synth_top (
         {16'd0, field_load_size, field_load_alignment_case,
          field_load_reads_word1, field_load_visible_states,
          field_load_n, field_load_z, field_load_v} ^
+        {12'd0, field_move_size, field_move_source_case,
+         field_move_destination_case, field_move_reads_word1,
+         field_move_writes_word1, field_move_visible_states,
+         field_move_hidden_states} ^
         {17'd0, multiple_register_count, multiple_list_valid, multiple_n,
          multiple_visible_states, multiple_hidden_write_states} ^
         interrupt_return_final_sp ^
@@ -459,6 +476,28 @@ module tms34020_leaf_synth_top (
         .n_o(field_load_n),
         .z_o(field_load_z),
         .v_o(field_load_v)
+    );
+
+    tms34020_field_move field_move (
+        .field_size_encoded_i(
+            first_word_i[9] ? status_value[10:6] : status_value[4:0]
+        ),
+        .source_bit_offset_i(operand_i[4:0]),
+        .destination_bit_offset_i(second_register_data[4:0]),
+        .source_word0_i(immediate_i),
+        .source_word1_i(operand_i),
+        .destination_word0_i(register_data),
+        .destination_word1_i(second_register_data),
+        .field_size_o(field_move_size),
+        .source_alignment_case_o(field_move_source_case),
+        .destination_alignment_case_o(field_move_destination_case),
+        .reads_source_word1_o(field_move_reads_word1),
+        .writes_destination_word1_o(field_move_writes_word1),
+        .visible_states_o(field_move_visible_states),
+        .hidden_write_states_o(field_move_hidden_states),
+        .field_value_o(field_move_value),
+        .destination_word0_o(field_move_destination_word0),
+        .destination_word1_o(field_move_destination_word1)
     );
 
     tms34020_multiple_register_control multiple_register_control (

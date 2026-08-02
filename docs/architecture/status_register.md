@@ -181,6 +181,11 @@ both banks and the field-load leaf independently produces N/Z/V, but no RTL
 memory/status commit owner exists. Sources: User's Guide printed pp.13-159,
 13-160, and 13-163.
 
+`MOVE *Rs,*Rd[,F]` reads the selected FS bank but preserves the complete ST;
+FE is not applied to a memory-to-memory field copy. The exhaustive model
+checks full-width preservation. Source: User's Guide printed pp.13-160 and
+13-163.
+
 MMTM replaces only N and preserves C/Z/V plus every lower ST bit. The guide's
 two exceptions to the sign of `0-Rp` make the exact implemented rule
 `N = ~old_Rp[31]`: Rp zero sets N while Rp `80000000h` clears it. MMFM leaves

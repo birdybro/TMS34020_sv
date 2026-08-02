@@ -4,6 +4,14 @@
 
 ### Added
 
+- Primary-page-extracted `MOVE *Rs,*Rd[,F]` as internal MOVE.MM, covering all
+  1,024 words, unchanged ST/register behavior, complete read-before-write,
+  all 25 source/destination alignment pairs, timing, and compatibility bounds.
+- Little-endian architectural MOVE.MM logical read/write traces with exhaustive
+  bank/width/source/destination geometry, overlap ordering, and atomic BEN
+  rejection.
+- A clean-room two-source/two-destination-word MOVE.MM copy/timing leaf with
+  exhaustive geometry and explicit noncommit without a memory sequencer.
 - Primary-page-extracted `MOVE *Rs,Rd[,F]` as internal MOVE.MR, covering all
   1,024 words, FS/FE selection, extension/status behavior, five alignment
   cases, timing, alias ordering, and TMS34010 compatibility boundaries.
@@ -452,6 +460,17 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis reports 12,544 leaf logic
+  cells/2,230 registers/9 DSP, 433 fetch logic cells, 812 frontend logic
+  cells, and 5,405 scalar logic cells for the 107-entry decoder/field-copy
+  revision. The frontend/scalar probes retain 4,096 block-memory bits. These
+  are observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
+- The 48-case ISA suite, 69-entry delta ledger, and 178-case model suite pass.
+  MOVE.MM exhausts both FS banks, every width and 1,024 source/destination
+  offset pairs, all 25 timing pairs, A/B/SP/alias/overlap ordering, unchanged
+  ST/registers, logical transaction order, hidden writes, and BEN rollback.
+  The RTL leaf independently exhausts 32,768 geometries and direct noncommit.
 - The 47-case ISA suite, 68-entry delta ledger, and 175-case model suite pass.
   MOVE.MR coverage exhausts both FS/FE banks, every width/offset, all five
   cases, zero/sign extension, N/C/Z/V, A/B/SP/alias ordering, logical traces,
@@ -1057,6 +1076,8 @@
 
 ### Documentation
 
+- Documented the compatible indirect-to-indirect field copy separately from
+  TMS34020-owned A–H timing, BEN, dynamic-width, page and fault sequencing.
 - Recorded the verified ordinary field-load implementation baseline as commit
   `4dc5694298903b68d5c0542f536a00500baee7eb` in the progress ledger.
 - Documented ordinary memory-to-register compatibility separately from the
@@ -1202,6 +1223,9 @@
 
 ### Known Issues
 
+- MOVE.MM is a little-endian logical read-before-write model and combinational
+  window leaf only. BEN, byte strobes/RMW, dynamic SIZE16, page turnaround,
+  waits, I/O, faults/retries, interrupts and a committing sequencer remain.
 - MOVE.MR is a little-endian logical-read model and combinational two-word
   leaf only. BEN=1, dynamic SIZE16, physical requests, page mode, waits,
   I/O routing, faults/retries, interrupts, and a committing sequencer remain.

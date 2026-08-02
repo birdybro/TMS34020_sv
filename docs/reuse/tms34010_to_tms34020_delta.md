@@ -179,6 +179,14 @@ SIZE16, page mode, waits, faults/retries and physical requests require the
 TMS34020 sequencer. Sources: TMS34020 guide printed pp.13-160, 13-163, and
 15-10..15-11; TMS34010 guide printed pp.12-135..12-136.
 
+`MOVE *Rs,*Rd[,F]` also retains its encoding and visible read-before-write
+field copy, but its TMS34020 timing is the 32-bit A–H matrix: source alignment
+selects three/four visible states and destination alignment selects
+1/2/2/3/4 hidden writes. The logical model/leaf reuse no 16-bit TMS34010
+sequencer. BEN, CAS/RMW, dynamic SIZE16, page turnaround, waits, faults/retries
+and interrupts require device-owned control. Sources: TMS34020 guide printed
+pp.13-160 and 15-10..15-12; TMS34010 guide pp.12-137..12-138.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

@@ -958,6 +958,185 @@ class ExecutionTests(unittest.TestCase):
 
         self.assertEqual(model.snapshot(), before)
 
+    def test_move_memory_to_memory_exhaustive_field_geometry(self) -> None:
+        source_window = 0xC33C_F00F_A5A5_5A5A
+        destination_window = 0x6996_3CC3_5AA5_C33C
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for width in range(1, 33):
+                for source_offset in range(32):
+                    for destination_offset in range(32):
+                        with self.subTest(
+                            bank=field_bank,
+                            width=width,
+                            source_offset=source_offset,
+                            destination_offset=destination_offset,
+                        ):
+                            model = Tms34020Model(isa=shared_isa)
+                            opcode = 0x8801 | (field_bank << 9)
+                            model.load_program([opcode])
+                            model.state.write_reg(
+                                "A", 0, 0x2000 + source_offset
+                            )
+                            model.state.write_reg(
+                                "A", 1, 0x3000 + destination_offset
+                            )
+                            encoded_width = 0 if width == 32 else width
+                            model.state.st = (
+                                0xD020_1000
+                                | (encoded_width << (field_bank * 6))
+                            )
+                            status_before = model.state.st
+                            model.state.memory.write_bits(
+                                0x2000, 32, source_window & 0xFFFF_FFFF
+                            )
+                            model.state.memory.write_bits(
+                                0x2020, 32, source_window >> 32
+                            )
+                            model.state.memory.write_bits(
+                                0x3000,
+                                32,
+                                destination_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x3020, 32, destination_window >> 32
+                            )
+
+                            event = model.step()
+
+                            field_mask = (
+                                0xFFFF_FFFF
+                                if width == 32 else (1 << width) - 1
+                            )
+                            value = (source_window >> source_offset) & field_mask
+                            positioned_mask = field_mask << destination_offset
+                            expected_destination = (
+                                (destination_window & ~positioned_mask)
+                                | (value << destination_offset)
+                            ) & 0xFFFF_FFFF_FFFF_FFFF
+
+                            def alignment_case(offset: int) -> int:
+                                crosses = offset + width > 32
+                                start_byte = offset % 8 == 0
+                                end_byte = (offset + width) % 8 == 0
+                                if not crosses:
+                                    return 1 if start_byte and end_byte else 2
+                                if start_byte and end_byte:
+                                    return 3
+                                if start_byte or end_byte:
+                                    return 4
+                                return 5
+
+                            source_case = alignment_case(source_offset)
+                            destination_case = alignment_case(destination_offset)
+                            hidden_states = (0, 1, 2, 2, 3, 4)[
+                                destination_case
+                            ]
+                            actual_source = (
+                                model.state.memory.read_bits(0x2000, 32)
+                                | (
+                                    model.state.memory.read_bits(0x2020, 32)
+                                    << 32
+                                )
+                            )
+                            actual_destination = (
+                                model.state.memory.read_bits(0x3000, 32)
+                                | (
+                                    model.state.memory.read_bits(0x3020, 32)
+                                    << 32
+                                )
+                            )
+                            self.assertEqual(event.mnemonic, "MOVE.MM")
+                            self.assertEqual(
+                                event.machine_states,
+                                3 if source_case <= 2 else 4,
+                            )
+                            self.assertEqual(model.state.st, status_before)
+                            self.assertEqual(actual_source, source_window)
+                            self.assertEqual(
+                                actual_destination, expected_destination
+                            )
+                            self.assertEqual(
+                                model.state.pending_write_states, hidden_states
+                            )
+                            self.assertEqual(
+                                event.transactions[-2:],
+                                [
+                                    {
+                                        "class": "data_read",
+                                        "purpose": (
+                                            "field_move_memory_to_memory_source"
+                                        ),
+                                        "bit_address": 0x2000 + source_offset,
+                                        "width": width,
+                                        "value": value,
+                                        "alignment_case": source_case,
+                                    },
+                                    {
+                                        "class": "data_write",
+                                        "purpose": (
+                                            "field_move_memory_to_memory_destination"
+                                        ),
+                                        "bit_address": (
+                                            0x3000 + destination_offset
+                                        ),
+                                        "width": width,
+                                        "value": value,
+                                        "alignment_case": destination_case,
+                                        "hidden_write_states": hidden_states,
+                                    },
+                                ],
+                            )
+
+    def test_move_memory_to_memory_alias_and_overlap_ordering(self) -> None:
+        same = Tms34020Model()
+        same.load_program([0x8800])
+        same.state.write_reg("A", 0, 0x4003)
+        same.state.st = 13 | 0xA000_0000
+        same.state.memory.write_bits(0x4000, 32, 0xD69A_35C7)
+        before = same.snapshot()
+        same.step()
+        self.assertEqual(same.state.memory.snapshot(), before["state"]["memory"])
+        self.assertEqual(same.state.read_reg("A", 0), 0x4003)
+        self.assertEqual(same.state.st, 13 | 0xA000_0000)
+
+        overlap = Tms34020Model()
+        overlap.load_program([0x8812])
+        overlap.state.write_reg("B", 0, 0x5000)
+        overlap.state.write_reg("B", 2, 0x5008)
+        overlap.state.st = 16
+        overlap.state.memory.write_bits(0x5000, 24, 0xAB_CDEF)
+        overlap.step()
+        self.assertEqual(overlap.state.memory.read_bits(0x5000, 24), 0xCD_EFEF)
+        self.assertEqual(overlap.state.read_reg("B", 0), 0x5000)
+        self.assertEqual(overlap.state.read_reg("B", 2), 0x5008)
+
+        shared_sp = Tms34020Model()
+        shared_sp.load_program([0x89EF])
+        shared_sp.state.sp = 0x6000
+        shared_sp.state.st = 8
+        shared_sp.state.memory.write_bits(0x6000, 8, 0xA5)
+        shared_sp.step()
+        self.assertEqual(shared_sp.state.sp, 0x6000)
+        self.assertEqual(shared_sp.state.memory.read_bits(0x6000, 8), 0xA5)
+
+    def test_move_memory_to_memory_big_endian_rolls_back(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x8801])
+        model.state.write_reg("A", 0, 0x7000)
+        model.state.write_reg("A", 1, 0x7100)
+        model.state.memory.write_bits(0x7000, 8, 0xA5)
+        model.state.memory.write_bits(0x7100, 8, 0x5A)
+        model.state.write_io(CONFIG_ADDRESS, 1)
+        before = model.snapshot()
+
+        with self.assertRaisesRegex(
+            UnsupportedInstruction, "big-endian field mapping"
+        ):
+            model.step()
+
+        self.assertEqual(model.snapshot(), before)
+
     def test_rl_constant_primary_rows_preserve_n_and_v(self) -> None:
         cases = (
             (0, 0x0000_000F, 0x0000_000F, 0b1001),

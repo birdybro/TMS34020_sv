@@ -140,6 +140,23 @@ module tb_tms34020_verified_leaves;
     logic field_load_n;
     logic field_load_z;
     logic field_load_v;
+    logic [4:0] field_move_size;
+    logic [4:0] field_move_source_offset;
+    logic [4:0] field_move_destination_offset;
+    logic [31:0] field_move_source_word0;
+    logic [31:0] field_move_source_word1;
+    logic [31:0] field_move_destination_word0;
+    logic [31:0] field_move_destination_word1;
+    logic [5:0] field_move_decoded_size;
+    logic [2:0] field_move_source_case;
+    logic [2:0] field_move_destination_case;
+    logic field_move_reads_word1;
+    logic field_move_writes_word1;
+    logic [2:0] field_move_visible_states;
+    logic [2:0] field_move_hidden_states;
+    logic [31:0] field_move_value;
+    logic [31:0] field_move_word0_result;
+    logic [31:0] field_move_word1_result;
     logic multiple_memory_to_registers;
     logic [15:0] multiple_register_list;
     logic [3:0] multiple_pointer_index;
@@ -440,6 +457,26 @@ module tb_tms34020_verified_leaves;
         .n_o(field_load_n),
         .z_o(field_load_z),
         .v_o(field_load_v)
+    );
+
+    tms34020_field_move field_move_dut (
+        .field_size_encoded_i(field_move_size),
+        .source_bit_offset_i(field_move_source_offset),
+        .destination_bit_offset_i(field_move_destination_offset),
+        .source_word0_i(field_move_source_word0),
+        .source_word1_i(field_move_source_word1),
+        .destination_word0_i(field_move_destination_word0),
+        .destination_word1_i(field_move_destination_word1),
+        .field_size_o(field_move_decoded_size),
+        .source_alignment_case_o(field_move_source_case),
+        .destination_alignment_case_o(field_move_destination_case),
+        .reads_source_word1_o(field_move_reads_word1),
+        .writes_destination_word1_o(field_move_writes_word1),
+        .visible_states_o(field_move_visible_states),
+        .hidden_write_states_o(field_move_hidden_states),
+        .field_value_o(field_move_value),
+        .destination_word0_o(field_move_word0_result),
+        .destination_word1_o(field_move_word1_result)
     );
 
     tms34020_multiple_register_control multiple_register_control_dut (
@@ -1016,6 +1053,46 @@ module tb_tms34020_verified_leaves;
             field_load_n == expected_n &&
             field_load_z == expected_z &&
             !field_load_v,
+            message
+        );
+    endtask
+
+    task automatic check_field_move(
+        input logic [4:0] field_size_encoded,
+        input logic [4:0] source_bit_offset,
+        input logic [4:0] destination_bit_offset,
+        input logic [63:0] source_window,
+        input logic [63:0] old_destination_window,
+        input logic [5:0] expected_size,
+        input logic [2:0] expected_source_case,
+        input logic [2:0] expected_destination_case,
+        input logic expected_reads_word1,
+        input logic expected_writes_word1,
+        input logic [2:0] expected_visible_states,
+        input logic [2:0] expected_hidden_states,
+        input logic [31:0] expected_value,
+        input logic [63:0] expected_destination_window,
+        input string message
+    );
+        field_move_size = field_size_encoded;
+        field_move_source_offset = source_bit_offset;
+        field_move_destination_offset = destination_bit_offset;
+        field_move_source_word0 = source_window[31:0];
+        field_move_source_word1 = source_window[63:32];
+        field_move_destination_word0 = old_destination_window[31:0];
+        field_move_destination_word1 = old_destination_window[63:32];
+        #1;
+        check_condition(
+            field_move_decoded_size == expected_size &&
+            field_move_source_case == expected_source_case &&
+            field_move_destination_case == expected_destination_case &&
+            field_move_reads_word1 == expected_reads_word1 &&
+            field_move_writes_word1 == expected_writes_word1 &&
+            field_move_visible_states == expected_visible_states &&
+            field_move_hidden_states == expected_hidden_states &&
+            field_move_value == expected_value &&
+            {field_move_word1_result, field_move_word0_result} ==
+                expected_destination_window,
             message
         );
     endtask
@@ -2044,6 +2121,13 @@ module tb_tms34020_verified_leaves;
         field_load_offset = 5'd0;
         field_load_word0 = 32'd0;
         field_load_word1 = 32'd0;
+        field_move_size = 5'd0;
+        field_move_source_offset = 5'd0;
+        field_move_destination_offset = 5'd0;
+        field_move_source_word0 = 32'd0;
+        field_move_source_word1 = 32'd0;
+        field_move_destination_word0 = 32'd0;
+        field_move_destination_word1 = 32'd0;
         multiple_memory_to_registers = 1'b0;
         multiple_register_list = 16'd0;
         multiple_pointer_index = 4'd0;
@@ -2950,6 +3034,98 @@ module tb_tms34020_verified_leaves;
                 end
             end
         end
+        for (int unsigned encoded_size = 0; encoded_size < 32;
+             encoded_size++) begin
+            for (int unsigned source_offset = 0; source_offset < 32;
+                 source_offset++) begin
+                for (int unsigned destination_offset = 0;
+                     destination_offset < 32; destination_offset++) begin
+                    logic [5:0] expected_size;
+                    logic [6:0] expected_source_end;
+                    logic [6:0] expected_destination_end;
+                    logic [31:0] expected_mask;
+                    logic [63:0] expected_source_window;
+                    logic [31:0] expected_value;
+                    logic [63:0] expected_positioned_mask;
+                    logic [63:0] expected_destination_window;
+                    logic [2:0] expected_source_case;
+                    logic [2:0] expected_destination_case;
+                    logic [2:0] expected_hidden;
+                    expected_size = encoded_size == 0 ? 6'd32 :
+                        encoded_size[5:0];
+                    expected_source_end = source_offset[6:0] + expected_size;
+                    expected_destination_end =
+                        destination_offset[6:0] + expected_size;
+                    expected_mask = 32'hFFFF_FFFF;
+                    if (expected_size != 6'd32) begin
+                        expected_mask =
+                            (32'd1 << expected_size) - 32'd1;
+                    end
+                    expected_source_window = 64'hC33C_F00F_A5A5_5A5A;
+                    expected_value =
+                        expected_source_window[source_offset +: 32] &
+                        expected_mask;
+                    expected_positioned_mask =
+                        {32'd0, expected_mask} << destination_offset;
+                    expected_destination_window =
+                        (64'h6996_3CC3_5AA5_C33C &
+                         ~expected_positioned_mask) |
+                        (({32'd0, expected_value} << destination_offset) &
+                         expected_positioned_mask);
+
+                    if (expected_source_end <= 7'd32) begin
+                        expected_source_case =
+                            ((source_offset[2:0] == 3'd0) &&
+                             (expected_source_end[2:0] == 3'd0)) ?
+                            3'd1 : 3'd2;
+                    end else if ((source_offset[2:0] == 3'd0) &&
+                                 (expected_source_end[2:0] == 3'd0)) begin
+                        expected_source_case = 3'd3;
+                    end else if ((source_offset[2:0] == 3'd0) ||
+                                 (expected_source_end[2:0] == 3'd0)) begin
+                        expected_source_case = 3'd4;
+                    end else begin
+                        expected_source_case = 3'd5;
+                    end
+
+                    if (expected_destination_end <= 7'd32) begin
+                        expected_destination_case =
+                            ((destination_offset[2:0] == 3'd0) &&
+                             (expected_destination_end[2:0] == 3'd0)) ?
+                            3'd1 : 3'd2;
+                    end else if ((destination_offset[2:0] == 3'd0) &&
+                                 (expected_destination_end[2:0] == 3'd0)) begin
+                        expected_destination_case = 3'd3;
+                    end else if ((destination_offset[2:0] == 3'd0) ||
+                                 (expected_destination_end[2:0] == 3'd0)) begin
+                        expected_destination_case = 3'd4;
+                    end else begin
+                        expected_destination_case = 3'd5;
+                    end
+                    unique case (expected_destination_case)
+                        3'd1: expected_hidden = 3'd1;
+                        3'd2: expected_hidden = 3'd2;
+                        3'd3: expected_hidden = 3'd2;
+                        3'd4: expected_hidden = 3'd3;
+                        default: expected_hidden = 3'd4;
+                    endcase
+                    check_field_move(
+                        encoded_size[4:0], source_offset[4:0],
+                        destination_offset[4:0],
+                        64'hC33C_F00F_A5A5_5A5A,
+                        64'h6996_3CC3_5AA5_C33C,
+                        expected_size, expected_source_case,
+                        expected_destination_case,
+                        expected_source_end > 7'd32,
+                        expected_destination_end > 7'd32,
+                        (expected_source_case <= 3'd2) ? 3'd3 : 3'd4,
+                        expected_hidden, expected_value,
+                        expected_destination_window,
+                        "MOVE.MM exhaustive source/destination field geometry"
+                    );
+                end
+            end
+        end
         check_multiple_register_control(
             1'b1, 16'h4015, 4'd15, 32'h0000_0780, 1'b0,
             16'h4015, 5'd4, 1'b1, 32'h0000_0800, 1'b1, 6'd9, 2'd0,
@@ -3557,6 +3733,12 @@ module tb_tms34020_verified_leaves;
             32'hA020_0010,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MOVE.MR cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'h8801, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MM cannot bypass absent field-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -5212,10 +5394,14 @@ module tb_tms34020_verified_leaves;
                      "MOVE.MR field-zero lower-bound decode");
         check_decode(16'h87FF, TMS20_OP_MOVE_MR, 3'd1,
                      "MOVE.MR field-one upper-bound decode");
-        decode_word = 16'h8800;
+        check_decode(16'h8800, TMS20_OP_MOVE_MM, 3'd1,
+                     "MOVE.MM field-zero lower-bound decode");
+        check_decode(16'h8BFF, TMS20_OP_MOVE_MM, 3'd1,
+                     "MOVE.MM field-one upper-bound decode");
+        decode_word = 16'h8C00;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
-            "unextracted MOVE memory-to-memory remains open");
+            "unextracted 8C00 opcode family remains open");
         check_decode(16'h1C00, TMS20_OP_BTST_K, 3'd1,
                      "BTST.K lower-bound decode");
         check_decode(16'h1FFF, TMS20_OP_BTST_K, 3'd1,

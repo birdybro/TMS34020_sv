@@ -21,6 +21,7 @@ Implemented:
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
   PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM, MOVE.MR,
+  MOVE.MM,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -33,7 +34,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 105 of 106 currently extracted database forms for their
+These handlers cover 106 of 107 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -63,6 +64,16 @@ set. Tests exhaust both FS/FE banks, extension modes, all widths and offsets,
 both register files, shared SP, Rs=Rd ordering, positive/negative/zero status,
 and BEN rollback. The logical read is not a physical request trace. Sources:
 User's Guide printed pp.13-160, 13-163, and 15-10..15-11.
+
+`MOVE.MM` names `MOVE *Rs,*Rd[,F]`. It captures both pointers, reads the
+entire source field before writing, leaves registers/ST unchanged, and records
+separate source/destination alignment cases. Source cases 1/2 take three
+visible states and 3–5 take four; destination cases 1..5 launch 1/2/2/3/4
+hidden write states. Tests exhaust both banks, all widths and every source/
+destination offset, including A/B/SP aliases, overlapping fields, trace order,
+and BEN rollback. This remains a logical little-endian read/write pair, not a
+physical transaction sequencer. Sources: User's Guide printed pp.13-160 and
+15-10..15-12.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

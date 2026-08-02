@@ -102,6 +102,12 @@ those counts with little-endian logical extraction only; no request or wait-
 state waveform is claimed. Source: User's Guide memory-to-register timing
 rows, printed p.15-11.
 
+For `MOVE *Rs,*Rd[,F]`, Table 15-3 combines independent source and
+destination cases. Source cases 1/2 take three visible states and cases 3–5
+take four; destination cases 1..5 add 1/2/2/3/4 hidden write states. The
+model and field-move leaf expose this factorized A–H matrix without claiming
+physical read/write overlap. Source: User's Guide printed pp.15-10..15-12.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.
