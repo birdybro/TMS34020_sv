@@ -1323,6 +1323,8 @@ qualification.
 
 ### Documentation
 
+- Recorded the CEXEC model/RTL milestone commit
+  `358dd83824b2947314034ac21d98370ee365ec7b` in the progress ledger.
 - Added the Chapter-10 coprocessor command format, long/short CEXEC encoding,
   32-bit-only command-cycle signaling, completion/fault boundary, current
   model/RTL scope, and remaining CMOV/protocol work with primary page citations.
