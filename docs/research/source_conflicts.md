@@ -592,3 +592,60 @@
   result-word check that is unreachable for legal nonzero operands. OQ-0019
   tracks whether this was a copied divide timing row, silicon-internal state,
   or an omitted special case. No cycle-accuracy claim is made for it.
+
+## RSC-0030: MPYS/MPYU detailed pages and timing table swap a state case
+
+- Status: unresolved; detailed instruction-page behavior selected provisionally
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, MPYS printed
+  p.13-173 gives `5 + FS1/2` states without a sign case. MPYU printed p.13-176
+  gives `5 + FS1/2` when Rs is nonnegative and `6 + FS1/2` when Rs is
+  negative. Chapter 15 printed p.15-6 instead assigns the sign-dependent pair
+  to MPYS (`5 +` for negative, `6 +` for positive) and gives MPYU the constant
+  `5 + FS1/2` rule. These cannot both describe the same executions.
+- Cross-generation primary evidence: the 1988 TMS34010 guide printed
+  pp.12-165 and 12-167 places the sign-dependent case on MPYU, matching the
+  TMS34020 detailed instruction pages, while also publishing separate older
+  destination-parity timings.
+- Secondary evidence: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 731–768, uses constant 20/21
+  cycle charges and cannot discriminate either documented rule.
+- Decision: semantic results are primary-verified. Model/metadata provisionally
+  use the detailed pages: MPYS `5 + FS1/2`; MPYU adds one state when raw Rs bit
+  31 is set. This is not a cycle-accuracy claim. OQ-0020 tracks hardware or
+  erratum evidence, including whether “Rs negative” observes ignored high bits
+  when FS1 is smaller than 32.
+
+## RSC-0031: MPYS Example 1 transposes a multiplicand digit
+
+- Status: resolved for executable fixtures by the companion example and exact
+  arithmetic; the printed error remains recorded
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, MPYS Example 1,
+  printed p.13-173, gives A0=`8040156Fh`, A1=`7FF3B074h`, and product
+  `C0262CDCh:53E486F8h`. Signed multiplication of those printed operands is
+  `C0262F68h:9523064Ch`. Example 2 on p.13-174 uses A1=`80401056h` with
+  source A0=`7FF3B074h` and prints the same product; those operands calculate
+  exactly to `C0262CDCh:53E486F8h`. Every variable-FS1 result in the two tables
+  likewise agrees when `80401056h` is the multiplicand.
+- Decision: fixtures use `80401056h` and retain the printed product. No
+  undocumented arithmetic exception is introduced.
+
+## RSC-0032: TMS34010 odd-product flags disagree across secondary references
+
+- Status: open only for the TMS34010 compatibility boundary; TMS34020 behavior
+  is explicit and implemented
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, MPYS printed
+  p.13-173 and MPYU p.13-175 explicitly say odd-Rd N/Z are set from the full
+  product, including discarded MSBs. The 1988 TMS34010 guide printed
+  pp.12-164..12-167 describes the same storage rule but does not repeat that
+  explicit odd-result status sentence, leaving the older flag source ambiguous.
+- Secondary disagreement: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`, `34010ops.hxx` lines 731–768,
+  derives flags from the full product. Pinned TMS34010 RTL commit
+  `94a258e80a07ceb4303ce0b99818df832e96007f` documents and tests flags from the
+  retained low word in `docs/instruction_coverage.md` rows 87–88 and
+  `sim/tb/tb_mpy_flags.sv` lines 99–146.
+- Decision: the TMS34020 model and leaf follow their explicit primary pages.
+  Odd-Rd discriminators cover a nonzero full product with zero low word and
+  signed products whose full and low-word signs differ. Upstream flag fixtures
+  are not imported as compatible evidence. OQ-0021 tracks the older device.

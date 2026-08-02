@@ -136,6 +136,19 @@ only the arithmetic mechanism, not upstream status/timing control. Sources:
 TMS34020 guide printed pp.13-152..13-153 and 15-5; TMS34010 guide printed
 pp.12-112..12-114 and Appendix A p.A-17.
 
+MPYS/MPYU retain `5C00h`/`FE00h` and `5E00h`/`FE00h`, low-FS1 field
+arithmetic, and even-pair/odd-low-word placement, but the pinned upstream
+multiply implementation is not reusable as timing or odd-flag control.
+TMS34020 explicitly derives odd-Rd N/Z from the full product including
+discarded MSBs. The older primary guide is ambiguous there: pinned MAME uses
+the full product while the pinned TMS34010 RTL uses the retained word
+(RSC-0032/OQ-0021). TMS34020 also removes the older destination-parity timing
+pair, although its own detailed pages and chapter-15 table swap which mnemonic
+has a sign-dependent extra state (RSC-0030/OQ-0020). The new multiplier leaf
+is clean-room TMS34020-owned and its selected timing classification remains
+provisional. Sources: TMS34020 guide printed pp.13-172..13-176 and 15-6;
+TMS34010 guide printed pp.12-164..12-167.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family

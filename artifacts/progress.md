@@ -4,15 +4,22 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `f8a3ebef2693c4d2eb3240bccabf0b0a1da3bc28`
-- Passing tests: foundation, reference/hash, delta, 40-case ISA sweep, 152 directed model
+- Passing tests: foundation, reference/hash, delta, 41-case ISA sweep, 156 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 96 of 97 currently extracted encoding forms have bounded
-  successful semantics. MODS/MODU cover every primary row, signed remainder,
+- Model status: 98 of 99 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. MPYS/MPYU reproduce
+  every arithmetic-consistent primary row, every even FS1 2–32, even-pair and
+  odd-low storage, full-product N/Z discriminators, source/destination/SP
+  aliases, and C/V preservation. Odd FS1 is atomically rejected rather than
+  invented. RSC-0030/OQ-0020 retain the detailed-page/timing-table swap;
+  RSC-0031 records the impossible printed operand and RSC-0032/OQ-0021 keeps
+  the TMS34010 odd-flag compatibility boundary open.
+  MODS/MODU cover every primary row, signed remainder,
   zero-divisor results, same-register/shared-SP aliases, status masks, and
   35/40/3-state cases. RSC-0028 resolves remainder-derived Z; RSC-0029/OQ-0019
   retain the mathematically unreachable published MODS 41-state result.
@@ -79,8 +86,8 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 97-entry partial decode, a clean-room iterative
-  DIVS/DIVU/MODS/MODU leaf, A/B/SP and masked ST state,
+- RTL status: generated 99-entry partial decode, clean-room iterative
+  DIVS/DIVU/MODS/MODU and combinational MPYS/MPYU leaves, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 52 one-word instructions, with externally gated one-edge
@@ -132,6 +139,12 @@
   and quotient-overflow-with-valid-remainder while remaining noncommitting.
   The FPGA
   step count is not architectural timing.
+  MPYS/MPYU decode and a standalone multiplier leaf pass signed/unsigned,
+  every representative FS1 class, full-product status discriminators, raw-Rs
+  timing selection, and illegal-odd-FS1 checks. The scalar router rejects both
+  forms until one owner can capture operands and commit either an even pair or
+  odd single result plus status atomically; the leaf state output remains
+  provisional under RSC-0030.
   CVDXYL/CVMXYL/CVSXYL/CVXYL decode and a standalone signed conversion leaf
   pass all pitch classes, PSIZE/mask-X, offsets, wrap, and published state-case
   checks; the scalar router rejects them until explicit/implied registers,
@@ -195,9 +208,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 10,296 logic cells,
-  2,230 registers, and 3 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 434, 809, and 5,346 logic cells;
+  warnings; the current decoder-bearing leaf wrapper uses 10,662 logic cells,
+  2,230 registers, and 9 DSP blocks, while
+  the fetch, frontend, and scalar wrappers use 442, 812, and 5,396 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
@@ -206,7 +219,8 @@
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
   transactions rather than pin-level dynamic-width cycles
 - Unresolved conflicts: exact game parts and REV values, original/A errata,
-  first-silicon history, the unreachable published MODS 41-state result,
+  first-silicon history, the MPYS/MPYU detailed-page/timing-table swap and
+  TMS34010 odd-product flag boundary, the unreachable published MODS 41-state result,
   signed even-pair DIVS nonzero early-overflow behavior,
   CVXYL's three contradictory PSIZE=4 table rows, and its arbitrary-pitch
   14/15-state primary timing disagreement

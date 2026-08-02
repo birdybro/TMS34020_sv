@@ -616,6 +616,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 MODS/MODU, printed pp.13-152..13-153 and timing p.15-5", "TI-TMS34010-UG-1988 MODS/MODU, printed pp.12-112..12-114 and Appendix A p.A-17"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["RSC-0029/OQ-0019: provenance or hidden interpretation of the published MODS result-80000000h timing class.", "Physical divider retirement and interrupt recognition remain pending."]
+    },
+    {
+      "feature": "signed_unsigned_field_multiply_flags_timing",
+      "tms34010_behavior": "MPYS 5C00h/FE00h and MPYU 5E00h/FE00h multiply an even FS1-bit field by signed/unsigned Rd and store a pair for even Rd or the low word for odd Rd. The 1988 guide publishes destination-parity timing pairs (MPYS 5/8+FS1/2; MPYU 5/8+FS1/2 when Rs nonnegative and 6/9+FS1/2 when negative) but is ambiguous about whether odd-Rd flags use the full or retained product; pinned TMS34010 RTL uses the retained word while pinned MAME uses the full product (RSC-0032).",
+      "tms34020_behavior": "Encodings, FS1 field arithmetic and result placement remain, but the TMS34020 pages explicitly derive odd-Rd N/Z from the full product including discarded MSBs and remove the destination-parity timing pair. Detailed pages give MPYS 5+FS1/2 and sign-dependent MPYU 5/6+FS1/2; chapter 15 swaps that sign case between mnemonics, so the detailed-page selection remains provisional under RSC-0030. RSC-0031 corrects one impossible example operand without changing arithmetic.",
+      "rtl_impact": "Use a TMS34020-owned multiplier leaf and an atomic pair-capable retirement owner. Capture Rs/Rd before writes, sign/zero extend exactly FS1 low bits, retain full-product flag inputs for odd Rd, support the discouraged Rd=14/SP pair without alias corruption, reject or trap undocumented odd FS1 in verification, and do not reuse upstream flag/timing control.",
+      "test_impact": "All 1,024 encodings; every reliable primary table row; every even FS1 2..32; signed/unsigned extrema; even/odd destinations; full-versus-low N/Z discriminators; source=destination, source=Rd+1 and shared-SP aliases; C/V preservation; odd-FS1 nonclaim; both competing timing hypotheses retained with the selected detailed-page rule marked provisional.",
+      "source_citation": ["TI-TMS34020-UG-1990 MPYS/MPYU, printed pp.13-172..13-176 and timing p.15-6", "TI-TMS34010-UG-1988 MPYS/MPYU, printed pp.12-164..12-167 and Appendix A p.A-17", "Pinned MAME a562e947b22f4f5acff0c182c26fd649d72dad0e 34010ops.hxx lines 731-768", "Pinned TMS34010 RTL 94a258e80a07ceb4303ce0b99818df832e96007f instruction_coverage.md rows 87-88"],
+      "confidence": "PROVISIONAL",
+      "unresolved_questions": ["RSC-0030/OQ-0020: real TMS34020 sign-dependent timing owner and raw-Rs sign discriminator.", "RSC-0032/OQ-0021: TMS34010 odd-product flag source for compatibility.", "Exact multiply retirement/interrupt checkpoint remains pending."]
     }
   ]
 }

@@ -24,6 +24,7 @@ SOURCES = [
     ROOT / "rtl/execute/tms34020_addxyi.sv",
     ROOT / "rtl/execute/tms34020_binary_arithmetic.sv",
     ROOT / "rtl/execute/tms34020_divider.sv",
+    ROOT / "rtl/execute/tms34020_multiplier.sv",
     ROOT / "rtl/execute/tms34020_bit_test.sv",
     ROOT / "rtl/execute/tms34020_field_extend.sv",
     ROOT / "rtl/execute/tms34020_cmpk.sv",

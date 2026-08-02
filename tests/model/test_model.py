@@ -1462,6 +1462,175 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(alias.state.sp, 0)
         self.assertEqual(alias_event.machine_states, 35)
 
+    def test_mpys_primary_even_rows_field_sizes_and_status(self) -> None:
+        rows = (
+            # multiplicand, source, FS1, high, low
+            (0x0000_0000, 0x0000_0000, 32, 0x0000_0000, 0x0000_0000),
+            (0x7FFF_FFFF, 0x7FFF_FFFF, 32, 0x3FFF_FFFF, 0x0000_0001),
+            (0x7FFF_FFFF, 0xFFFF_FFFF, 32, 0xFFFF_FFFF, 0x8000_0001),
+            (0xFFFF_FFFF, 0x7FFF_FFFF, 32, 0xFFFF_FFFF, 0x8000_0001),
+            (0xFFFF_FFFF, 0xFFFF_FFFF, 32, 0x0000_0000, 0x0000_0001),
+            (0x8000_0000, 0x7FFF_FFFF, 32, 0xC000_0000, 0x8000_0000),
+            (0x8000_0000, 0x8000_0000, 32, 0x4000_0000, 0x0000_0000),
+            (0x8000_0001, 0x8000_0000, 32, 0x3FFF_FFFF, 0x8000_0000),
+            (0x8040_1056, 0x7FF3_B074, 32, 0xC026_2CDC, 0x53E4_86F8),
+            (0x8040_1056, 0x7FF3_B074, 24, 0x0006_24B1, 0x53E4_86F8),
+            (0x8040_1056, 0x7FF3_B074, 20, 0xFFFE_28B2, 0x5944_86F8),
+            (0x8040_1056, 0x7FF3_B074, 16, 0x0000_27B2, 0x17EC_86F8),
+            (0x8040_1056, 0x7FF3_B074, 14, 0x0000_07C2, 0x1C02_06F8),
+            (0x8040_1056, 0x7FF3_B074, 8, 0xFFFF_FFC6, 0x1D07_66F8),
+            (0x8040_1056, 0x7FF3_B074, 6, 0x0000_0005, 0xFCFF_3BF8),
+            (0x8040_1056, 0x7FF3_B074, 4, 0xFFFF_FFFE, 0x0100_4158),
+            (0x8040_1056, 0x7FF3_B074, 2, 0x0000_0000, 0x0000_0000),
+        )
+        for multiplicand, source, width, high, low in rows:
+            with self.subTest(width=width, source=f"{source:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x5C20])  # MPYS A1,A0
+                model.state.write_reg("A", 0, multiplicand)
+                model.state.write_reg("A", 1, source)
+                model.state.st = status_with_field_size(
+                    0x5000_0000, 0, width
+                )
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), high)
+                self.assertEqual(model.state.read_reg("A", 1), low)
+                expected_nczv = (
+                    (0x8 if high & 0x8000_0000 else 0)
+                    | 0x4
+                    | (0x2 if high == 0 and low == 0 else 0)
+                    | 0x1
+                )
+                self.assertEqual((model.state.st >> 28) & 0xF, expected_nczv)
+                self.assertEqual(event.machine_states, 5 + width // 2)
+
+    def test_mpys_odd_flags_use_full_product_and_aliases(self) -> None:
+        rows = (
+            # source, destination, low result, N, Z
+            (3, 0x4000_0000, 0xC000_0000, 0, 0),
+            (0xFFFF_FFFD, 0x4000_0000, 0x4000_0000, 1, 0),
+            (0x0001_0000, 0x0001_0000, 0x0000_0000, 0, 0),
+            (0, 0x8123_4567, 0, 0, 1),
+        )
+        for source, destination, low, negative, zero in rows:
+            with self.subTest(source=f"{source:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x5C01])  # MPYS A0,A1
+                model.state.write_reg("A", 0, source)
+                model.state.write_reg("A", 1, destination)
+                model.state.st = status_with_field_size(
+                    0x5000_0000, 0, 32
+                )
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), low)
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF,
+                    (negative << 3) | 0x4 | (zero << 1) | 0x1,
+                )
+                self.assertEqual(event.machine_states, 21)
+
+        same = Tms34020Model()
+        same.load_program([0x5C21])  # MPYS A1,A1
+        same.state.write_reg("A", 1, 0xFFFF_FFFF)
+        same.state.st = status_with_field_size(0, 0, 32)
+        same.step()
+        self.assertEqual(same.state.read_reg("A", 1), 1)
+
+        pair_alias = Tms34020Model()
+        pair_alias.load_program([0x5DEE])  # MPYS SP,A14
+        pair_alias.state.write_reg("A", 14, 4)
+        pair_alias.state.sp = 3
+        pair_alias.state.st = status_with_field_size(0, 0, 32)
+        pair_alias.step()
+        self.assertEqual(pair_alias.state.read_reg("A", 14), 0)
+        self.assertEqual(pair_alias.state.sp, 12)
+
+        same_even_b = Tms34020Model()
+        same_even_b.load_program([0x5C10])  # MPYS B0,B0
+        same_even_b.state.write_reg("B", 0, 0xFFFF_FFFE)
+        same_even_b.state.st = status_with_field_size(0, 0, 32)
+        same_even_b.step()
+        self.assertEqual(same_even_b.state.read_reg("B", 0), 0)
+        self.assertEqual(same_even_b.state.read_reg("B", 1), 4)
+
+    def test_mpyu_primary_rows_full_product_z_and_timing_choice(self) -> None:
+        rows = (
+            # multiplicand, source, FS1, high, low
+            (0xFFFF_0000, 0x1000_0000, 32, 0x0FFF_F000, 0x0000_0000),
+            (0xFFFF_0000, 0x1000_1010, 32, 0x1000_000F, 0xEFF0_0000),
+            (0xFFFF_0000, 0x1000_1010, 16, 0x0000_100F, 0xEFF0_0000),
+            (0xFFFF_0000, 0x1000_1010, 8, 0x0000_000F, 0xFFF0_0000),
+            (0xFFFF_0000, 0x1000_1010, 4, 0x0000_0000, 0x0000_0000),
+            (0x0800_1056, 0x0003_B074, 32, 0x0000_1D83, 0xDC44_86F8),
+            (0x0800_1056, 0x0003_B074, 16, 0x0000_0583, 0xAB42_86F8),
+            (0x0800_1056, 0x0003_B074, 14, 0x0000_0183, 0xA317_86F8),
+            (0x0800_1056, 0x0003_B074, 8, 0x0000_0003, 0xA007_66F8),
+            (0x0800_1056, 0x0003_B074, 6, 0x0000_0001, 0xA003_5178),
+            (0x0800_1056, 0x0003_B074, 4, 0x0000_0000, 0x2000_4158),
+            (0x0800_1056, 0x0003_B074, 2, 0x0000_0000, 0x0000_0000),
+        )
+        for multiplicand, source, width, high, low in rows:
+            with self.subTest(width=width, source=f"{source:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x5E20])  # MPYU A1,A0
+                model.state.write_reg("A", 0, multiplicand)
+                model.state.write_reg("A", 1, source)
+                model.state.st = status_with_field_size(
+                    0xD000_0000, 0, width
+                )
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 0), high)
+                self.assertEqual(model.state.read_reg("A", 1), low)
+                expected_z = high == 0 and low == 0
+                self.assertEqual(
+                    (model.state.st >> 28) & 0xF,
+                    0xD | (0x2 if expected_z else 0),
+                )
+                self.assertEqual(event.machine_states, 5 + width // 2)
+
+        odd = Tms34020Model()
+        odd.load_program([0x5E01])  # MPYU A0,A1
+        odd.state.write_reg("A", 0, 0x0001_0000)
+        odd.state.write_reg("A", 1, 0x0001_0000)
+        odd.state.st = status_with_field_size(0, 0, 32)
+        odd.step()
+        self.assertEqual(odd.state.read_reg("A", 1), 0)
+        self.assertFalse(odd.state.st & (1 << Z_BIT))
+
+        negative_raw = Tms34020Model()
+        negative_raw.load_program([0x5E01])
+        negative_raw.state.write_reg("A", 0, 0x8000_0001)
+        negative_raw.state.write_reg("A", 1, 7)
+        negative_raw.state.st = status_with_field_size(0, 0, 2)
+        event = negative_raw.step()
+        self.assertEqual(negative_raw.state.read_reg("A", 1), 7)
+        self.assertEqual(event.machine_states, 7)
+
+        shared_sp_b = Tms34020Model()
+        shared_sp_b.load_program([0x5E1F])  # MPYU B0,SP
+        shared_sp_b.state.write_reg("B", 0, 3)
+        shared_sp_b.state.sp = 4
+        shared_sp_b.state.st = status_with_field_size(0, 0, 32)
+        shared_sp_b.step()
+        self.assertEqual(shared_sp_b.state.sp, 12)
+
+    def test_multiply_odd_fs1_is_rejected_atomically(self) -> None:
+        for opcode in (0x5C01, 0x5E01):
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.write_reg("A", 0, 3)
+                model.state.write_reg("A", 1, 5)
+                model.state.st = status_with_field_size(
+                    0xF000_0000, 0, 3
+                )
+                before = model.snapshot()
+                with self.assertRaisesRegex(
+                    ModelError, "undocumented for odd FS1"
+                ):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
     def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
         model = Tms34020Model()
         model.load_program([

@@ -94,6 +94,8 @@ class Tms34020Model:
             "DIVU": self._execute_divu,
             "MODS": self._execute_mods,
             "MODU": self._execute_modu,
+            "MPYS": self._execute_mpys,
+            "MPYU": self._execute_mpyu,
             "DSJ": self._execute_dsj_family,
             "DSJEQ": self._execute_dsj_family,
             "DSJNE": self._execute_dsj_family,
@@ -696,6 +698,83 @@ class Tms34020Model:
         if divisor_zero:
             return 3
         return 41 if result_word == 0x8000_0000 else 40
+
+    def _execute_multiply(
+        self,
+        words: list[int],
+        *,
+        signed_operation: bool,
+    ) -> int:
+        first_word = words[0]
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(first_word)
+        )
+        encoded_field_size = self.state.st & 0x1F
+        field_size = encoded_field_size or 32
+        if field_size & 1:
+            raise ModelError(
+                "MPYS/MPYU behavior is undocumented for odd FS1"
+            )
+
+        raw_source = self.state.read_reg(register_file, source_index)
+        raw_destination = self.state.read_reg(
+            register_file, destination_index
+        )
+        field_mask = (
+            MASK32 if field_size == 32 else (1 << field_size) - 1
+        )
+        multiplier = raw_source & field_mask
+        if (
+            signed_operation
+            and multiplier & (1 << (field_size - 1))
+        ):
+            multiplier -= 1 << field_size
+        multiplicand = (
+            self._signed_word(raw_destination)
+            if signed_operation
+            else raw_destination
+        )
+        product = multiplier * multiplicand
+        product_word = product & 0xFFFF_FFFF_FFFF_FFFF
+        product_high = (product_word >> 32) & MASK32
+        product_low = product_word & MASK32
+
+        if destination_index & 1:
+            self.state.write_reg(
+                register_file, destination_index, product_low
+            )
+        else:
+            self.state.write_reg(
+                register_file, destination_index, product_high
+            )
+            self.state.write_reg(
+                register_file, destination_index + 1, product_low
+            )
+
+        if signed_operation:
+            self._set_status_bit(N_BIT, product < 0)
+        self._set_status_bit(Z_BIT, product == 0)
+        assert self._active_trace is not None
+        self._active_trace.notes.append(
+            ("signed" if signed_operation else "unsigned")
+            + f" {field_size}-by-32 multiply; status from full product"
+        )
+        states = 5 + field_size // 2
+        if not signed_operation and raw_source & 0x8000_0000:
+            states += 1
+        return states
+
+    def _execute_mpys(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_multiply(words, signed_operation=True)
+
+    def _execute_mpyu(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_multiply(words, signed_operation=False)
 
     def _execute_eint(
         self, instruction: Instruction, words: list[int]

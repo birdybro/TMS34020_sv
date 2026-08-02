@@ -95,6 +95,15 @@ module tb_tms34020_verified_leaves;
     logic divider_z;
     logic divider_v;
     logic [5:0] divider_visible_states;
+    logic multiplier_signed;
+    logic [4:0] multiplier_field_size;
+    logic [31:0] multiplier_source;
+    logic [31:0] multiplier_destination;
+    logic multiplier_legal_field_size;
+    logic [63:0] multiplier_product;
+    logic multiplier_n;
+    logic multiplier_z;
+    logic [5:0] multiplier_visible_states;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -311,6 +320,18 @@ module tb_tms34020_verified_leaves;
         .z_o(divider_z),
         .v_o(divider_v),
         .visible_states_o(divider_visible_states)
+    );
+
+    tms34020_multiplier multiplier_dut (
+        .signed_i(multiplier_signed),
+        .field_size_encoded_i(multiplier_field_size),
+        .source_i(multiplier_source),
+        .destination_i(multiplier_destination),
+        .legal_field_size_o(multiplier_legal_field_size),
+        .product_o(multiplier_product),
+        .n_o(multiplier_n),
+        .z_o(multiplier_z),
+        .visible_states_o(multiplier_visible_states)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -736,6 +757,33 @@ module tb_tms34020_verified_leaves;
         @(posedge clk);
         #1;
         check_condition(!divider_done, "divider done is a single-cycle pulse");
+    endtask
+
+    task automatic check_multiplier(
+        input logic signed_operation,
+        input logic [4:0] field_size_encoded,
+        input logic [31:0] source,
+        input logic [31:0] destination,
+        input logic expected_legal,
+        input logic [63:0] expected_product,
+        input logic expected_n,
+        input logic expected_z,
+        input logic [5:0] expected_states,
+        input string message
+    );
+        multiplier_signed = signed_operation;
+        multiplier_field_size = field_size_encoded;
+        multiplier_source = source;
+        multiplier_destination = destination;
+        #1;
+        check_condition(
+            multiplier_legal_field_size == expected_legal &&
+            multiplier_product == expected_product &&
+            multiplier_n == expected_n &&
+            multiplier_z == expected_z &&
+            multiplier_visible_states == expected_states,
+            message
+        );
     endtask
 
     task automatic check_cmpxy_register_execute(
@@ -1669,6 +1717,10 @@ module tb_tms34020_verified_leaves;
         divider_dividend_high = 32'd0;
         divider_dividend_low = 32'd0;
         divider_divisor = 32'd0;
+        multiplier_signed = 1'b0;
+        multiplier_field_size = 5'd0;
+        multiplier_source = 32'd0;
+        multiplier_destination = 32'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2351,6 +2403,47 @@ module tb_tms34020_verified_leaves;
             "MODS zero divisor"
         );
 
+        check_multiplier(
+            1'b1, 5'd0, 32'h7FF3_B074, 32'h8040_1056,
+            1'b1, 64'hC026_2CDC_53E4_86F8, 1'b1, 1'b0, 6'd21,
+            "MPYS primary full-width signed product"
+        );
+        check_multiplier(
+            1'b1, 5'd8, 32'h7FF3_B074, 32'h8040_1056,
+            1'b1, 64'hFFFF_FFC6_1D07_66F8, 1'b1, 1'b0, 6'd9,
+            "MPYS primary eight-bit sign extension"
+        );
+        check_multiplier(
+            1'b1, 5'd0, 32'd3, 32'h4000_0000,
+            1'b1, 64'h0000_0000_C000_0000, 1'b0, 1'b0, 6'd21,
+            "MPYS status uses full positive product"
+        );
+        check_multiplier(
+            1'b1, 5'd0, 32'hFFFF_FFFD, 32'h4000_0000,
+            1'b1, 64'hFFFF_FFFF_4000_0000, 1'b1, 1'b0, 6'd21,
+            "MPYS status uses full negative product"
+        );
+        check_multiplier(
+            1'b0, 5'd16, 32'h1000_1010, 32'hFFFF_0000,
+            1'b1, 64'h0000_100F_EFF0_0000, 1'b0, 1'b0, 6'd13,
+            "MPYU primary sixteen-bit product"
+        );
+        check_multiplier(
+            1'b0, 5'd0, 32'h0001_0000, 32'h0001_0000,
+            1'b1, 64'h0000_0001_0000_0000, 1'b0, 1'b0, 6'd21,
+            "MPYU full product controls zero"
+        );
+        check_multiplier(
+            1'b0, 5'd2, 32'h8000_0001, 32'd7,
+            1'b1, 64'd7, 1'b0, 1'b0, 6'd7,
+            "MPYU provisional raw-source sign timing"
+        );
+        check_multiplier(
+            1'b0, 5'd3, 32'd7, 32'd9,
+            1'b0, 64'd63, 1'b0, 1'b0, 6'd6,
+            "multiply odd FS1 is explicitly unsupported"
+        );
+
         check_pitch_conversion(
             32'h0000_1000, 16'h0013, 3'd4,
             "SETC pitch primary 4096 row"
@@ -2924,6 +3017,16 @@ module tb_tms34020_verified_leaves;
             16'h6FFF, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MODU cannot bypass iterative modulus commit ownership"
+        );
+        check_register_execute(
+            16'h5C00, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MPYS cannot bypass atomic multiply-pair commit ownership"
+        );
+        check_register_execute(
+            16'h5FFF, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MPYU cannot bypass atomic multiply-pair commit ownership"
         );
         check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
@@ -4526,6 +4629,14 @@ module tb_tms34020_verified_leaves;
                      "DIVU lower-bound decode");
         check_decode(16'h5BFF, TMS20_OP_DIVU, 3'd1,
                      "DIVU upper-bound decode");
+        check_decode(16'h5C00, TMS20_OP_MPYS, 3'd1,
+                     "MPYS lower-bound decode");
+        check_decode(16'h5DFF, TMS20_OP_MPYS, 3'd1,
+                     "MPYS upper-bound decode");
+        check_decode(16'h5E00, TMS20_OP_MPYU, 3'd1,
+                     "MPYU lower-bound decode");
+        check_decode(16'h5FFF, TMS20_OP_MPYU, 3'd1,
+                     "MPYU upper-bound decode");
         check_decode(16'h6C00, TMS20_OP_MODS, 3'd1,
                      "MODS lower-bound decode");
         check_decode(16'h6DFF, TMS20_OP_MODS, 3'd1,

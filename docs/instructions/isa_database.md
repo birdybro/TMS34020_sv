@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 97 page-verified encoding records and covers 29,588 of 65,536
+slice contains 99 page-verified encoding records and covers 30,612 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -28,6 +28,8 @@ first words without collisions:
 | DINT | `0360h` | 1 | p.13-95 |
 | DIVS | `5800h`, mask `FE00h` | 1 | pp.13-96..13-97 |
 | DIVU | `5A00h`, mask `FE00h` | 1 | pp.13-98..13-99 |
+| MPYS | `5C00h`, mask `FE00h` | 1 | pp.13-172..13-174 |
+| MPYU | `5E00h`, mask `FE00h` | 1 | pp.13-175..13-176 |
 | MODS | `6C00h`, mask `FE00h` | 1 | p.13-152 |
 | MODU | `6E00h`, mask `FE00h` | 1 | p.13-153 |
 | EINT | `0D60h` | 1 | p.13-109 |
@@ -194,6 +196,20 @@ its `8 mod 4` row proves Z follows the stored zero remainder. MODS publishes a
 case under RSC-0029/OQ-0019. Sources: TMS34020 User's Guide printed
 pp.13-152..13-153 and 15-5; TMS34010 compatibility cross-check printed
 pp.12-112..12-114 and Appendix A p.A-17.
+
+MPYS/MPYU multiply the signed/unsigned low-FS1 field of Rs by the complete
+32-bit Rd. FS1 is documented only for even values 2–32; encoded zero means 32,
+and odd configured sizes remain unspecified rather than being assigned guessed
+arithmetic. Even Rd stores the high and low product words in `Rd:Rd+1`; odd Rd
+stores only the low word, but the guide explicitly derives N/Z from the full
+product including discarded high bits. Pair operands are captured before
+writes, including source=destination, source=Rd+1, and the discouraged but
+defined Rd=14/SP pair. RSC-0031 corrects the impossible `8040156Fh` MPYS table
+operand to the companion example's arithmetic-consistent `80401056h`.
+RSC-0030/OQ-0020 retain the detailed-page/chapter-15 timing swap; metadata and
+model provisionally use MPYS `5+FS1/2` and MPYU `5+FS1/2` plus one when raw Rs
+bit 31 is set. Sources: TMS34020 User's Guide printed pp.13-172..13-176 and
+15-6; TMS34010 compatibility cross-check printed pp.12-164..12-167.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

@@ -72,7 +72,10 @@ class IsaTests(unittest.TestCase):
                     {"VERIFIED_PRIMARY", "PROVISIONAL"},
                 )
                 if instruction["confidence"] == "PROVISIONAL":
-                    self.assertIn(instruction["mnemonic"], {"CVXYL", "DIVS"})
+                    self.assertIn(
+                        instruction["mnemonic"],
+                        {"CVXYL", "DIVS", "MPYS", "MPYU"},
+                    )
 
     def test_independent_hand_checked_first_words(self) -> None:
         fixtures = {
@@ -275,6 +278,10 @@ class IsaTests(unittest.TestCase):
             0x59FF: ("DIVS", 1),
             0x5A00: ("DIVU", 1),
             0x5BFF: ("DIVU", 1),
+            0x5C00: ("MPYS", 1),
+            0x5DFF: ("MPYS", 1),
+            0x5E00: ("MPYU", 1),
+            0x5FFF: ("MPYU", 1),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -301,8 +308,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 29588)
-        self.assertEqual(unclassified, 65536 - 29588)
+        self.assertEqual(matched, 30612)
+        self.assertEqual(unclassified, 65536 - 30612)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -674,6 +681,37 @@ class IsaTests(unittest.TestCase):
         self.assertEqual(
             modu.metadata["documented_cycles"]["normal_machine_states"],
             35,
+        )
+
+    def test_multiply_family_records_full_product_flags_and_conflict(self) -> None:
+        for start, end, mnemonic in (
+            (0x5C00, 0x5E00, "MPYS"),
+            (0x5E00, 0x6000, "MPYU"),
+        ):
+            for word in range(start, end):
+                with self.subTest(word=f"{word:04X}"):
+                    decoded = self.database.decode(word)
+                    self.assertIsNotNone(decoded)
+                    self.assertEqual(decoded.mnemonic, mnemonic)
+
+        mpys = self.database.decode(0x5C00)
+        mpyu = self.database.decode(0x5E00)
+        self.assertEqual(mpys.metadata["status_bits_written"], ["N", "Z"])
+        self.assertEqual(mpyu.metadata["status_bits_written"], ["Z"])
+        for instruction in (mpys, mpyu):
+            self.assertIn(
+                "full",
+                instruction.metadata["destination_registers"][1],
+            )
+            self.assertIn(
+                "RSC-0030",
+                instruction.metadata["documented_cycles"]["conflict"],
+            )
+            self.assertEqual(instruction.metadata["confidence"], "PROVISIONAL")
+            self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+        self.assertIn(
+            "raw Rs bit31",
+            mpyu.metadata["documented_cycles"]["selected_machine_states"],
         )
 
     def test_btst_forms_record_complemented_constant_and_status_only(self) -> None:

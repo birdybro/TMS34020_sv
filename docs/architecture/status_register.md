@@ -141,6 +141,15 @@ zero-remainder/Z-set row, so RSC-0028 records the remainder-derived decision.
 The model and shared divider leaf cover these status results; scalar commit is
 absent. Sources: User's Guide MODS/MODU printed pp.13-152..13-153.
 
+MPYS replaces N/Z from the full signed product and preserves C/V; MPYU
+replaces only Z from the full unsigned product and preserves N/C/V. For odd
+Rd this intentionally includes discarded high bits: a nonzero `00000001h:
+00000000h` product clears Z although the stored word is zero, and signed N can
+differ from stored bit 31. The model and standalone multiplier leaf cover
+these discriminators. RSC-0032 keeps the older TMS34010 compatibility question
+separate; the TMS34020 rule is explicit. Sources: User's Guide MPYS/MPYU
+printed pp.13-172..13-176.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

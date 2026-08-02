@@ -94,6 +94,11 @@ module tms34020_leaf_synth_top (
     logic divider_z;
     logic divider_v;
     logic [5:0] divider_visible_states;
+    logic multiplier_legal_field_size;
+    logic [63:0] multiplier_product;
+    logic multiplier_n;
+    logic multiplier_z;
+    logic [5:0] multiplier_visible_states;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -129,9 +134,13 @@ module tms34020_leaf_synth_top (
         xy_linear_result ^
         divider_quotient ^
         divider_remainder ^
+        multiplier_product[63:32] ^
+        multiplier_product[31:0] ^
         {26'd0, xy_linear_pitch_class, xy_linear_visible_states} ^
         {20'd0, divider_busy, divider_done, divider_overflow,
          divider_n, divider_z, divider_v, divider_visible_states} ^
+        {23'd0, multiplier_legal_field_size, multiplier_n,
+         multiplier_z, multiplier_visible_states} ^
         {24'd0, commit_supported, commit_accepted,
          commit_register_write_enable, commit_register_write_file,
          commit_register_write_index} ^
@@ -323,6 +332,18 @@ module tms34020_leaf_synth_top (
         .z_o(divider_z),
         .v_o(divider_v),
         .visible_states_o(divider_visible_states)
+    );
+
+    tms34020_multiplier multiplier (
+        .signed_i(decoded_id == TMS20_OP_MPYS),
+        .field_size_encoded_i(status_value[4:0]),
+        .source_i(second_register_data),
+        .destination_i(operand_i),
+        .legal_field_size_o(multiplier_legal_field_size),
+        .product_o(multiplier_product),
+        .n_o(multiplier_n),
+        .z_o(multiplier_z),
+        .visible_states_o(multiplier_visible_states)
     );
 
     tms34020_regfile regfile (

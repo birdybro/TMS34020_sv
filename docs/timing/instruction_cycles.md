@@ -48,6 +48,16 @@ not fabricated in testing under RSC-0029/OQ-0019. The shared divider leaf's 32
 iteration clocks are not these machine states. Sources: User's Guide printed
 pp.13-152..13-153 and 15-5.
 
+The detailed MPYS page gives `5 + FS1/2` states. The detailed MPYU page gives
+that count when Rs is nonnegative and one additional state when Rs is negative.
+Chapter 15 swaps the sign-dependent rule between the two mnemonics. The model
+and combinational leaf provisionally select the detailed pages, with raw Rs bit
+31 as the MPYU discriminator, because the 1988 detailed instruction pages
+corroborate that assignment. RSC-0030/OQ-0020 preserves both hypotheses; no
+cycle-accuracy claim is made. Sources: TMS34020 User's Guide printed
+pp.13-173, 13-176, and 15-6; TMS34010 User's Guide printed pp.12-165 and
+12-167.
+
 ## Hidden trailing writes
 
 Parenthesized states in chapter 15 are hidden memory-write states at the end of

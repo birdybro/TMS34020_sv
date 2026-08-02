@@ -4,6 +4,15 @@
 
 ### Added
 
+- Primary-page-extracted MPYS `5C00h`/`FE00h` and MPYU
+  `5E00h`/`FE00h` metadata plus independent model semantics for every even FS1,
+  signed/unsigned full products, even-pair/odd-low result placement,
+  full-product status, capture-before-write aliases, and atomic rejection of
+  undocumented odd FS1.
+- A clean-room combinational multiply leaf with signed/unsigned field
+  extension, 64-bit product, full-product N/Z, even-FS1 validity, provisional
+  detailed-page state classification, direct tests, and explicit scalar
+  noncommit guards pending pair-capable architectural ownership.
 - Primary-page-verified MODS `6C00h`/`FE00h` and MODU
   `6E00h`/`FE00h` metadata plus independent model semantics for signed and
   unsigned 32-bit remainders, every published row, zero divisors,
@@ -308,6 +317,8 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 97 to 99 records and from
+  29,588 to 30,612 uniquely classified first words.
 - Expanded the generated partial decoder from 95 to 97 records and from
   28,564 to 29,588 uniquely classified first words.
 - Expanded the generated partial decoder from 93 to 95 records and from
@@ -373,6 +384,14 @@
 
 ### Verified
 
+- The 41-case ISA suite, 62-entry delta ledger, and 156-case model suite pass.
+  MPYS/MPYU coverage includes all 1,024 encodings, every reliable primary
+  example row and even FS1, full-versus-low flag discriminators, A/B/SP alias
+  boundaries, status preservation, and provisional detailed-page timing.
+- Decoder-bearing Cyclone V Analysis & Synthesis probes pass with zero
+  errors/warnings at 10,662 leaf/9 DSP, 442 fetch, 812 frontend, and 5,396
+  scalar logic cells. These remain portability probes, not fit or timing
+  results.
 - The 40-case ISA suite, 61-entry delta ledger, and 152-case model suite pass.
   MODS/MODU coverage includes all 1,024 encodings, every primary example,
   signed/unsigned result/status cases, aliases, and 35/40/3-state classes.
@@ -915,6 +934,11 @@
 
 ### Documentation
 
+- Recorded RSC-0030/OQ-0020 for the TMS34020 detailed-page/chapter-15 swap of
+  MPYS/MPYU sign-dependent timing; selected detailed-page timing remains
+  provisional. RSC-0031 records the impossible MPYS Example 1 operand and its
+  arithmetic-consistent companion value. RSC-0032/OQ-0021 isolates the older
+  TMS34010 odd-product flag disagreement from the explicit TMS34020 rule.
 - Recorded the verified MODS/MODU implementation baseline as commit
   `f8a3ebef2693c4d2eb3240bccabf0b0a1da3bc28` in the progress ledger.
 - Recorded RSC-0028 for the inherited MODU "quotient" noun that conflicts with
@@ -1019,6 +1043,11 @@
 
 ### Known Issues
 
+- MPYS/MPYU have instruction-boundary model semantics and a standalone RTL
+  product leaf, but no pair-capable scalar retirement owner. Odd FS1 behavior
+  is undocumented and rejected; multiply timing remains provisional under
+  RSC-0030/OQ-0020, and TMS34010 odd-result compatibility remains open under
+  RSC-0032/OQ-0021.
 - MODS/MODU have complete instruction-boundary model semantics and a shared
   iterative RTL leaf, but no scalar operand/commit/timing owner. The published
   MODS 41-state result class is unreachable under documented remainder
