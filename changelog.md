@@ -976,6 +976,8 @@
 
 ### Documentation
 
+- Recorded the verified bounded MMFM/MMTM implementation baseline as commit
+  `95b84aeb0342bb379eadfe5d165bf0457b8b36ba` in the progress ledger.
 - Documented MMFM/MMTM register-list encoding, pointer/status behavior,
   TMS34020 timing and page-mode boundary, TMS34010 semantic compatibility, and
   explicit exclusions from physical bus/continuation claims. RSC-0033 records
