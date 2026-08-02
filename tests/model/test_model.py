@@ -3258,6 +3258,135 @@ class ExecutionTests(unittest.TestCase):
                     rejected.step()
                 self.assertEqual(rejected.snapshot(), before)
 
+    def test_movb_memory_to_register_forms_exhaustive(self) -> None:
+        shared_isa = Tms34020Model().isa
+        forms = (
+            ("MOVB.MR", 0x8E01, 4),
+            ("MOVB.MR.OFFSET", 0xAE01, 6),
+            ("MOVB.MR.ABS", 0x07E1, 5),
+        )
+        for mnemonic, opcode, base_states in forms:
+            for bit_offset in range(32):
+                with self.subTest(mnemonic=mnemonic, offset=bit_offset):
+                    model = Tms34020Model(isa=shared_isa)
+                    source_address = 0x2000 + bit_offset
+                    if mnemonic == "MOVB.MR":
+                        words = [opcode]
+                        model.state.write_reg("A", 0, source_address)
+                    elif mnemonic == "MOVB.MR.OFFSET":
+                        words = [opcode, bit_offset]
+                        model.state.write_reg("A", 0, 0x2000)
+                    else:
+                        words = [
+                            opcode,
+                            source_address & 0xFFFF,
+                            source_address >> 16,
+                        ]
+                    model.load_program(words, bit_address=0x110)
+                    model.state.memory.write_bits(source_address, 8, 0xC7)
+                    model.state.st = 0x5020_07D3
+                    status_before = model.state.st
+
+                    event = model.step()
+
+                    source_case = (
+                        1
+                        if bit_offset % 8 == 0
+                        else (5 if bit_offset >= 25 else 2)
+                    )
+                    self.assertEqual(event.mnemonic, mnemonic)
+                    self.assertEqual(
+                        event.machine_states,
+                        base_states + int(source_case == 5),
+                    )
+                    self.assertEqual(model.state.read_reg("A", 1), 0xFFFF_FFC7)
+                    self.assertEqual(
+                        model.state.st & 0x0FFF_FFFF,
+                        status_before & 0x0FFF_FFFF,
+                    )
+                    self.assertEqual((model.state.st >> 28) & 0xF, 0b1100)
+                    self.assertEqual(
+                        event.transactions[-1]["bit_address"], source_address
+                    )
+                    self.assertEqual(
+                        event.transactions[-1]["alignment_case"], source_case
+                    )
+
+            for byte_value in range(256):
+                with self.subTest(mnemonic=mnemonic, byte=byte_value):
+                    model = Tms34020Model(isa=shared_isa)
+                    if mnemonic == "MOVB.MR":
+                        words = [opcode]
+                        model.state.write_reg("A", 0, 0x3000)
+                    elif mnemonic == "MOVB.MR.OFFSET":
+                        words = [opcode, 0]
+                        model.state.write_reg("A", 0, 0x3000)
+                    else:
+                        words = [opcode, 0x3000, 0]
+                    model.load_program(words, bit_address=0x110)
+                    model.state.memory.write_bits(0x3000, 8, byte_value)
+                    model.state.st = 0x4000_1234
+                    model.step()
+                    expected = (
+                        byte_value
+                        if byte_value < 0x80
+                        else 0xFFFF_FF00 | byte_value
+                    )
+                    self.assertEqual(model.state.read_reg("A", 1), expected)
+                    self.assertEqual(
+                        bool(model.state.st & (1 << 31)),
+                        expected >> 31 == 1,
+                    )
+                    self.assertEqual(
+                        bool(model.state.st & (1 << 29)), byte_value == 0
+                    )
+                    self.assertEqual(bool(model.state.st & (1 << 30)), True)
+                    self.assertEqual(bool(model.state.st & (1 << 28)), False)
+
+    def test_movb_memory_to_register_boundaries_alias_and_ben(self) -> None:
+        alias = Tms34020Model()
+        alias.load_program([0x8E21], bit_address=0x100)
+        alias.state.write_reg("A", 1, 0x40C7)
+        alias.state.memory.write_bits(0x40C7, 8, 0x80)
+        alias.step()
+        self.assertEqual(alias.state.read_reg("A", 1), 0xFFFF_FF80)
+
+        offset_wrap = Tms34020Model()
+        offset_wrap.load_program([0xAE01, 0x8000], bit_address=0x100)
+        offset_wrap.state.write_reg("A", 0, 0x0000_7FF8)
+        offset_wrap.state.memory.write_bits(0xFFFF_FFF8, 8, 0x7F)
+        offset_event = offset_wrap.step()
+        self.assertEqual(offset_wrap.state.read_reg("A", 1), 0x7F)
+        self.assertEqual(offset_wrap.state.read_reg("A", 0), 0x0000_7FF8)
+        self.assertEqual(offset_event.machine_states, 6)
+
+        absolute_sp = Tms34020Model()
+        absolute_sp.load_program([0x07FF, 0x5678, 0x1234], bit_address=0x100)
+        absolute_sp.state.sp = 0xDEAD_BEEF
+        absolute_sp.state.memory.write_bits(0x1234_5678, 8, 0)
+        absolute_event = absolute_sp.step()
+        self.assertEqual(absolute_sp.state.sp, 0)
+        self.assertEqual(absolute_event.machine_states, 6)
+        self.assertTrue(absolute_sp.state.st & (1 << 29))
+
+        for words in (
+            [0x8E01],
+            [0xAE01, 0],
+            [0x07E1, 0x4000, 0],
+        ):
+            with self.subTest(ben_opcode=words[0]):
+                rejected = Tms34020Model()
+                rejected.load_program(words, bit_address=0x110)
+                rejected.state.write_reg("A", 0, 0x4000)
+                rejected.state.write_reg("A", 1, 0xA5A5_A5A5)
+                rejected.state.write_io(CONFIG_ADDRESS, 1)
+                before = rejected.snapshot()
+                with self.assertRaisesRegex(
+                    UnsupportedInstruction, "big-endian byte mapping"
+                ):
+                    rejected.step()
+                self.assertEqual(rejected.snapshot(), before)
+
     def test_move_offset_boundaries_alias_wrap_and_ben(self) -> None:
         for offset_word, signed_offset in (
             (0x0000, 0),

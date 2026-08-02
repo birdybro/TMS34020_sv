@@ -866,6 +866,36 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVB summary and register-to-absolute form, printed pp.13-13 and 13-154", "TI-TMS34020-UG-1990 MOVB timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible MOVB form, printed pp.12-116..12-117"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact address-fetch/write retirement relative to waits, interrupts, faults and retry remains pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "indirect_memory_to_register_byte_move",
+      "tms34010_behavior": "MOVB *Rs,Rd uses 8E00h/FE00h, reads eight bits at the source bit address, sign-extends them into Rd, updates N/Z, clears V and preserves C.",
+      "tms34020_behavior": "The encoding, fixed signed-byte result and partial-status contract remain compatible. Reachable byte source cases 1/2/5 take 4/4/5 visible TMS34020 states.",
+      "rtl_impact": "Reuse fixed-byte extraction/sign-extension and partial-status semantics only. A TMS34020-owned sequencer must capture the source before an aliased destination write, map BEN, sequence dynamic-width reads, suppress result/status on fault and make retry idempotent. The current byte-load leaf is combinational and noncommitting.",
+      "test_impact": "All 512 encodings; every byte value/offset and sign case; A/B/SP and Rs=Rd; N/C/Z/V; BEN; 16/32-bit targets; pages; waits; faults/retries; interrupts and I/O reads.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVB indirect-to-register form/status, printed pp.13-155..13-156", "TI-TMS34020-UG-1990 MOVB timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible form, printed p.12-117"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact read/data/status retirement relative to waits, interrupts, faults and retry remains pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "signed_offset_memory_to_register_byte_move",
+      "tms34010_behavior": "MOVB *Rs(offset),Rd uses AE00h/FE00h plus a signed 16-bit bit displacement. It leaves Rs unchanged, sign-extends the addressed byte into Rd, updates N/Z, clears V and preserves C.",
+      "tms34020_behavior": "The encoding, signed effective address, fixed-byte result and status contract remain compatible. Reachable source cases 1/2/5 take 6/6/7 visible states.",
+      "rtl_impact": "Reuse signed-offset, extraction/sign-extension and status semantics only. The TMS34020 sequencer must fetch the extension, preserve the base, map BEN, sequence dynamic-width reads and retire register/status once after retry. Current address and byte-load leaves remain independent.",
+      "test_impact": "All 512 first words; signed boundaries/wrap; every byte value/offset; A/B/SP and Rs=Rd; N/C/Z/V; BEN; 16/32-bit targets; pages; waits; faults/retries; interrupts and I/O reads.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVB signed-offset-to-register form/status, printed pp.13-155..13-156", "TI-TMS34020-UG-1990 MOVB timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible form, printed p.12-119"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact extension-fetch/read/data/status retirement relative to waits, interrupts, faults and retry remains pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "absolute_source_memory_to_register_byte_move",
+      "tms34010_behavior": "MOVB @SAddress,Rd uses 07E0h/FFE0h followed by source low/high address halves. It sign-extends the byte into Rd, updates N/Z, clears V and preserves C.",
+      "tms34020_behavior": "The encoding, extension order, signed-byte result and status contract remain compatible. With the first extension aligned, byte source cases 1/2/5 take 5/5/6 states; unaligned placement adds one state.",
+      "rtl_impact": "Reuse absolute-address assembly, byte extraction/sign-extension and status semantics only. A TMS34020-owned sequencer must fetch both extensions, account for alignment, map BEN, suppress result/status after a fault and make retry idempotent on dynamic-width targets. Current leaves are noncommitting.",
+      "test_impact": "All 32 first words; low/high address order; aligned/unaligned extension placement; every byte offset/value; A/B/SP; N/C/Z/V; BEN; 16/32-bit targets; pages; waits; faults/retries; interrupts and I/O reads.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVB absolute-to-register form/status, printed p.13-156", "TI-TMS34020-UG-1990 MOVB timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible form, printed p.12-122"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact address-fetch/read/data/status retirement relative to waits, interrupts, faults and retry remains pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

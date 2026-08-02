@@ -138,6 +138,20 @@ module tb_tms34020_verified_leaves;
     logic [2:0] byte_store_hidden_states;
     logic [31:0] byte_store_word0_result;
     logic [31:0] byte_store_word1_result;
+    logic [1:0] byte_load_mode;
+    logic byte_load_first_extension_aligned;
+    logic [4:0] byte_load_offset;
+    logic [31:0] byte_load_word0;
+    logic [31:0] byte_load_word1;
+    logic byte_load_mode_valid;
+    logic [2:0] byte_load_source_case;
+    logic byte_load_reads_word1;
+    logic [2:0] byte_load_visible_states;
+    logic [31:0] byte_load_raw;
+    logic [31:0] byte_load_result;
+    logic byte_load_n;
+    logic byte_load_z;
+    logic byte_load_v;
     logic [4:0] field_address_size;
     logic [31:0] field_address_pointer;
     logic field_address_predecrement;
@@ -506,6 +520,23 @@ module tb_tms34020_verified_leaves;
         .hidden_states_o(byte_store_hidden_states),
         .destination_word0_o(byte_store_word0_result),
         .destination_word1_o(byte_store_word1_result)
+    );
+
+    tms34020_byte_load byte_load_dut (
+        .address_mode_i(byte_load_mode),
+        .first_extension_aligned_i(byte_load_first_extension_aligned),
+        .source_offset_i(byte_load_offset),
+        .source_word0_i(byte_load_word0),
+        .source_word1_i(byte_load_word1),
+        .mode_valid_o(byte_load_mode_valid),
+        .source_case_o(byte_load_source_case),
+        .reads_word1_o(byte_load_reads_word1),
+        .visible_states_o(byte_load_visible_states),
+        .raw_byte_o(byte_load_raw),
+        .result_o(byte_load_result),
+        .n_o(byte_load_n),
+        .z_o(byte_load_z),
+        .v_o(byte_load_v)
     );
 
     tms34020_field_address_update field_address_update_dut (
@@ -1265,6 +1296,39 @@ module tb_tms34020_verified_leaves;
             byte_store_hidden_states == expected_hidden &&
             {byte_store_word1_result, byte_store_word0_result} ==
                 expected_window,
+            message
+        );
+    endtask
+
+    task automatic check_byte_load(
+        input logic [1:0] address_mode,
+        input logic first_extension_aligned,
+        input logic [4:0] bit_offset,
+        input logic [63:0] source_window,
+        input logic expected_valid,
+        input logic [2:0] expected_case,
+        input logic expected_reads_word1,
+        input logic [2:0] expected_visible,
+        input logic [7:0] expected_raw,
+        input logic [31:0] expected_result,
+        input string message
+    );
+        byte_load_mode = address_mode;
+        byte_load_first_extension_aligned = first_extension_aligned;
+        byte_load_offset = bit_offset;
+        byte_load_word0 = source_window[31:0];
+        byte_load_word1 = source_window[63:32];
+        #1;
+        check_condition(
+            byte_load_mode_valid == expected_valid &&
+            byte_load_source_case == expected_case &&
+            byte_load_reads_word1 == expected_reads_word1 &&
+            byte_load_visible_states == expected_visible &&
+            byte_load_raw == {24'd0, expected_raw} &&
+            byte_load_result == expected_result &&
+            byte_load_n == expected_result[31] &&
+            byte_load_z == (expected_result == 32'd0) &&
+            !byte_load_v,
             message
         );
     endtask
@@ -2424,6 +2488,11 @@ module tb_tms34020_verified_leaves;
         byte_store_source = 32'd0;
         byte_store_word0 = 32'd0;
         byte_store_word1 = 32'd0;
+        byte_load_mode = 2'd0;
+        byte_load_first_extension_aligned = 1'b0;
+        byte_load_offset = 5'd0;
+        byte_load_word0 = 32'd0;
+        byte_load_word1 = 32'd0;
         field_address_size = 5'd0;
         field_address_pointer = 32'd0;
         field_address_predecrement = 1'b0;
@@ -3321,6 +3390,57 @@ module tb_tms34020_verified_leaves;
             1'b0, 3'd1, 3'd0, 3'd1,
             64'hC33C_F00F_A5A5_5AA5,
             "MOVB byte-store leaf rejects reserved address mode"
+        );
+        for (int unsigned address_mode = 0; address_mode < 3;
+             address_mode++) begin
+            for (int unsigned bit_offset = 0; bit_offset < 32;
+                 bit_offset++) begin
+                logic [63:0] source_window;
+                logic [7:0] expected_raw;
+                logic [31:0] expected_result;
+                logic [2:0] expected_case;
+                logic [2:0] expected_visible;
+                source_window = 64'hC33C_F00F_A5A5_5A5A;
+                expected_raw = source_window[bit_offset +: 8];
+                expected_result = expected_raw[7]
+                    ? {24'hFF_FFFF, expected_raw}
+                    : {24'd0, expected_raw};
+                expected_case = bit_offset[2:0] == 3'd0
+                    ? 3'd1 : (bit_offset >= 25 ? 3'd5 : 3'd2);
+                expected_visible =
+                    (expected_case == 3'd5 ? 3'd5 : 3'd4) +
+                    (address_mode == 0 ? 3'd0 :
+                     (address_mode == 1 ? 3'd2 : 3'd1));
+                check_byte_load(
+                    address_mode[1:0], 1'b1, bit_offset[4:0], source_window,
+                    1'b1, expected_case, bit_offset >= 25,
+                    expected_visible, expected_raw, expected_result,
+                    "MOVB memory-to-register forms exhaust byte geometry"
+                );
+            end
+        end
+        for (int unsigned byte_value = 0; byte_value < 256;
+             byte_value++) begin
+            logic [31:0] expected_result;
+            expected_result = byte_value[7]
+                ? {24'hFF_FFFF, byte_value[7:0]}
+                : {24'd0, byte_value[7:0]};
+            check_byte_load(
+                2'd0, 1'b1, 5'd0, {56'd0, byte_value[7:0]},
+                1'b1, 3'd1, 1'b0, 3'd4,
+                byte_value[7:0], expected_result,
+                "MOVB byte-load leaf exhausts sign extension"
+            );
+        end
+        check_byte_load(
+            2'd2, 1'b0, 5'd0, 64'h0000_0000_0000_0080,
+            1'b1, 3'd1, 1'b0, 3'd6, 8'h80, 32'hFFFF_FF80,
+            "MOVB absolute byte load adds unaligned-extension state"
+        );
+        check_byte_load(
+            2'd3, 1'b0, 5'd0, 64'h0000_0000_0000_0000,
+            1'b0, 3'd1, 1'b0, 3'd0, 8'h00, 32'h0000_0000,
+            "MOVB byte-load leaf rejects reserved address mode"
         );
         for (int unsigned encoded_size = 0; encoded_size < 32;
              encoded_size++) begin
@@ -4340,6 +4460,24 @@ module tb_tms34020_verified_leaves;
             32'hA020_0010,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MOVB.RM.ABS cannot bypass absent byte-memory ownership"
+        );
+        check_register_execute(
+            16'h8E01, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVB.MR cannot bypass absent byte-memory ownership"
+        );
+        check_register_execute(
+            16'hAE01, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVB.MR.OFFSET cannot bypass absent byte-memory ownership"
+        );
+        check_register_execute(
+            16'h07E0, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVB.MR.ABS cannot bypass absent byte-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -6067,6 +6205,18 @@ module tb_tms34020_verified_leaves;
                      "MOVB.RM.ABS lower-bound decode");
         check_decode(16'h05FF, TMS20_OP_MOVB_RM_ABS, 3'd3,
                      "MOVB.RM.ABS upper-bound decode");
+        check_decode(16'h8E00, TMS20_OP_MOVB_MR, 3'd1,
+                     "MOVB.MR lower-bound decode");
+        check_decode(16'h8FFF, TMS20_OP_MOVB_MR, 3'd1,
+                     "MOVB.MR upper-bound decode");
+        check_decode(16'hAE00, TMS20_OP_MOVB_MR_OFFSET, 3'd2,
+                     "MOVB.MR.OFFSET lower-bound decode");
+        check_decode(16'hAFFF, TMS20_OP_MOVB_MR_OFFSET, 3'd2,
+                     "MOVB.MR.OFFSET upper-bound decode");
+        check_decode(16'h07E0, TMS20_OP_MOVB_MR_ABS, 3'd3,
+                     "MOVB.MR.ABS lower-bound decode");
+        check_decode(16'h07FF, TMS20_OP_MOVB_MR_ABS, 3'd3,
+                     "MOVB.MR.ABS upper-bound decode");
         check_decode(16'h1C00, TMS20_OP_BTST_K, 3'd1,
                      "BTST.K lower-bound decode");
         check_decode(16'h1FFF, TMS20_OP_BTST_K, 3'd1,

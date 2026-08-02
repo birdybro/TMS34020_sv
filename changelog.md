@@ -4,6 +4,14 @@
 
 ### Added
 
+- Three primary-page-extracted memory-to-register MOVB forms at 8E00h,
+  AE00h, and 07E0h, covering 1,056 first words, fixed signed-byte semantics,
+  indirect/signed-offset/absolute address ordering, N/Z/V with preserved C,
+  primary timing, and compatible TMS34010 boundaries.
+- Exhaustive little-endian architectural byte-load tests and a clean-room
+  fixed-byte RTL leaf covering every byte value/offset, sign extension,
+  A/B/SP alias capture, signed wrap, absolute word order, status/timing, and
+  explicit noncommit without a memory owner.
 - Three primary-page-extracted register-to-memory MOVB forms at 8C00h,
   AC00h, and 05E0h, covering 1,056 first words, fixed-eight-bit semantics,
   indirect/signed-offset/absolute address ordering, ST preservation, primary
@@ -541,6 +549,18 @@
 
 ### Verified
 
+- The 68-case ISA suite, 89-entry delta ledger, complete 208-case model
+  regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
+  pass for the fixed-byte memory-load milestone.
+- Warning-free Cyclone V Analysis & Synthesis reports 13,041 leaf logic
+  cells/2,230 registers/9 DSP, 456 fetch logic cells, 825 frontend logic cells,
+  and 5,371 scalar logic cells for the 127-entry decoder/fixed-byte-load
+  revision. The frontend/scalar probes retain 4,096 block-memory bits. These
+  are observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
+- The three extracted memory-to-register MOVB forms pass exhaustive model and
+  RTL byte geometry, sign/status, address, timing, decode-boundary, BEN
+  rollback, and direct-router noncommit checks.
 - The three extracted register-to-memory MOVB forms pass exhaustive model and
   RTL byte geometry, timing, address, decode-boundary, ST-preservation, BEN
   rollback, and direct-router noncommit checks.
@@ -1247,6 +1267,9 @@ qualification.
 
 ### Documentation
 
+- Recorded memory-to-register MOVB semantics, status, compatible reuse bounds,
+  TMS34020 timing ownership, and unresolved physical read/retirement work
+  across the ISA, model, field, timing, delta, task, and status ledgers.
 - Recorded verified register-to-memory MOVB implementation commit
   `2ce9b50c364fe72904ad8fb266f208d6dc44fc1c` in the progress ledger.
 - Recorded MOVB register-store semantics, TMS34010 compatibility bounds,

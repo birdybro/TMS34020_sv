@@ -28,6 +28,7 @@ SOURCES = [
     ROOT / "rtl/memory/tms34020_swap_field.sv",
     ROOT / "rtl/memory/tms34020_field_store.sv",
     ROOT / "rtl/memory/tms34020_byte_store.sv",
+    ROOT / "rtl/memory/tms34020_byte_load.sv",
     ROOT / "rtl/memory/tms34020_field_address_update.sv",
     ROOT / "rtl/memory/tms34020_field_pair_postincrement.sv",
     ROOT / "rtl/memory/tms34020_field_pair_predecrement.sv",

@@ -26,6 +26,7 @@ Implemented:
   MOVE.MM.POST, MOVE.MM.PRE, MOVE.MM.OFFSET, MOVE.MM.SOFF_POST,
   MOVE.RM.ABS, MOVE.MR.ABS, MOVE.MM.SABS_POST, MOVE.MM.ABS,
   MOVB.RM, MOVB.RM.OFFSET, MOVB.RM.ABS,
+  MOVB.MR, MOVB.MR.OFFSET, MOVB.MR.ABS,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -38,7 +39,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 123 of 124 currently extracted database forms for their
+These handlers cover 126 of 127 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -211,6 +212,19 @@ are logical little-endian instruction boundaries; no physical byte-strobe,
 read/modify/write, dynamic-width, wait, fault/retry, or commit owner is
 claimed. Sources: User's Guide printed pp.13-13, 13-154, and 15-10..15-12;
 compatible TMS34010 forms printed pp.12-114..12-117.
+
+`MOVB.MR`, `MOVB.MR.OFFSET`, and `MOVB.MR.ABS` name `MOVB *Rs,Rd`,
+`MOVB *Rs(offset),Rd`, and `MOVB @SAddress,Rd`. They read a fixed eight-bit
+field, always sign-extend it to 32 bits independently of FS/FE, replace N/Z/V
+while preserving C, and use indirect, signed-offset, or low-word/high-word
+absolute addressing. Tests exhaust every byte value and source bit offset,
+A/B/SP and alias capture, signed wrap, absolute word order, status, exact
+logical traces, aligned/unaligned extension timing, and atomic BEN rollback.
+The model reports 4/5, 6/7, or 5–7 visible states over reachable byte cases
+1, 2, and 5. These are logical little-endian instruction boundaries, not
+physical request/retirement evidence. Sources: User's Guide printed
+pp.13-155..13-156 and 15-11; compatible TMS34010 forms printed pp.12-117,
+12-119, and 12-122.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

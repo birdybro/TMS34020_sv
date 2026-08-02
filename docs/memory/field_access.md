@@ -88,6 +88,29 @@ than assigned guessed bit mapping. No RTL owner generates byte strobes or
 read/modify/write requests, decomposes SIZE16 transfers, handles page mode,
 waits, I/O, faults/retries or interrupts, or retires a memory instruction.
 
+## Verified memory-to-register byte boundaries
+
+`MOVB *Rs,Rd` (`8E00h`/`FE00h`), `MOVB *Rs(offset),Rd`
+(`AE00h`/`FE00h` plus a signed 16-bit bit displacement), and
+`MOVB @SAddress,Rd` (`07E0h`/`FFE0h` plus low then high address halves) read
+a fixed eight-bit field and always sign-extend it into Rd. They replace N/Z/V,
+preserve C and all lower ST fields, and do not consult FS or FE. The indirect
+and offset bases remain unchanged; source data is captured before an aliased
+destination write. Sources: User's Guide printed pp.13-155..13-156;
+compatible TMS34010 forms printed pp.12-117, 12-119, and 12-122.
+
+The model exhausts all byte values/offsets, sign and zero status outcomes,
+A/B/SP, aliasing, signed wrap, absolute word order, exact logical traces,
+extension alignment, and BEN rollback. The clean-room
+`tms34020_byte_load` leaf fixes the existing extraction/extension primitive to
+eight-bit signed operation and exposes the reachable cases and primary timing:
+4/4/5 states for indirect cases 1/2/5, 6/6/7 for signed-offset, and aligned
+5/5/6 or unaligned 6/6/7 for absolute. Source: User's Guide timing p.15-11.
+
+No request owner yet sequences dynamic-width reads, waits, pages, I/O,
+fault/retry suppression, interrupts, or atomic destination/status retirement.
+BEN=1 remains rejected rather than assigned guessed bit mapping.
+
 ## Verified ordinary memory-to-register boundary
 
 `MOVE *Rs,Rd[,F]` occupies `8400h`/`FC00h`. F selects the corresponding

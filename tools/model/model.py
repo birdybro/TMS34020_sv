@@ -165,6 +165,9 @@ class Tms34020Model:
             "MOVB.RM": self._execute_movb_register_to_memory,
             "MOVB.RM.OFFSET": self._execute_movb_register_to_memory,
             "MOVB.RM.ABS": self._execute_movb_register_to_memory,
+            "MOVB.MR": self._execute_movb_memory_to_register,
+            "MOVB.MR.OFFSET": self._execute_movb_memory_to_register,
+            "MOVB.MR.ABS": self._execute_movb_memory_to_register,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
@@ -2232,6 +2235,69 @@ class Tms34020Model:
             "logical little-endian absolute field extraction; physical "
             "dynamic-width, wait, page, fault, retry, interrupt, and I/O "
             "sequencing remain pending"
+        )
+        return machine_states
+
+    def _execute_movb_memory_to_register(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} big-endian byte mapping is "
+                "classified but not modeled"
+            )
+        first_word = words[0]
+        register_file = "B" if first_word & 0x10 else "A"
+        destination_index = first_word & 0xF
+        if instruction.mnemonic == "MOVB.MR.ABS":
+            source_address = self._absolute_bit_address(words, 1)
+            immediate_aligned = self._first_extension_long_word_aligned()
+        else:
+            source_index = (first_word >> 5) & 0xF
+            source_address = self.state.read_reg(register_file, source_index)
+            immediate_aligned = None
+            if instruction.mnemonic == "MOVB.MR.OFFSET":
+                source_offset = words[1]
+                if source_offset & 0x8000:
+                    source_offset -= 0x1_0000
+                source_address = (source_address + source_offset) & MASK32
+        raw_value = self.state.memory.read_bits(source_address, 8)
+        result = raw_value
+        if raw_value & 0x80:
+            result |= 0xFFFF_FF00
+        source_case = self._field_alignment_case(source_address, 8)
+        if instruction.mnemonic == "MOVB.MR":
+            machine_states = 4 if source_case <= 2 else 5
+        elif instruction.mnemonic == "MOVB.MR.OFFSET":
+            machine_states = 6 if source_case <= 2 else 7
+        else:
+            machine_states = (5 if source_case <= 2 else 6) + int(
+                not immediate_aligned
+            )
+        self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, False)
+        assert self._active_trace is not None
+        transaction = {
+            "class": "data_read",
+            "purpose": "byte_move_memory_to_register",
+            "bit_address": source_address,
+            "width": 8,
+            "value": raw_value,
+            "alignment_case": source_case,
+            "addressing_mode": instruction.mnemonic,
+            "sign_extended_result": result,
+        }
+        if immediate_aligned is not None:
+            transaction["first_extension_long_word_aligned"] = int(
+                immediate_aligned
+            )
+        self._active_trace.transactions.append(transaction)
+        self._active_trace.notes.append(
+            "logical little-endian fixed-byte extraction; physical dynamic "
+            "width, wait, page, fault, retry, interrupt, and I/O sequencing "
+            "remain pending"
         )
         return machine_states
 

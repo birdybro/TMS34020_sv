@@ -139,6 +139,13 @@ patterns rather than checking only NCZV. The byte-store RTL leaf has no status
 or architectural commit port. Sources: User's Guide MOVB, printed
 pp.13-154..13-157.
 
+The three corresponding memory-to-register MOVB forms always sign-extend the
+loaded byte, replace N and Z from that result, clear V, and preserve C plus all
+lower ST fields. This rule is independent of both FS/FE banks. The model tests
+all 256 byte values and mixed prior NCZV states; the byte-load RTL leaf exports
+N/Z/V results but cannot preserve C or commit ST without the future memory
+owner. Sources: User's Guide MOVB status, printed p.13-156.
+
 CPW preserves the complete status register except V, which reports whether
 any of its four signed-XY window outcode bits are set. The independent model
 tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;

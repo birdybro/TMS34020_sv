@@ -175,6 +175,14 @@ byte-store leaf report these table values without claiming physical
 byte-strobe, read/modify/write, wait, SIZE16, fault, retry, or BEN timing.
 Source: User's Guide MOVB timing rows, printed pp.15-10..15-12.
 
+The fixed-byte loads also reach only cases 1, 2, and 5. `MOVB *Rs,Rd` takes
+4/4/5 visible states across those cases; `MOVB *Rs(offset),Rd` takes 6/6/7.
+For `MOVB @SAddress,Rd`, an aligned first extension gives 5/5/6 and an
+unaligned first extension gives 6/6/7. The sign extension and N/Z/V update are
+included in those counts. The model and byte-load leaf expose the table values
+without claiming external read, wait, dynamic-width, fault, retry, or BEN
+timing. Source: User's Guide memory-to-register MOVB rows, printed p.15-11.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.
