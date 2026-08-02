@@ -4964,6 +4964,93 @@ class ExecutionTests(unittest.TestCase):
                     [0, 7, 10, 11, 12],
                 )
 
+    def test_clip_positive_rectangles_overflow_and_status(self) -> None:
+        def xy(x_value: int, y_value: int) -> int:
+            return ((y_value & 0xFFFF) << 16) | (x_value & 0xFFFF)
+
+        cases = (
+            # origin, dimensions, window, adjusted origin/dimensions, Z/V
+            ((10, 20), (5, 4), (0, 0), (100, 100),
+             (10, 20), (5, 4), 0, 0, []),
+            ((-3, -2), (6, 5), (0, 0), (10, 10),
+             (0, 0), (3, 3), 0, 1, [2, 7]),
+            ((8, 9), (5, 4), (0, 0), (10, 10),
+             (8, 9), (3, 2), 0, 1, [7]),
+            ((-10, -10), (3, 3), (0, 0), (10, 10),
+             (-10, -10), (3, 3), 1, 1, []),
+            ((32760, 1), (20, 2), (-100, 0), (32767, 10),
+             (32760, 1), (8, 2), 0, 1, [7]),
+            ((-32768, -32768), (65535, 65535),
+             (-10, -20), (10, 30),
+             (-10, -20), (21, 51), 0, 1, [2, 7]),
+        )
+        for (
+            origin, dimensions, window_start, window_end,
+            adjusted_origin, adjusted_dimensions, expected_z, expected_v,
+            expected_writes,
+        ) in cases:
+            with self.subTest(origin=origin, dimensions=dimensions):
+                model = Tms34020Model()
+                model.load_program([0x08F2])
+                model.state.write_reg("B", 2, xy(*origin))
+                model.state.write_reg("B", 5, xy(*window_start))
+                model.state.write_reg("B", 6, xy(*window_end))
+                model.state.write_reg("B", 7, xy(*dimensions))
+                model.state.st = 0xCABC_DEF0
+
+                event = model.step()
+
+                self.assertEqual(event.mnemonic, "CLIP")
+                self.assertIsNone(event.machine_states)
+                self.assertFalse(model.state.timing_complete)
+                self.assertEqual(
+                    model.state.read_reg("B", 2), xy(*adjusted_origin)
+                )
+                self.assertEqual(
+                    model.state.read_reg("B", 7), xy(*adjusted_dimensions)
+                )
+                self.assertEqual(
+                    model.state.st,
+                    0xCABC_DEF0 | (expected_z << 29) | (expected_v << 28),
+                )
+                self.assertEqual(
+                    [item["index"] for item in event.register_writes],
+                    expected_writes,
+                )
+                self.assertFalse(any(
+                    item["class"] in {
+                        "data_read", "data_write",
+                        "coprocessor_data_in", "coprocessor_data_out",
+                    }
+                    for item in event.transactions
+                ))
+
+    def test_clip_zero_dimensions_and_invalid_window_roll_back(self) -> None:
+        def xy(x_value: int, y_value: int) -> int:
+            return ((y_value & 0xFFFF) << 16) | (x_value & 0xFFFF)
+
+        for dimensions, window_start, window_end in (
+            ((0, 4), (0, 0), (10, 10)),
+            ((5, 0), (0, 0), (10, 10)),
+            ((5, 4), (10, 0), (0, 10)),
+            ((5, 4), (0, 10), (10, 0)),
+        ):
+            with self.subTest(
+                dimensions=dimensions,
+                window_start=window_start,
+                window_end=window_end,
+            ):
+                model = Tms34020Model()
+                model.load_program([0x08F2])
+                model.state.write_reg("B", 2, xy(1, 2))
+                model.state.write_reg("B", 5, xy(*window_start))
+                model.state.write_reg("B", 6, xy(*window_end))
+                model.state.write_reg("B", 7, xy(*dimensions))
+                before = model.snapshot()
+                with self.assertRaises(ModelError):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
     def test_cvxyl_primary_equation_rows_and_pitch_classes(self) -> None:
         primary_rows = (
             (0x0040_0030, 0x0000_0000, 16, 0x0014, 0x0002_0300),

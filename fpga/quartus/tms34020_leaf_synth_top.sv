@@ -89,6 +89,12 @@ module tms34020_leaf_synth_top (
     logic [31:0] linit_dominant_increment;
     logic [3:0] linit_nczv;
     logic [3:0] linit_visible_states;
+    logic clip_geometry_valid;
+    logic clip_intersection;
+    logic [31:0] clip_adjusted_origin;
+    logic [31:0] clip_adjusted_dimensions;
+    logic clip_z;
+    logic clip_v;
     logic [31:0] xy_linear_result;
     logic [1:0] xy_linear_pitch_class;
     logic [3:0] xy_linear_visible_states;
@@ -325,6 +331,9 @@ module tms34020_leaf_synth_top (
         linit_diagonal_increment ^
         linit_dominant_increment ^
         {24'd0, linit_nczv, linit_visible_states} ^
+        clip_adjusted_origin ^
+        clip_adjusted_dimensions ^
+        {28'd0, clip_geometry_valid, clip_intersection, clip_z, clip_v} ^
         xy_linear_result ^
         divider_quotient ^
         divider_remainder ^
@@ -624,6 +633,19 @@ module tms34020_leaf_synth_top (
         .dominant_increment_o(linit_dominant_increment),
         .status_nczv_o(linit_nczv),
         .visible_states_o(linit_visible_states)
+    );
+
+    tms34020_array_clip array_clip (
+        .origin_i(operand_i),
+        .dimensions_i(immediate_i),
+        .window_start_i({operand_i[31:16], immediate_i[15:0]}),
+        .window_end_i({immediate_i[31:16], operand_i[15:0]}),
+        .geometry_valid_o(clip_geometry_valid),
+        .intersection_o(clip_intersection),
+        .adjusted_origin_o(clip_adjusted_origin),
+        .adjusted_dimensions_o(clip_adjusted_dimensions),
+        .status_z_o(clip_z),
+        .status_v_o(clip_v)
     );
 
     tms34020_xy_to_linear xy_to_linear (

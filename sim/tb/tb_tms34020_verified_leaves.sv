@@ -83,6 +83,16 @@ module tb_tms34020_verified_leaves;
     logic [31:0] linit_dominant_increment;
     logic [3:0] linit_nczv;
     logic [3:0] linit_visible_states;
+    logic [31:0] clip_origin;
+    logic [31:0] clip_dimensions;
+    logic [31:0] clip_window_start;
+    logic [31:0] clip_window_end;
+    logic clip_geometry_valid;
+    logic clip_intersection;
+    logic [31:0] clip_adjusted_origin;
+    logic [31:0] clip_adjusted_dimensions;
+    logic clip_z;
+    logic clip_v;
     logic [31:0] xy_linear_xy;
     logic [31:0] xy_linear_pitch;
     logic [31:0] xy_linear_offset;
@@ -585,6 +595,19 @@ module tb_tms34020_verified_leaves;
         .dominant_increment_o(linit_dominant_increment),
         .status_nczv_o(linit_nczv),
         .visible_states_o(linit_visible_states)
+    );
+
+    tms34020_array_clip array_clip_dut (
+        .origin_i(clip_origin),
+        .dimensions_i(clip_dimensions),
+        .window_start_i(clip_window_start),
+        .window_end_i(clip_window_end),
+        .geometry_valid_o(clip_geometry_valid),
+        .intersection_o(clip_intersection),
+        .adjusted_origin_o(clip_adjusted_origin),
+        .adjusted_dimensions_o(clip_adjusted_dimensions),
+        .status_z_o(clip_z),
+        .status_v_o(clip_v)
     );
 
     tms34020_xy_to_linear xy_to_linear_dut (
@@ -1463,6 +1486,35 @@ module tb_tms34020_verified_leaves;
             linit_dominant_increment == expected_dominant &&
             linit_nczv == expected_nczv &&
             linit_visible_states == 4'd9,
+            message
+        );
+    endtask
+
+    task automatic check_array_clip(
+        input logic [31:0] origin,
+        input logic [31:0] dimensions,
+        input logic [31:0] window_start_value,
+        input logic [31:0] window_end_value,
+        input logic expected_valid,
+        input logic expected_intersection,
+        input logic [31:0] expected_origin,
+        input logic [31:0] expected_dimensions,
+        input logic expected_z,
+        input logic expected_v,
+        input string message
+    );
+        clip_origin = origin;
+        clip_dimensions = dimensions;
+        clip_window_start = window_start_value;
+        clip_window_end = window_end_value;
+        #1;
+        check_condition(
+            clip_geometry_valid == expected_valid &&
+            clip_intersection == expected_intersection &&
+            clip_adjusted_origin == expected_origin &&
+            clip_adjusted_dimensions == expected_dimensions &&
+            clip_z == expected_z &&
+            clip_v == expected_v,
             message
         );
     endtask
@@ -2857,6 +2909,10 @@ module tb_tms34020_verified_leaves;
         linit_end_point = 32'd0;
         linit_window_start = 32'd0;
         linit_window_end = 32'd0;
+        clip_origin = 32'd0;
+        clip_dimensions = 32'd0;
+        clip_window_start = 32'd0;
+        clip_window_end = 32'd0;
         xy_linear_xy = 32'd0;
         xy_linear_pitch = 32'd0;
         xy_linear_offset = 32'd0;
@@ -3571,6 +3627,55 @@ module tb_tms34020_verified_leaves;
             32'd0, 32'd0, 32'd1,
             32'd0, 32'd0, 4'b1111,
             "LINIT degenerate outside point"
+        );
+
+        check_array_clip(
+            32'h0014_000A, 32'h0004_0005,
+            32'h0000_0000, 32'h0064_0064,
+            1'b1, 1'b1, 32'h0014_000A, 32'h0004_0005, 1'b0, 1'b0,
+            "CLIP array wholly inside window"
+        );
+        check_array_clip(
+            32'hFFFE_FFFD, 32'h0005_0006,
+            32'h0000_0000, 32'h000A_000A,
+            1'b1, 1'b1, 32'h0000_0000, 32'h0003_0003, 1'b0, 1'b1,
+            "CLIP left/top partial intersection"
+        );
+        check_array_clip(
+            32'h0009_0008, 32'h0004_0005,
+            32'h0000_0000, 32'h000A_000A,
+            1'b1, 1'b1, 32'h0009_0008, 32'h0002_0003, 1'b0, 1'b1,
+            "CLIP right/bottom partial intersection"
+        );
+        check_array_clip(
+            32'hFFF6_FFF6, 32'h0003_0003,
+            32'h0000_0000, 32'h000A_000A,
+            1'b1, 1'b0, 32'hFFF6_FFF6, 32'h0003_0003, 1'b1, 1'b1,
+            "CLIP wholly outside preserves origin and dimensions"
+        );
+        check_array_clip(
+            32'h0001_7FF8, 32'h0002_0014,
+            32'h0000_FF9C, 32'h000A_7FFF,
+            1'b1, 1'b1, 32'h0001_7FF8, 32'h0002_0008, 1'b0, 1'b1,
+            "CLIP positive coordinate overflow uses extended endpoint"
+        );
+        check_array_clip(
+            32'h8000_8000, 32'hFFFF_FFFF,
+            32'hFFEC_FFF6, 32'h001E_000A,
+            1'b1, 1'b1, 32'hFFEC_FFF6, 32'h0033_0015, 1'b0, 1'b1,
+            "CLIP maximum dimensions to signed window"
+        );
+        check_array_clip(
+            32'h0002_0001, 32'h0004_0000,
+            32'h0000_0000, 32'h000A_000A,
+            1'b0, 1'b0, 32'h0002_0001, 32'h0004_0000, 1'b0, 1'b0,
+            "CLIP zero dimension remains unsupported"
+        );
+        check_array_clip(
+            32'h0002_0001, 32'h0004_0005,
+            32'h0000_000A, 32'h000A_0000,
+            1'b0, 1'b0, 32'h0002_0001, 32'h0004_0005, 1'b0, 1'b0,
+            "CLIP inverted window remains unsupported"
         );
 
         check_xy_to_linear(
@@ -5205,6 +5310,11 @@ module tb_tms34020_verified_leaves;
             16'h0C57, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "LINIT cannot bypass implied B-register ownership"
+        );
+        check_register_execute(
+            16'h08F2, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CLIP cannot bypass implied B-register ownership"
         );
         check_register_execute(
             16'h0A60, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
@@ -6975,6 +7085,8 @@ module tb_tms34020_verified_leaves;
                      "CPW upper-bound decode");
         check_decode(16'h0C57, TMS20_OP_LINIT, 3'd1,
                      "LINIT exact decode");
+        check_decode(16'h08F2, TMS20_OP_CLIP, 3'd1,
+                     "CLIP exact decode");
         check_decode(16'h0A60, TMS20_OP_CVMXYL, 3'd1,
                      "CVMXYL lower-bound decode");
         check_decode(16'h0A7F, TMS20_OP_CVMXYL, 3'd1,

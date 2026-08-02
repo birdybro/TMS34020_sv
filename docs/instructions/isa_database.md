@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 141 page-verified encoding records and covers 48,219 of 65,536
+slice contains 142 page-verified encoding records and covers 48,220 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -132,6 +132,7 @@ first words without collisions:
 | BLMOVE | `00F0h`, mask `FFFCh` | 1 | pp.13-44..13-45 |
 | CEXEC.L | exact `0600h` plus command/size and ID/command words | 3 | pp.13-51..13-52 |
 | CEXEC.S | `D800h`, mask `FF80h`, plus ID/command word | 2 | pp.13-53..13-54 |
+| CLIP | `08F2h` | 1 | pp.13-55..13-56 |
 | CMOVGC.1 | `0620h`, mask `FFE0h`, plus command and ID/command words | 3 | pp.13-67..13-68 |
 | CMOVGC.2 | `0640h`, mask `FFE0h`, plus command/size/Rs2 and ID/command words | 3 | pp.13-69..13-70 |
 | CMOVCG / CMOVCS packet refinement | `0660h`, mask `FFE0h`, plus command/size/Rd2 and ID/command words | 3 | CMOVCG pp.13-59..13-60; CMOVCS p.13-66 |
@@ -166,6 +167,16 @@ transaction, and takes nine machine states. Endpoint and window inputs must be
 captured before B7 writeback. Sources: User's Guide §12.7.5.2 printed p.12-26,
 LINIT printed p.13-146, FLINE setup printed pp.13-121..13-123, and timing table
 p.15-6.
+
+CLIP is the exact one-word `08F2h` TMS34020-only common-rectangle operation.
+For positive unsigned B7 dimensions it intersects the array beginning at
+signed-XY B2 with inclusive signed B5/B6 bounds using an extended endpoint,
+so a coordinate overflow cannot wrap back into the window. A nonempty
+intersection replaces B2/B7; a wholly outside array preserves them. Only Z/V
+change, no data-memory cycle occurs, and timing is documented as complex.
+OQ-0029 retains the unspecified Z/V result for a zero width or height. Sources:
+User's Guide DYDX printed pp.4-50..4-51, §12.7.4.4 p.12-23, CLIP
+pp.13-55..13-56, and timing p.15-2.
 
 `CLR Rd` is the documented alternate mnemonic for `XOR Rd,Rd`, not a separate
 decode range. Its instruction word repeats the same four-bit register number

@@ -4,15 +4,20 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `e523eb8e833de90b627a1bffc00e23dcc2b484d0`
-- Passing tests: foundation, reference/hash, 104-entry delta, 77-case ISA sweep, 221 directed model
+- Passing tests: foundation, reference/hash, 105-entry delta, 78-case ISA sweep, 223 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 140 of 141 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. LINIT captures signed
+- Model status: 141 of 142 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. CLIP intersects
+  positive-size unsigned dimensions with signed inclusive windows in extended
+  coordinate space, covers inside/partial/outside/overflow/max-dimension
+  results, commits B2/B7/Z/V at the instruction boundary, emits no data
+  transaction, and rolls back zero dimensions/invalid windows under OQ-0029.
+  LINIT captures signed
   B2/B7 endpoints and B5/B6 inclusive window bounds before B7 overwrite,
   writes B0/B7/B10/B11/B12 plus NCZV, emits no data-memory transaction, and
   reports nine states across axis, window, degenerate and full-span cases.
@@ -149,8 +154,9 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 141-entry partial decode, a clean-room combinational
-  LINIT semantic leaf with exact signed major/minor/decision/count/increment/
+- RTL status: generated 142-entry partial decode, clean-room combinational CLIP
+  positive-dimension intersection and LINIT semantic leaves with exact signed
+  common-rectangle/major/minor/decision/count/increment/
   window-status results and explicit scalar noncommit pending an atomic
   multi-register owner, combinational CEXEC.L/S and
   all CMOVGC/CMOVCG/CMOVCS/CMOVCM/CMOVMC formatters with command/ID/size/LAD/SF/BCST/I/S/timing,
@@ -281,9 +287,11 @@
   retry, fault resume/abort, refill-state reset, and three randomized seeds.
   CPU fault/interrupt state, bus-width/page scheduling and pin timing remain
   (`TMS20-0012`, `TMS20-0017`)
-- Graphics status: LINIT signed line setup/status, CPW signed inclusive
-  window/outcode, and all four XY-to-linear conversion semantics exist in the
-  model and standalone RTL leaves; LINIT has no multi-register commit owner,
+- Graphics status: CLIP positive-dimension array intersection, LINIT signed
+  line setup/status, CPW signed inclusive window/outcode, and all four
+  XY-to-linear conversion semantics exist in the model and standalone RTL
+  leaves; CLIP/LINIT have no multi-register commit owner and OQ-0029 blocks
+  zero-dimension CLIP status,
   and the full pixel/graphics matrix, I/O/register owner, memory sequencer,
   clipping, and continuation remain (`TMS20-0024`–`TMS20-0026`)
 - Bus status: cache-native completion plus logical ordinary/postincrement/
@@ -298,9 +306,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 13,699 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 14,025 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 501, 867, and 5,461 logic cells;
+  the fetch, frontend, and scalar wrappers use 498, 885, and 5,509 logic cells;
   the scalar wrapper has 1,416 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file
@@ -323,7 +331,7 @@
   MOVE.MM.POST same-register final pointer (RSC-0037/OQ-0025),
   RETI/RETM's undisclosed IX/BF internal-frame layout/padding/
   restore order, and the absent RETM one-instruction interrupt-recognition
-  scheduler
+  scheduler, plus CLIP's unspecified zero-dimension Z/V result (OQ-0029)
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
 - Next task: continue primary ISA extraction and preserve explicit noncommit

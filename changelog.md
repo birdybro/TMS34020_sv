@@ -4,6 +4,14 @@
 
 ### Added
 
+- Primary-page-extracted exact `08F2h` CLIP semantics for positive array
+  dimensions, including signed inclusive windows, extended-coordinate endpoint
+  overflow, nonempty common-rectangle updates to B2/B7, unchanged geometry for
+  wholly outside arrays, and Z/V-only status effects. The independent model and
+  a clean-room combinational RTL leaf cover interior, every clipping side,
+  wholly outside, 16-bit endpoint overflow, and maximum unsigned dimensions;
+  the scalar path explicitly refuses commit until an atomic B2/B7/ST owner
+  exists.
 - Primary-page-extracted exact `0C57h` LINIT, including implied signed-XY
   endpoints/window, all five B-register results, NCZV predicates, no-data-
   memory behavior, and fixed nine-state timing. The independent model and a
@@ -629,6 +637,17 @@
 
 ### Verified
 
+- The 142-entry ISA database now classifies 48,220 first words through 78
+  independent ISA tests; the 105-entry delta ledger passes schema checks, and
+  all 223 architectural-model tests pass, including positive-dimension CLIP
+  geometry, status preservation, extended endpoints, and atomic invalid-input
+  rollback.
+- CLIP RTL lint, shared-leaf, fetch, frontend, scalar, randomized-cache, and
+  fault/retry regressions pass. Warning-free Cyclone V Analysis & Synthesis
+  reports 14,025 logic cells/2,230 registers/9 DSPs for the observability-heavy
+  leaf wrapper, 498/177 for fetch, 885/375/4,096 RAM bits for frontend, and
+  5,509/1,416/4,096 RAM bits for the bounded scalar composition; these remain
+  analysis-only slice metrics, not core area or timing closure.
 - The 77-case ISA suite, 104-entry delta ledger, complete 221-case model
   regression, warning-free lint, and decoder/leaf/fetch/frontend/scalar/cache/
   fault RTL suites pass for the LINIT milestone. The RTL checks exact outputs
@@ -1628,6 +1647,9 @@ qualification.
 
 ### Known Issues
 
+- OQ-0029 records that the guide defines zero DYDX dimensions as a no-transfer
+  block but does not specify CLIP's Z/V result for that input. Model and RTL
+  architectural entry reject zero dimensions until stronger evidence exists.
 - MOVE.RM.OFFSET/MR.OFFSET/MM.OFFSET are logical little-endian
   instruction-boundary models plus separate field and signed-address leaves.
   No RTL owner fetches their extensions or makes memory/data/status retirement

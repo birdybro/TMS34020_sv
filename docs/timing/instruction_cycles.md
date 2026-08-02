@@ -291,6 +291,12 @@ instruction boundary represented by the model. The combinational RTL leaf's
 sequencer or evidence for internal graphics-pipeline overlap. Sources:
 TMS34020 User's Guide LINIT printed p.13-146 and timing table p.15-6.
 
+CLIP is listed only as a `complex instruction`; no operand-dependent state
+formula is provided. The model therefore leaves `machine_states` absent and
+marks timing incomplete, while the combinational RTL leaf exposes no invented
+count. This is semantic boundary evidence only. Sources: TMS34020 User's Guide
+CLIP printed pp.13-55..13-56 and timing table p.15-2.
+
 CVDXYL, CVMXYL, and CVSXYL take 2 machine states for a power-of-two pitch, 3
 for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3 and 4
 states for the first two classes. Its instruction page specifies 14 for an

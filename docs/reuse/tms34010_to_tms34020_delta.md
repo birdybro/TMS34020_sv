@@ -118,6 +118,14 @@ owner rather than an adapted TMS34010 graphics timing machine. Sources:
 TMS34020 guide §12.7.5.2 printed p.12-26, LINIT printed p.13-146, and timing
 table p.15-6.
 
+CLIP at exact `08F2h` is likewise TMS34020-only. It requires extended signed-
+coordinate rectangle intersection, atomic B2/B7 adjustment, partial Z/V
+replacement, and a complex internal execution owner. No TMS34010 graphics
+state machine can be reused for this operation. The bounded implementation
+rejects zero dimensions because TI does not state their CLIP Z/V result
+(OQ-0029). Sources: TMS34020 guide DYDX printed pp.4-50..4-51,
+§12.7.4.4 p.12-23, and CLIP pp.13-55..13-56.
+
 CVXYL retains `E800h`/`FE00h`, same-file explicit operands, implied B3/B4,
 CONVDP/PSIZE inputs, unaffected ST, and the signed XY-to-linear equation. The
 TMS34020 expands pitch handling from the TMS34010's power-of-two display case

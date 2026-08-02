@@ -32,6 +32,29 @@ printed p.12-19; CPW printed pp.13-85..13-86; instruction timing printed
 p.15-4. Compatibility cross-check: TI *TMS34010 User's Guide*, 1988, CPW
 printed pp.12-57..12-58 and Appendix A p.A-13.
 
+## Array clipping boundary
+
+CLIP at exact `08F2h` intersects the positive-size unsigned B7 height:width
+array rooted at signed-XY B2 with inclusive signed B5/B6 window bounds. The
+bounded model and `tms34020_array_clip.sv` compute the endpoint in an extended
+coordinate domain before intersection; this preserves TI's explicit support
+for arrays whose ending coordinate overflows signed 16-bit XY space. A
+nonempty common rectangle replaces B2 and B7. A wholly outside rectangle
+leaves both unchanged. Z reports no common rectangle, V reports any portion
+outside, and N/C/lower ST are preserved.
+
+Directed rows cover wholly inside, left/top and right/bottom clipping, wholly
+outside, a positive-coordinate overflow, maximum dimensions, zero dimensions,
+and inverted windows. The last two are unsupported guards rather than silicon
+claims: OQ-0029 records that TI says a zero dimension suppresses a graphics
+transfer but never defines CLIP's Z/V result for the empty rectangle. The
+scalar router cannot execute CLIP until it can capture four implied registers
+and atomically commit B2/B7/Z/V. TI lists timing only as complex; no state
+count, memory cycle, pixel sequencer, or continuation behavior is invented.
+
+Sources: TMS34020 User's Guide DYDX printed pp.4-50..4-51, §12.7.4.4 printed
+p.12-23, CLIP printed pp.13-55..13-56, and timing table p.15-2.
+
 ## Line initialization boundary
 
 LINIT is the exact `0C57h` TMS34020-only setup operation used before line

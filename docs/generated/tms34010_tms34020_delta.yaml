@@ -1046,6 +1046,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 LINIT, printed p.13-146", "TI-TMS34020-UG-1990 line setup/status, §12.7.5.2 printed p.12-26", "TI-TMS34020-UG-1990 FLINE setup, printed pp.13-121..13-123", "TI-TMS34020-UG-1990 timing table, printed p.15-6"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["The complete graphics-engine pipeline relationship and atomic architectural commit owner remain unimplemented."]
+    },
+    {
+      "feature": "array_clipping",
+      "tms34010_behavior": "No standalone CLIP instruction is documented in the TMS34010 instruction set.",
+      "tms34020_behavior": "Exact 08F2h intersects the positive unsigned B7 height:width rectangle at signed-XY B2 with the inclusive signed B5/B6 window. A nonempty intersection replaces B2/B7 with its origin/dimensions; a wholly outside rectangle leaves them unchanged. Z reports no intersection, V reports any portion outside, N/C are preserved, no data-memory cycle occurs, and timing is documented only as complex.",
+      "rtl_impact": "A TMS34020-only extended-coordinate common-rectangle datapath plus atomic B2/B7/Z/V retirement owner is required. The clean-room leaf handles positive dimensions and overflow without 16-bit endpoint wrap; the scalar path has no implied-register commit owner.",
+      "test_impact": "Exact decode; inside, every clipped edge, wholly outside, maximum dimensions and overflowing endpoints; unchanged B2/B7 on no intersection; N/C preservation and Z/V replacement; zero dimensions; invalid windows; explicit no-memory boundary and complex-timing disclosure.",
+      "source_citation": ["TI-TMS34020-UG-1990 DYDX, printed pp.4-50..4-51", "TI-TMS34020-UG-1990 §12.7.4.4 printed p.12-23", "TI-TMS34020-UG-1990 CLIP printed pp.13-55..13-56", "TI-TMS34020-UG-1990 timing table printed p.15-2"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["OQ-0029: CLIP Z/V for a zero width or height is not stated.", "The complex internal state count and atomic architectural commit owner remain unimplemented."]
     }
   ]
 }

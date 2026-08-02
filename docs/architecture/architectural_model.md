@@ -36,7 +36,7 @@ Implemented:
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
-  CEXEC.S, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
+  CEXEC.S, CLIP, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
   CMOVMC.POST.C, CMOVCM.POST.C, CMOVCM.PRE.C, CMOVMC.POST.R,
   CMOVMC.PRE.C,
   XORI,
@@ -44,7 +44,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LINIT, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 140 of 141 currently extracted database forms for their
+These handlers cover 141 of 142 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -403,6 +403,19 @@ window rejection, a degenerate outside point, and the complete `-32768` to
 event reports the fixed nine states. Sources: TMS34020 User's Guide §12.7.5.2
 printed p.12-26, LINIT printed p.13-146, FLINE setup printed
 pp.13-121..13-123, and timing table p.15-6.
+
+CLIP captures B2/DADDR, B7/DYDX and B5/B6 window bounds before any result
+write. For positive dimensions it computes the common rectangle in extended
+signed-coordinate space, avoiding false wrap when `origin+dimension-1`
+exceeds `32767`. It writes adjusted B2/B7 only for a nonempty intersection,
+preserves them for a wholly outside rectangle, preserves N/C and lower ST,
+and replaces Z/V with no-intersection/any-outside. Tests cover inside, all
+clipped edges, wholly outside, maximum dimensions and overflowing endpoints;
+the event has no data transaction and deliberately has no state count because
+TI specifies only “complex instruction.” Zero dimensions and inverted windows
+roll back rather than assigning undocumented behavior; OQ-0029 records the
+zero-dimension status gap. Sources: User's Guide DYDX printed pp.4-50..4-51,
+§12.7.4.4 printed p.12-23, CLIP printed pp.13-55..13-56, and timing p.15-2.
 
 The four XY-to-linear handlers share equation-level arithmetic but retain
 their distinct explicit and implied operands. Signed X/Y halves and signed
@@ -855,6 +868,9 @@ operand aliases, and implied B5/B6 read-before-write hazards,
 LINIT horizontal/vertical/equal/reverse/degenerate/full-span line setup,
 signed inclusive endpoint window classification, exact implied-register
 write order, NCZV, no-data-transaction boundary, and fixed nine states,
+CLIP inside/partial/outside/overflow/max-dimension positive rectangles,
+extended-coordinate intersection, B2/B7/Z/V boundary, zero/invalid rollback,
+and disclosed complex timing,
 all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
 coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and the
 published state cases plus provisional CVXYL arbitrary-pitch selection,

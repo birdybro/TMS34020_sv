@@ -216,6 +216,7 @@ class Tms34020Model:
             "BLMOVE": self._execute_blmove,
             "CEXEC.L": self._execute_cexec,
             "CEXEC.S": self._execute_cexec,
+            "CLIP": self._execute_clip,
             "CMOVGC.1": self._execute_cmovgc,
             "CMOVGC.2": self._execute_cmovgc,
             "CMOVCG": self._execute_cmovcg,
@@ -3619,6 +3620,70 @@ class Tms34020Model:
             "and NCZV; it performs no pixel or data-memory transaction"
         )
         return 9
+
+    def _execute_clip(
+        self, instruction: Instruction, words: list[int]
+    ) -> None:
+        del instruction, words
+        origin = self.state.read_reg("B", 2)
+        window_start = self.state.read_reg("B", 5)
+        window_end = self.state.read_reg("B", 6)
+        dimensions = self.state.read_reg("B", 7)
+        origin_x = self._signed_half(origin)
+        origin_y = self._signed_half(origin >> 16)
+        window_start_x = self._signed_half(window_start)
+        window_start_y = self._signed_half(window_start >> 16)
+        window_end_x = self._signed_half(window_end)
+        window_end_y = self._signed_half(window_end >> 16)
+        width = dimensions & 0xFFFF
+        height = (dimensions >> 16) & 0xFFFF
+        if width == 0 or height == 0:
+            raise ModelError(
+                "CLIP zero-dimension Z/V behavior is not documented"
+            )
+        if (
+            window_start_x > window_end_x
+            or window_start_y > window_end_y
+        ):
+            raise ModelError("CLIP requires ordered inclusive window bounds")
+
+        # Do not wrap an overflowing array endpoint back into signed XY space.
+        array_end_x = origin_x + width - 1
+        array_end_y = origin_y + height - 1
+        clipped_start_x = max(origin_x, window_start_x)
+        clipped_start_y = max(origin_y, window_start_y)
+        clipped_end_x = min(array_end_x, window_end_x)
+        clipped_end_y = min(array_end_y, window_end_y)
+        no_intersection = (
+            clipped_start_x > clipped_end_x
+            or clipped_start_y > clipped_end_y
+        )
+        any_outside = (
+            origin_x < window_start_x
+            or origin_y < window_start_y
+            or array_end_x > window_end_x
+            or array_end_y > window_end_y
+        )
+        if not no_intersection:
+            adjusted_origin = (
+                ((clipped_start_y & 0xFFFF) << 16)
+                | (clipped_start_x & 0xFFFF)
+            )
+            adjusted_dimensions = (
+                ((clipped_end_y - clipped_start_y + 1) << 16)
+                | (clipped_end_x - clipped_start_x + 1)
+            )
+            self.state.write_reg("B", 2, adjusted_origin)
+            self.state.write_reg("B", 7, adjusted_dimensions)
+        self._set_status_bit(Z_BIT, no_intersection)
+        self._set_status_bit(V_BIT, any_outside)
+        assert self._active_trace is not None
+        self._active_trace.notes.append(
+            "CLIP computed the positive-dimension common rectangle in "
+            "extended signed-coordinate space; no pixel or data-memory "
+            "transaction occurs and complex internal timing is not modeled"
+        )
+        return None
 
     @staticmethod
     def _signed_word(value: int) -> int:

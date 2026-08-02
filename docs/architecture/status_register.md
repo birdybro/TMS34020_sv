@@ -188,6 +188,13 @@ implied B-register results; the standalone leaf emits NCZV but has no status
 commit owner. Sources: User's Guide §12.7.5.2 printed p.12-26 and LINIT
 printed p.13-146.
 
+CLIP preserves N/C and every lower ST bit, replaces Z with the no-intersection
+predicate, and replaces V with the any-portion-outside predicate. The bounded
+model and standalone leaf cover positive dimensions only; OQ-0029 retains the
+guide's unstated Z/V result for an empty width or height. No architectural RTL
+commit owner exists. Sources: User's Guide §12.7.4.4 printed p.12-23 and CLIP
+printed pp.13-55..13-56.
+
 CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
 The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide

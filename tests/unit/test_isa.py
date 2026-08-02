@@ -261,6 +261,7 @@ class IsaTests(unittest.TestCase):
             0x0BC0: ("XORI", 3),
             0x0BDF: ("XORI", 3),
             0x0C57: ("LINIT", 1),
+            0x08F2: ("CLIP", 1),
             0x0040: ("IDLE", 1),
             0x0080: ("MWAIT", 1),
             0x0900: ("TRAP", 1),
@@ -408,8 +409,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 48219)
-        self.assertEqual(unclassified, 65536 - 48219)
+        self.assertEqual(matched, 48220)
+        self.assertEqual(unclassified, 65536 - 48220)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2374,6 +2375,22 @@ class IsaTests(unittest.TestCase):
             "DYDX B7 input/output",
             instruction.metadata["graphics_register_dependencies"],
         )
+
+    def test_clip_implied_rectangles_partial_status_and_complex_timing(
+        self,
+    ) -> None:
+        instruction = self.database.decode(0x08F2)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "CLIP")
+        self.assertEqual(instruction.opcode_mask, 0xFFFF)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(
+            instruction.metadata["status_bits_written"], ["Z", "V"]
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"]["kind"], "complex"
+        )
+        self.assertEqual(instruction.metadata["memory_transactions"], [])
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)
