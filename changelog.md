@@ -896,6 +896,8 @@
 
 ### Documentation
 
+- Recorded the verified DIVS/DIVU implementation baseline as commit
+  `3b45d4c027ef971cdc90127fb63fe8d06e622b29` in the progress ledger.
 - Recorded RSC-0027/OQ-0018 for the signed even-pair nonzero early-overflow
   ambiguity: the DIVS instruction page omits that shortcut, while chapter 15
   prints a raw `Rs <= Rd` rule that is inconsistent with mixed-sign arithmetic.
