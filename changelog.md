@@ -1076,6 +1076,9 @@
 
 ### Documentation
 
+- Recorded the verified ordinary memory-to-memory field-copy implementation
+  baseline as commit `3b235c2b0fb2ad1b45d94f95394806c3b775fd60`
+  in the progress ledger.
 - Documented the compatible indirect-to-indirect field copy separately from
   TMS34020-owned A–H timing, BEN, dynamic-width, page and fault sequencing.
 - Recorded the verified ordinary field-load implementation baseline as commit
