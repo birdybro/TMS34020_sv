@@ -82,6 +82,7 @@ module tb_tms34020_verified_leaves;
     logic divider_start;
     logic divider_signed;
     logic divider_pair;
+    logic divider_modulo;
     logic [31:0] divider_dividend_high;
     logic [31:0] divider_dividend_low;
     logic [31:0] divider_divisor;
@@ -297,6 +298,7 @@ module tb_tms34020_verified_leaves;
         .start_i(divider_start),
         .signed_i(divider_signed),
         .pair_i(divider_pair),
+        .modulo_i(divider_modulo),
         .dividend_high_i(divider_dividend_high),
         .dividend_low_i(divider_dividend_low),
         .divisor_i(divider_divisor),
@@ -697,6 +699,7 @@ module tb_tms34020_verified_leaves;
     task automatic check_divider(
         input logic signed_operation,
         input logic pair_operation,
+        input logic modulo_operation,
         input logic [31:0] dividend_high,
         input logic [31:0] dividend_low,
         input logic [31:0] divisor,
@@ -709,6 +712,7 @@ module tb_tms34020_verified_leaves;
     );
         divider_signed = signed_operation;
         divider_pair = pair_operation;
+        divider_modulo = modulo_operation;
         divider_dividend_high = dividend_high;
         divider_dividend_low = dividend_low;
         divider_divisor = divisor;
@@ -1661,6 +1665,7 @@ module tb_tms34020_verified_leaves;
         divider_start = 1'b0;
         divider_signed = 1'b0;
         divider_pair = 1'b0;
+        divider_modulo = 1'b0;
         divider_dividend_high = 32'd0;
         divider_dividend_low = 32'd0;
         divider_divisor = 32'd0;
@@ -2272,47 +2277,78 @@ module tb_tms34020_verified_leaves;
         );
 
         check_divider(
-            1'b0, 1'b1, 32'h1234_5678, 32'h8765_4321,
+            1'b0, 1'b1, 1'b0, 32'h1234_5678, 32'h8765_4321,
             32'h789A_BCDF, 32'h26A4_39F6, 32'h15CA_1DD7,
             1'b0, 3'b000, 6'd37,
             "DIVU primary 64-by-32 quotient and remainder"
         );
         check_divider(
-            1'b0, 1'b0, 32'd0, 32'd0, 32'h8765_4321,
+            1'b0, 1'b0, 1'b0, 32'd0, 32'd0, 32'h8765_4321,
             32'd0, 32'd0, 1'b0, 3'b010, 6'd37,
             "DIVU odd-destination zero quotient"
         );
         check_divider(
-            1'b0, 1'b1, 32'h8765_4321, 32'd0,
+            1'b0, 1'b1, 1'b0, 32'h8765_4321, 32'd0,
             32'h8765_4321, 32'd0, 32'd0,
             1'b1, 3'b001, 6'd5,
             "DIVU even-destination early overflow"
         );
         check_divider(
-            1'b1, 1'b1, 32'h1234_5678, 32'h8765_4321,
+            1'b1, 1'b1, 1'b0, 32'h1234_5678, 32'h8765_4321,
             32'h8765_4321, 32'hD95B_C60A, 32'h15CA_1DD7,
             1'b0, 3'b100, 6'd40,
             "DIVS primary signed pair quotient and remainder"
         );
         check_divider(
-            1'b1, 1'b0, 32'd0, 32'h8000_0000, 32'd1,
+            1'b1, 1'b0, 1'b0, 32'd0, 32'h8000_0000, 32'd1,
             32'h8000_0000, 32'd0, 1'b0, 3'b100, 6'd41,
             "DIVS valid minimum result special timing"
         );
         check_divider(
-            1'b1, 1'b0, 32'd0, 32'h8000_0000, 32'hFFFF_FFFF,
+            1'b1, 1'b0, 1'b0, 32'd0, 32'h8000_0000, 32'hFFFF_FFFF,
             32'h8000_0000, 32'd0, 1'b1, 3'b101, 6'd41,
             "DIVS positive signed-range overflow"
         );
         check_divider(
-            1'b1, 1'b1, 32'hFFFF_FFFF, 32'h7FFF_FFFF, 32'd1,
+            1'b1, 1'b1, 1'b0, 32'hFFFF_FFFF, 32'h7FFF_FFFF, 32'd1,
             32'h7FFF_FFFF, 32'd0, 1'b1, 3'b101, 6'd40,
             "DIVS negative signed-range overflow"
         );
         check_divider(
-            1'b1, 1'b1, 32'h8000_0000, 32'd0, 32'd1,
+            1'b1, 1'b1, 1'b0, 32'h8000_0000, 32'd0, 32'd1,
             32'd0, 32'd0, 1'b1, 3'b001, 6'd7,
             "DIVS raw high-half early overflow"
+        );
+        check_divider(
+            1'b0, 1'b0, 1'b1, 32'd0, 32'd7, 32'd4,
+            32'd1, 32'd3, 1'b0, 3'b000, 6'd35,
+            "MODU nonzero remainder"
+        );
+        check_divider(
+            1'b0, 1'b0, 1'b1, 32'd0, 32'd8, 32'd4,
+            32'd2, 32'd0, 1'b0, 3'b010, 6'd35,
+            "MODU zero remainder controls Z"
+        );
+        check_divider(
+            1'b0, 1'b0, 1'b1, 32'd0, 32'd7, 32'd0,
+            32'd0, 32'd7, 1'b1, 3'b001, 6'd3,
+            "MODU zero divisor"
+        );
+        check_divider(
+            1'b1, 1'b0, 1'b1, 32'd0, 32'hFFFF_FFF9, 32'd4,
+            32'hFFFF_FFFF, 32'hFFFF_FFFD, 1'b0, 3'b100, 6'd40,
+            "MODS negative remainder keeps dividend sign"
+        );
+        check_divider(
+            1'b1, 1'b0, 1'b1, 32'd0, 32'h8000_0000,
+            32'hFFFF_FFFF, 32'h8000_0000, 32'd0,
+            1'b0, 3'b010, 6'd40,
+            "MODS quotient overflow does not invalidate remainder"
+        );
+        check_divider(
+            1'b1, 1'b0, 1'b1, 32'd0, 32'hFFFF_FFF9, 32'd0,
+            32'd0, 32'hFFFF_FFF9, 1'b1, 3'b001, 6'd3,
+            "MODS zero divisor"
         );
 
         check_pitch_conversion(
@@ -2878,6 +2914,16 @@ module tb_tms34020_verified_leaves;
             16'h5BFF, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "DIVU cannot bypass iterative divide/pair commit ownership"
+        );
+        check_register_execute(
+            16'h6C00, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MODS cannot bypass iterative modulus commit ownership"
+        );
+        check_register_execute(
+            16'h6FFF, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MODU cannot bypass iterative modulus commit ownership"
         );
         check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
@@ -4480,6 +4526,14 @@ module tb_tms34020_verified_leaves;
                      "DIVU lower-bound decode");
         check_decode(16'h5BFF, TMS20_OP_DIVU, 3'd1,
                      "DIVU upper-bound decode");
+        check_decode(16'h6C00, TMS20_OP_MODS, 3'd1,
+                     "MODS lower-bound decode");
+        check_decode(16'h6DFF, TMS20_OP_MODS, 3'd1,
+                     "MODS upper-bound decode");
+        check_decode(16'h6E00, TMS20_OP_MODU, 3'd1,
+                     "MODU lower-bound decode");
+        check_decode(16'h6FFF, TMS20_OP_MODU, 3'd1,
+                     "MODU upper-bound decode");
         check_decode(16'hEA00, TMS20_OP_CVSXYL, 3'd1,
                      "CVSXYL lower-bound decode");
         check_decode(16'hEBFF, TMS20_OP_CVSXYL, 3'd1,

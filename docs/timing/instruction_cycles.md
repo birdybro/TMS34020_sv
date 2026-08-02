@@ -40,6 +40,14 @@ high-half comparison under RSC-0027/OQ-0018. The leaf's 32 FPGA iteration
 clocks are an implementation handshake, not these machine states. Sources:
 User's Guide printed pp.13-96..13-99 and 15-4.
 
+MODU takes 35 states normally and 3 for a zero divisor. MODS takes 40 states
+normally and 3 for a zero divisor; the guide also publishes 41 when the stored
+result is `80000000h`. That signed remainder is mathematically unreachable for
+the documented nonzero 32-bit operand domain, so the condition is retained but
+not fabricated in testing under RSC-0029/OQ-0019. The shared divider leaf's 32
+iteration clocks are not these machine states. Sources: User's Guide printed
+pp.13-152..13-153 and 15-5.
+
 ## Hidden trailing writes
 
 Parenthesized states in chapter 15 are hidden memory-write states at the end of

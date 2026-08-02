@@ -123,6 +123,19 @@ the new leaf is a clean-room TMS34020-owned implementation and no upstream
 timing FSM is compiled. Sources: TMS34020 guide printed pp.13-96..13-99 and
 15-4; TMS34010 guide printed pp.12-63..12-66 and Appendix A p.A-15.
 
+MODS/MODU retain `6C00h`/`FE00h` and `6E00h`/`FE00h`, same-file 32-bit
+operands, signed/unsigned remainder placement, and C preservation. Status and
+timing do not transfer unchanged. TMS34020 MODS defines N/Z from the remainder,
+forces N/Z low for zero divisor, and makes V a divisor-zero indicator; MODU
+forces Z low for zero divisor. The older guide leaves more flags unchanged and
+publishes alignment-paired 40/43, 41/44, 3/6 and 35/38, 3/6 timing, whereas
+TMS34020 publishes 40, 41, 3 and 35, 3. RSC-0028 resolves the inherited MODU
+"quotient" typo from the remainder example; RSC-0029 retains the unreachable
+MODS `80000000h` timing condition. The clean-room TMS34020 divider leaf shares
+only the arithmetic mechanism, not upstream status/timing control. Sources:
+TMS34020 guide printed pp.13-152..13-153 and 15-5; TMS34010 guide printed
+pp.12-112..12-114 and Appendix A p.A-17.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family

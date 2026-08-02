@@ -133,6 +133,14 @@ and standalone divider leaf cover these masks and results; architectural pair
 commit remains absent. Sources: User's Guide DIVS/DIVU printed
 pp.13-96..13-99.
 
+MODS replaces N/Z/V from the stored signed remainder and preserves C; MODU
+replaces Z/V and preserves N/C. With a zero divisor, MODS forces N=Z=0 and
+MODU forces Z=0, while both set V and produce an Rd value equal to the old
+dividend. The primary MODU word "quotient" is contradicted by its `8 mod 4`
+zero-remainder/Z-set row, so RSC-0028 records the remainder-derived decision.
+The model and shared divider leaf cover these status results; scalar commit is
+absent. Sources: User's Guide MODS/MODU printed pp.13-152..13-153.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

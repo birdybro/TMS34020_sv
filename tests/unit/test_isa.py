@@ -275,6 +275,10 @@ class IsaTests(unittest.TestCase):
             0x59FF: ("DIVS", 1),
             0x5A00: ("DIVU", 1),
             0x5BFF: ("DIVU", 1),
+            0x6C00: ("MODS", 1),
+            0x6DFF: ("MODS", 1),
+            0x6E00: ("MODU", 1),
+            0x6FFF: ("MODU", 1),
         }
         for word, expected in fixtures.items():
             with self.subTest(word=f"{word:04X}"):
@@ -297,8 +301,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 28564)
-        self.assertEqual(unclassified, 65536 - 28564)
+        self.assertEqual(matched, 29588)
+        self.assertEqual(unclassified, 65536 - 29588)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -628,6 +632,48 @@ class IsaTests(unittest.TestCase):
             self.database.decode(0x0A60).metadata[
                 "graphics_register_dependencies"
             ][2],
+        )
+
+    def test_modulus_family_records_remainder_status_and_timing(self) -> None:
+        for start, end, mnemonic in (
+            (0x6C00, 0x6E00, "MODS"),
+            (0x6E00, 0x7000, "MODU"),
+        ):
+            for word in range(start, end):
+                with self.subTest(word=f"{word:04X}"):
+                    decoded = self.database.decode(word)
+                    self.assertIsNotNone(decoded)
+                    self.assertEqual(decoded.mnemonic, mnemonic)
+
+        mods = self.database.decode(0x6C00)
+        modu = self.database.decode(0x6E00)
+        self.assertEqual(
+            mods.metadata["status_bits_written"], ["N", "Z", "V"]
+        )
+        self.assertEqual(modu.metadata["status_bits_written"], ["Z", "V"])
+        for instruction in (mods, modu):
+            self.assertIn("remainder", instruction.metadata[
+                "destination_registers"
+            ][0])
+            self.assertIn("same A or B", instruction.metadata[
+                "register_file"
+            ])
+            self.assertTrue(instruction.metadata[
+                "compatible_with_tms34010"
+            ])
+        self.assertEqual(
+            mods.metadata["documented_cycles"]["divisor_zero_machine_states"],
+            3,
+        )
+        self.assertIn(
+            "mathematically unreachable",
+            mods.metadata["documented_cycles"][
+                "result_80000000_reachability"
+            ],
+        )
+        self.assertEqual(
+            modu.metadata["documented_cycles"]["normal_machine_states"],
+            35,
         )
 
     def test_btst_forms_record_complemented_constant_and_status_only(self) -> None:

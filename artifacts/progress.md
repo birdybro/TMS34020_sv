@@ -4,15 +4,19 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `3b45d4c027ef971cdc90127fb63fe8d06e622b29`
-- Passing tests: foundation, reference/hash, delta, 39-case ISA sweep, 150 directed model
+- Passing tests: foundation, reference/hash, delta, 40-case ISA sweep, 152 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 94 of 95 currently extracted encoding forms have bounded
-  successful semantics. DIVS/DIVU cover odd 32/32 and even 64/32 forms,
+- Model status: 96 of 97 currently extracted encoding forms have bounded
+  successful semantics. MODS/MODU cover every primary row, signed remainder,
+  zero-divisor results, same-register/shared-SP aliases, status masks, and
+  35/40/3-state cases. RSC-0028 resolves remainder-derived Z; RSC-0029/OQ-0019
+  retain the mathematically unreachable published MODS 41-state result.
+  DIVS/DIVU cover odd 32/32 and even 64/32 forms,
   quotient/remainder sign rules, range and zero exceptions, A/B/shared-SP
   pairs, status masks, and selected documented state cases. RSC-0027/OQ-0018
   disclose that signed even-pair nonzero early overflow is ambiguous; the model
@@ -75,8 +79,8 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 95-entry partial decode, a clean-room iterative
-  DIVS/DIVU leaf, A/B/SP and masked ST state,
+- RTL status: generated 97-entry partial decode, a clean-room iterative
+  DIVS/DIVU/MODS/MODU leaf, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
   write intents for 52 one-word instructions, with externally gated one-edge
@@ -120,10 +124,13 @@
   CPW base/end decode and a standalone signed-window comparison leaf pass,
   while the scalar router rejects CPW until Rs, B5, and B6 can be captured and
   destination/V committed atomically.
-  DIVS/DIVU decode and a standalone 32-step restoring-divider leaf pass
+  DIVS/DIVU/MODS/MODU decode and a standalone 32-step restoring-divider leaf pass
   directed signed/unsigned single/pair, zero, early-overflow, range-overflow,
   SP-alias, result, flag, and handshake checks. The scalar router rejects both
-  forms until a sequencer can capture and commit a pair atomically; the FPGA
+  divide forms until a sequencer can capture and commit a pair atomically;
+  modulus mode additionally verifies remainder-derived status, zero divisor,
+  and quotient-overflow-with-valid-remainder while remaining noncommitting.
+  The FPGA
   step count is not architectural timing.
   CVDXYL/CVMXYL/CVSXYL/CVXYL decode and a standalone signed conversion leaf
   pass all pitch classes, PSIZE/mask-X, offsets, wrap, and published state-case
@@ -183,14 +190,14 @@
 - Bus status: cache-native completion subset only; no width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
 - Formal status: four cache, four fetch, twenty-three scalar, two commit-owner,
-  and two divider
+  and three divider
   SVAs run in simulation only;
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 10,246 logic cells,
-  2,229 registers, and 3 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 443, 812, and 5,336 logic cells;
+  warnings; the current decoder-bearing leaf wrapper uses 10,296 logic cells,
+  2,230 registers, and 3 DSP blocks, while
+  the fetch, frontend, and scalar wrappers use 434, 809, and 5,346 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file
@@ -199,7 +206,8 @@
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
   transactions rather than pin-level dynamic-width cycles
 - Unresolved conflicts: exact game parts and REV values, original/A errata,
-  first-silicon history, signed even-pair DIVS nonzero early-overflow behavior,
+  first-silicon history, the unreachable published MODS 41-state result,
+  signed even-pair DIVS nonzero early-overflow behavior,
   CVXYL's three contradictory PSIZE=4 table rows, and its arbitrary-pitch
   14/15-state primary timing disagreement
 - Battletoads readiness: not ready

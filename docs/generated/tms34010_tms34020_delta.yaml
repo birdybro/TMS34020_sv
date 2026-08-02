@@ -606,6 +606,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 DIVS/DIVU, printed pp.13-96..13-99 and timing p.15-4", "TI-TMS34010-UG-1988 DIVS/DIVU, printed pp.12-63..12-66 and Appendix A p.A-15"],
       "confidence": "PROVISIONAL",
       "unresolved_questions": ["RSC-0027/OQ-0018: exact operand interpretation and real-device timing of the signed even-Rd nonzero early-overflow path.", "Internal interrupt recognition and atomic pair-write scheduling remain pending."]
+    },
+    {
+      "feature": "signed_unsigned_modulus_status_timing",
+      "tms34010_behavior": "MODS 6C00h/FE00h and MODU 6E00h/FE00h return the same signed/unsigned 32-bit remainder. The 1988 guide leaves MODS N unaffected and Z unaffected for zero divisor, reports quotient-overflow V, and publishes alignment pairs 40/43, 41/44, 3/6; MODU leaves Z unaffected for zero divisor and publishes 35/38 or 3/6.",
+      "tms34020_behavior": "The encodings and stored remainder remain compatible, but MODS defines N/Z from the remainder, forces N=Z=0 for zero divisor, and defines V solely from divisor zero; MODU forces Z=0 for zero divisor. Alignment penalties disappear: MODS 40 normal, published 41 for result 80000000h, 3 for zero; MODU 35 normal and 3 for zero. RSC-0028 resolves the MODU quotient/remainder Z typo and RSC-0029 tracks the unreachable MODS 41-state condition.",
+      "rtl_impact": "A shared TMS34020-owned restoring datapath may be reused, but modulus mode must select the signed remainder, ignore signed quotient overflow for MODS, apply TMS34020-specific NZV masks, capture same-register/SP aliases before write, and use TMS34020 timing rather than the upstream FSM.",
+      "test_impact": "All 1,024 encodings, every primary result row, positive/negative divisor and dividend combinations, minimum signed values, zero divisor, source=destination and shared-SP aliases, C preservation, instruction-specific NZV masks, 35/40/3 states, and explicit nonclaim for the unreachable published 41-state row.",
+      "source_citation": ["TI-TMS34020-UG-1990 MODS/MODU, printed pp.13-152..13-153 and timing p.15-5", "TI-TMS34010-UG-1988 MODS/MODU, printed pp.12-112..12-114 and Appendix A p.A-17"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["RSC-0029/OQ-0019: provenance or hidden interpretation of the published MODS result-80000000h timing class.", "Physical divider retirement and interrupt recognition remain pending."]
     }
   ]
 }

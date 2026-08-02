@@ -6,6 +6,7 @@ module tms34020_divider (
     input  logic        start_i,
     input  logic        signed_i,
     input  logic        pair_i,
+    input  logic        modulo_i,
     input  logic [31:0] dividend_high_i,
     input  logic [31:0] dividend_low_i,
     input  logic [31:0] divisor_i,
@@ -22,6 +23,7 @@ module tms34020_divider (
 
     logic        signed_q;
     logic        pair_q;
+    logic        modulo_q;
     logic        dividend_negative_q;
     logic        quotient_negative_q;
     logic [31:0] divisor_q;
@@ -80,6 +82,7 @@ module tms34020_divider (
         if (reset_i) begin
             signed_q <= 1'b0;
             pair_q <= 1'b0;
+            modulo_q <= 1'b0;
             dividend_negative_q <= 1'b0;
             quotient_negative_q <= 1'b0;
             divisor_q <= 32'd0;
@@ -100,6 +103,7 @@ module tms34020_divider (
             if (start_i && !busy_o) begin
                 signed_q <= signed_i;
                 pair_q <= pair_i;
+                modulo_q <= modulo_i;
                 dividend_negative_q <= dividend_negative_input;
                 quotient_negative_q <=
                     dividend_negative_input ^ divisor_negative_input;
@@ -120,9 +124,12 @@ module tms34020_divider (
                     done_o <= 1'b1;
                     overflow_o <= 1'b1;
                     v_o <= 1'b1;
-                    visible_states_o <= signed_i
-                        ? 6'd7
-                        : (pair_i ? 6'd5 : 6'd7);
+                    remainder_o <= modulo_i ? dividend_low_i : 32'd0;
+                    visible_states_o <= modulo_i
+                        ? 6'd3
+                        : (signed_i
+                            ? 6'd7
+                            : (pair_i ? 6'd5 : 6'd7));
                 end else begin
                     busy_o <= 1'b1;
                     overflow_o <= 1'b0;
@@ -135,8 +142,8 @@ module tms34020_divider (
                 if (iteration_q == 6'd31) begin
                     busy_o <= 1'b0;
                     done_o <= 1'b1;
-                    overflow_o <= signed_range_overflow;
-                    v_o <= signed_range_overflow;
+                    overflow_o <= !modulo_q && signed_range_overflow;
+                    v_o <= !modulo_q && signed_range_overflow;
                     quotient_o <= signed_q
                         ? signed_quotient_step
                         : quotient_step;
@@ -144,12 +151,23 @@ module tms34020_divider (
                         ? signed_remainder_step
                         : remainder_step;
                     n_o <= signed_q && (
-                        (quotient_negative_q && (quotient_step != 32'd0)) ||
-                        (signed_quotient_step == 32'h8000_0000)
+                        modulo_q
+                            ? (dividend_negative_q &&
+                               (remainder_step != 32'd0))
+                            : ((quotient_negative_q &&
+                                (quotient_step != 32'd0)) ||
+                               (signed_quotient_step == 32'h8000_0000))
                     );
-                    z_o <= !signed_range_overflow &&
-                           (quotient_step == 32'd0);
-                    if (signed_q) begin
+                    z_o <= modulo_q
+                        ? (remainder_step == 32'd0)
+                        : (!signed_range_overflow &&
+                           (quotient_step == 32'd0));
+                    if (modulo_q) begin
+                        visible_states_o <= signed_q
+                            ? ((signed_remainder_step == 32'h8000_0000)
+                                ? 6'd41 : 6'd40)
+                            : 6'd35;
+                    end else if (signed_q) begin
                         visible_states_o <=
                             (signed_quotient_step == 32'h8000_0000)
                                 ? 6'd41
@@ -177,8 +195,14 @@ module tms34020_divider (
                          n_o, z_o, v_o, visible_states_o});
     endproperty
 
+    property p_modulus_uses_single_destination;
+        @(posedge clk_i) disable iff (reset_i)
+            start_i && modulo_i |-> !pair_i;
+    endproperty
+
     assert property (p_done_not_busy);
     assert property (p_result_stable_while_busy);
+    assert property (p_modulus_uses_single_destination);
 `endif
 
 endmodule

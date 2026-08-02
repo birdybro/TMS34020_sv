@@ -555,3 +555,40 @@
   and N/Z/V follow the quotient-range rules. This selection is
   `PROVISIONAL`; no cycle-accuracy claim is made for the nonzero early path.
   OQ-0018 tracks a diagnostic or hardware discriminator.
+
+## RSC-0028: MODU Z prose names quotient instead of stored remainder
+
+- Status: resolved for the model/RTL contract from the primary operation,
+  description, and discriminator example
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, MODU, printed
+  p.13-153 defines `Rd mod Rs -> Rd`, repeatedly calls Rd the returned
+  remainder, but says Z is 1 if the "quotient" is zero. The `8 mod 4` example
+  returns zero and prints Z=1 even though its quotient is 2. The corresponding
+  TMS34010 page 12-114 repeats the word "quotient" and the same discriminator.
+- Secondary evidence: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 697–729, MODU handler, sets Z
+  from the value written back after `%`. This corroborates but does not
+  override the primary evidence.
+- Decision: Z follows the stored remainder. This is the only interpretation
+  consistent with the defined operation and the primary `8 mod 4` row. The
+  contradictory noun is retained here rather than propagated into metadata or
+  tests. Confidence: `VERIFIED_PRIMARY` for remainder-derived Z.
+
+## RSC-0029: MODS result-80000000h timing class is unreachable
+
+- Status: open provenance/timing-table question; no undocumented operand case
+  invented
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, MODS, printed
+  p.13-152 and timing p.15-5 publish 41 states when the result is
+  `80000000h`. The operation is a signed 32-bit remainder with the dividend's
+  sign. For a nonzero divisor, remainder magnitude is strictly less than the
+  divisor magnitude. A signed 32-bit divisor has magnitude at most 2^31, and
+  divisor `80000000h` yields either a smaller dividend unchanged or remainder
+  zero; therefore a remainder of -2^31 cannot occur. The TMS34010 page 12-112
+  prints the same condition with alignment variants.
+- Decision: the condition remains machine-readable as published, but tests do
+  not fabricate an operand row. The model and divider leaf retain a defensive
+  result-word check that is unreachable for legal nonzero operands. OQ-0019
+  tracks whether this was a copied divide timing row, silicon-internal state,
+  or an omitted special case. No cycle-accuracy claim is made for it.

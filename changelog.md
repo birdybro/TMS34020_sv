@@ -4,6 +4,15 @@
 
 ### Added
 
+- Primary-page-verified MODS `6C00h`/`FE00h` and MODU
+  `6E00h`/`FE00h` metadata plus independent model semantics for signed and
+  unsigned 32-bit remainders, every published row, zero divisors,
+  same-register/shared-SP aliases, TMS34020-specific status masks, and
+  reachable documented state cases.
+- A modulus mode in the clean-room 32-step restoring datapath, including
+  signed remainder conditioning, quotient-overflow-with-valid-remainder,
+  zero-divisor outcomes, direct status/result tests, and explicit scalar
+  noncommit guards pending an architectural completion owner.
 - Primary-page-verified DIVS `5800h`/`FE00h` and DIVU
   `5A00h`/`FE00h` metadata plus independent model semantics for odd 32/32 and
   even 64/32 register-pair forms, signed/unsigned quotient and remainder,
@@ -299,6 +308,8 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 95 to 97 records and from
+  28,564 to 29,588 uniquely classified first words.
 - Expanded the generated partial decoder from 93 to 95 records and from
   27,540 to 28,564 uniquely classified first words.
 - Expanded the generated partial decoder from 89 to 93 records and from
@@ -362,6 +373,14 @@
 
 ### Verified
 
+- The 40-case ISA suite, 61-entry delta ledger, and 152-case model suite pass.
+  MODS/MODU coverage includes all 1,024 encodings, every primary example,
+  signed/unsigned result/status cases, aliases, and 35/40/3-state classes.
+  Direct RTL tests cover remainder mode and its noncommit boundary.
+- All four decoder-bearing Cyclone V Analysis & Synthesis probes pass with zero
+  errors/warnings at 10,296 leaf, 434 fetch, 809 frontend, and 5,346 scalar
+  logic cells. These are portability probes, not complete-core area, fit, or
+  timing results.
 - The 39-case ISA suite, 60-entry delta ledger, and 150-case model suite pass.
   DIVS/DIVU coverage includes all 1,024 encodings, primary example rows,
   odd/even destinations, shared-SP pair aliasing, zero/range exceptions,
@@ -896,6 +915,11 @@
 
 ### Documentation
 
+- Recorded RSC-0028 for the inherited MODU "quotient" noun that conflicts with
+  the operation and `8 mod 4` zero-remainder/Z-set row; remainder-derived Z is
+  primary-verified. RSC-0029/OQ-0019 retain the published MODS
+  result-`80000000h` timing class without inventing operands for a
+  mathematically unreachable remainder.
 - Recorded the verified DIVS/DIVU implementation baseline as commit
   `3b45d4c027ef971cdc90127fb63fe8d06e622b29` in the progress ledger.
 - Recorded RSC-0027/OQ-0018 for the signed even-pair nonzero early-overflow
@@ -993,6 +1017,10 @@
 
 ### Known Issues
 
+- MODS/MODU have complete instruction-boundary model semantics and a shared
+  iterative RTL leaf, but no scalar operand/commit/timing owner. The published
+  MODS 41-state result class is unreachable under documented remainder
+  arithmetic and remains unresolved under RSC-0029/OQ-0019.
 - DIVS/DIVU have instruction-boundary model semantics and a clean-room
   iterative RTL leaf, but no scalar sequencer owns paired operand capture,
   pair-atomic commit, exception write suppression, or documented retirement

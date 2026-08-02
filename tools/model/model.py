@@ -92,6 +92,8 @@ class Tms34020Model:
             "DINT": self._execute_dint,
             "DIVS": self._execute_divs,
             "DIVU": self._execute_divu,
+            "MODS": self._execute_mods,
+            "MODU": self._execute_modu,
             "DSJ": self._execute_dsj_family,
             "DSJEQ": self._execute_dsj_family,
             "DSJNE": self._execute_dsj_family,
@@ -635,6 +637,65 @@ class Tms34020Model:
         if result_word == 0x8000_0000:
             return 41
         return 40 if pair else 39
+
+    def _execute_modu(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        divisor = self.state.read_reg(register_file, source_index)
+        dividend = self.state.read_reg(register_file, destination_index)
+        divisor_zero = divisor == 0
+        remainder = dividend if divisor_zero else dividend % divisor
+
+        self.state.write_reg(register_file, destination_index, remainder)
+        self._set_status_bit(Z_BIT, not divisor_zero and remainder == 0)
+        self._set_status_bit(V_BIT, divisor_zero)
+        assert self._active_trace is not None
+        self._active_trace.notes.append(
+            "MODU 32-bit remainder: "
+            + ("zero divisor; result equals old destination" if divisor_zero
+               else "destination written")
+        )
+        return 3 if divisor_zero else 35
+
+    def _execute_mods(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        divisor = self._signed_word(
+            self.state.read_reg(register_file, source_index)
+        )
+        dividend = self._signed_word(
+            self.state.read_reg(register_file, destination_index)
+        )
+        divisor_zero = divisor == 0
+        if divisor_zero:
+            remainder = dividend
+        else:
+            _, remainder = self._signed_divmod_toward_zero(
+                dividend, divisor
+            )
+
+        self.state.write_reg(register_file, destination_index, remainder)
+        result_word = remainder & MASK32
+        self._set_status_bit(N_BIT, not divisor_zero and remainder < 0)
+        self._set_status_bit(Z_BIT, not divisor_zero and remainder == 0)
+        self._set_status_bit(V_BIT, divisor_zero)
+        assert self._active_trace is not None
+        self._active_trace.notes.append(
+            "MODS signed remainder: "
+            + ("zero divisor; result equals old destination" if divisor_zero
+               else "destination written")
+        )
+        if divisor_zero:
+            return 3
+        return 41 if result_word == 0x8000_0000 else 40
 
     def _execute_eint(
         self, instruction: Instruction, words: list[int]

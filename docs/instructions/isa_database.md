@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 95 page-verified encoding records and covers 28,564 of 65,536
+slice contains 97 page-verified encoding records and covers 29,588 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -28,6 +28,8 @@ first words without collisions:
 | DINT | `0360h` | 1 | p.13-95 |
 | DIVS | `5800h`, mask `FE00h` | 1 | pp.13-96..13-97 |
 | DIVU | `5A00h`, mask `FE00h` | 1 | pp.13-98..13-99 |
+| MODS | `6C00h`, mask `FE00h` | 1 | p.13-152 |
+| MODU | `6E00h`, mask `FE00h` | 1 | p.13-153 |
 | EINT | `0D60h` | 1 | p.13-109 |
 | JUMP | `0160h`, mask `FFE0h` | 1 | p.13-141 |
 | JACC / JAcondition | `C080h`, mask `F0FFh` | 3 | pp.13-135..13-136 |
@@ -179,6 +181,19 @@ signed nonzero early-overflow magnitude comparison/7-state choice
 provisional. Sources: TMS34020 User's Guide printed pp.13-96..13-99 and
 15-4; TMS34010 compatibility cross-check printed pp.12-63..12-66 and
 Appendix A p.A-15.
+
+MODS/MODU use the same same-file Rs/Rd fields but always operate on a 32-bit
+dividend and store the signed or unsigned remainder in Rd. MODS gives the
+remainder the dividend's sign and defines N/Z/V while preserving C; MODU
+defines Z/V and preserves N/C. For a zero divisor, the resulting Rd value
+equals its old dividend, MODS forces N=Z=0, MODU forces Z=0, and both set V.
+RSC-0028 records that the MODU page incorrectly says Z follows the quotient:
+its `8 mod 4` row proves Z follows the stored zero remainder. MODS publishes a
+41-state result-`80000000h` case that cannot arise from documented signed
+32-bit remainder arithmetic; it remains recorded without an invented operand
+case under RSC-0029/OQ-0019. Sources: TMS34020 User's Guide printed
+pp.13-152..13-153 and 15-5; TMS34010 compatibility cross-check printed
+pp.12-112..12-114 and Appendix A p.A-17.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

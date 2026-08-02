@@ -1392,6 +1392,76 @@ class ExecutionTests(unittest.TestCase):
                 self.assertEqual((model.state.st >> 28) & 0xF, nczv)
                 self.assertEqual(event.machine_states, states)
 
+    def test_mods_primary_rows_status_timing_and_aliases(self) -> None:
+        rows = (
+            # divisor, dividend, remainder, NCZV, states
+            (0, 0, 0, 0x5, 3),
+            (0, 7, 7, 0x5, 3),
+            (0, 0xFFFF_FFF9, 0xFFFF_FFF9, 0x5, 3),
+            (4, 8, 0, 0x6, 40),
+            (4, 7, 3, 0x4, 40),
+            (4, 0, 0, 0x6, 40),
+            (4, 0xFFFF_FFF9, 0xFFFF_FFFD, 0xC, 40),
+            (4, 0xFFFF_FFF8, 0, 0x6, 40),
+            (0xFFFF_FFFC, 8, 0, 0x6, 40),
+            (0xFFFF_FFFC, 7, 3, 0x4, 40),
+            (0xFFFF_FFFC, 0, 0, 0x6, 40),
+            (0xFFFF_FFFC, 0xFFFF_FFF9, 0xFFFF_FFFD, 0xC, 40),
+            (0xFFFF_FFFC, 0xFFFF_FFF8, 0, 0x6, 40),
+        )
+        for divisor, dividend, remainder, nczv, states in rows:
+            with self.subTest(
+                divisor=f"{divisor:08X}", dividend=f"{dividend:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x6C01])  # MODS A0,A1
+                model.state.write_reg("A", 0, divisor)
+                model.state.write_reg("A", 1, dividend)
+                model.state.st = 0xF020_001F
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), remainder)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, states)
+
+        same = Tms34020Model()
+        same.load_program([0x6C21])  # MODS A1,A1
+        same.state.write_reg("A", 1, 0x8000_0000)
+        same_event = same.step()
+        self.assertEqual(same.state.read_reg("A", 1), 0)
+        self.assertEqual(same_event.machine_states, 40)
+
+    def test_modu_primary_rows_status_timing_and_shared_sp(self) -> None:
+        rows = (
+            # divisor, dividend, remainder, NCZV, states
+            (0, 0, 0, 0xD, 3),
+            (0, 7, 7, 0xD, 3),
+            (0, 0xFFFF_FFF9, 0xFFFF_FFF9, 0xD, 3),
+            (4, 8, 0, 0xE, 35),
+            (4, 7, 3, 0xC, 35),
+            (4, 0, 0, 0xE, 35),
+            (4, 0xFFFF_FFF9, 1, 0xC, 35),
+        )
+        for divisor, dividend, remainder, nczv, states in rows:
+            with self.subTest(
+                divisor=f"{divisor:08X}", dividend=f"{dividend:08X}"
+            ):
+                model = Tms34020Model()
+                model.load_program([0x6E01])  # MODU A0,A1
+                model.state.write_reg("A", 0, divisor)
+                model.state.write_reg("A", 1, dividend)
+                model.state.st = 0xF020_001F
+                event = model.step()
+                self.assertEqual(model.state.read_reg("A", 1), remainder)
+                self.assertEqual((model.state.st >> 28) & 0xF, nczv)
+                self.assertEqual(event.machine_states, states)
+
+        alias = Tms34020Model()
+        alias.load_program([0x6FFF])  # MODU SP,SP
+        alias.state.sp = 9
+        alias_event = alias.step()
+        self.assertEqual(alias.state.sp, 0)
+        self.assertEqual(alias_event.machine_states, 35)
+
     def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
         model = Tms34020Model()
         model.load_program([

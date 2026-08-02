@@ -301,9 +301,16 @@ module tms34020_leaf_synth_top (
         .reset_i(reset_i),
         .start_i(write_enable_i &&
                  ((decoded_id == TMS20_OP_DIVS) ||
-                  (decoded_id == TMS20_OP_DIVU))),
-        .signed_i(decoded_id == TMS20_OP_DIVS),
-        .pair_i(~first_word_i[0]),
+                  (decoded_id == TMS20_OP_DIVU) ||
+                  (decoded_id == TMS20_OP_MODS) ||
+                  (decoded_id == TMS20_OP_MODU))),
+        .signed_i((decoded_id == TMS20_OP_DIVS) ||
+                  (decoded_id == TMS20_OP_MODS)),
+        .pair_i(((decoded_id == TMS20_OP_DIVS) ||
+                 (decoded_id == TMS20_OP_DIVU)) &&
+                ~first_word_i[0]),
+        .modulo_i((decoded_id == TMS20_OP_MODS) ||
+                  (decoded_id == TMS20_OP_MODU)),
         .dividend_high_i(operand_i),
         .dividend_low_i(immediate_i),
         .divisor_i(second_register_data),
