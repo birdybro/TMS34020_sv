@@ -958,6 +958,8 @@
 
 ### Documentation
 
+- Recorded the verified bounded SWAPF implementation baseline as commit
+  `fea7a996312e8558663b377ae89b3c078dd835f5` in the progress ledger.
 - Documented the TMS34020-only SWAPF delta, locked restart-from-read boundary,
   implicit completion wait, host exclusion, and SIZE16/S=0 restriction without
   treating its field transform as a complete memory controller.
