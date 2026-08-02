@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 99 page-verified encoding records and covers 30,612 of 65,536
+slice contains 100 page-verified encoding records and covers 31,124 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -30,6 +30,7 @@ first words without collisions:
 | DIVU | `5A00h`, mask `FE00h` | 1 | pp.13-98..13-99 |
 | MPYS | `5C00h`, mask `FE00h` | 1 | pp.13-172..13-174 |
 | MPYU | `5E00h`, mask `FE00h` | 1 | pp.13-175..13-176 |
+| SWAPF | `7E00h`, mask `FE00h` | 1 | pp.13-247..13-248 |
 | MODS | `6C00h`, mask `FE00h` | 1 | p.13-152 |
 | MODU | `6E00h`, mask `FE00h` | 1 | p.13-153 |
 | EINT | `0D60h` | 1 | p.13-109 |
@@ -210,6 +211,14 @@ RSC-0030/OQ-0020 retain the detailed-page/chapter-15 timing swap; metadata and
 model provisionally use MPYS `5+FS1/2` and MPYU `5+FS1/2` plus one when raw Rs
 bit 31 is set. Sources: TMS34020 User's Guide printed pp.13-172..13-176 and
 15-6; TMS34010 compatibility cross-check printed pp.12-164..12-167.
+
+SWAPF exchanges the FS0/FE0-selected field at `*Rs` with low Rd bits under a
+bus lock. All 512 same-file register encodings are classified. The metadata
+keeps the successful five-state, 32-bit-target, word-local semantics separate
+from the unimplemented physical lock owner: read/write adjacency, implicit
+MWAIT, restart-from-read on retry/fault/interruption, host exclusion, and the
+SIZE16/S=0 limitation remain explicit test obligations. Sources: TMS34020
+User's Guide printed pp.13-247..13-248, 8-13, 8-26, and 15-9.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

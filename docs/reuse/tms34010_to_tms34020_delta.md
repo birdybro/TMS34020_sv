@@ -149,6 +149,17 @@ is clean-room TMS34020-owned and its selected timing classification remains
 provisional. Sources: TMS34020 guide printed pp.13-172..13-176 and 15-6;
 TMS34010 guide printed pp.12-164..12-167.
 
+SWAPF is a TMS34020-only `7E00h`/`FE00h` bus-locked field exchange and is not
+an ordinary TMS34010 field-move variant. It captures `*Rs`, Rd, FS0, and FE0;
+returns the old extended memory field in Rd; writes low Rd bits back; sets N/Z,
+preserves C, clears V; and withholds completion until the locked write finishes.
+The read/write pair is indivisible and restarts from the read after retry,
+fault, refresh interruption, or lost grant. It does not sample SIZE16 and
+emits only S=0, so the generic TMS34010 field sequencer and its retry point are
+not reusable. The current model/leaf cover successful valid 32-bit word-local
+semantics only. Sources: TMS34020 guide printed pp.13-247..13-248, 8-13,
+8-26, and 15-9.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family

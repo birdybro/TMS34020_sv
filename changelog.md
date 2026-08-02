@@ -4,6 +4,18 @@
 
 ### Added
 
+- Primary-page-extracted SWAPF `7E00h`/`FE00h` metadata and an independent
+  successful 32-bit-target model boundary covering every valid word-local FS0
+  width/offset, FE0 extension, A/B/SP aliases, exact status, five base states,
+  ordered abstract locked read/write traces, and atomic invalid-crossing
+  rollback.
+- A clean-room combinational SWAPF field-transform leaf with old-field
+  extraction/extension, replacement-word construction, crossing validity,
+  direct tests, Cyclone V smoke integration, and scalar noncommit guards
+  pending a physical locked memory and atomic Rd/ST owner.
+- Initial field-access and local-bus documents separating the verified SWAPF
+  semantic boundary from unimplemented ordinary fields, lock arbitration,
+  waits, faults/retries, dynamic sizing, I/O routing, host exclusion, and pins.
 - Primary-page-extracted MPYS `5C00h`/`FE00h` and MPYU
   `5E00h`/`FE00h` metadata plus independent model semantics for every even FS1,
   signed/unsigned full products, even-pair/odd-low result placement,
@@ -317,6 +329,8 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 99 to 100 records and from
+  30,612 to 31,124 uniquely classified first words.
 - Expanded the generated partial decoder from 97 to 99 records and from
   29,588 to 30,612 uniquely classified first words.
 - Expanded the generated partial decoder from 95 to 97 records and from
@@ -384,6 +398,16 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis now reports 11,293 leaf logic
+  cells/2,230 registers/9 DSP, 432 fetch logic cells, 806 frontend logic cells,
+  and 5,336 scalar logic cells. The frontend/scalar probes retain 4,096
+  block-memory bits. These are observability-wrapper analysis results, not
+  fit, TimeQuest, or core-area qualification.
+- The 42-case ISA suite, 63-entry delta ledger, and 158-case model suite pass.
+  SWAPF coverage includes all 512 encodings, every valid FS0 width/word offset,
+  FE0 sign/zero extension, full and positioned exchanges, status preservation,
+  aliases, ordered transaction values, five base states, and invalid-crossing
+  rollback. This is not physical bus-lock or fault/retry evidence.
 - The 41-case ISA suite, 62-entry delta ledger, and 156-case model suite pass.
   MPYS/MPYU coverage includes all 1,024 encodings, every reliable primary
   example row and even FS1, full-versus-low flag discriminators, A/B/SP alias
@@ -934,6 +958,9 @@
 
 ### Documentation
 
+- Documented the TMS34020-only SWAPF delta, locked restart-from-read boundary,
+  implicit completion wait, host exclusion, and SIZE16/S=0 restriction without
+  treating its field transform as a complete memory controller.
 - Recorded the verified MPYS/MPYU implementation baseline as commit
   `281989160aa466c8ab98b9d06634802e432e367b` in the progress ledger.
 - Recorded RSC-0030/OQ-0020 for the TMS34020 detailed-page/chapter-15 swap of
@@ -1045,6 +1072,10 @@
 
 ### Known Issues
 
+- SWAPF has a successful instruction-boundary model and combinational field
+  leaf, but no locked bus owner, memory response path, atomic architectural
+  commit, wait insertion, refresh/grant interruption, fault/retry injection,
+  16-bit target qualification, I/O-register route, or host-exclusion test.
 - MPYS/MPYU have instruction-boundary model semantics and a standalone RTL
   product leaf, but no pair-capable scalar retirement owner. Odd FS1 behavior
   is undocumented and rejected; multiply timing remains provisional under

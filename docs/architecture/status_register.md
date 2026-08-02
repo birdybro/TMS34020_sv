@@ -150,6 +150,11 @@ these discriminators. RSC-0032 keeps the older TMS34010 compatibility question
 separate; the TMS34020 rule is explicit. Sources: User's Guide MPYS/MPYU
 printed pp.13-172..13-176.
 
+SWAPF uses FS0/FE0, replaces N/Z from the extended old memory field, preserves
+C, and clears V. The field/replacement leaf produces N/Z/V; the model commits
+the complete instruction-boundary mask after its abstract locked write. No RTL
+memory/commit owner exists. Source: User's Guide SWAPF, printed p.13-247.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

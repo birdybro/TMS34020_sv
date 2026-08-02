@@ -3,16 +3,20 @@
 - Current milestone: primary ISA extraction and independently verified
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
-- Latest committed baseline: `281989160aa466c8ab98b9d06634802e432e367b`
-- Passing tests: foundation, reference/hash, delta, 41-case ISA sweep, 156 directed model
+- Latest committed baseline: `800a0b84aa4a9b5b18144fe46e0e6ee248a60bdf`
+- Passing tests: foundation, reference/hash, delta, 42-case ISA sweep, 158 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 98 of 99 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. MPYS/MPYU reproduce
+- Model status: 99 of 100 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. SWAPF covers every
+  valid word-local FS0 width/offset, FE0 extension, A/B/SP aliases, exact
+  status, five base states, and ordered abstract locked read/write traces;
+  crossing use rolls back. Physical lock ownership, waits, retry/fault,
+  16-bit targets, I/O routing, and host exclusion remain absent. MPYS/MPYU reproduce
   every arithmetic-consistent primary row, every even FS1 2–32, even-pair and
   odd-low storage, full-product N/Z discriminators, source/destination/SP
   aliases, and C/V preservation. Odd FS1 is atomically rejected rather than
@@ -86,7 +90,7 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 99-entry partial decode, clean-room iterative
+- RTL status: generated 100-entry partial decode, clean-room iterative
   DIVS/DIVU/MODS/MODU and combinational MPYS/MPYU leaves, A/B/SP and masked ST state,
   unary/binary/logical arithmetic plus ADDXYI/CMPK/EXGPS/GETPS/LMO/RMO/RPIX and
   SETC-pitch conversion semantic leaves, and decoder-controlled register/ST
@@ -145,6 +149,9 @@
   forms until one owner can capture operands and commit either an even pair or
   odd single result plus status atomically; the leaf state output remains
   provisional under RSC-0030.
+  SWAPF decode and its standalone field-transform leaf pass full and
+  positioned fields, FE0 extension, status, valid-boundary and crossing
+  classification. The router rejects it pending a locked memory/commit owner.
   CVDXYL/CVMXYL/CVSXYL/CVXYL decode and a standalone signed conversion leaf
   pass all pitch classes, PSIZE/mask-X, offsets, wrap, and published state-case
   checks; the scalar router rejects them until explicit/implied registers,
@@ -208,9 +215,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 10,662 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 11,293 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 442, 812, and 5,396 logic cells;
+  the fetch, frontend, and scalar wrappers use 432, 806, and 5,336 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents plus an eleven-file

@@ -1631,6 +1631,87 @@ class ExecutionTests(unittest.TestCase):
                     model.step()
                 self.assertEqual(model.snapshot(), before)
 
+    def test_swapf_exchanges_every_valid_field_width_and_offset(self) -> None:
+        model = Tms34020Model()
+        for width in range(1, 33):
+            field_mask = (1 << width) - 1
+            for bit_offset in range(0, 33 - width):
+                with self.subTest(width=width, bit_offset=bit_offset):
+                    model.load_program([0x7E20])  # SWAPF *A1,A0,0
+                    word_address = 0x400
+                    old_word = 0xA5C3_5A3C
+                    replacement = 0xC39A_7654
+                    model.state.write_reg("A", 1, word_address + bit_offset)
+                    model.state.write_reg("A", 0, replacement)
+                    model.state.memory.write_bits(word_address, 32, old_word)
+                    model.state.st = status_with_field_size(
+                        0x4000_0000, 0, width
+                    )
+                    event = model.step()
+                    old_field = (old_word >> bit_offset) & field_mask
+                    positioned_mask = (field_mask << bit_offset) & 0xFFFF_FFFF
+                    expected_word = (
+                        (old_word & ~positioned_mask)
+                        | ((replacement & field_mask) << bit_offset)
+                    ) & 0xFFFF_FFFF
+                    self.assertEqual(model.state.read_reg("A", 0), old_field)
+                    self.assertEqual(
+                        model.state.memory.read_bits(word_address, 32),
+                        expected_word,
+                    )
+                    self.assertEqual(
+                        (model.state.st >> 28) & 0xF,
+                        (0x8 if old_field & 0x8000_0000 else 0)
+                        | 0x4
+                        | (0x2 if old_field == 0 else 0),
+                    )
+                    self.assertEqual(event.machine_states, 5)
+                    self.assertFalse(model.state.timing_complete)
+                    self.assertEqual(
+                        [item["class"] for item in event.transactions[-2:]],
+                        ["bus_locked_data_read", "bus_locked_data_write"],
+                    )
+                    self.assertEqual(
+                        event.transactions[-2]["value"], old_word
+                    )
+                    self.assertEqual(
+                        event.transactions[-1]["value"], expected_word
+                    )
+
+    def test_swapf_sign_zero_alias_and_invalid_crossing(self) -> None:
+        sign = Tms34020Model()
+        sign.load_program([0x7FFF])  # SWAPF *SP,SP,0
+        sign.state.sp = 0x480
+        sign.state.memory.write_bits(0x480, 32, 0x0000_0080)
+        sign.state.st = status_with_field_size(0x7000_0020, 0, 8)
+        event = sign.step()
+        self.assertEqual(sign.state.sp, 0xFFFF_FF80)
+        self.assertEqual(sign.state.memory.read_bits(0x480, 32), 0x80)
+        self.assertEqual((sign.state.st >> 28) & 0xF, 0xC)
+        self.assertEqual(event.register_writes[-1]["new"], 0xFFFF_FF80)
+
+        zero = Tms34020Model()
+        zero.load_program([0x7E20])  # SWAPF *A1,A0,0 with same-word offset
+        zero.state.write_reg("A", 1, 0x505)
+        zero.state.write_reg("A", 0, 0xFFFF_FFFF)
+        zero.state.memory.write_bits(0x500, 32, 0)
+        zero.state.st = status_with_field_size(0xD000_0000, 0, 3)
+        zero.step()
+        self.assertEqual(zero.state.read_reg("A", 0), 0)
+        self.assertEqual(zero.state.memory.read_bits(0x500, 32), 0xE0)
+        self.assertEqual((zero.state.st >> 28) & 0xF, 0x6)
+
+        crossing = Tms34020Model()
+        crossing.load_program([0x7E20])
+        crossing.state.write_reg("A", 1, 0x41F)
+        crossing.state.write_reg("A", 0, 1)
+        crossing.state.memory.write_bits(0x400, 32, 0x1234_5678)
+        crossing.state.st = status_with_field_size(0xF000_0000, 0, 2)
+        before = crossing.snapshot()
+        with self.assertRaisesRegex(ModelError, "spanning a 32-bit word"):
+            crossing.step()
+        self.assertEqual(crossing.snapshot(), before)
+
     def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
         model = Tms34020Model()
         model.load_program([

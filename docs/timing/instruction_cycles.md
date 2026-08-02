@@ -58,6 +58,12 @@ cycle-accuracy claim is made. Sources: TMS34020 User's Guide printed
 pp.13-173, 13-176, and 15-6; TMS34010 User's Guide printed pp.12-165 and
 12-167.
 
+SWAPF publishes five base machine states and an implicit MWAIT: completion is
+not visible until its locked write finishes. External waits can extend its
+physical cycles. The model reports five only for a successful abstract 32-bit
+target and its trace is not pin timing; the combinational leaf has no timing
+owner. Sources: User's Guide SWAPF printed p.13-247 and timing p.15-9.
+
 ## Hidden trailing writes
 
 Parenthesized states in chapter 15 are hidden memory-write states at the end of

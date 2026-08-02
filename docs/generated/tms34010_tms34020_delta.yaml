@@ -626,6 +626,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 MPYS/MPYU, printed pp.13-172..13-176 and timing p.15-6", "TI-TMS34010-UG-1988 MPYS/MPYU, printed pp.12-164..12-167 and Appendix A p.A-17", "Pinned MAME a562e947b22f4f5acff0c182c26fd649d72dad0e 34010ops.hxx lines 731-768", "Pinned TMS34010 RTL 94a258e80a07ceb4303ce0b99818df832e96007f instruction_coverage.md rows 87-88"],
       "confidence": "PROVISIONAL",
       "unresolved_questions": ["RSC-0030/OQ-0020: real TMS34020 sign-dependent timing owner and raw-Rs sign discriminator.", "RSC-0032/OQ-0021: TMS34010 odd-product flag source for compatibility.", "Exact multiply retirement/interrupt checkpoint remains pending."]
+    },
+    {
+      "feature": "swapf_bus_locked_field_exchange",
+      "tms34010_behavior": "No SWAPF instruction or TMS34020 bus-lock status sequence exists in the documented TMS34010 ISA.",
+      "tms34020_behavior": "SWAPF uses 7E00h/FE00h to atomically exchange the FS0/FE0-selected field at *Rs with low Rd bits, returns the old extended field in Rd, sets N/Z, preserves C, clears V, implicitly waits for the write, and emits a locked 32-bit read immediately followed by a locked write. A retry, bus fault, refresh interruption, or lost grant restarts the whole pair from the read. The operation does not sample SIZE16 and emits only S=0.",
+      "rtl_impact": "Add a TMS34020-owned field-exchange datapath plus a locked read-modify-write memory-controller state family. Capture Rs/Rd/ST before the read; hold bus ownership through write; commit Rd/status only after write completion; on retry/fault/interruption discard the read value and restart without a standalone duplicated write; do not route through the ordinary unlocked TMS34010 field sequencer.",
+      "test_impact": "All 512 encodings; FS0 widths 1..32 and every valid within-word offset; FE0 sign/zero extension; A/B/SP and source=destination aliases; exact N/Z/V and C preservation; locked read/write trace; implicit completion wait; host exclusion; refresh/grant interruption; waits; retry/fault at every phase; 16-bit/S=0 restriction; I/O-register access; crossing-field nonclaim.",
+      "source_citation": ["TI-TMS34020-UG-1990 SWAPF, printed pp.13-247..13-248 and timing p.15-9", "TI-TMS34020-UG-1990 retry behavior, printed p.8-13", "TI-TMS34020-UG-1990 bus lock and dynamic sizing, printed p.8-26"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact pin-level status encoding and fault-vector/continuation order remain pending the local-bus sequencer.", "The independent model and combinational leaf cover only successful valid 32-bit-target semantics; no physical atomicity claim is made."]
     }
   ]
 }

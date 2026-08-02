@@ -96,6 +96,7 @@ class Tms34020Model:
             "MODU": self._execute_modu,
             "MPYS": self._execute_mpys,
             "MPYU": self._execute_mpyu,
+            "SWAPF": self._execute_swapf,
             "DSJ": self._execute_dsj_family,
             "DSJEQ": self._execute_dsj_family,
             "DSJNE": self._execute_dsj_family,
@@ -775,6 +776,74 @@ class Tms34020Model:
     ) -> int:
         del instruction
         return self._execute_multiply(words, signed_operation=False)
+
+    def _execute_swapf(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        bit_address = self.state.read_reg(register_file, source_index)
+        register_value = self.state.read_reg(
+            register_file, destination_index
+        )
+        encoded_field_size = self.state.st & 0x1F
+        field_size = encoded_field_size or 32
+        bit_offset = bit_address & 0x1F
+        if bit_offset + field_size > 32:
+            raise ModelError(
+                "SWAPF field spanning a 32-bit word is outside the "
+                "documented valid domain"
+            )
+
+        word_address = bit_address & 0xFFFF_FFE0
+        old_word = self.state.memory.read_bits(word_address, 32)
+        field_mask = (
+            MASK32 if field_size == 32 else (1 << field_size) - 1
+        )
+        old_field = (old_word >> bit_offset) & field_mask
+        positioned_mask = (field_mask << bit_offset) & MASK32
+        new_word = (
+            (old_word & ~positioned_mask)
+            | ((register_value & field_mask) << bit_offset)
+        ) & MASK32
+        result = old_field
+        if (
+            self.state.st & (1 << 5)
+            and old_field & (1 << (field_size - 1))
+        ):
+            result |= ~field_mask & MASK32
+
+        self.state.memory.write_bits(word_address, 32, new_word)
+        self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, False)
+        assert self._active_trace is not None
+        self._active_trace.transactions.extend(
+            (
+                {
+                    "class": "bus_locked_data_read",
+                    "bit_address": word_address,
+                    "width": 32,
+                    "value": old_word,
+                },
+                {
+                    "class": "bus_locked_data_write",
+                    "bit_address": word_address,
+                    "width": 32,
+                    "value": new_word,
+                },
+            )
+        )
+        self._active_trace.notes.append(
+            "successful 32-bit SWAPF boundary; physical lock, wait, "
+            "interrupt, fault, retry, 16-bit-target, and I/O-register "
+            "behavior remain pending"
+        )
+        self.state.timing_complete = False
+        return 5
 
     def _execute_eint(
         self, instruction: Instruction, words: list[int]

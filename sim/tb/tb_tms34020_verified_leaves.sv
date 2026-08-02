@@ -104,6 +104,17 @@ module tb_tms34020_verified_leaves;
     logic multiplier_n;
     logic multiplier_z;
     logic [5:0] multiplier_visible_states;
+    logic [4:0] swap_field_size;
+    logic swap_sign_extend;
+    logic [4:0] swap_bit_offset;
+    logic [31:0] swap_memory_word;
+    logic [31:0] swap_register;
+    logic swap_legal_in_word;
+    logic [31:0] swap_memory_result;
+    logic [31:0] swap_register_result;
+    logic swap_n;
+    logic swap_z;
+    logic swap_v;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -332,6 +343,20 @@ module tb_tms34020_verified_leaves;
         .n_o(multiplier_n),
         .z_o(multiplier_z),
         .visible_states_o(multiplier_visible_states)
+    );
+
+    tms34020_swap_field swap_field_dut (
+        .field_size_encoded_i(swap_field_size),
+        .sign_extend_i(swap_sign_extend),
+        .bit_offset_i(swap_bit_offset),
+        .memory_word_i(swap_memory_word),
+        .register_i(swap_register),
+        .legal_in_word_o(swap_legal_in_word),
+        .memory_word_o(swap_memory_result),
+        .register_o(swap_register_result),
+        .n_o(swap_n),
+        .z_o(swap_z),
+        .v_o(swap_v)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -782,6 +807,33 @@ module tb_tms34020_verified_leaves;
             multiplier_n == expected_n &&
             multiplier_z == expected_z &&
             multiplier_visible_states == expected_states,
+            message
+        );
+    endtask
+
+    task automatic check_swap_field(
+        input logic [4:0] field_size_encoded,
+        input logic sign_extend,
+        input logic [4:0] bit_offset,
+        input logic [31:0] memory_word,
+        input logic [31:0] register_value,
+        input logic expected_legal,
+        input logic [31:0] expected_memory_word,
+        input logic [31:0] expected_register,
+        input logic [2:0] expected_nzv,
+        input string message
+    );
+        swap_field_size = field_size_encoded;
+        swap_sign_extend = sign_extend;
+        swap_bit_offset = bit_offset;
+        swap_memory_word = memory_word;
+        swap_register = register_value;
+        #1;
+        check_condition(
+            swap_legal_in_word == expected_legal &&
+            swap_memory_result == expected_memory_word &&
+            swap_register_result == expected_register &&
+            {swap_n, swap_z, swap_v} == expected_nzv,
             message
         );
     endtask
@@ -1721,6 +1773,11 @@ module tb_tms34020_verified_leaves;
         multiplier_field_size = 5'd0;
         multiplier_source = 32'd0;
         multiplier_destination = 32'd0;
+        swap_field_size = 5'd0;
+        swap_sign_extend = 1'b0;
+        swap_bit_offset = 5'd0;
+        swap_memory_word = 32'd0;
+        swap_register = 32'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2443,6 +2500,31 @@ module tb_tms34020_verified_leaves;
             1'b0, 64'd63, 1'b0, 1'b0, 6'd6,
             "multiply odd FS1 is explicitly unsupported"
         );
+        check_swap_field(
+            5'd0, 1'b0, 5'd0, 32'hA5C3_5A3C, 32'h1234_5678,
+            1'b1, 32'h1234_5678, 32'hA5C3_5A3C, 3'b100,
+            "SWAPF full-word exchange"
+        );
+        check_swap_field(
+            5'd8, 1'b0, 5'd7, 32'hA5C3_5A3C, 32'h0000_0069,
+            1'b1, 32'hA5C3_34BC, 32'h0000_00B4, 3'b000,
+            "SWAPF positioned zero-extended field"
+        );
+        check_swap_field(
+            5'd8, 1'b1, 5'd0, 32'h0000_0080, 32'h0000_005A,
+            1'b1, 32'h0000_005A, 32'hFFFF_FF80, 3'b100,
+            "SWAPF sign extension and negative status"
+        );
+        check_swap_field(
+            5'd3, 1'b1, 5'd29, 32'h0000_0000, 32'hFFFF_FFFF,
+            1'b1, 32'hE000_0000, 32'd0, 3'b010,
+            "SWAPF valid top-of-word zero result"
+        );
+        check_swap_field(
+            5'd2, 1'b0, 5'd31, 32'h1234_5678, 32'd1,
+            1'b0, 32'h9234_5678, 32'd0, 3'b010,
+            "SWAPF crossing field is marked unsupported"
+        );
 
         check_pitch_conversion(
             32'h0000_1000, 16'h0013, 3'd4,
@@ -3027,6 +3109,16 @@ module tb_tms34020_verified_leaves;
             16'h5FFF, 32'h0000_0002, 32'h0000_0008, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MPYU cannot bypass atomic multiply-pair commit ownership"
+        );
+        check_register_execute(
+            16'h7E00, 32'h0000_0400, 32'h0000_0001, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "SWAPF cannot bypass locked memory commit ownership"
+        );
+        check_register_execute(
+            16'h7FFF, 32'h0000_0400, 32'h0000_0001, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "SWAPF upper bound cannot bypass memory ownership"
         );
         check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
@@ -4637,6 +4729,10 @@ module tb_tms34020_verified_leaves;
                      "MPYU lower-bound decode");
         check_decode(16'h5FFF, TMS20_OP_MPYU, 3'd1,
                      "MPYU upper-bound decode");
+        check_decode(16'h7E00, TMS20_OP_SWAPF, 3'd1,
+                     "SWAPF lower-bound decode");
+        check_decode(16'h7FFF, TMS20_OP_SWAPF, 3'd1,
+                     "SWAPF upper-bound decode");
         check_decode(16'h6C00, TMS20_OP_MODS, 3'd1,
                      "MODS lower-bound decode");
         check_decode(16'h6DFF, TMS20_OP_MODS, 3'd1,

@@ -282,6 +282,8 @@ class IsaTests(unittest.TestCase):
             0x5DFF: ("MPYS", 1),
             0x5E00: ("MPYU", 1),
             0x5FFF: ("MPYU", 1),
+            0x7E00: ("SWAPF", 1),
+            0x7FFF: ("SWAPF", 1),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -308,8 +310,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 30612)
-        self.assertEqual(unclassified, 65536 - 30612)
+        self.assertEqual(matched, 31124)
+        self.assertEqual(unclassified, 65536 - 31124)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -713,6 +715,25 @@ class IsaTests(unittest.TestCase):
             "raw Rs bit31",
             mpyu.metadata["documented_cycles"]["selected_machine_states"],
         )
+
+    def test_swapf_records_locked_rmw_and_valid_field_restriction(self) -> None:
+        for word in range(0x7E00, 0x8000):
+            with self.subTest(word=f"{word:04X}"):
+                decoded = self.database.decode(word)
+                self.assertIsNotNone(decoded)
+                self.assertEqual(decoded.mnemonic, "SWAPF")
+        swapf = self.database.decode(0x7E00)
+        self.assertEqual(swapf.metadata["status_bits_written"], ["N", "Z", "V"])
+        self.assertEqual(
+            swapf.metadata["documented_cycles"]["base_machine_states"], 5
+        )
+        self.assertIn("bus-locked", swapf.metadata["memory_transactions"][0])
+        self.assertIn("SIZE16", swapf.metadata["bus_16_effects"])
+        self.assertIn(
+            "fit wholly",
+            swapf.metadata["pipeline_interactions"][1],
+        )
+        self.assertFalse(swapf.metadata["compatible_with_tms34010"])
 
     def test_btst_forms_record_complemented_constant_and_status_only(self) -> None:
         constant = self.database.decode(0x1FE0)

@@ -27,13 +27,13 @@ Implemented:
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
   ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
-  MODS, MODU, MPYS, MPYU,
+  MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 98 of 99 currently extracted database forms for their
+These handlers cover 99 of 100 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -41,6 +41,17 @@ verified. A directed test proves that attempting REV raises
 `UnsupportedInstruction` and restores the complete preinstruction model/cache
 snapshot. This is coverage of a current partial extraction, not instruction
 completeness.
+
+SWAPF covers all FS0 widths and valid field positions within a single 32-bit
+word, FE0 sign/zero extension, A/B/shared-SP aliases, captured replacement
+data, exact N/Z/V and preserved C, five base states, and an ordered abstract
+locked read/write trace. Crossing fields roll back because the instruction
+page prohibits them without assigning a portable result. This is successful
+instruction-boundary evidence only and marks global timing incomplete despite
+recording the documented five-state base count: physical lock ownership, waits,
+refresh/grant interruption, fault/retry, dynamic 16-bit targets, I/O routing,
+and host exclusion remain unimplemented. Source: TMS34020 User's Guide,
+printed pp.13-247..13-248, 8-13, 8-26, and 15-9.
 
 TRAP shares the model's independently implemented atomic software-trap helper
 with TRAPL while retaining its own unsigned five-bit vector number and

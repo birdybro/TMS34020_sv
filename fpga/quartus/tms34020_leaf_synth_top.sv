@@ -99,6 +99,12 @@ module tms34020_leaf_synth_top (
     logic multiplier_n;
     logic multiplier_z;
     logic [5:0] multiplier_visible_states;
+    logic swap_legal_in_word;
+    logic [31:0] swap_memory_result;
+    logic [31:0] swap_register_result;
+    logic swap_n;
+    logic swap_z;
+    logic swap_v;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -136,11 +142,14 @@ module tms34020_leaf_synth_top (
         divider_remainder ^
         multiplier_product[63:32] ^
         multiplier_product[31:0] ^
+        swap_memory_result ^
+        swap_register_result ^
         {26'd0, xy_linear_pitch_class, xy_linear_visible_states} ^
         {20'd0, divider_busy, divider_done, divider_overflow,
          divider_n, divider_z, divider_v, divider_visible_states} ^
         {23'd0, multiplier_legal_field_size, multiplier_n,
          multiplier_z, multiplier_visible_states} ^
+        {28'd0, swap_legal_in_word, swap_n, swap_z, swap_v} ^
         {24'd0, commit_supported, commit_accepted,
          commit_register_write_enable, commit_register_write_file,
          commit_register_write_index} ^
@@ -344,6 +353,20 @@ module tms34020_leaf_synth_top (
         .n_o(multiplier_n),
         .z_o(multiplier_z),
         .visible_states_o(multiplier_visible_states)
+    );
+
+    tms34020_swap_field swap_field (
+        .field_size_encoded_i(status_value[4:0]),
+        .sign_extend_i(status_value[5]),
+        .bit_offset_i(operand_i[4:0]),
+        .memory_word_i(immediate_i),
+        .register_i(second_register_data),
+        .legal_in_word_o(swap_legal_in_word),
+        .memory_word_o(swap_memory_result),
+        .register_o(swap_register_result),
+        .n_o(swap_n),
+        .z_o(swap_z),
+        .v_o(swap_v)
     );
 
     tms34020_regfile regfile (
