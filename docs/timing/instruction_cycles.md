@@ -119,6 +119,15 @@ take four; destination cases 1..5 add 1/2/2/3/4 hidden write states. The
 model and field-move leaf expose this factorized A–H matrix without claiming
 physical read/write overlap. Source: User's Guide printed pp.15-10..15-12.
 
+`MOVE *Rs+,*Rd+[,F]` uses the same A–H matrix: source cases 1/2 take
+three visible states and 3–5 take four, while destination cases 1..5 add
+1/2/2/3/4 hidden write states. For Rs=Rd, the destination case applies to the
+TI-defined once-incremented write address; the selected twice-incremented final
+shared pointer is a separate CORROBORATED semantic decision under
+RSC-0037/OQ-0025. The model/paired-address/field-copy
+leaves expose this factorization without a physical retirement claim. Source:
+User's Guide printed pp.13-161 and 15-10..15-12.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.

@@ -731,3 +731,30 @@
   pointer update, then writes the extended field, so loaded data wins. The ISA
   and delta records remain CORROBORATED and OQ-0024 requires primary or
   hardware confirmation before this corner can be called verified.
+
+## RSC-0037: Paired postincrement sources disagree on final aliased pointer
+
+- Status: open; bounded model behavior is CORROBORATED, not primary-verified
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, printed p.13-161
+  says the contents of both registers are incremented by the field size and
+  says an Rs=Rd copy writes to the incremented value, but it does not state the
+  final shared-register value explicitly. The compatible TMS34010 execution
+  sequence on printed pp.12-140..12-141 separately assigns `Rs + field size`
+  to Rs and `Rd + field size` to Rd. Applied sequentially to one physical
+  register, that sequence leaves two increments while using the value after
+  the first increment as the destination address.
+- Conflicting implementations: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`, `34010ops.hxx` lines
+  1311–1324, reads the source, increments Rs, writes through Rd, then
+  increments Rd. Aliased operands therefore write at original plus one field
+  size and finish at original plus two field sizes. Pinned TMS34010 RTL commit
+  `94a258e80a07ceb4303ce0b99818df832e96007f`,
+  `docs/instruction_coverage.md` row 101, instead suppresses the destination
+  writeback when Rs=Rd and documents a once-incremented final pointer.
+- Provisional decision: the model and clean-room address leaf follow the two
+  explicit logical increments and pinned MAME: the source read uses the
+  original pointer, the destination write uses original plus one field size,
+  and the final shared pointer is original plus two field sizes. The ISA and
+  delta records remain CORROBORATED. OQ-0025 requires another primary revision,
+  erratum, diagnostic, XDS trace, or physical hardware discriminator before
+  this legal alias corner can be called verified.

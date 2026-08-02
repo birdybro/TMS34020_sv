@@ -19,6 +19,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/execute/tms34020_mul
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_swap_field.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_field_store.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_field_address_update.sv
+set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_field_pair_postincrement.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_field_load.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_field_move.sv
 set_global_assignment -name SYSTEMVERILOG_FILE ../../../rtl/memory/tms34020_multiple_register_control.sv

@@ -21,7 +21,7 @@ Implemented:
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
   PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM,
-  MOVE.RM.POST, MOVE.MR, MOVE.MR.POST, MOVE.MM,
+  MOVE.RM.POST, MOVE.MR, MOVE.MR.POST, MOVE.MM, MOVE.MM.POST,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -34,7 +34,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 108 of 109 currently extracted database forms for their
+These handlers cover 109 of 110 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -100,6 +100,26 @@ destination offset, including A/B/SP aliases, overlapping fields, trace order,
 and BEN rollback. This remains a logical little-endian read/write pair, not a
 physical transaction sequencer. Sources: User's Guide printed pp.13-160 and
 15-10..15-12.
+
+`MOVE.MM.POST` names `MOVE *Rs+,*Rd+[,F]`. With distinct operands it captures
+both old bit addresses, reads the complete field, writes at old Rd, and advances
+both pointers once by the selected size. For Rs=Rd, TI explicitly defines the
+source read at the original pointer and destination write at the once-
+incremented pointer, but does not explicitly state the final shared-register
+value. The selected CORROBORATED interpretation applies both named increments
+and leaves original plus twice the field size, matching TI's execution sequence
+and pinned MAME while conflicting with the pinned TMS34010 RTL; RSC-0037 and
+OQ-0025 retain that conflict. ST is unchanged. Visible and hidden timing use the
+same A–H matrix as MOVE.MM, with the destination case evaluated at the actual
+write address. Tests
+exhaust both banks, all widths and every source/destination offset, plus
+A/B/SP, distinct/alias/wrap, overlap, exact traces and BEN rollback. The
+clean-room paired-address leaf independently exhausts size, wrap and alias
+effective/final addresses. This remains logical little-endian evidence, not a
+physical two-pointer commit/fault sequencer. Sources: User's Guide printed
+pp.13-161, 13-165..13-166, and 15-10..15-12; pinned MAME commit
+`a562e947b22f4f5acff0c182c26fd649d72dad0e`, `34010ops.hxx` lines
+1311–1324.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

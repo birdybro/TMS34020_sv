@@ -134,6 +134,29 @@ size/offset geometry and case pair. This evidence is little-endian and
 logical: BEN, byte strobes/RMW, dynamic SIZE16, page turnaround, waits, I/O,
 fault/retry idempotence, interrupts, and physical commit remain absent.
 
+## Verified paired-postincrement memory-to-memory boundary
+
+`MOVE *Rs+,*Rd+[,F]` occupies `9800h`/`FC00h`. With distinct registers it
+copies from old Rs to old Rd, then advances each pointer once by the selected
+field size. TI explicitly defines Rs=Rd differently from an ordinary same-
+address copy: data is read at the original pointer and written at the once-
+incremented pointer. TI does not explicitly state the final shared pointer;
+the selected CORROBORATED behavior applies both named increments and leaves
+original plus twice the field size, matching TI's operation sequence and
+pinned MAME while conflicting with the pinned TMS34010 RTL. RSC-0037/OQ-0025
+retain the conflict. ST is unchanged. Sources: User's Guide printed pp.13-161
+and 13-165..13-166; the compatible TMS34010 form is printed pp.12-140..12-141;
+pinned MAME commit `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+`34010ops.hxx` lines 1311–1324.
+
+The model exhausts both banks, all widths and all 1,024 source/destination
+offset pairs, exact A–H timing, pointer updates, alias/wrap/overlap ordering and
+BEN rollback. The clean-room `tms34020_field_pair_postincrement` leaf
+independently exhausts distinct and alias effective/final address arithmetic;
+the existing field-copy leaf independently exhausts copy geometry. There is no
+combined memory/pointer owner, so byte strobes/RMW, SIZE16, page mode, waits,
+fault/retry idempotence, interrupt checkpoints, I/O and pin timing remain.
+
 ## Locked-cycle requirements
 
 The write immediately follows the read and instruction completion waits for
@@ -146,7 +169,7 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE predecrement, paired-update, offset and absolute forms,
+Remaining ordinary MOVE predecrement, offset and absolute forms,
 BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain

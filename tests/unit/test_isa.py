@@ -80,7 +80,10 @@ class IsaTests(unittest.TestCase):
                         },
                     )
                 if instruction["confidence"] == "CORROBORATED":
-                    self.assertEqual(instruction["mnemonic"], "MOVE.MR.POST")
+                    self.assertIn(
+                        instruction["mnemonic"],
+                        {"MOVE.MR.POST", "MOVE.MM.POST"},
+                    )
 
     def test_independent_hand_checked_first_words(self) -> None:
         fixtures = {
@@ -305,6 +308,8 @@ class IsaTests(unittest.TestCase):
             0x93FF: ("MOVE.RM.POST", 1),
             0x9400: ("MOVE.MR.POST", 1),
             0x97FF: ("MOVE.MR.POST", 1),
+            0x9800: ("MOVE.MM.POST", 1),
+            0x9BFF: ("MOVE.MM.POST", 1),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -332,8 +337,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 36310)
-        self.assertEqual(unclassified, 65536 - 36310)
+        self.assertEqual(matched, 37334)
+        self.assertEqual(unclassified, 65536 - 37334)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -1591,6 +1596,49 @@ class IsaTests(unittest.TestCase):
             instruction.metadata["status_bits_written"], ["N", "Z", "V"]
         )
         self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_move_memory_to_memory_paired_postincrement_contract(self) -> None:
+        instruction = self.database.decode(0x9800)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.MM.POST")
+        self.assertEqual(instruction.opcode_mask, 0xFC00)
+        self.assertEqual(instruction.opcode_value, 0x9800)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertIn(
+            "same-register destination effective address",
+            " ".join(instruction.metadata["pipeline_interactions"]),
+        )
+        self.assertIn(
+            "final shared pointer at original plus twice the field size",
+            " ".join(instruction.metadata["pipeline_interactions"]),
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "source_destination_field_alignment",
+                "visible_machine_states_by_source_case": {
+                    "case_1": 3,
+                    "case_2": 3,
+                    "case_3": 4,
+                    "case_4": 4,
+                    "case_5": 4,
+                },
+                "hidden_write_states_by_destination_case": {
+                    "case_1": 1,
+                    "case_2": 2,
+                    "case_3": 2,
+                    "case_4": 3,
+                    "case_5": 4,
+                },
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+        self.assertEqual(instruction.metadata["confidence"], "CORROBORATED")
+        self.assertIn(
+            "RSC-0037",
+            " ".join(instruction.metadata["source_citations"]),
+        )
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

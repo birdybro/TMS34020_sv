@@ -4,20 +4,22 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `13821007e7929b9d312c82fa91f5eeabdd5f7bf6`
-- Passing tests: foundation, reference/hash, delta, 50-case ISA sweep, 184 directed model
+- Passing tests: foundation, reference/hash, delta, 51-case ISA sweep, 187 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 108 of 109 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. MOVE.RM/RM.POST/MR/MR.POST/MM cover both
+- Model status: 109 of 110 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. MOVE.RM/RM.POST/MR/MR.POST/MM/MM.POST cover both
   field banks, all 32 widths and all 32 bit offsets in little-endian mode,
   including crossing-word preservation, FE extension and status, pointer wrap,
   A/B/SP/alias/overlap ordering, all source/destination alignment pairs and
   timing; MOVE.MR.POST same-register fetched-data priority is CORROBORATED
-  under RSC-0036/OQ-0024 rather than primary-verified; BEN=1 rolls back
+  under RSC-0036/OQ-0024 rather than primary-verified; MM.POST's
+  once-incremented alias destination and selected twice-incremented final
+  shared pointer are CORROBORATED under RSC-0037/OQ-0025; BEN=1 rolls back
   pending an endian-aware memory mapper.
   Normal RETI reads
   saved ST then PC and atomically restores complete ST/IE, aligned PC and
@@ -111,9 +113,10 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 109-entry partial decode, exhaustive clean-room
+- RTL status: generated 110-entry partial decode, exhaustive clean-room
   MOVE.RM insertion, MOVE.MR/MR.POST extraction/extension, MOVE.MM two-sided copy/
-  alignment and ordinary/postincrement/predecrement address-update leaves with
+  alignment, ordinary/postincrement/predecrement single-pointer and paired-
+  postincrement address-update leaves with
   explicit noncommit at the absent memory owner, a clean-room RETI/RETM
   mode plus normal/IX/BF context/result/timing/bypass-delay classification
   leaf, an exhaustive
@@ -237,7 +240,7 @@
   XY-to-linear conversion semantics exist in the model and standalone RTL
   leaves; the full pixel/graphics matrix, I/O/register owner, memory sequencer,
   clipping, and continuation remain (`TMS20-0024`–`TMS20-0026`)
-- Bus status: cache-native completion plus logical MOVE.RM/RM.POST/MR/MR.POST/MM
+- Bus status: cache-native completion plus logical MOVE.RM/RM.POST/MR/MR.POST/MM/MM.POST
   field-store/load/copy and pointer-update
   geometry only; no BEN/byte-strobe/RMW/width/page/pin controller
   (`TMS20-0014`–`TMS20-0019`, `TMS20-0030`)
@@ -247,9 +250,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 12,582 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 12,771 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 438, 809, and 5,354 logic cells;
+  the fetch, frontend, and scalar wrappers use 429, 806, and 5,367 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file
@@ -259,7 +262,7 @@
 - Provisional behavior: the cache model represents architecturally
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
   transactions rather than pin-level dynamic-width cycles;
-  MOVE.RM/RM.POST/MR/MR.POST/MM reject
+  MOVE.RM/RM.POST/MR/MR.POST/MM/MM.POST reject
   BEN=1 and expose logical field transactions rather than physical bus beats
 - Unresolved conflicts: exact game parts and REV values, original/A errata,
   first-silicon history, the MPYS/MPYU detailed-page/timing-table swap and
@@ -269,6 +272,7 @@
   14/15-state primary timing disagreement, MMFM's unexplained statement
   that original-Rp alignment affects timing despite no corresponding timing
   table class, MOVE.MR.POST same-register write priority (RSC-0036/OQ-0024),
+  MOVE.MM.POST same-register final pointer (RSC-0037/OQ-0025),
   RETI/RETM's undisclosed IX/BF internal-frame layout/padding/
   restore order, and the absent RETM one-instruction interrupt-recognition
   scheduler

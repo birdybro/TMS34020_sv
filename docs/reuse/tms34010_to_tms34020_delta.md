@@ -205,6 +205,19 @@ record both make fetched data win, so only that corner is `CORROBORATED` under
 RSC-0036/OQ-0024. Sources: TMS34020 guide printed pp.13-13, 13-161, 13-163,
 and 15-10..15-11; TMS34010 guide printed pp.12-139..12-140.
 
+`MOVE *Rs+,*Rd+[,F]` retains `9800h`/`FC00h`, read-before-write copy,
+complete ST preservation and pointer increments. Both guides explicitly make
+the same-register destination the once-incremented source address, but neither
+states the final shared value unambiguously. The selected CORROBORATED behavior
+applies both named increments and leaves original plus twice the field size,
+matching the primary operation sequence and pinned MAME while conflicting with
+the pinned TMS34010 RTL's suppressed second update. RSC-0037/OQ-0025 retain
+this boundary. The TMS34020 A–H 32-bit alignment matrix, BEN mapping, hidden
+writes, dynamic width, page and fault retirement remain device-owned; no
+TMS34010 timing FSM is reused. Sources: TMS34020 guide printed pp.13-161,
+13-165..13-166, and 15-10..15-12; TMS34010 guide printed pp.12-140..12-141;
+pinned MAME `34010ops.hxx` lines 1311–1324.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

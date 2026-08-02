@@ -135,6 +135,15 @@ module tb_tms34020_verified_leaves;
     logic [31:0] field_address_final;
     logic field_address_write;
     logic field_address_mode_valid;
+    logic [4:0] field_pair_size;
+    logic [31:0] field_pair_source_pointer;
+    logic [31:0] field_pair_destination_pointer;
+    logic field_pair_same_register;
+    logic [5:0] field_pair_decoded_size;
+    logic [31:0] field_pair_source_effective;
+    logic [31:0] field_pair_destination_effective;
+    logic [31:0] field_pair_source_final;
+    logic [31:0] field_pair_destination_final;
     logic [4:0] field_load_size;
     logic field_load_sign_extend;
     logic [4:0] field_load_offset;
@@ -461,6 +470,18 @@ module tb_tms34020_verified_leaves;
         .final_pointer_o(field_address_final),
         .pointer_write_o(field_address_write),
         .mode_valid_o(field_address_mode_valid)
+    );
+
+    tms34020_field_pair_postincrement field_pair_postincrement_dut (
+        .field_size_encoded_i(field_pair_size),
+        .source_pointer_i(field_pair_source_pointer),
+        .destination_pointer_i(field_pair_destination_pointer),
+        .same_register_i(field_pair_same_register),
+        .field_size_o(field_pair_decoded_size),
+        .source_effective_address_o(field_pair_source_effective),
+        .destination_effective_address_o(field_pair_destination_effective),
+        .source_final_pointer_o(field_pair_source_final),
+        .destination_final_pointer_o(field_pair_destination_final)
     );
 
     tms34020_field_load field_load_dut (
@@ -1066,6 +1087,34 @@ module tb_tms34020_verified_leaves;
             field_address_final == expected_final &&
             field_address_write == expected_write &&
             field_address_mode_valid == expected_valid,
+            message
+        );
+    endtask
+
+    task automatic check_field_pair_postincrement(
+        input logic [4:0] field_size_encoded,
+        input logic [31:0] source_pointer,
+        input logic [31:0] destination_pointer,
+        input logic same_register,
+        input logic [5:0] expected_size,
+        input logic [31:0] expected_source_effective,
+        input logic [31:0] expected_destination_effective,
+        input logic [31:0] expected_source_final,
+        input logic [31:0] expected_destination_final,
+        input string message
+    );
+        field_pair_size = field_size_encoded;
+        field_pair_source_pointer = source_pointer;
+        field_pair_destination_pointer = destination_pointer;
+        field_pair_same_register = same_register;
+        #1;
+        check_condition(
+            field_pair_decoded_size == expected_size &&
+            field_pair_source_effective == expected_source_effective &&
+            field_pair_destination_effective ==
+                expected_destination_effective &&
+            field_pair_source_final == expected_source_final &&
+            field_pair_destination_final == expected_destination_final,
             message
         );
     endtask
@@ -2168,6 +2217,10 @@ module tb_tms34020_verified_leaves;
         field_address_pointer = 32'd0;
         field_address_predecrement = 1'b0;
         field_address_postincrement = 1'b0;
+        field_pair_size = 5'd0;
+        field_pair_source_pointer = 32'd0;
+        field_pair_destination_pointer = 32'd0;
+        field_pair_same_register = 1'b0;
         field_load_size = 5'd0;
         field_load_sign_extend = 1'b0;
         field_load_offset = 5'd0;
@@ -3033,6 +3086,22 @@ module tb_tms34020_verified_leaves;
                 pointer - {26'd0, expected_size}, 1'b1, 1'b1,
                 "predecrement field address uses updated pointer"
             );
+            check_field_pair_postincrement(
+                encoded_size[4:0], pointer, 32'h7FFF_FFF0, 1'b0,
+                expected_size, pointer, 32'h7FFF_FFF0,
+                pointer + {26'd0, expected_size},
+                32'h7FFF_FFF0 + {26'd0, expected_size},
+                "paired postincrement uses two captured addresses"
+            );
+            check_field_pair_postincrement(
+                encoded_size[4:0], pointer, pointer, 1'b1,
+                expected_size, pointer,
+                pointer + {26'd0, expected_size},
+                pointer + {26'd0, expected_size},
+                pointer + {26'd0, expected_size} +
+                    {26'd0, expected_size},
+                "paired alias writes after first increment and finishes after two"
+            );
         end
         check_field_address_update(
             5'd16, 32'h1234_5678, 1'b1, 1'b1,
@@ -3835,6 +3904,12 @@ module tb_tms34020_verified_leaves;
             32'hA020_0010,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MOVE.MR.POST cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'h9801, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MM.POST cannot bypass absent field-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -5502,6 +5577,10 @@ module tb_tms34020_verified_leaves;
                      "MOVE.MR.POST field-zero lower-bound decode");
         check_decode(16'h97FF, TMS20_OP_MOVE_MR_POST, 3'd1,
                      "MOVE.MR.POST field-one upper-bound decode");
+        check_decode(16'h9800, TMS20_OP_MOVE_MM_POST, 3'd1,
+                     "MOVE.MM.POST field-zero lower-bound decode");
+        check_decode(16'h9BFF, TMS20_OP_MOVE_MM_POST, 3'd1,
+                     "MOVE.MM.POST field-one upper-bound decode");
         decode_word = 16'h8C00;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
