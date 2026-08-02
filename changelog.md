@@ -1037,6 +1037,8 @@
 
 ### Documentation
 
+- Recorded the verified ordinary field-store implementation baseline as commit
+  `8c46ccb496ba9f3b87e0e7a0f89f3d2a8b66c207` in the progress ledger.
 - Documented MOVE.RM's compatible programmer-visible field store separately
   from the TMS34020-owned 32-bit/BEN/timing realization, plus the explicit
   byte-strobe/RMW/dynamic-width/page/fault boundary.
