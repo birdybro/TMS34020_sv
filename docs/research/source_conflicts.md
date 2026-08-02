@@ -692,3 +692,22 @@
 - Decision: metadata and the classification leaf use ST.BF bit 26. No `SF`
   status bit is invented. This resolves only the selector name, not the hidden
   31-word continuation format or nested-fault behavior.
+
+## RSC-0035: RETM boxed note reverses its cache behavior
+
+- Status: resolved from repeated primary context; pin timing remains pending
+- Primary contradiction: the RETM main description and execution contract on
+  printed p.13-219 say the next interrupted-program instruction is read
+  directly from memory, not cache. Figure 6-3 on p.6-10 says RETM delays
+  acceptance so that instruction executes, and the RETI/RETM comparison on
+  p.6-32 repeats that RETM permits one instruction before the single-step
+  trap. The boxed note on p.13-219 instead says `RETM uses the cache read
+  mechanism`, then concludes it is unsuitable when the next opcode is absent
+  from cache. That warning describes RETI and contradicts the rest of the
+  RETM page.
+- Decision: RETM arms a one-shot direct-memory bypass for the entire next
+  instruction packet and does not fill or consume the stale cached packet.
+  The note is treated as a RETI/RETM name transposition. Directed tests use a
+  stale three-word cached instruction to distinguish all extension fetches.
+  This decision does not establish local-bus phases, page mode, waits, or
+  fault/retry behavior of the forced access.

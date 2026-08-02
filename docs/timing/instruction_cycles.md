@@ -136,6 +136,15 @@ OQ-0023 retains the hidden-frame layout. Stack waits, bus width, page mode,
 fault/retry, continuation restore, and immediate interrupt recognition from
 restored IE remain unqualified.
 
+RETM takes 10 states normally and the same 38/52 IX/BF continuation cases.
+Its three additional normal states compose the monitor-return behavior: the
+complete next instruction is fetched directly from memory and interrupt/
+single-step recognition is delayed until that instruction executes. The model
+reports ten and implements the one-shot packet bypass, but not the recognition
+scheduler or physical bypass timing. Sources: User's Guide Figure 6-3 p.6-10,
+RETM p.13-219, RETI/RETM comparison p.6-32, and timing p.15-8. RSC-0035
+records the boxed-note name transposition.
+
 CALL and CALLR each take three visible states followed by a hidden stack write
 of one state when SP is long-word aligned or four states otherwise. The model
 records that hidden dependency in `pending_write_states`; it does not claim

@@ -656,6 +656,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 system stack, printed pp.3-29..3-30", "TI-TMS34020-UG-1990 Figures 6-2/6-3, printed pp.6-9..6-10", "TI-TMS34020-UG-1990 RETI, printed pp.13-217..13-218 and timing p.15-8", "TI-TMS34010-UG-1988 RETI, printed pp.12-230..12-231"],
       "confidence": "PROVISIONAL",
       "unresolved_questions": ["Exact order/content of the 24 IX and 31 BF internal words and the IX alignment-padding discriminator require the S-file/continuation documentation or hardware evidence.", "Fault/retry and pending-interrupt ordering during the return itself remain pending a physical sequencer."]
+    },
+    {
+      "feature": "monitor_return_single_step",
+      "tms34010_behavior": "No documented RETM instruction or one-instruction single-step return delay exists in the TMS34010 guide.",
+      "tms34020_behavior": "Exact word 0860h restores the same normal/IX/BF frame classes as RETI, but takes 10 states normally, forces the next interrupted-program instruction to external memory rather than cache, and masks restored IE acceptance during the final state so that one instruction executes before another pending interrupt or single-step trap. IX/BF cases remain 38/52 states.",
+      "rtl_impact": "Add a TMS34020-only return-mode bit to the interrupt-return sequencer, a one-shot complete-instruction cache bypass carried across all extension words, and a one-instruction interrupt-recognition delay. Do not synthesize RETM as RETI plus a software-visible ST change; restored IE remains the stacked value.",
+      "test_impact": "Exact 0860h/nonalias; normal/IX/BF classification and 10/38/52 timing; ST/PC/SP restoration; stale-cache discriminator proving the entire next packet comes from memory without fill; one-shot clearing; restored IE value preservation; pending interrupt and SS acceptance only after exactly one instruction; waits/fault/retry during the forced fetch.",
+      "source_citation": ["TI-TMS34020-UG-1990 Figure 6-3, printed p.6-10", "TI-TMS34020-UG-1990 RETM, printed p.13-219 and timing p.15-8", "TI-TMS34020-UG-1990 RETI/RETM single-step difference, printed p.6-32"],
+      "confidence": "PROVISIONAL",
+      "unresolved_questions": ["RSC-0035: the RETM page's boxed cache-read note contradicts its main description and section 6.13 and appears to have RETI/RETM transposed.", "OQ-0023: exact IX/BF hidden-frame layout and fault/retry checkpoints remain unknown.", "Exact pin/page timing of the one-shot bypass and interrupt-recognition gate remains pending."]
     }
   ]
 }

@@ -118,6 +118,14 @@ computes the post-continuation IX/BF clear value, but owns neither ST nor stack
 memory. Sources: User's Guide printed pp.3-29..3-30, Figure 6-3 p.6-10, RETI
 pp.13-217..13-218; OQ-0023/RSC-0034.
 
+RETM restores the same complete ST value, including IE and SS. It does not
+clear those programmer-visible bits to create its delay; instead, hardware
+masks recognition during the final return state so that one instruction
+executes first. The model preserves the stacked bits and arms the documented
+fetch bypass, but has no pending-interrupt/single-step scheduler. The RTL leaf
+exports the delay intent without owning ST or arbitration. Sources: User's
+Guide Figure 6-3 p.6-10, RETM p.13-219, and comparison p.6-32.
+
 The independent model verifies complete ST preservation across CALL, CALLA,
 and CALLR while SP and PC change and the return-PC write occurs. This includes
 CALL's shared-SP read-before-write hazard and both stack alignment classes.

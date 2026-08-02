@@ -220,6 +220,23 @@ This is the documented coherence mechanism. No automatic coherence is
 assumed for host writes, DMA, multiprocessor writes, or other external
 agents.
 
+### RETM one-instruction bypass
+
+RETM is a separate one-shot bypass from software-visible `CONTROL.CD`. The
+complete instruction packet at the restored PC is read directly from external
+memory without consuming or filling a stale cached copy; ordinary cache lookup
+resumes for the following instruction. Sources: TMS34020 User's Guide RETM,
+printed p.13-219, and RETI/RETM comparison p.6-32. The boxed note on p.13-219
+has the instruction names transposed; RSC-0035 records the contradiction.
+
+The architectural model snapshots this transient state, applies it to the
+opcode and every extension word, clears it only after the complete packet is
+obtained, and restores it on failed execution. A stale three-word MOVI.L test
+distinguishes all words and proves the next NOP returns to a cache hit. This is
+transaction-level evidence only. The RTL cache/frontend does not yet accept
+the RETM bypass intent, and no bus width, page, wait, fault/retry, or
+machine-state timing is claimed.
+
 ## Bus classifications and bounded timing facts
 
 The local-memory status code distinguishes a four-long-word **cache fill**

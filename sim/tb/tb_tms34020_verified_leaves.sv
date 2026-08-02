@@ -130,6 +130,7 @@ module tb_tms34020_verified_leaves;
     logic [31:0] interrupt_return_old_sp;
     logic [31:0] interrupt_return_saved_st;
     logic [31:0] interrupt_return_saved_pc;
+    logic interrupt_return_monitor;
     logic interrupt_return_normal_context;
     logic interrupt_return_ix_context;
     logic interrupt_return_bf_context;
@@ -138,6 +139,8 @@ module tb_tms34020_verified_leaves;
     logic [31:0] interrupt_return_final_sp;
     logic [31:0] interrupt_return_aligned_pc;
     logic interrupt_return_saved_pc_misaligned;
+    logic interrupt_return_force_bypass;
+    logic interrupt_return_delay_recognition;
     logic [31:0] interrupt_return_post_st;
 
     tms34020_binary_op_t binary_operation;
@@ -402,6 +405,7 @@ module tb_tms34020_verified_leaves;
         .old_sp_i(interrupt_return_old_sp),
         .saved_st_i(interrupt_return_saved_st),
         .saved_pc_i(interrupt_return_saved_pc),
+        .monitor_return_i(interrupt_return_monitor),
         .normal_context_o(interrupt_return_normal_context),
         .ix_context_o(interrupt_return_ix_context),
         .bf_context_o(interrupt_return_bf_context),
@@ -410,6 +414,10 @@ module tb_tms34020_verified_leaves;
         .normal_final_sp_o(interrupt_return_final_sp),
         .aligned_pc_o(interrupt_return_aligned_pc),
         .saved_pc_misaligned_o(interrupt_return_saved_pc_misaligned),
+        .force_next_instruction_bypass_o(interrupt_return_force_bypass),
+        .delay_interrupt_recognition_o(
+            interrupt_return_delay_recognition
+        ),
         .post_context_st_o(interrupt_return_post_st)
     );
 
@@ -929,6 +937,7 @@ module tb_tms34020_verified_leaves;
         input logic [31:0] old_sp,
         input logic [31:0] saved_st,
         input logic [31:0] saved_pc,
+        input logic monitor_return,
         input logic expected_normal_context,
         input logic expected_ix_context,
         input logic expected_bf_context,
@@ -937,12 +946,15 @@ module tb_tms34020_verified_leaves;
         input logic [31:0] expected_final_sp,
         input logic [31:0] expected_aligned_pc,
         input logic expected_saved_pc_misaligned,
+        input logic expected_force_bypass,
+        input logic expected_delay_recognition,
         input logic [31:0] expected_post_st,
         input string message
     );
         interrupt_return_old_sp = old_sp;
         interrupt_return_saved_st = saved_st;
         interrupt_return_saved_pc = saved_pc;
+        interrupt_return_monitor = monitor_return;
         #1;
         check_condition(
             interrupt_return_normal_context == expected_normal_context &&
@@ -954,6 +966,9 @@ module tb_tms34020_verified_leaves;
             interrupt_return_aligned_pc == expected_aligned_pc &&
             interrupt_return_saved_pc_misaligned ==
                 expected_saved_pc_misaligned &&
+            interrupt_return_force_bypass == expected_force_bypass &&
+            interrupt_return_delay_recognition ==
+                expected_delay_recognition &&
             interrupt_return_post_st == expected_post_st,
             message
         );
@@ -1907,6 +1922,7 @@ module tb_tms34020_verified_leaves;
         interrupt_return_old_sp = 32'd0;
         interrupt_return_saved_st = 32'd0;
         interrupt_return_saved_pc = 32'd0;
+        interrupt_return_monitor = 1'b0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2724,22 +2740,46 @@ module tb_tms34020_verified_leaves;
             );
         end
         check_interrupt_return_control(
-            32'h0000_0400, 32'hF123_4567, 32'h1234_567F,
+            32'h0000_0400, 32'hF123_4567, 32'h1234_567F, 1'b0,
             1'b1, 1'b0, 1'b0, 6'd0, 6'd7,
-            32'h0000_0440, 32'h1234_5670, 1'b1, 32'hF123_4567,
+            32'h0000_0440, 32'h1234_5670, 1'b1, 1'b0, 1'b0,
+            32'hF123_4567,
             "RETI normal-context classification and outputs"
         );
         check_interrupt_return_control(
-            32'hFFFF_FFE7, 32'hA200_0010, 32'hFFFF_FFF0,
+            32'hFFFF_FFE7, 32'hA200_0010, 32'hFFFF_FFF0, 1'b0,
             1'b0, 1'b1, 1'b0, 6'd24, 6'd38,
-            32'h0000_0027, 32'hFFFF_FFF0, 1'b0, 32'hA000_0010,
+            32'h0000_0027, 32'hFFFF_FFF0, 1'b0, 1'b0, 1'b0,
+            32'hA000_0010,
             "RETI IX-context classification and IX clearing"
         );
         check_interrupt_return_control(
-            32'h0000_0400, 32'hA600_0010, 32'h1234_567F,
+            32'h0000_0400, 32'hA600_0010, 32'h1234_567F, 1'b0,
             1'b0, 1'b0, 1'b1, 6'd31, 6'd52,
-            32'h0000_0440, 32'h1234_5670, 1'b1, 32'hA000_0010,
+            32'h0000_0440, 32'h1234_5670, 1'b1, 1'b0, 1'b0,
+            32'hA000_0010,
             "RETI BF context takes priority and clears IX/BF"
+        );
+        check_interrupt_return_control(
+            32'h0000_0400, 32'hF123_4567, 32'h1234_567F, 1'b1,
+            1'b1, 1'b0, 1'b0, 6'd0, 6'd10,
+            32'h0000_0440, 32'h1234_5670, 1'b1, 1'b1, 1'b1,
+            32'hF123_4567,
+            "RETM normal context arms bypass and recognition delay"
+        );
+        check_interrupt_return_control(
+            32'h0000_0400, 32'hA200_0010, 32'h1234_5670, 1'b1,
+            1'b0, 1'b1, 1'b0, 6'd24, 6'd38,
+            32'h0000_0440, 32'h1234_5670, 1'b0, 1'b1, 1'b1,
+            32'hA000_0010,
+            "RETM IX context retains shared continuation state count"
+        );
+        check_interrupt_return_control(
+            32'h0000_0400, 32'hA600_0010, 32'h1234_5670, 1'b1,
+            1'b0, 1'b0, 1'b1, 6'd31, 6'd52,
+            32'h0000_0440, 32'h1234_5670, 1'b0, 1'b1, 1'b1,
+            32'hA000_0010,
+            "RETM BF context retains shared continuation state count"
         );
 
         check_pitch_conversion(
@@ -3240,6 +3280,11 @@ module tb_tms34020_verified_leaves;
             16'h091F, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "TRAP 31 cannot bypass unimplemented stack/vector ownership"
+        );
+        check_register_execute(
+            16'h0860, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "RETM cannot bypass stack/context/fetch ownership"
         );
         check_register_execute(
             16'h0940, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -4760,6 +4805,8 @@ module tb_tms34020_verified_leaves;
                      "TRAP 0 lower-bound decode");
         check_decode(16'h091F, TMS20_OP_TRAP, 3'd1,
                      "TRAP 31 upper-bound decode");
+        check_decode(16'h0860, TMS20_OP_RETM, 3'd1,
+                     "RETM exact decode");
         check_decode(16'h0940, TMS20_OP_RETI, 3'd1,
                      "RETI exact decode");
         check_decode(16'h0920, TMS20_OP_CALL, 3'd1,

@@ -4,18 +4,22 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `e7eed66741359d9a6bc1905dc3c0ba10011e004f`
-- Passing tests: foundation, reference/hash, delta, 44-case ISA sweep, 166 directed model
+- Passing tests: foundation, reference/hash, delta, 45-case ISA sweep, 169 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 102 of 103 currently extracted encoding forms have bounded
+- Model status: 103 of 104 currently extracted encoding forms have bounded
   successful semantics over documented operand domains. Normal RETI reads
   saved ST then PC and atomically restores complete ST/IE, aligned PC and
   SP+64 in seven documented states; IX/BF frames roll back rather than
-  inventing the hidden 24/31-word continuation. MMFM/MMTM cover all
+  inventing the hidden 24/31-word continuation. Normal RETM shares that
+  restore, reports ten states, and snapshots a one-shot complete-instruction
+  direct-memory bypass. A stale three-word cached MOVI.L proves opcode and
+  extensions bypass once before normal lookup resumes; interrupt/single-step
+  recognition scheduling remains absent. MMFM/MMTM cover all
   65,536 mask words in both opposite mask directions, every A/B/SP register,
   pointer wrap, logical transaction order, exact MMTM status, and published
   successful timing classes. Empty and pointer-containing lists roll back;
@@ -100,8 +104,9 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 103-entry partial decode, a clean-room RETI
-  normal/IX/BF context/result/timing classification leaf, an exhaustive
+- RTL status: generated 104-entry partial decode, a clean-room RETI/RETM
+  mode plus normal/IX/BF context/result/timing/bypass-delay classification
+  leaf, an exhaustive
   clean-room MMFM/MMTM list-normalization/pointer/status/timing control leaf,
   clean-room iterative
   DIVS/DIVU/MODS/MODU and combinational MPYS/MPYU leaves, A/B/SP and masked ST state,
@@ -230,9 +235,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 11,522 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 11,626 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 434, 812, and 5,355 logic cells;
+  the fetch, frontend, and scalar wrappers use 434, 809, and 5,358 logic cells;
   the scalar wrapper has 1,414 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file
@@ -249,8 +254,9 @@
   CVXYL's three contradictory PSIZE=4 table rows, its arbitrary-pitch
   14/15-state primary timing disagreement, MMFM's unexplained statement
   that original-Rp alignment affects timing despite no corresponding timing
-  table class, and RETI's undisclosed IX/BF internal-frame layout/padding/
-  restore order
+  table class, RETI/RETM's undisclosed IX/BF internal-frame layout/padding/
+  restore order, and the absent RETM one-instruction interrupt-recognition
+  scheduler
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
 - Next task: continue primary ISA extraction and preserve explicit noncommit

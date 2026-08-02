@@ -20,7 +20,7 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
-  PUTST, RETI (normal context), RETS, MMFM, MMTM,
+  PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -33,7 +33,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 102 of 103 currently extracted database forms for their
+These handlers cover 103 of 104 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -95,6 +95,18 @@ Physical stack waits, dynamic width, page mode, bus faults/retry, pending-
 interrupt recognition at restored IE, and redirected fetch timing remain
 unmodeled. Sources: TMS34020 User's Guide printed pp.3-29..3-30, Figure 6-3
 p.6-10, RETI pp.13-217..13-218, and timing p.15-8; OQ-0023/RSC-0034.
+
+RETM shares that independently written normal-frame helper, reports ten
+states, and arms `force_next_instruction_bypass`. The following `step()` uses
+native memory bypass for every word in exactly one instruction packet, then
+clears the flag; rollback and version-3 snapshots preserve the one-shot state.
+A directed stale-cache three-word MOVI.L case proves that opcode/extensions
+are fetched from memory without replacing the cached copy and that ordinary
+cache lookup resumes for the next instruction. RETM restores IE exactly but
+the model has no interrupt/single-step scheduler, so the documented one-
+instruction recognition delay remains metadata rather than executable timing.
+IX/BF contexts are atomically rejected with RETI. Sources: User's Guide Figure
+6-3 p.6-10, RETM p.13-219, comparison p.6-32, and timing p.15-8; RSC-0035.
 
 CALL, CALLA, and CALLR share an independently written atomic success helper
 that captures the post-instruction return PC, predecrements SP by 32 bit
@@ -483,7 +495,9 @@ their architectural I/O addresses. A miss or bypass leaves the instruction's
 documented execution-state count intact but marks aggregate timing incomplete
 and records why; no unverified refill overlap is added. Decode or execution
 failure rolls processor and cache state back to the pre-step checkpoint.
-Version-2 JSON snapshots include all cache state and pending transactions.
+Version-3 JSON snapshots include all cache state, pending transactions, and
+the RETM one-instruction bypass state. Versions 1 and 2 remain readable with
+that state safely defaulted inactive.
 
 `load_program()` flushes the cache by default because it is a test/program
 loader, not a modeled CPU data write. Tests of self-modifying code write
@@ -560,6 +574,8 @@ all RETS argument counts, both stack alignment cases, exact PC-pop traces,
 redirect alignment, SP wrap, and status preservation,
 normal RETI ordered ST/PC pops, status and IE restoration, PC alignment, SP
 wrap, TRAP round trip, plus atomic IX/BF refusal,
+normal RETM restore, 10 states, snapshotted one-shot full-packet memory bypass,
+stale-cache discrimination, and atomic IX/BF refusal,
 all CALL A/B/shared-SP target classes, old-SP capture ordering, aligned and
 unaligned hidden writes, CALLR signed extremes and PC wrap, and CALLA
 low/high-word target assembly with explicitly incomplete timing,

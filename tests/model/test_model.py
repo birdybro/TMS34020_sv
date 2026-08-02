@@ -44,10 +44,12 @@ class StateTests(unittest.TestCase):
 
     def test_reset_vector_loads_config_nibble_and_aligned_pc(self) -> None:
         state = ProcessorState.randomized(3)
+        state.force_next_instruction_bypass = True
         state.reset_from_vector(0x1234567D)
         self.assertEqual(state.pc, 0x12345670)
         self.assertEqual(state.st, 0x10)
         self.assertEqual(state.read_io(CONFIG_ADDRESS), 0xD)
+        self.assertFalse(state.force_next_instruction_bypass)
 
     def test_randomized_state_is_seed_reproducible(self) -> None:
         first = ProcessorState.randomized(0x34020).snapshot()
@@ -3657,6 +3659,118 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(model.state.sp, 0x800)
         self.assertEqual(model.state.st, 0xF123_4567)
         self.assertEqual(returned.machine_states, 7)
+
+    def test_retm_normal_context_restores_state_and_arms_bypass(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0860], bit_address=0x80)
+        model.state.sp = 0xFFFF_FFE7
+        model.state.st = 0xA000_0010
+        model.state.memory.write_bits(0xFFFF_FFE7, 32, 0xF123_4567)
+        model.state.memory.write_bits(0x0000_0007, 32, 0x1234_567F)
+
+        event = model.step()
+
+        self.assertEqual(event.mnemonic, "RETM")
+        self.assertEqual(event.machine_states, 10)
+        self.assertEqual(model.state.st, 0xF123_4567)
+        self.assertEqual(model.state.pc, 0x1234_5670)
+        self.assertEqual(model.state.sp, 0x0000_0027)
+        self.assertTrue(model.state.force_next_instruction_bypass)
+        self.assertEqual(
+            event.transactions[-2:],
+            [
+                {
+                    "class": "data_read",
+                    "purpose": "return_interrupt_st",
+                    "bit_address": 0xFFFF_FFE7,
+                    "width": 32,
+                    "value": 0xF123_4567,
+                },
+                {
+                    "class": "data_read",
+                    "purpose": "return_interrupt_pc",
+                    "bit_address": 0x0000_0007,
+                    "width": 32,
+                    "value": 0x1234_567F,
+                },
+            ],
+        )
+        self.assertTrue(any("normal-context RETM" in note for note in event.notes))
+
+    def test_retm_forces_entire_next_packet_to_memory_once(self) -> None:
+        model = Tms34020Model()
+        target_pc = 0x0000_0000
+        model.load_program(
+            [0x09E0, 0x2222, 0x1111, 0x0300],
+            bit_address=target_pc,
+        )
+        cached = model.step()
+        self.assertEqual(cached.mnemonic, "MOVI.L")
+        self.assertEqual(model.state.read_reg("A", 0), 0x1111_2222)
+
+        model.state.memory.write_bits(target_pc + 16, 16, 0x4444)
+        model.state.memory.write_bits(target_pc + 32, 16, 0x3333)
+        model.load_program(
+            [0x0860], bit_address=0x0000_1000,
+            flush_cache=False,
+        )
+        model.state.sp = 0x0000_0800
+        model.state.memory.write_bits(0x0000_0800, 32, 0x0020_0010)
+        model.state.memory.write_bits(0x0000_0820, 32, target_pc)
+
+        returned = model.step()
+        replayed = Tms34020Model.from_snapshot(
+            json.loads(json.dumps(model.snapshot(), sort_keys=True))
+        )
+        bypassed = model.step()
+        replayed_bypassed = replayed.step()
+        self.assertEqual(bypassed.snapshot(), replayed_bypassed.snapshot())
+        self.assertEqual(model.snapshot(), replayed.snapshot())
+        following = model.step()
+
+        self.assertEqual(returned.mnemonic, "RETM")
+        self.assertEqual(bypassed.mnemonic, "MOVI.L")
+        self.assertEqual(model.state.read_reg("A", 0), 0x3333_4444)
+        bypass_lookups = [
+            transaction
+            for transaction in bypassed.transactions
+            if transaction["class"] == "instruction_cache_lookup"
+        ]
+        self.assertEqual(len(bypass_lookups), 3)
+        self.assertTrue(
+            all(
+                transaction["result"] == "disabled_bypass"
+                and transaction["forced_bypass"] == 1
+                for transaction in bypass_lookups
+            )
+        )
+        self.assertEqual(following.mnemonic, "NOP")
+        self.assertEqual(
+            following.transactions[0]["result"], "hit"
+        )
+        self.assertEqual(following.transactions[0]["forced_bypass"], 0)
+        self.assertFalse(model.state.force_next_instruction_bypass)
+
+    def test_retm_rejects_ix_bf_contexts_atomically(self) -> None:
+        for context_bits, name in (
+            (1 << 25, "IX"),
+            (1 << 26, "BF"),
+            ((1 << 25) | (1 << 26), "BF"),
+        ):
+            with self.subTest(context=name, bits=f"{context_bits:08X}"):
+                model = Tms34020Model()
+                model.load_program([0x0860], bit_address=0x80)
+                model.state.sp = 0x400
+                model.state.memory.write_bits(
+                    0x400, 32, 0xA000_0010 | context_bits
+                )
+                model.state.memory.write_bits(0x420, 32, 0x1234_5670)
+                before = model.snapshot()
+                with self.assertRaisesRegex(
+                    UnsupportedInstruction, f"RETM {name}"
+                ):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
 
     def test_call_all_register_sources_capture_target_before_stack_write(self) -> None:
         for register_file, file_bit in (("A", 0), ("B", 1)):

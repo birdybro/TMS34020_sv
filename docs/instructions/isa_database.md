@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 103 page-verified encoding records and covers 31,189 of 65,536
+slice contains 104 page-verified encoding records and covers 31,190 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -19,6 +19,7 @@ first words without collisions:
 | CALL | `0920h`, mask `FFE0h` | 1 | p.13-48 |
 | CALLA | `0D5Fh` plus low/high target words | 3 | p.13-49 |
 | CALLR | `0D3Fh` plus signed word displacement | 2 | p.13-50 |
+| RETM | `0860h` | 1 | p.13-219 |
 | RETI | `0940h` | 1 | pp.13-217..13-218 |
 | RETS | `0960h`, mask `FFE0h` | 1 | p.13-220 |
 | ABS | `0380h`, mask `FFE0h` | 1 | p.13-32 |
@@ -242,6 +243,14 @@ PROVISIONAL: the model executes and tests only the normal context, atomically
 rejects IX/BF, and the RTL leaf only classifies the three cases. Sources:
 TMS34020 User's Guide printed pp.3-29..3-30, 6-9..6-10, 13-217..13-218, and
 15-8; OQ-0023/RSC-0034.
+
+RETM is the exact TMS34020-only word `0860h`. It shares RETI's normal/IX/BF
+frame selection but takes 10/38/52 states, forces the entire next instruction
+packet to direct memory, and delays restored-IE/single-step recognition until
+one interrupted-program instruction executes. Its normal model path and
+one-shot cache bypass are tested with a stale three-word packet; IX/BF and the
+interrupt scheduler remain unimplemented. Sources: User's Guide Figure 6-3
+p.6-10, RETM p.13-219, comparison p.6-32, timing p.15-8; RSC-0035.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

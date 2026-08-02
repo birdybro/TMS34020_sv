@@ -90,6 +90,7 @@ class ProcessorState:
     machine_states: int = 0
     timing_complete: bool = True
     pending_write_states: int = 0
+    force_next_instruction_bypass: bool = False
     halted: bool = False
     vram_color_latch: int = 0
 
@@ -145,6 +146,7 @@ class ProcessorState:
         self.machine_states = 0
         self.timing_complete = True
         self.pending_write_states = 0
+        self.force_next_instruction_bypass = False
         self.halted = False
         self.vram_color_latch = 0
 
@@ -178,6 +180,7 @@ class ProcessorState:
             "machine_states": self.machine_states,
             "timing_complete": self.timing_complete,
             "pending_write_states": self.pending_write_states,
+            "force_next_instruction_bypass": self.force_next_instruction_bypass,
             "halted": self.halted,
             "vram_color_latch": self.vram_color_latch,
         }
@@ -198,6 +201,9 @@ class ProcessorState:
             machine_states=int(snapshot["machine_states"]),
             timing_complete=bool(snapshot["timing_complete"]),
             pending_write_states=int(snapshot["pending_write_states"]),
+            force_next_instruction_bypass=bool(
+                snapshot.get("force_next_instruction_bypass", False)
+            ),
             halted=bool(snapshot["halted"]),
             vram_color_latch=int(snapshot["vram_color_latch"]),
         )

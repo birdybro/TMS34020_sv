@@ -4,6 +4,15 @@
 
 ### Added
 
+- Primary-page-extracted TMS34020-only RETM `0860h` metadata with shared
+  normal/IX/BF frames, 10/38/52-state cases, full next-instruction direct-
+  memory fetch, and one-instruction interrupt/single-step recognition delay.
+- RETM normal-context model execution with version-3-snapshotted one-shot
+  packet bypass, rollback-safe consumption, a stale three-word cache
+  discriminator, and atomic IX/BF rejection.
+- RETI/RETM mode outputs in the clean-room return-control leaf, including
+  RETM normal timing, full-packet bypass intent and interrupt-recognition delay
+  intent while architectural ownership remains blocked.
 - Primary-page-extracted exact RETI `0940h` metadata with ordinary and IX/BF
   saved-context contracts, ordered stack reads, complete ST/PC/SP effects,
   restored-IE checkpoint, and documented 7/38/52-state cases.
@@ -426,6 +435,17 @@
 
 ### Verified
 
+- The 45-case ISA suite, 66-entry delta ledger, and 169-case model suite pass.
+  RETM coverage proves exact decode/nonalias, state restoration, ten normal
+  states, all-word one-shot bypass despite a stale cached MOVI.L, snapshot/
+  replay, and atomic IX/BF rollback. Direct RTL checks cover both return modes
+  and all context/timing classes without permitting commit.
+- Warning-free Cyclone V Analysis & Synthesis reports 11,626 leaf logic
+  cells/2,230 registers/9 DSP, 434 fetch logic cells, 809 frontend logic
+  cells, and 5,358 scalar logic cells for the 104-entry decoder revision. The
+  frontend/scalar probes retain 4,096 block-memory bits. These are
+  observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
 - The 44-case ISA suite, 65-entry delta ledger, and 166-case model suite pass.
   RETI coverage includes exact decode/nonalias, ordered normal-frame reads,
   full ST/IE restoration, PC alignment, SP wrap, TRAP round trip, and atomic
@@ -996,6 +1016,10 @@
 
 ### Documentation
 
+- Documented RETM's single-step role, TMS34010 absence, one-shot cache bypass,
+  ten-state normal case, shared continuation boundary, and explicit lack of an
+  interrupt scheduler. RSC-0035 records the instruction page's boxed RETI/
+  RETM cache-note transposition and the repeated-primary resolution.
 - Recorded the verified bounded RETI implementation baseline as commit
   `e7eed66741359d9a6bc1905dc3c0ba10011e004f` in the progress ledger.
 - Documented RETI's normal frame, restored-IE checkpoint, TMS34010 timing/
@@ -1126,6 +1150,10 @@
 
 ### Known Issues
 
+- RETM's normal return and transaction-level next-packet bypass are modeled,
+  and its RTL intents are classified, but no stack/cache composition or
+  one-instruction interrupt/single-step recognition scheduler exists. IX/BF,
+  physical fetch timing, width/page/wait/fault/retry, and pins remain open.
 - RETI normal-context behavior is implemented only at the atomic model
   boundary; RTL provides classification/result metadata but no stack reader or
   state owner. IX/BF 24/31-word continuation frames, padding, restore order,

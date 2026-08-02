@@ -120,6 +120,8 @@ module tms34020_leaf_synth_top (
     logic [31:0] interrupt_return_final_sp;
     logic [31:0] interrupt_return_aligned_pc;
     logic interrupt_return_saved_pc_misaligned;
+    logic interrupt_return_force_bypass;
+    logic interrupt_return_delay_recognition;
     logic [31:0] interrupt_return_post_st;
 
     assign register_read_file = first_word_i[4];
@@ -173,7 +175,9 @@ module tms34020_leaf_synth_top (
         interrupt_return_final_sp ^
         interrupt_return_aligned_pc ^
         interrupt_return_post_st ^
-        {16'd0, interrupt_return_saved_pc_misaligned,
+        {14'd0, interrupt_return_force_bypass,
+         interrupt_return_delay_recognition,
+         interrupt_return_saved_pc_misaligned,
          interrupt_return_normal_context,
          interrupt_return_ix_context, interrupt_return_bf_context,
          interrupt_return_extra_words, interrupt_return_visible_states} ^
@@ -415,6 +419,7 @@ module tms34020_leaf_synth_top (
         .old_sp_i(sp),
         .saved_st_i(immediate_i),
         .saved_pc_i(operand_i),
+        .monitor_return_i(first_word_i == 16'h0860),
         .normal_context_o(interrupt_return_normal_context),
         .ix_context_o(interrupt_return_ix_context),
         .bf_context_o(interrupt_return_bf_context),
@@ -423,6 +428,10 @@ module tms34020_leaf_synth_top (
         .normal_final_sp_o(interrupt_return_final_sp),
         .aligned_pc_o(interrupt_return_aligned_pc),
         .saved_pc_misaligned_o(interrupt_return_saved_pc_misaligned),
+        .force_next_instruction_bypass_o(interrupt_return_force_bypass),
+        .delay_interrupt_recognition_o(
+            interrupt_return_delay_recognition
+        ),
         .post_context_st_o(interrupt_return_post_st)
     );
 

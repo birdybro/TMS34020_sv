@@ -110,10 +110,36 @@ the guide does not disclose a field-by-field meaning and restore order for all
 real continuation sequencer. OQ-0023 tracks that missing evidence. RETI is
 therefore PROVISIONAL and only its normal context is executable.
 
+## RETM monitor return
+
+RETM is exact word `0860h` and is TMS34020-only. It restores the same
+ST/PC/SP and IX/BF context classes as RETI, but its ordinary case takes ten
+states rather than seven. During RETM's final state, interrupt acceptance from
+restored IE is masked; the processor executes one instruction from the
+interrupted program before accepting another pending interrupt or single-step
+trap. The complete next instruction is fetched directly from memory rather
+than from the cache. Sources: Figure 6-3, printed p.6-10; RETM p.13-219;
+RETI/RETM comparison p.6-32; timing p.15-8.
+
+The model normal path restores the ordinary frame and arms a snapshotted,
+one-shot instruction-packet bypass. A stale-cache three-word MOVI.L
+discriminator proves that the opcode and both extension words come from
+memory and that the following instruction returns to ordinary cache lookup.
+The bypass is restored if decode/execution aborts. The model preserves the
+stacked IE bit but does not yet schedule pending interrupts or single-step
+traps, so it cannot verify the one-instruction recognition delay. The shared
+RTL leaf reports RETM's 10/38/52 states and bypass/delay intents but performs
+no fetch, stack access, or interrupt arbitration.
+
+The boxed note on p.13-219 incorrectly says RETM uses the cache mechanism and
+then describes the failure mode that makes RETI unsuitable for single-step
+return. This conflicts with the main description on the same page and §6.13;
+RSC-0035 records the evidence and resolution.
+
 ## Model contract
 
 The independent model implements the successful TRAPL instruction boundary
-and the normal RETI return described above.
+and the normal RETI/RETM returns described above.
 Its trace records two `data_write` transactions with distinct
 `trap_return_pc` and `trap_saved_st` purposes, followed by one
 `interrupt_vector_fetch`. Directed tests cover TI's four published examples,

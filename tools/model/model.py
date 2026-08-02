@@ -118,6 +118,7 @@ class Tms34020Model:
             "PUSHST": self._execute_pushst,
             "PUTST": self._execute_putst,
             "RETI": self._execute_reti,
+            "RETM": self._execute_retm,
             "RETS": self._execute_rets,
             "MMFM": self._execute_mmfm,
             "MMTM": self._execute_mmtm,
@@ -214,7 +215,7 @@ class Tms34020Model:
 
     def snapshot(self) -> dict[str, Any]:
         return {
-            "model_schema_version": 2,
+            "model_schema_version": 3,
             "state": self.state.snapshot(),
             "cache": self.cache.snapshot(),
             "trace": [event.snapshot() for event in self.trace],
@@ -224,7 +225,7 @@ class Tms34020Model:
     @classmethod
     def from_snapshot(cls, snapshot: dict[str, Any]) -> "Tms34020Model":
         version = snapshot.get("model_schema_version")
-        if version not in (1, 2):
+        if version not in (1, 2, 3):
             raise ValueError("unsupported model snapshot")
         cache = (
             InstructionCache()
@@ -248,9 +249,12 @@ class Tms34020Model:
         cache_checkpoint = self.cache.snapshot()
         start_pc = self.state.pc
         try:
+            force_instruction_bypass = (
+                self.state.force_next_instruction_bypass
+            )
             fetch_transactions: list[dict[str, int | str]] = []
             first_word, first_fetch_complete = self._fetch_instruction_word(
-                start_pc, fetch_transactions
+                start_pc, fetch_transactions, force_instruction_bypass
             )
             instruction = self.isa.decode(first_word)
             if instruction is None:
@@ -269,9 +273,12 @@ class Tms34020Model:
                 word, timing_complete = self._fetch_instruction_word(
                     (start_pc + index * 16) & MASK32,
                     fetch_transactions,
+                    force_instruction_bypass,
                 )
                 words.append(word)
                 fetch_timing_complete &= timing_complete
+
+            self.state.force_next_instruction_bypass = False
 
             before_registers = self._register_snapshot()
             status_before = self.state.st
@@ -327,10 +334,11 @@ class Tms34020Model:
         self,
         bit_address: int,
         transactions: list[dict[str, int | str]],
+        force_bypass: bool = False,
     ) -> tuple[int, bool]:
         cache_disable = bool(
             self.state.read_io(CONTROL_ADDRESS) & (1 << 15)
-        )
+        ) or force_bypass
         cache_flush = bool(
             self.state.read_io(HSTCTLH_ADDRESS) & (1 << 14)
         )
@@ -347,6 +355,7 @@ class Tms34020Model:
                 "result": result.classification,
                 "segment": -1 if result.segment is None else result.segment,
                 "subsegment": result.subsegment,
+                "forced_bypass": int(force_bypass),
             }
         )
         timing_complete = result.classification == "hit"
@@ -1176,13 +1185,23 @@ class Tms34020Model:
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction, words
+        return self._execute_interrupt_return(monitor_return=False)
+
+    def _execute_retm(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction, words
+        return self._execute_interrupt_return(monitor_return=True)
+
+    def _execute_interrupt_return(self, monitor_return: bool) -> int:
         old_sp = self.state.sp
         restored_st = self.state.memory.read_bits(old_sp, 32)
         continuation_mask = (1 << IX_BIT) | (1 << BF_BIT)
         if restored_st & continuation_mask:
             context = "BF" if restored_st & (1 << BF_BIT) else "IX"
+            mnemonic = "RETM" if monitor_return else "RETI"
             raise UnsupportedInstruction(
-                f"RETI {context} internal-state continuation is classified "
+                f"{mnemonic} {context} internal-state continuation is classified "
                 "but not implemented"
             )
 
@@ -1191,6 +1210,7 @@ class Tms34020Model:
         self.state.st = restored_st
         self.state.pc = restored_pc & 0xFFFF_FFF0
         self.state.sp = (old_sp + 64) & MASK32
+        self.state.force_next_instruction_bypass = monitor_return
         assert self._active_trace is not None
         self._active_trace.transactions.extend(
             [
@@ -1211,11 +1231,18 @@ class Tms34020Model:
             ]
         )
         self._active_trace.notes.append(
-            "successful atomic normal-context RETI abstraction; IX/BF "
+            "successful atomic normal-context "
+            f"{'RETM' if monitor_return else 'RETI'} abstraction; IX/BF "
             "internal-state restore, stack fault/retry, dynamic-width, "
             "page-mode, and final pending-interrupt recognition remain pending"
         )
-        return 7
+        if monitor_return:
+            self._active_trace.notes.append(
+                "the next complete instruction packet is forced to the "
+                "native memory bypass; one-instruction interrupt/single-step "
+                "recognition delay is documented but not scheduled"
+            )
+        return 10 if monitor_return else 7
 
     @staticmethod
     def _multiple_register_indices(

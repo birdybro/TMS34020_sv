@@ -184,6 +184,14 @@ TMS34020 guide printed pp.3-29..3-30, 6-9..6-10, 13-217..13-218, and 15-8;
 TMS34010 guide printed pp.12-230..12-231 and Appendix A p.A-18;
 OQ-0023/RSC-0034.
 
+RETM exact word `0860h` is TMS34020-only. It uses the same saved-context
+classes, but its normal path takes ten states, forces the complete next
+instruction to direct memory, and delays interrupt/single-step recognition
+until one instruction executes. This requires a one-shot fetch override and
+recognition gate in the TMS34020 frontend/sequencer; it cannot be wrapped
+around a TMS34010 RETI implementation. Sources: TMS34020 guide Figure 6-3
+p.6-10, RETM p.13-219, comparison p.6-32, timing p.15-8; RSC-0035.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family
