@@ -15,6 +15,8 @@ from .state import (
     CONTROL_ADDRESS,
     HSTCTLH_ADDRESS,
     MASK32,
+    PMASKH_ADDRESS,
+    PMASKL_ADDRESS,
     PSIZE_ADDRESS,
     ProcessorState,
 )
@@ -217,6 +219,8 @@ class Tms34020Model:
             "CEXEC.L": self._execute_cexec,
             "CEXEC.S": self._execute_cexec,
             "CLIP": self._execute_clip,
+            "FPIXEQ": self._execute_find_pixel,
+            "FPIXNE": self._execute_find_pixel,
             "CMOVGC.1": self._execute_cmovgc,
             "CMOVGC.2": self._execute_cmovgc,
             "CMOVCG": self._execute_cmovcg,
@@ -3682,6 +3686,91 @@ class Tms34020Model:
             "CLIP computed the positive-dimension common rectangle in "
             "extended signed-coordinate space; no pixel or data-memory "
             "transaction occurs and complex internal timing is not modeled"
+        )
+        return None
+
+    def _execute_find_pixel(
+        self, instruction: Instruction, words: list[int]
+    ) -> None:
+        del words
+        config = self.state.read_io(CONFIG_ADDRESS)
+        if config & 1:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} big-endian pixel mapping is "
+                "classified but not modeled"
+            )
+        if config & (1 << 11):
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} CST-converted VRAM transfer is "
+                "classified but not modeled"
+            )
+        pixel_size = self._read_legal_psize()
+        pixel_mask = MASK32 if pixel_size == 32 else (1 << pixel_size) - 1
+        plane_mask = (
+            self.state.read_io(PMASKL_ADDRESS)
+            | (self.state.read_io(PMASKH_ADDRESS) << 16)
+        )
+        color0 = self.state.read_reg("B", 8)
+        maddr = self.state.read_reg("B", 10)
+        raw_count = self.state.read_reg("B", 11)
+        count = self._signed_word(raw_count)
+        found = False
+        assert self._active_trace is not None
+
+        while count != 0:
+            if count > 0:
+                effective_address = maddr
+                maddr = (maddr + pixel_size) & MASK32
+                count -= 1
+                direction = "postincrement"
+            else:
+                maddr = (maddr - pixel_size) & MASK32
+                effective_address = maddr
+                count += 1
+                direction = "predecrement"
+
+            lane = effective_address & 0x1F
+            if effective_address & (pixel_size - 1):
+                raise ModelError(
+                    f"{instruction.mnemonic} requires a pixel-aligned MADDR"
+                )
+            if lane + pixel_size > 32:
+                raise ModelError(
+                    f"{instruction.mnemonic} pixel crosses a long-word boundary"
+                )
+            raw_pixel = self.state.memory.read_bits(
+                effective_address, pixel_size
+            )
+            pixel_plane_mask = (plane_mask >> lane) & pixel_mask
+            masked_pixel = raw_pixel & (~pixel_plane_mask & pixel_mask)
+            comparison_pixel = (color0 >> lane) & pixel_mask
+            equal = masked_pixel == comparison_pixel
+            found = equal if instruction.mnemonic == "FPIXEQ" else not equal
+            self._active_trace.transactions.append(
+                {
+                    "class": "pixel_read",
+                    "purpose": "find_pixel_compare",
+                    "bit_address": effective_address,
+                    "width": pixel_size,
+                    "raw_value": raw_pixel,
+                    "plane_mask": pixel_plane_mask,
+                    "masked_value": masked_pixel,
+                    "comparison_value": comparison_pixel,
+                    "direction": direction,
+                    "found": int(found),
+                }
+            )
+            if found:
+                break
+
+        self.state.write_reg("B", 10, maddr)
+        self.state.write_reg("B", 11, count & MASK32)
+        self._set_status_bit(Z_BIT, found)
+        self._active_trace.notes.append(
+            f"successful atomic {instruction.mnemonic} logical pixel scan; "
+            "COLOR0 and PMASK lanes follow the pixel's long-word position; "
+            "physical read grouping, page mode, wait, fault/retry, and "
+            "interrupt continuation remain pending"
         )
         return None
 

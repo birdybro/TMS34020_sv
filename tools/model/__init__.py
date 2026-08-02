@@ -21,6 +21,8 @@ from .state import (
     CONVMP_ADDRESS,
     CONVSP_ADDRESS,
     HSTCTLH_ADDRESS,
+    PMASKH_ADDRESS,
+    PMASKL_ADDRESS,
     PSIZE_ADDRESS,
     ProcessorState,
 )
@@ -39,6 +41,8 @@ __all__ = [
     "MemoryReadRequest",
     "ModelError",
     "ProcessorState",
+    "PMASKH_ADDRESS",
+    "PMASKL_ADDRESS",
     "PSIZE_ADDRESS",
     "StepTrace",
     "Tms34020Model",

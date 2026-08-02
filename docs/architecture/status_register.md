@@ -195,6 +195,14 @@ guide's unstated Z/V result for an empty width or height. No architectural RTL
 commit owner exists. Sources: User's Guide §12.7.4.4 printed p.12-23 and CLIP
 printed pp.13-55..13-56.
 
+FPIXEQ and FPIXNE preserve N/C/V and every lower ST bit. Z is one only when
+the requested equality/inequality is found before signed MPTCH exhausts; a
+zero or exhausted scan clears Z. The model checks both predicates and
+preservation across forward/backward and plane-masked scans. The one-step RTL
+leaf emits only the current comparison's Z result and has no architectural ST
+owner. Sources: User's Guide FPIXEQ printed pp.13-126..13-127 and FPIXNE
+printed pp.13-128..13-129.
+
 CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
 The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide

@@ -110,6 +110,16 @@ the guide does not disclose a field-by-field meaning and restore order for all
 real continuation sequencer. OQ-0023 tracks that missing evidence. RETI is
 therefore PROVISIONAL and only its normal context is executable.
 
+FPIXEQ and FPIXNE are explicit exceptions to the ordinary IX temporary-frame
+sequence. On interruption the processor backs PC up to the search opcode and
+resets MADDR/MPTCH so RETI resumes at the next pixel, but does not stack the
+internal temporary registers described by the general sequence. Positive
+searches retain the next address; negative searches retain the last checked
+address so their predecrement resumes with the next pixel. The bounded model
+executes only uninterrupted atomic scans, and the one-step RTL leaf has no
+interrupt owner. Source: User's Guide interrupt exception printed p.6-14 and
+FPIXEQ/FPIXNE printed pp.13-126..13-129.
+
 ## RETM monitor return
 
 RETM is exact word `0860h` and is TMS34020-only. It restores the same

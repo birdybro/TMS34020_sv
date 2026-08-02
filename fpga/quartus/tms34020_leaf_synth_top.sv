@@ -95,6 +95,17 @@ module tms34020_leaf_synth_top (
     logic [31:0] clip_adjusted_dimensions;
     logic clip_z;
     logic clip_v;
+    logic find_inputs_valid;
+    logic find_active;
+    logic find_predecrement;
+    logic [31:0] find_access_address;
+    logic [31:0] find_masked_pixel;
+    logic [31:0] find_comparison_pixel;
+    logic find_found;
+    logic [31:0] find_next_maddr;
+    logic [31:0] find_next_mptch;
+    logic find_done;
+    logic find_z;
     logic [31:0] xy_linear_result;
     logic [1:0] xy_linear_pitch_class;
     logic [3:0] xy_linear_visible_states;
@@ -334,6 +345,13 @@ module tms34020_leaf_synth_top (
         clip_adjusted_origin ^
         clip_adjusted_dimensions ^
         {28'd0, clip_geometry_valid, clip_intersection, clip_z, clip_v} ^
+        find_access_address ^
+        find_masked_pixel ^
+        find_comparison_pixel ^
+        find_next_maddr ^
+        find_next_mptch ^
+        {25'd0, find_inputs_valid, find_active, find_predecrement,
+         find_found, find_done, find_z, first_word_i[5]} ^
         xy_linear_result ^
         divider_quotient ^
         divider_remainder ^
@@ -646,6 +664,27 @@ module tms34020_leaf_synth_top (
         .adjusted_dimensions_o(clip_adjusted_dimensions),
         .status_z_o(clip_z),
         .status_v_o(clip_v)
+    );
+
+    tms34020_find_pixel_step find_pixel_step (
+        .equal_mode_i(first_word_i[5]),
+        .maddr_i(operand_i),
+        .mptch_i(immediate_i),
+        .psize_i({10'd0, pixel_size_i}),
+        .color0_i({operand_i[15:0], operand_i[31:16]}),
+        .pmask_i({immediate_i[15:0], immediate_i[31:16]}),
+        .raw_pixel_i(operand_i ^ immediate_i),
+        .inputs_valid_o(find_inputs_valid),
+        .active_o(find_active),
+        .predecrement_o(find_predecrement),
+        .access_address_o(find_access_address),
+        .masked_pixel_o(find_masked_pixel),
+        .comparison_pixel_o(find_comparison_pixel),
+        .found_o(find_found),
+        .next_maddr_o(find_next_maddr),
+        .next_mptch_o(find_next_mptch),
+        .done_o(find_done),
+        .status_z_o(find_z)
     );
 
     tms34020_xy_to_linear xy_to_linear (

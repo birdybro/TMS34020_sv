@@ -17,7 +17,12 @@ from tools.model import (
     UnclassifiedEncoding,
     UnsupportedInstruction,
 )
-from tools.model.state import CONFIG_ADDRESS, PSIZE_ADDRESS
+from tools.model.state import (
+    CONFIG_ADDRESS,
+    PMASKH_ADDRESS,
+    PMASKL_ADDRESS,
+    PSIZE_ADDRESS,
+)
 
 Z_BIT = 29
 
@@ -5048,6 +5053,170 @@ class ExecutionTests(unittest.TestCase):
                 model.state.write_reg("B", 7, xy(*dimensions))
                 before = model.snapshot()
                 with self.assertRaises(ModelError):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
+    def test_find_pixel_forward_backward_exhaustion_and_zero_count(
+        self,
+    ) -> None:
+        cases = (
+            # opcode, start, signed count, values by checked address,
+            # final address, final signed count, found
+            (0x0ABB, 0x100, 4,
+             ((0x100, 1), (0x104, 2), (0x108, 5), (0x10C, 7)),
+             0x10C, 1, True),
+            (0x0ABB, 0x140, 2,
+             ((0x140, 1), (0x144, 2)),
+             0x148, 0, False),
+            (0x0ADB, 0x180, 3,
+             ((0x180, 5), (0x184, 5), (0x188, 6)),
+             0x18C, 0, True),
+            (0x0ABB, 0x220, -4,
+             ((0x21C, 1), (0x218, 5), (0x214, 7)),
+             0x218, -2, True),
+            (0x0ADB, 0x260, -2,
+             ((0x25C, 5), (0x258, 5)),
+             0x258, 0, False),
+            (0x0ABB, 0x300, 0, (), 0x300, 0, False),
+        )
+        for (
+            opcode, start, count, address_values,
+            final_address, final_count, expected_found,
+        ) in cases:
+            with self.subTest(opcode=f"{opcode:04X}", count=count):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.write_io(PSIZE_ADDRESS, 4)
+                model.state.write_reg("B", 8, 0x5555_5555)
+                model.state.write_reg("B", 10, start)
+                model.state.write_reg("B", 11, count & 0xFFFF_FFFF)
+                model.state.st = 0xDABC_DEF0 | (1 << Z_BIT)
+                for address, value in address_values:
+                    model.state.memory.write_bits(address, 4, value)
+
+                event = model.step()
+
+                pixel_reads = [
+                    item for item in event.transactions
+                    if item["class"] == "pixel_read"
+                ]
+                expected_read_count = (
+                    len(address_values)
+                    if not expected_found
+                    else next(
+                        index + 1
+                        for index, (_, value) in enumerate(address_values)
+                        if (value == 5) == (opcode == 0x0ABB)
+                    )
+                )
+                self.assertEqual(len(pixel_reads), expected_read_count)
+                self.assertEqual(
+                    [item["bit_address"] for item in pixel_reads],
+                    [address for address, _ in address_values][
+                        :expected_read_count
+                    ],
+                )
+                self.assertEqual(
+                    model.state.read_reg("B", 10), final_address
+                )
+                self.assertEqual(
+                    model.state.read_reg("B", 11),
+                    final_count & 0xFFFF_FFFF,
+                )
+                expected_status = (
+                    (0xDABC_DEF0 | (1 << Z_BIT))
+                    if expected_found
+                    else (0xDABC_DEF0 & ~(1 << Z_BIT))
+                )
+                self.assertEqual(model.state.st, expected_status)
+                self.assertIsNone(event.machine_states)
+                self.assertFalse(model.state.timing_complete)
+
+    def test_find_pixel_plane_mask_and_color_lane(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0x0ABB])
+        model.state.write_io(PSIZE_ADDRESS, 8)
+        model.state.write_io(PMASKL_ADDRESS, 0xF000)
+        model.state.write_io(PMASKH_ADDRESS, 0x0000)
+        model.state.write_reg("B", 8, 0x0000_0500)
+        model.state.write_reg("B", 10, 0x208)
+        model.state.write_reg("B", 11, 1)
+        model.state.memory.write_bits(0x208, 8, 0xA5)
+
+        event = model.step()
+
+        pixel_read = next(
+            item for item in event.transactions
+            if item["class"] == "pixel_read"
+        )
+        self.assertEqual(pixel_read["plane_mask"], 0xF0)
+        self.assertEqual(pixel_read["raw_value"], 0xA5)
+        self.assertEqual(pixel_read["masked_value"], 0x05)
+        self.assertEqual(pixel_read["comparison_value"], 0x05)
+        self.assertEqual(pixel_read["found"], 1)
+        self.assertEqual(model.state.read_reg("B", 10), 0x210)
+        self.assertEqual(model.state.read_reg("B", 11), 0)
+        self.assertTrue(model.state.st & (1 << Z_BIT))
+
+    def test_find_pixel_all_legal_pixel_sizes_and_long_word_lanes(
+        self,
+    ) -> None:
+        for pixel_size in (1, 2, 4, 8, 16, 32):
+            pixel_mask = (
+                0xFFFF_FFFF
+                if pixel_size == 32
+                else (1 << pixel_size) - 1
+            )
+            value = 0xA5A5_5A5B & pixel_mask
+            for lane in range(0, 32, pixel_size):
+                with self.subTest(pixel_size=pixel_size, lane=lane):
+                    address = 0x400 + lane
+                    model = Tms34020Model()
+                    model.load_program([0x0ABB])
+                    model.state.write_io(PSIZE_ADDRESS, pixel_size)
+                    model.state.write_reg("B", 8, value << lane)
+                    model.state.write_reg("B", 10, address)
+                    model.state.write_reg("B", 11, 1)
+                    model.state.memory.write_bits(
+                        address, pixel_size, value
+                    )
+
+                    event = model.step()
+
+                    pixel_reads = [
+                        item for item in event.transactions
+                        if item["class"] == "pixel_read"
+                    ]
+                    self.assertEqual(len(pixel_reads), 1)
+                    self.assertEqual(pixel_reads[0]["bit_address"], address)
+                    self.assertEqual(pixel_reads[0]["width"], pixel_size)
+                    self.assertEqual(pixel_reads[0]["found"], 1)
+                    self.assertEqual(
+                        model.state.read_reg("B", 10),
+                        address + pixel_size,
+                    )
+                    self.assertEqual(model.state.read_reg("B", 11), 0)
+                    self.assertTrue(model.state.st & (1 << Z_BIT))
+
+    def test_find_pixel_unsupported_modes_and_alignment_roll_back(self) -> None:
+        for config, pixel_size, address, error_type in (
+            (1, 4, 0x100, UnsupportedInstruction),
+            (1 << 11, 4, 0x100, UnsupportedInstruction),
+            (0, 3, 0x100, ModelError),
+            (0, 4, 0x102, ModelError),
+        ):
+            with self.subTest(
+                config=config, pixel_size=pixel_size, address=address
+            ):
+                model = Tms34020Model()
+                model.load_program([0x0ABB])
+                model.state.write_io(CONFIG_ADDRESS, config)
+                model.state.write_io(PSIZE_ADDRESS, pixel_size)
+                model.state.write_reg("B", 8, 0x5555_5555)
+                model.state.write_reg("B", 10, address)
+                model.state.write_reg("B", 11, 1)
+                before = model.snapshot()
+                with self.assertRaises(error_type):
                     model.step()
                 self.assertEqual(model.snapshot(), before)
 

@@ -140,6 +140,16 @@ dynamic 16-bit subcycles, page mode, and exact sampling phases remain
 acceptance work for `TMS20-0017`. See
 `docs/memory/cache_native_interface.md`.
 
+FPIXEQ/FPIXNE now have bounded uninterrupted logical scans and a one-pixel
+comparison/update leaf, but neither is fault evidence. A faultable pixel-read
+owner must preserve the B10/B11 checkpoint and Z until completion, distinguish
+the instruction's special no-temporary interrupt restart from BF continuation,
+and resume without skipping or duplicating a comparison. The guide's general
+graphics-fault rule sets BF and uses the bus-fault continuation sequence
+(printed p.6-14), but it does not disclose enough internal checkpoint fields
+to implement that owner. No `pixel_read` transaction in the model represents
+physical acceptance or BUSFLT sampling.
+
 ## Required verification
 
 Future RTL tests and properties must inject all four completion codes during

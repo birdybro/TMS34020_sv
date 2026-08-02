@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 142 page-verified encoding records and covers 48,220 of 65,536
+slice contains 144 page-verified encoding records and covers 48,222 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -133,6 +133,8 @@ first words without collisions:
 | CEXEC.L | exact `0600h` plus command/size and ID/command words | 3 | pp.13-51..13-52 |
 | CEXEC.S | `D800h`, mask `FF80h`, plus ID/command word | 2 | pp.13-53..13-54 |
 | CLIP | `08F2h` | 1 | pp.13-55..13-56 |
+| FPIXEQ | `0ABBh` | 1 | pp.13-126..13-127 |
+| FPIXNE | `0ADBh` | 1 | pp.13-128..13-129 |
 | CMOVGC.1 | `0620h`, mask `FFE0h`, plus command and ID/command words | 3 | pp.13-67..13-68 |
 | CMOVGC.2 | `0640h`, mask `FFE0h`, plus command/size/Rs2 and ID/command words | 3 | pp.13-69..13-70 |
 | CMOVCG / CMOVCS packet refinement | `0660h`, mask `FFE0h`, plus command/size/Rd2 and ID/command words | 3 | CMOVCG pp.13-59..13-60; CMOVCS p.13-66 |
@@ -177,6 +179,20 @@ change, no data-memory cycle occurs, and timing is documented as complex.
 OQ-0029 retains the unspecified Z/V result for a zero width or height. Sources:
 User's Guide DYDX printed pp.4-50..4-51, §12.7.4.4 p.12-23, CLIP
 pp.13-55..13-56, and timing p.15-2.
+
+FPIXEQ/FPIXNE are the exact one-word `0ABBh`/`0ADBh` TMS34020-only pixel
+searches. Signed B11/MPTCH selects postincrement for positive counts and
+predecrement for negative counts; its magnitude decreases after each checked
+PSIZE-bit pixel. A plane-masked memory pixel is compared with the aligned
+B8/COLOR0 lane for equality or inequality. B10/MADDR and B11 retain the
+remaining scan checkpoint, while only Z changes. TI specifies complex timing
+and a special interrupt restart that backs up PC and resets operands without
+saving internal temporaries. The model implements only an uninterrupted,
+successful logical scan; physical read grouping, waits, page mode, fault/retry
+and continuation remain absent. RSC-0044 resolves the general plane-mask
+section's omission using both instruction-specific enable statements. Sources:
+User's Guide FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129, interrupt
+exception p.6-14, and plane masking pp.12-39..12-40.
 
 `CLR Rd` is the documented alternate mnemonic for `XOR Rd,Rd`, not a separate
 decode range. Its instruction word repeats the same four-bit register number

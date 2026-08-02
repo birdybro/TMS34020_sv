@@ -1056,6 +1056,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 DYDX, printed pp.4-50..4-51", "TI-TMS34020-UG-1990 §12.7.4.4 printed p.12-23", "TI-TMS34020-UG-1990 CLIP printed pp.13-55..13-56", "TI-TMS34020-UG-1990 timing table printed p.15-2"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["OQ-0029: CLIP Z/V for a zero width or height is not stated.", "The complex internal state count and atomic architectural commit owner remain unimplemented."]
+    },
+    {
+      "feature": "plane_masked_pixel_search",
+      "tms34010_behavior": "No FPIXEQ or FPIXNE instruction is documented in the TMS34010 instruction set.",
+      "tms34020_behavior": "Exact 0ABBh/0ADBh scan PSIZE-bit pixels from B10/MADDR, stopping on equality/inequality with the aligned B8/COLOR0 pixel or signed B11/MPTCH exhaustion. Positive counts postincrement and negative counts predecrement; PMASK clears protected memory-pixel bits before comparison, MPTCH magnitude decreases per pixel, Z reports a find, and timing is complex. Interrupts back up PC and reset operands rather than saving internal temporaries.",
+      "rtl_impact": "A plane-mask-aware pixel-read sequencer must checkpoint B10/B11, Z, the next comparison, and interrupt/fault continuation without duplicate reads. The clean-room RTL leaf implements one logical comparison/update step only; the model implements an atomic successful scan boundary.",
+      "test_impact": "Both exact opcodes and neighbors; every legal PSIZE/lane; equality/inequality; positive, negative, zero and exhausted counts; match at first/middle/final pixel; PMASK/COLOR0 alignment; pointer/count/Z preservation; read traces; BEN/CST guards; waits, page grouping, bus faults, retry and interrupt resume.",
+      "source_citation": ["TI-TMS34020-UG-1990 FPIXEQ, printed pp.13-126..13-127", "TI-TMS34020-UG-1990 FPIXNE, printed pp.13-128..13-129", "TI-TMS34020-UG-1990 interrupt exception, printed p.6-14", "TI-TMS34020-UG-1990 plane masking, printed pp.12-39..12-40"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Physical long-word read grouping, dynamic sizing, page-mode termination and exact interrupt/fault checkpoint timing remain unimplemented.", "RSC-0044 records the general plane-mask section's omission of FPIX from its affected-instruction list; the instruction-specific enable statements govern."]
     }
   ]
 }

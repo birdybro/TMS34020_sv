@@ -36,7 +36,7 @@ Implemented:
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
-  CEXEC.S, CLIP, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
+  CEXEC.S, CLIP, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
   CMOVMC.POST.C, CMOVCM.POST.C, CMOVCM.PRE.C, CMOVMC.POST.R,
   CMOVMC.PRE.C,
   XORI,
@@ -44,7 +44,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LINIT, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 141 of 142 currently extracted database forms for their
+These handlers cover 143 of 144 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -416,6 +416,22 @@ TI specifies only “complex instruction.” Zero dimensions and inverted window
 roll back rather than assigning undocumented behavior; OQ-0029 records the
 zero-dimension status gap. Sources: User's Guide DYDX printed pp.4-50..4-51,
 §12.7.4.4 printed p.12-23, CLIP printed pp.13-55..13-56, and timing p.15-2.
+
+FPIXEQ and FPIXNE capture B8/COLOR0, B10/MADDR, signed B11/MPTCH, PSIZE and
+the two PMASK halves before scanning. A positive count reads at MADDR and
+postincrements; a negative count predecrements before each read, leaving
+MADDR at the last checked pixel. Each right-justified memory pixel is ANDed
+with the inverse aligned PMASK lane and compared with the aligned COLOR0 lane.
+The model records one logical `pixel_read` per comparison, moves MPTCH toward
+zero, replaces only Z, and stops on equality/inequality or exhaustion. Tests
+cover forward/backward scans, first/middle/final/exhausted/zero cases, all six
+legal sizes and every long-word lane, plane masking, status preservation, and
+atomic BEN/CST/PSIZE/alignment refusal. Events intentionally have no state
+count because TI says only “complex instruction”; physical grouping, waits,
+page mode, faults/retry and the special no-temporary interrupt restart are not
+modeled. Sources: User's Guide FPIXEQ pp.13-126..13-127, FPIXNE
+pp.13-128..13-129, interrupt p.6-14, and plane masking pp.12-39..12-40;
+RSC-0044 applies.
 
 The four XY-to-linear handlers share equation-level arithmetic but retain
 their distinct explicit and implied operands. Signed X/Y halves and signed
@@ -871,6 +887,9 @@ write order, NCZV, no-data-transaction boundary, and fixed nine states,
 CLIP inside/partial/outside/overflow/max-dimension positive rectangles,
 extended-coordinate intersection, B2/B7/Z/V boundary, zero/invalid rollback,
 and disclosed complex timing,
+FPIXEQ/FPIXNE positive/postincrement, negative/predecrement, exhausted and
+zero scans, every legal PSIZE/lane, aligned PMASK/COLOR0 comparison, exact
+logical read traces, B10/B11/Z results, and unsupported-mode rollback,
 all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
 coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and the
 published state cases plus provisional CVXYL arbitrary-pitch selection,

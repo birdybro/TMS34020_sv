@@ -20,6 +20,10 @@ module tb_tms34020_verified_leaves;
     integer coprocessor_id_index;
     integer coprocessor_command_bit;
     integer coprocessor_source2_index;
+    integer find_size_loop;
+    integer find_lane_loop;
+    logic [31:0] find_loop_mask;
+    logic [31:0] find_loop_value;
     logic [15:0] constant_opcode;
     logic [31:0] expected_rotate;
     logic [31:0] expected_shift;
@@ -93,6 +97,24 @@ module tb_tms34020_verified_leaves;
     logic [31:0] clip_adjusted_dimensions;
     logic clip_z;
     logic clip_v;
+    logic find_equal_mode;
+    logic [31:0] find_maddr;
+    logic [31:0] find_mptch;
+    logic [15:0] find_psize;
+    logic [31:0] find_color0;
+    logic [31:0] find_pmask;
+    logic [31:0] find_raw_pixel;
+    logic find_inputs_valid;
+    logic find_active;
+    logic find_predecrement;
+    logic [31:0] find_access_address;
+    logic [31:0] find_masked_pixel;
+    logic [31:0] find_comparison_pixel;
+    logic find_found;
+    logic [31:0] find_next_maddr;
+    logic [31:0] find_next_mptch;
+    logic find_done;
+    logic find_z;
     logic [31:0] xy_linear_xy;
     logic [31:0] xy_linear_pitch;
     logic [31:0] xy_linear_offset;
@@ -608,6 +630,27 @@ module tb_tms34020_verified_leaves;
         .adjusted_dimensions_o(clip_adjusted_dimensions),
         .status_z_o(clip_z),
         .status_v_o(clip_v)
+    );
+
+    tms34020_find_pixel_step find_pixel_step_dut (
+        .equal_mode_i(find_equal_mode),
+        .maddr_i(find_maddr),
+        .mptch_i(find_mptch),
+        .psize_i(find_psize),
+        .color0_i(find_color0),
+        .pmask_i(find_pmask),
+        .raw_pixel_i(find_raw_pixel),
+        .inputs_valid_o(find_inputs_valid),
+        .active_o(find_active),
+        .predecrement_o(find_predecrement),
+        .access_address_o(find_access_address),
+        .masked_pixel_o(find_masked_pixel),
+        .comparison_pixel_o(find_comparison_pixel),
+        .found_o(find_found),
+        .next_maddr_o(find_next_maddr),
+        .next_mptch_o(find_next_mptch),
+        .done_o(find_done),
+        .status_z_o(find_z)
     );
 
     tms34020_xy_to_linear xy_to_linear_dut (
@@ -1515,6 +1558,51 @@ module tb_tms34020_verified_leaves;
             clip_adjusted_dimensions == expected_dimensions &&
             clip_z == expected_z &&
             clip_v == expected_v,
+            message
+        );
+    endtask
+
+    task automatic check_find_pixel_step(
+        input logic equal_mode,
+        input logic [31:0] maddr,
+        input logic [31:0] mptch,
+        input logic [15:0] psize,
+        input logic [31:0] color0,
+        input logic [31:0] pmask,
+        input logic [31:0] raw_pixel,
+        input logic expected_valid,
+        input logic expected_active,
+        input logic expected_predecrement,
+        input logic [31:0] expected_access_address,
+        input logic [31:0] expected_masked_pixel,
+        input logic [31:0] expected_comparison_pixel,
+        input logic expected_found,
+        input logic [31:0] expected_next_maddr,
+        input logic [31:0] expected_next_mptch,
+        input logic expected_done,
+        input logic expected_z,
+        input string message
+    );
+        find_equal_mode = equal_mode;
+        find_maddr = maddr;
+        find_mptch = mptch;
+        find_psize = psize;
+        find_color0 = color0;
+        find_pmask = pmask;
+        find_raw_pixel = raw_pixel;
+        #1;
+        check_condition(
+            find_inputs_valid == expected_valid &&
+            find_active == expected_active &&
+            find_predecrement == expected_predecrement &&
+            find_access_address == expected_access_address &&
+            find_masked_pixel == expected_masked_pixel &&
+            find_comparison_pixel == expected_comparison_pixel &&
+            find_found == expected_found &&
+            find_next_maddr == expected_next_maddr &&
+            find_next_mptch == expected_next_mptch &&
+            find_done == expected_done &&
+            find_z == expected_z,
             message
         );
     endtask
@@ -2913,6 +3001,13 @@ module tb_tms34020_verified_leaves;
         clip_dimensions = 32'd0;
         clip_window_start = 32'd0;
         clip_window_end = 32'd0;
+        find_equal_mode = 1'b0;
+        find_maddr = 32'd0;
+        find_mptch = 32'd0;
+        find_psize = 16'd1;
+        find_color0 = 32'd0;
+        find_pmask = 32'd0;
+        find_raw_pixel = 32'd0;
         xy_linear_xy = 32'd0;
         xy_linear_pitch = 32'd0;
         xy_linear_offset = 32'd0;
@@ -3677,6 +3772,89 @@ module tb_tms34020_verified_leaves;
             1'b0, 1'b0, 32'h0002_0001, 32'h0004_0005, 1'b0, 1'b0,
             "CLIP inverted window remains unsupported"
         );
+
+        check_find_pixel_step(
+            1'b1, 32'h0000_0100, 32'd4, 16'd4,
+            32'h5555_5555, 32'd0, 32'd5,
+            1'b1, 1'b1, 1'b0, 32'h0000_0100, 32'd5, 32'd5,
+            1'b1, 32'h0000_0104, 32'd3, 1'b1, 1'b1,
+            "FPIXEQ postincrement match"
+        );
+        check_find_pixel_step(
+            1'b1, 32'h0000_0100, 32'd1, 16'd4,
+            32'h5555_5555, 32'd0, 32'd2,
+            1'b1, 1'b1, 1'b0, 32'h0000_0100, 32'd2, 32'd5,
+            1'b0, 32'h0000_0104, 32'd0, 1'b1, 1'b0,
+            "FPIXEQ exhausted postincrement miss"
+        );
+        check_find_pixel_step(
+            1'b0, 32'h0000_0180, 32'd3, 16'd4,
+            32'h5555_5555, 32'd0, 32'd6,
+            1'b1, 1'b1, 1'b0, 32'h0000_0180, 32'd6, 32'd5,
+            1'b1, 32'h0000_0184, 32'd2, 1'b1, 1'b1,
+            "FPIXNE postincrement match"
+        );
+        check_find_pixel_step(
+            1'b1, 32'h0000_0220, 32'hFFFF_FFFC, 16'd4,
+            32'h5555_5555, 32'd0, 32'd5,
+            1'b1, 1'b1, 1'b1, 32'h0000_021C, 32'd5, 32'd5,
+            1'b1, 32'h0000_021C, 32'hFFFF_FFFD, 1'b1, 1'b1,
+            "FPIXEQ predecrement match"
+        );
+        check_find_pixel_step(
+            1'b1, 32'h0000_0208, 32'd1, 16'd8,
+            32'h0000_0500, 32'h0000_F000, 32'h0000_00A5,
+            1'b1, 1'b1, 1'b0, 32'h0000_0208, 32'd5, 32'd5,
+            1'b1, 32'h0000_0210, 32'd0, 1'b1, 1'b1,
+            "FPIXEQ aligned COLOR0 and PMASK lane"
+        );
+        check_find_pixel_step(
+            1'b1, 32'h0000_0300, 32'd0, 16'd4,
+            32'h5555_5555, 32'd0, 32'd5,
+            1'b1, 1'b0, 1'b0, 32'h0000_0300, 32'd5, 32'd5,
+            1'b0, 32'h0000_0300, 32'd0, 1'b1, 1'b0,
+            "FPIXEQ zero count performs no step"
+        );
+        check_find_pixel_step(
+            1'b1, 32'h0000_0100, 32'd1, 16'd3,
+            32'h5555_5555, 32'd0, 32'd5,
+            1'b0, 1'b0, 1'b0, 32'h0000_0100, 32'd0, 32'd0,
+            1'b0, 32'h0000_0100, 32'd1, 1'b0, 1'b0,
+            "FPIXEQ illegal PSIZE remains unsupported"
+        );
+        check_find_pixel_step(
+            1'b1, 32'h0000_0102, 32'd1, 16'd4,
+            32'h5555_5555, 32'd0, 32'd5,
+            1'b0, 1'b0, 1'b0, 32'h0000_0102, 32'd5, 32'd5,
+            1'b0, 32'h0000_0102, 32'd1, 1'b0, 1'b0,
+            "FPIXEQ misaligned pointer remains unsupported"
+        );
+        for (find_size_loop = 1; find_size_loop <= 32;
+             find_size_loop = find_size_loop * 2) begin
+            find_loop_mask =
+                32'hFFFF_FFFF >> (32 - find_size_loop);
+            find_loop_value = 32'hA5A5_5A5B & find_loop_mask;
+            for (find_lane_loop = 0; find_lane_loop < 32;
+                 find_lane_loop = find_lane_loop + find_size_loop) begin
+                check_find_pixel_step(
+                    1'b1,
+                    32'h0000_0400 + find_lane_loop,
+                    32'd1,
+                    find_size_loop[15:0],
+                    find_loop_value << find_lane_loop,
+                    32'd0,
+                    find_loop_value,
+                    1'b1, 1'b1, 1'b0,
+                    32'h0000_0400 + find_lane_loop,
+                    find_loop_value,
+                    find_loop_value,
+                    1'b1,
+                    32'h0000_0400 + find_lane_loop + find_size_loop,
+                    32'd0, 1'b1, 1'b1,
+                    "FPIXEQ every legal PSIZE and long-word lane"
+                );
+            end
+        end
 
         check_xy_to_linear(
             32'h0040_0030, 32'h0000_0800, 32'd0,
@@ -5315,6 +5493,16 @@ module tb_tms34020_verified_leaves;
             16'h08F2, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "CLIP cannot bypass implied B-register ownership"
+        );
+        check_register_execute(
+            16'h0ABB, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "FPIXEQ cannot bypass implied B-register/memory ownership"
+        );
+        check_register_execute(
+            16'h0ADB, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "FPIXNE cannot bypass implied B-register/memory ownership"
         );
         check_register_execute(
             16'h0A60, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
@@ -7087,6 +7275,10 @@ module tb_tms34020_verified_leaves;
                      "LINIT exact decode");
         check_decode(16'h08F2, TMS20_OP_CLIP, 3'd1,
                      "CLIP exact decode");
+        check_decode(16'h0ABB, TMS20_OP_FPIXEQ, 3'd1,
+                     "FPIXEQ exact decode");
+        check_decode(16'h0ADB, TMS20_OP_FPIXNE, 3'd1,
+                     "FPIXNE exact decode");
         check_decode(16'h0A60, TMS20_OP_CVMXYL, 3'd1,
                      "CVMXYL lower-bound decode");
         check_decode(16'h0A7F, TMS20_OP_CVMXYL, 3'd1,

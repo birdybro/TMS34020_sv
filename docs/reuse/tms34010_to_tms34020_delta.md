@@ -126,6 +126,15 @@ rejects zero dimensions because TI does not state their CLIP Z/V result
 (OQ-0029). Sources: TMS34020 guide DYDX printed pp.4-50..4-51,
 §12.7.4.4 p.12-23, and CLIP pp.13-55..13-56.
 
+FPIXEQ/FPIXNE at exact `0ABBh`/`0ADBh` are TMS34020-only plane-masked pixel
+searches. Their signed count direction, B10/B11 checkpoint updates, aligned
+COLOR0/PMASK comparison, Z result, complex timing, and special interrupt
+restart require a new memory/graphics continuation owner. No TMS34010 leaf or
+timing state machine is reusable. The current RTL implements only one logical
+comparison/update step; the model's atomic scan is not physical sequencing.
+Sources: TMS34020 guide FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129,
+interrupt exception p.6-14, and plane masking pp.12-39..12-40; RSC-0044.
+
 CVXYL retains `E800h`/`FE00h`, same-file explicit operands, implied B3/B4,
 CONVDP/PSIZE inputs, unaffected ST, and the signed XY-to-linear equation. The
 TMS34020 expands pitch handling from the TMS34010's power-of-two display case

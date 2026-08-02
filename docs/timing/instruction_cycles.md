@@ -297,6 +297,13 @@ marks timing incomplete, while the combinational RTL leaf exposes no invented
 count. This is semantic boundary evidence only. Sources: TMS34020 User's Guide
 CLIP printed pp.13-55..13-56 and timing table p.15-2.
 
+FPIXEQ and FPIXNE are likewise listed only as `complex instruction`. Their
+model events therefore omit `machine_states`, and the RTL leaf represents one
+logical comparison/update step without assigning a silicon state count.
+Neither evidence covers memory-read grouping, page continuation, waits,
+interrupt checkpoints or bus-fault recovery. Sources: TMS34020 User's Guide
+FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129, and timing p.15-4.
+
 CVDXYL, CVMXYL, and CVSXYL take 2 machine states for a power-of-two pitch, 3
 for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3 and 4
 states for the first two classes. Its instruction page specifies 14 for an

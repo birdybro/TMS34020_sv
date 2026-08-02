@@ -874,3 +874,21 @@
   penalty. OQ-0028 tracks independent confirmation. The physical
   turnaround-spacer, wait, fault, and page-break sequence is still outside the
   current semantic leaf and no complete coprocessor timing claim follows.
+
+## RSC-0044: General plane-mask list omits FPIXEQ and FPIXNE
+
+- Status: resolved for functional semantics from the instruction-specific
+  statements and implied-operand tables; physical grouping remains pending
+- Primary omission: TI *TMS34020 User's Guide*, August 1990, §12.10 on printed
+  p.12-39 says PMASK affects only pixel accesses by PIXBLT, FILL, PIXT, DRAV,
+  and LINE, omitting both pixel-search instructions.
+- Primary specific evidence: the FPIXEQ and FPIXNE references on printed
+  pp.13-127 and 13-129 each state that plane masking is enabled and identify
+  the 32-bit PMASK as an implied operand. The PMASK register's instruction
+  table on printed p.4-76 also lists both operations. Section 12.10 on printed
+  pp.12-39..12-40 says protected memory-pixel bits are read as zero.
+- Decision: treat the §12.10 instruction list as incomplete and apply its
+  pixel-read masking rule to FPIXEQ/FPIXNE. The aligned memory pixel is masked
+  before comparison with the aligned COLOR0 lane. Directed tests discriminate
+  this from ignoring PMASK. This resolution does not infer how the memory
+  controller groups pixels into physical reads or checkpoints a grouped read.

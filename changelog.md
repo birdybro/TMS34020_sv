@@ -4,6 +4,17 @@
 
 ### Added
 
+- Primary-page-extracted exact `0ABBh` FPIXEQ and `0ADBh` FPIXNE, including
+  signed B11/MPTCH postincrement/predecrement scans, B10/MADDR checkpoints,
+  every legal PSIZE, aligned B8/COLOR0 and 32-bit PMASK lanes, Z-only status,
+  complex timing, and the special no-temporary interrupt-restart contract.
+  The independent model performs bounded uninterrupted logical scans with
+  exact pixel-read traces; a clean-room combinational RTL leaf implements one
+  comparison/pointer/count/terminal step and explicitly owns no memory loop,
+  commit, fault/retry or continuation behavior.
+- RSC-0044 resolves the general plane-mask section's omitted FPIX names from
+  both instruction-specific enable statements and the PMASK register table;
+  protected memory-pixel bits are cleared before the COLOR0 comparison.
 - Primary-page-extracted exact `08F2h` CLIP semantics for positive array
   dimensions, including signed inclusive windows, extended-coordinate endpoint
   overflow, nonempty common-rectangle updates to B2/B7, unchanged geometry for
@@ -637,6 +648,19 @@
 
 ### Verified
 
+- The 144-entry ISA database now classifies 48,222 first words through 79
+  independent ISA tests; the 106-entry delta ledger passes schema checks. The
+  227-test model suite covers FPIX forward/backward, first/intermediate/final/
+  exhausted/zero outcomes, every legal PSIZE and long-word lane, PMASK/COLOR0
+  alignment, exact B10/B11/Z results, logical reads, and atomic unsupported-
+  mode rollback.
+- FPIX standalone lint and shared-leaf simulation pass, including every legal
+  size/lane and explicit scalar noncommit. Five warning-free Cyclone V
+  Analysis & Synthesis smokes report 14,476 logic cells/2,230 registers/9 DSPs
+  for the observability-heavy leaf wrapper, 375/200/4,096 RAM bits for cache,
+  506/177 for fetch, 887/375/4,096 RAM bits for frontend, and
+  5,518/1,416/4,096 RAM bits for the bounded scalar composition. These remain
+  slice-only analysis metrics, not core area, fit, TimeQuest or timing closure.
 - The 142-entry ISA database now classifies 48,220 first words through 78
   independent ISA tests; the 105-entry delta ledger passes schema checks, and
   all 223 architectural-model tests pass, including positive-dimension CLIP

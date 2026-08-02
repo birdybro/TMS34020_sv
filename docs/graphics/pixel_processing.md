@@ -55,6 +55,32 @@ count, memory cycle, pixel sequencer, or continuation behavior is invented.
 Sources: TMS34020 User's Guide DYDX printed pp.4-50..4-51, §12.7.4.4 printed
 p.12-23, CLIP printed pp.13-55..13-56, and timing table p.15-2.
 
+## Plane-masked pixel-search boundary
+
+FPIXEQ (`0ABBh`) and FPIXNE (`0ADBh`) scan PSIZE-bit memory pixels for the
+first equality or inequality with the aligned B8/COLOR0 pixel. Positive signed
+B11/MPTCH uses B10/MADDR postincrement; negative MPTCH predecrements MADDR
+before each read. The magnitude moves toward zero after every checked pixel.
+A match leaves positive MADDR at the next pixel or negative MADDR at the last
+pixel checked, and Z reports whether a match occurred.
+
+PMASK is enabled. Protected memory-pixel bits are read as zero before the
+comparison, while COLOR0 supplies the lane aligned to the pixel's position in
+its 32-bit word. RSC-0044 records that §12.10's general affected-instruction
+list omits FPIX even though both instruction pages and the PMASK register table
+explicitly enable/list it; the specific evidence governs. The model tests all
+six legal PSIZE values and every aligned long-word lane, forward/backward,
+first/intermediate/final/exhausted/zero counts, masking and exact logical read
+traces. BEN, CST, invalid PSIZE and misalignment roll back.
+
+`tms34020_find_pixel_step.sv` implements one combinational comparison and
+pointer/count/Z step. It is not a loop, memory requester, grouping rule,
+interrupt checkpoint or fault-retry owner. TI specifies complex timing and a
+special interrupt restart without saved internal temporaries; those physical
+and continuation behaviors remain unimplemented. Sources: User's Guide
+FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129, interrupt p.6-14, PMASK
+p.4-76, and §12.10 pp.12-39..12-40.
+
 ## Line initialization boundary
 
 LINIT is the exact `0C57h` TMS34020-only setup operation used before line
