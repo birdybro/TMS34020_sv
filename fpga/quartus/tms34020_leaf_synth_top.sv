@@ -106,6 +106,18 @@ module tms34020_leaf_synth_top (
     logic [31:0] find_next_mptch;
     logic find_done;
     logic find_z;
+    logic fline_inputs_valid;
+    logic fline_active;
+    logic fline_diagonal;
+    logic [31:0] fline_access_address;
+    logic [31:0] fline_source_pixel;
+    logic [31:0] fline_plane_mask;
+    logic [31:0] fline_result_pixel;
+    logic [31:0] fline_next_decision;
+    logic [31:0] fline_next_daddr;
+    logic [31:0] fline_next_count;
+    logic [31:0] fline_next_pattern;
+    logic fline_done;
     logic [31:0] xy_linear_result;
     logic [1:0] xy_linear_pitch_class;
     logic [3:0] xy_linear_visible_states;
@@ -352,6 +364,16 @@ module tms34020_leaf_synth_top (
         find_next_mptch ^
         {25'd0, find_inputs_valid, find_active, find_predecrement,
          find_found, find_done, find_z, first_word_i[5]} ^
+        fline_access_address ^
+        fline_source_pixel ^
+        fline_plane_mask ^
+        fline_result_pixel ^
+        fline_next_decision ^
+        fline_next_daddr ^
+        fline_next_count ^
+        fline_next_pattern ^
+        {28'd0, fline_inputs_valid, fline_active, fline_diagonal,
+         fline_done} ^
         xy_linear_result ^
         divider_quotient ^
         divider_remainder ^
@@ -685,6 +707,34 @@ module tms34020_leaf_synth_top (
         .next_mptch_o(find_next_mptch),
         .done_o(find_done),
         .status_z_o(find_z)
+    );
+
+    tms34020_fline_step fline_step (
+        .algorithm_one_i(first_word_i[7]),
+        .decision_i(operand_i),
+        .daddr_i(immediate_i),
+        .count_i(operand_i ^ immediate_i),
+        .dimensions_i({operand_i[15:0], immediate_i[31:16]}),
+        .inc1_linear_i({immediate_i[15:0], operand_i[31:16]}),
+        .inc2_linear_i(operand_i + immediate_i),
+        .pattern_i(first_word_i[0] ? operand_i : immediate_i),
+        .color0_i({operand_i[7:0], operand_i[31:8]}),
+        .color1_i({immediate_i[23:0], immediate_i[31:24]}),
+        .pmask_i(operand_i ^ {immediate_i[15:0], immediate_i[31:16]}),
+        .raw_destination_i(operand_i | immediate_i),
+        .psize_i({10'd0, pixel_size_i}),
+        .inputs_valid_o(fline_inputs_valid),
+        .active_o(fline_active),
+        .diagonal_o(fline_diagonal),
+        .access_address_o(fline_access_address),
+        .source_pixel_o(fline_source_pixel),
+        .plane_mask_o(fline_plane_mask),
+        .result_pixel_o(fline_result_pixel),
+        .next_decision_o(fline_next_decision),
+        .next_daddr_o(fline_next_daddr),
+        .next_count_o(fline_next_count),
+        .next_pattern_o(fline_next_pattern),
+        .done_o(fline_done)
     );
 
     tms34020_xy_to_linear xy_to_linear (

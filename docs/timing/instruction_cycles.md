@@ -304,6 +304,17 @@ Neither evidence covers memory-read grouping, page continuation, waits,
 interrupt checkpoints or bus-fault recovery. Sources: TMS34020 User's Guide
 FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129, and timing p.15-4.
 
+FLINE has the published no-wait/no-retry formula
+`12 + 3*CD + (2+P)*E + 3`. CD is 0 for a power-of-two pitch, 1 for a sum of
+two powers, and 12 for an arbitrary pitch; E is the number of pixels drawn.
+P comes from Table 15-1 and includes one additional formula cycle for replace
+mode at PSIZE 1/2/4 because the table lists two hidden cycles instead of one.
+The bounded model tests power and arbitrary conversion classes, both P cases,
+zero E and exact totals. It assumes immediate memory grants and no waits,
+retries or interrupts, exactly as Chapter 15 states. The combinational RTL
+leaf exposes no timing claim. Sources: User's Guide timing assumptions/Table
+15-1 printed pp.15-1..15-2 and FLINE formula p.15-5.
+
 CVDXYL, CVMXYL, and CVSXYL take 2 machine states for a power-of-two pitch, 3
 for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3 and 4
 states for the first two classes. Its instruction page specifies 14 for an

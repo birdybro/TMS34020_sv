@@ -78,3 +78,33 @@ BLMOVE and the four S/D alignment/update modes are documented in
 non-overlapping successful boundary. Interrupt continuation, overlap results,
 physical requests, page mode, dynamic sizing, faults, retries, and timing
 remain open.
+
+## Fast linear line draw
+
+FLINE is the TMS34020-only one-word pair `DE1Ah`/`DE9Ah`. Bit 7 selects
+whether a zero decision variable takes the diagonal path: algorithm 0 uses
+`d >= 0`, while algorithm 1 uses `d > 0`. The instruction consumes a linear
+B2/DADDR, B0 decision variable, B7 minor:major dimensions, converted XY B11
+and B12 increments, B8/B9 colors, B10 count, and B13 pattern. Each drawn pixel
+decrements COUNT, selects COLOR0 or COLOR1 from the current PATTERN LSB,
+applies pixel processing, transparency, and PMASK, rotates PATTERN right, then
+updates the decision and pointer. It does not perform window checking and can
+be interrupted at a pixel boundary through the general graphics continuation
+sequence.
+
+The independent model currently implements only atomic little-endian,
+replace-PPOP, transparency-off logical writes, including every legal PSIZE,
+aligned color and mask lanes, all three pitch-conversion classes, and the
+published `12 + 3CD + (2+P)E + 3` no-wait formula. The standalone RTL leaf
+implements one step after XY increments have already been converted to linear
+form. Neither boundary implements a physical memory sequencer, other PPOP or
+transparency modes, page/wait/fault/retry handling, or interrupt continuation.
+
+Sources: TI *TMS34020 User's Guide*, August 1990, XY conversion §3.6 printed
+pp.3-15..3-16; FLINE printed pp.13-121..13-125; graphics interruption printed
+pp.6-13..6-14; timing Table 15-1 and FLINE formula printed pp.15-2 and 15-5.
+Pinned MAME commit `a562e947b22f4f5acff0c182c26fd649d72dad0e`
+corroborates the two encodings in
+`src/devices/cpu/tms34010/34010dsm.cpp` lines 1537–1553, but its execution
+handler in `34010ops.hxx` lines 2309–2313 only logs a stub. It therefore
+provides no independent semantic or timing evidence for this implementation.

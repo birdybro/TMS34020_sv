@@ -1066,6 +1066,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 FPIXEQ, printed pp.13-126..13-127", "TI-TMS34020-UG-1990 FPIXNE, printed pp.13-128..13-129", "TI-TMS34020-UG-1990 interrupt exception, printed p.6-14", "TI-TMS34020-UG-1990 plane masking, printed pp.12-39..12-40"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Physical long-word read grouping, dynamic sizing, page-mode termination and exact interrupt/fault checkpoint timing remain unimplemented.", "RSC-0044 records the general plane-mask section's omission of FPIX from its affected-instruction list; the instruction-specific enable statements govern."]
+    },
+    {
+      "feature": "fast_linear_line_draw",
+      "tms34010_behavior": "No FLINE instruction is documented in the TMS34010 instruction set; compatible LINE uses an XY destination and different timing/feature boundaries.",
+      "tms34020_behavior": "FLINE algorithm 0/1 at DE1Ah/DE9Ah draws COUNT patterned pixels from linear B2/DADDR using B0 decision, B7 minor:major, XY B11/B12 increments converted through CONVDP/DPTCH/PSIZE, B8/B9 colors, B13 pattern rotation, CONTROL pixel processing/transparency and PMASK. Algorithm 0 takes the diagonal path for d>=0; algorithm 1 requires d>0. NCZV are unchanged and no-wait timing is 12+3CD+(2+P)E+3.",
+      "rtl_impact": "A graphics sequencer must normalize both XY increments, own pixel processing/read-modify-write requests, atomically update B0/B2/B10/B13, checkpoint the general IX/BF temporary state, and preserve the published overlap. The clean-room RTL leaf implements one replace-mode step from normalized linear increments only.",
+      "test_impact": "Both exact first words and neighbors; d negative/zero/positive algorithm boundary; pattern/color selection and rotation; all PSIZE/lane/PMASK cases; power/two-power/arbitrary pitch; B0/B2/B10/B13 final state; status preservation; published formula; BEN/CST/PPOP/transparency guards; exact logical writes; waits/page/fault/retry/interrupt continuation.",
+      "source_citation": ["TI-TMS34020-UG-1990 XY conversion, §3.6 printed pp.3-15..3-16", "TI-TMS34020-UG-1990 FLINE printed pp.13-121..13-125", "TI-TMS34020-UG-1990 graphics interrupts printed pp.6-13..6-14", "TI-TMS34020-UG-1990 timing Table 15-1/formula printed pp.15-2 and 15-5"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Replace/no-transparency logical semantics are modeled; the other 21 PPOP options, transparency, physical page/wait/fault/retry behavior and continuation frame remain unimplemented.", "The one-step RTL leaf consumes already-normalized linear increments and owns no conversion or architectural commit."]
     }
   ]
 }

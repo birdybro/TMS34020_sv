@@ -133,7 +133,7 @@ The testbench requires `PASS: tms34020 instruction packet fetch`.
 
 `make quartus-fetch-smoke` performs warning-free Cyclone V Analysis &
 Synthesis of this block plus the current generated decoder. The diagnostic
-wrapper uses 506 logic cells and 177 registers with the current 144-entry
+wrapper uses 527 logic cells and 177 registers with the current 145-entry
 decoder. This is neither a processor
 area estimate nor fit/TimeQuest timing evidence.
 

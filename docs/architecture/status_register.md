@@ -203,6 +203,13 @@ leaf emits only the current comparison's Z result and has no architectural ST
 owner. Sources: User's Guide FPIXEQ printed pp.13-126..13-127 and FPIXNE
 printed pp.13-128..13-129.
 
+FLINE preserves the entire status register. Its first-word `Z` field is an
+algorithm selector and is unrelated to Z[ST]: algorithm zero takes the
+diagonal path for decision `d>=0`, while algorithm one requires `d>0`.
+Directed model tests seed all status fields and the standalone step leaf
+exposes no status-write output. Source: User's Guide FLINE printed
+pp.13-121..13-124.
+
 CVDXYL, CVMXYL, CVSXYL, and CVXYL preserve every ST bit for every pitch class.
 The independent model checks full-width preservation rather than only NCZV;
 the standalone conversion RTL has no status output. Sources: User's Guide

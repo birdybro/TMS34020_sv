@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 144 page-verified encoding records and covers 48,222 of 65,536
+slice contains 145 page-verified encoding records and covers 48,224 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -133,6 +133,7 @@ first words without collisions:
 | CEXEC.L | exact `0600h` plus command/size and ID/command words | 3 | pp.13-51..13-52 |
 | CEXEC.S | `D800h`, mask `FF80h`, plus ID/command word | 2 | pp.13-53..13-54 |
 | CLIP | `08F2h` | 1 | pp.13-55..13-56 |
+| FLINE | `DE1Ah`/`DE9Ah`, mask `FF7Fh` | 1 | pp.13-121..13-125 |
 | FPIXEQ | `0ABBh` | 1 | pp.13-126..13-127 |
 | FPIXNE | `0ADBh` | 1 | pp.13-128..13-129 |
 | CMOVGC.1 | `0620h`, mask `FFE0h`, plus command and ID/command words | 3 | pp.13-67..13-68 |
@@ -193,6 +194,19 @@ and continuation remain absent. RSC-0044 resolves the general plane-mask
 section's omission using both instruction-specific enable statements. Sources:
 User's Guide FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129, interrupt
 exception p.6-14, and plane masking pp.12-39..12-40.
+
+FLINE is the TMS34020-only `DE1Ah`/`DE9Ah` pair. First-word bit 7 selects
+whether decision zero takes the diagonal path. B10/COUNT bounds the patterned
+pixel writes; B0/B2/B10/B13 retain the resulting decision, linear pointer,
+zero count and rotated pattern. B11/B12 XY increments are normalized through
+CONVDP/DPTCH/PSIZE. NCZV are unchanged. The current model supports ordinary
+little-endian replace-mode writes with transparency off, including full PMASK
+semantics and the published no-wait formula; the one-step RTL leaf consumes
+already-normalized linear increments and owns no memory or architectural
+commit. Other pixel-processing/transparency modes and physical continuation
+remain pending. Sources: User's Guide §3.6 pp.3-15..3-16, FLINE
+pp.13-121..13-125, graphics interrupts pp.6-13..6-14, and timing pp.15-2,
+15-5.
 
 `CLR Rd` is the documented alternate mnemonic for `XOR Rd,Rd`, not a separate
 decode range. Its instruction word repeats the same four-bit register number

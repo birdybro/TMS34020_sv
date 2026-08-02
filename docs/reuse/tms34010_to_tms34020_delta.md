@@ -135,6 +135,16 @@ comparison/update step; the model's atomic scan is not physical sequencing.
 Sources: TMS34020 guide FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129,
 interrupt exception p.6-14, and plane masking pp.12-39..12-40; RSC-0044.
 
+FLINE at `DE1Ah`/`DE9Ah` is also TMS34020-only. Although it consumes
+Bresenham state initialized by LINIT and shares graphics concepts with LINE,
+it uses a linear DADDR, PATTERN-controlled COLOR0/COLOR1 output, converted XY
+increments, no window checking, its own decision-zero selector, and the
+published `12+3CD+(2+P)E+3` timing. A TMS34010 LINE sequencer cannot be
+retimed or wrapped into this behavior. The current clean-room leaf owns one
+normalized replace-mode step only; the atomic model owns no physical bus or
+IX/BF continuation. Sources: TMS34020 guide §3.6 pp.3-15..3-16, FLINE
+pp.13-121..13-125, and timing pp.15-2, 15-5.
+
 CVXYL retains `E800h`/`FE00h`, same-file explicit operands, implied B3/B4,
 CONVDP/PSIZE inputs, unaffected ST, and the signed XY-to-linear equation. The
 TMS34020 expands pitch handling from the TMS34010's power-of-two display case

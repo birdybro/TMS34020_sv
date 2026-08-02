@@ -120,6 +120,14 @@ executes only uninterrupted atomic scans, and the one-step RTL leaf has no
 interrupt owner. Source: User's Guide interrupt exception printed p.6-14 and
 FPIXEQ/FPIXNE printed pp.13-126..13-129.
 
+FLINE follows the general graphics IX sequence rather than the FPIX exception.
+It may be interrupted at a pixel boundary, requiring inaccessible temporary
+state plus ST/PC to be stacked and restored before the next pixel. The atomic
+model does not expose such a boundary and the one-step RTL leaf has no stack,
+recognition or resume owner. B0/B2/B10/B13 alone must not be claimed as the
+complete silicon continuation frame. Sources: User's Guide graphics interrupt
+sequence printed pp.6-13..6-14 and FLINE printed p.13-124.
+
 ## RETM monitor return
 
 RETM is exact word `0860h` and is TMS34020-only. It restores the same

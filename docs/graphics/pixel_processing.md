@@ -83,6 +83,21 @@ and continuation behaviors remain unimplemented. Sources: User's Guide
 FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129, interrupt p.6-14, PMASK
 p.4-76, DPYCTL.CST pp.4-35..4-39, and §12.10 pp.12-39..12-40.
 
+## Fast line draw boundary
+
+FLINE (`DE1Ah`/`DE9Ah`) consumes LINIT-style B-file state but writes pixels
+through a linear DADDR. The model's successful boundary is deliberately
+limited to CONTROL.PPOP replace with transparency disabled and normal
+DPYCTL.CST=0 pixel cycles. It selects replicated COLOR0/COLOR1 lanes from the
+rotating PATTERN LSB, preserves PMASK-protected destination bits, and emits an
+ordered logical `pixel_write` per iteration. Every legal PSIZE/lane and both
+decision-zero algorithms are tested. The clean-room `tms34020_fline_step.sv`
+implements one comparison/state/pixel-transform step from already-normalized
+linear INC1/INC2 deltas; conversion, looping, reads/writes, commit, page mode,
+waits, faults and continuation remain outside it. Sources: User's Guide
+FLINE pp.13-121..13-125, COLOR0/COLOR1 pp.4-17..4-20, CONTROL
+pp.4-24..4-27, plane masking pp.12-39..12-42, and timing p.15-5.
+
 ## Line initialization boundary
 
 LINIT is the exact `0C57h` TMS34020-only setup operation used before line

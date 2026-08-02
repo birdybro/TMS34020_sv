@@ -220,6 +220,7 @@ class Tms34020Model:
             "CEXEC.L": self._execute_cexec,
             "CEXEC.S": self._execute_cexec,
             "CLIP": self._execute_clip,
+            "FLINE": self._execute_fline,
             "FPIXEQ": self._execute_find_pixel,
             "FPIXNE": self._execute_find_pixel,
             "CMOVGC.1": self._execute_cmovgc,
@@ -3774,6 +3775,118 @@ class Tms34020Model:
             "interrupt continuation remain pending"
         )
         return None
+
+    def _execute_fline(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        config = self.state.read_io(CONFIG_ADDRESS)
+        if config & 1:
+            raise UnsupportedInstruction(
+                "FLINE big-endian pixel mapping is classified but not modeled"
+            )
+        if self.state.read_io(DPYCTL_ADDRESS) & (1 << 11):
+            raise UnsupportedInstruction(
+                "FLINE CST-converted VRAM transfer is classified but not modeled"
+            )
+        control = self.state.read_io(CONTROL_ADDRESS)
+        if (control >> 10) & 0x1F:
+            raise UnsupportedInstruction(
+                "FLINE pixel processing is currently limited to replace"
+            )
+        if control & (1 << 5):
+            raise UnsupportedInstruction(
+                "FLINE transparency is classified but not modeled"
+            )
+
+        pixel_size = self._read_legal_psize()
+        pixel_mask = MASK32 if pixel_size == 32 else (1 << pixel_size) - 1
+        plane_mask = (
+            self.state.read_io(PMASKL_ADDRESS)
+            | (self.state.read_io(PMASKH_ADDRESS) << 16)
+        )
+        decision = self._signed_word(self.state.read_reg("B", 0))
+        daddr = self.state.read_reg("B", 2)
+        dptch = self.state.read_reg("B", 3)
+        dimensions = self.state.read_reg("B", 7)
+        minor = (dimensions >> 16) & 0xFFFF
+        major = dimensions & 0xFFFF
+        color0 = self.state.read_reg("B", 8)
+        color1 = self.state.read_reg("B", 9)
+        count = self._signed_word(self.state.read_reg("B", 10))
+        inc1 = self.state.read_reg("B", 11)
+        inc2 = self.state.read_reg("B", 12)
+        pattern = self.state.read_reg("B", 13)
+        inc1_linear, pitch_class = self._xy_linear_result(
+            inc1, CONVDP_ADDRESS, dptch, pixel_size, 0
+        )
+        inc2_linear, inc2_pitch_class = self._xy_linear_result(
+            inc2, CONVDP_ADDRESS, dptch, pixel_size, 0
+        )
+        assert pitch_class == inc2_pitch_class
+        algorithm_one = bool(words[0] & (1 << 7))
+        pixels_drawn = max(count, 0)
+        assert self._active_trace is not None
+
+        while count > 0:
+            if daddr & (pixel_size - 1):
+                raise ModelError("FLINE requires a pixel-aligned DADDR")
+            lane = daddr & 0x1F
+            if lane + pixel_size > 32:
+                raise ModelError("FLINE pixel crosses a long-word boundary")
+            raw_destination = self.state.memory.read_bits(daddr, pixel_size)
+            source_word = color1 if pattern & 1 else color0
+            source_pixel = (source_word >> lane) & pixel_mask
+            pixel_plane_mask = (plane_mask >> lane) & pixel_mask
+            result_pixel = (
+                (raw_destination & pixel_plane_mask)
+                | (source_pixel & (~pixel_plane_mask & pixel_mask))
+            )
+            diagonal = decision > 0 if algorithm_one else decision >= 0
+            decision_before = decision
+            count -= 1
+            self.state.memory.write_bits(daddr, pixel_size, result_pixel)
+            self._active_trace.transactions.append(
+                {
+                    "class": "pixel_write",
+                    "purpose": "fline_replace",
+                    "bit_address": daddr,
+                    "width": pixel_size,
+                    "raw_destination": raw_destination,
+                    "pattern_bit": pattern & 1,
+                    "source_value": source_pixel,
+                    "plane_mask": pixel_plane_mask,
+                    "value": result_pixel,
+                    "decision_before": decision_before & MASK32,
+                    "diagonal": int(diagonal),
+                }
+            )
+            pattern = ((pattern >> 1) | ((pattern & 1) << 31)) & MASK32
+            if diagonal:
+                decision += 2 * minor - 2 * major
+                daddr = (daddr + inc1_linear) & MASK32
+            else:
+                decision += 2 * minor
+                daddr = (daddr + inc2_linear) & MASK32
+            decision = self._signed_word(decision)
+
+        self.state.write_reg("B", 0, decision & MASK32)
+        self.state.write_reg("B", 2, daddr)
+        self.state.write_reg("B", 10, count & MASK32)
+        self.state.write_reg("B", 13, pattern)
+        self._record_xy_pitch_class(pitch_class)
+        pixel_processing = 1 if pixel_size <= 4 else 0
+        conversion = {
+            "power_of_two": 0,
+            "two_powers_of_two": 1,
+            "arbitrary": 12,
+        }[pitch_class]
+        self._active_trace.notes.append(
+            "successful atomic FLINE replace/no-transparency logical draw; "
+            "physical reads/writes, page mode, waits, fault/retry, and "
+            "interrupt continuation remain pending"
+        )
+        return 15 + 3 * conversion + (2 + pixel_processing) * pixels_drawn
 
     @staticmethod
     def _signed_word(value: int) -> int:

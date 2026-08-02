@@ -150,6 +150,15 @@ graphics-fault rule sets BF and uses the bus-fault continuation sequence
 to implement that owner. No `pixel_read` transaction in the model represents
 physical acceptance or BUSFLT sampling.
 
+FLINE's atomic replace-mode logical writes and one-step transform are likewise
+not fault evidence. A physical owner must establish the documented completion
+checkpoint for B0/B2/B10/B13 and the pixel-processing/converted-increment
+temporaries before choosing a retirement order; the current sources do not
+justify one here. It must prove retry cannot rotate PATTERN or advance the
+decision/pointer twice. The model's
+`pixel_write` entries describe final logical values only, not accepted local-
+bus subcycles.
+
 ## Required verification
 
 Future RTL tests and properties must inject all four completion codes during

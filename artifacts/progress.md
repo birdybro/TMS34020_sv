@@ -4,15 +4,19 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `16bc596db106d4b03074e8544f099e8a88ddb289`
-- Passing tests: foundation, reference/hash, 106-entry delta, 79-case ISA sweep, 227 directed model
+- Passing tests: foundation, reference/hash, 107-entry delta, 80-case ISA sweep, 233 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 143 of 144 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. FPIXEQ/FPIXNE scan
+- Model status: 144 of 145 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. FLINE draws
+  replace/no-transparency patterned pixels with both decision algorithms,
+  every legal size/lane/PMASK, B0/B2/B10/B13 state, pitch conversion classes,
+  logical writes and the no-wait formula. Other PPOP/transparency and physical
+  page/wait/fault/retry/interrupt continuation remain absent. FPIXEQ/FPIXNE scan
   positive/postincrement and negative/predecrement PSIZE-bit pixels, apply the
   aligned PMASK/COLOR0 lanes, update B10/B11/Z, emit exact logical reads, and
   cover every legal size/lane plus exhausted/zero/unsupported cases. Physical
@@ -159,8 +163,9 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 144-entry partial decode, a clean-room combinational
-  one-step FPIX direction/address/mask/compare/pointer/count/terminal leaf,
+- RTL status: generated 145-entry partial decode, clean-room combinational
+  one-step FLINE decision/pattern/color/mask/state/terminal and FPIX
+  direction/address/mask/compare/pointer/count/terminal leaves,
   CLIP positive-dimension intersection and LINIT semantic leaves with exact signed
   common-rectangle/major/minor/decision/count/increment/
   window-status results and explicit scalar noncommit pending an atomic
@@ -293,11 +298,12 @@
   retry, fault resume/abort, refill-state reset, and three randomized seeds.
   CPU fault/interrupt state, bus-width/page scheduling and pin timing remain
   (`TMS20-0012`, `TMS20-0017`)
-- Graphics status: FPIXEQ/FPIXNE atomic logical model scans and one-step RTL
-  comparisons, CLIP positive-dimension array intersection, LINIT signed line
+- Graphics status: FLINE replace-mode atomic logical model draws/one-step RTL,
+  FPIXEQ/FPIXNE atomic logical model scans/one-step RTL comparisons, CLIP
+  positive-dimension array intersection, LINIT signed line
   setup/status, CPW signed inclusive window/outcode, and all four
   XY-to-linear conversion semantics exist in the model and standalone RTL
-  leaves; FPIX has no physical search/continuation owner, CLIP/LINIT have no
+  leaves; FLINE/FPIX have no physical sequencer/continuation owner, CLIP/LINIT have no
   multi-register commit owner, and OQ-0029 blocks zero-dimension CLIP status,
   and the full pixel/graphics matrix, I/O/register owner, memory sequencer,
   clipping, and continuation remain (`TMS20-0024`–`TMS20-0026`)
@@ -313,9 +319,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 14,476 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 15,117 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 506, 887, and 5,518 logic cells;
+  the fetch, frontend, and scalar wrappers use 527, 919, and 5,498 logic cells;
   the scalar wrapper has 1,416 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file
@@ -327,6 +333,8 @@
   transactions rather than pin-level dynamic-width cycles;
   FPIX model reads are per architectural pixel and do not represent physical
   long-word grouping, page mode, wait/fault acceptance, or continuation;
+  FLINE model writes are atomic logical replace-mode operations and do not
+  represent other PPOP/transparency modes or physical request acceptance;
   ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM and all nine MOVB store/load/copy forms reject
   BEN=1 and expose logical field transactions rather than physical bus beats
 - Unresolved conflicts: exact game parts and REV values, original/A errata,

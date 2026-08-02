@@ -115,6 +115,31 @@ module tb_tms34020_verified_leaves;
     logic [31:0] find_next_mptch;
     logic find_done;
     logic find_z;
+    logic fline_algorithm_one;
+    logic [31:0] fline_decision;
+    logic [31:0] fline_daddr;
+    logic [31:0] fline_count;
+    logic [31:0] fline_dimensions;
+    logic [31:0] fline_inc1_linear;
+    logic [31:0] fline_inc2_linear;
+    logic [31:0] fline_pattern;
+    logic [31:0] fline_color0;
+    logic [31:0] fline_color1;
+    logic [31:0] fline_pmask;
+    logic [31:0] fline_raw_destination;
+    logic [15:0] fline_psize;
+    logic fline_inputs_valid;
+    logic fline_active;
+    logic fline_diagonal;
+    logic [31:0] fline_access_address;
+    logic [31:0] fline_source_pixel;
+    logic [31:0] fline_plane_mask;
+    logic [31:0] fline_result_pixel;
+    logic [31:0] fline_next_decision;
+    logic [31:0] fline_next_daddr;
+    logic [31:0] fline_next_count;
+    logic [31:0] fline_next_pattern;
+    logic fline_done;
     logic [31:0] xy_linear_xy;
     logic [31:0] xy_linear_pitch;
     logic [31:0] xy_linear_offset;
@@ -651,6 +676,34 @@ module tb_tms34020_verified_leaves;
         .next_mptch_o(find_next_mptch),
         .done_o(find_done),
         .status_z_o(find_z)
+    );
+
+    tms34020_fline_step fline_step_dut (
+        .algorithm_one_i(fline_algorithm_one),
+        .decision_i(fline_decision),
+        .daddr_i(fline_daddr),
+        .count_i(fline_count),
+        .dimensions_i(fline_dimensions),
+        .inc1_linear_i(fline_inc1_linear),
+        .inc2_linear_i(fline_inc2_linear),
+        .pattern_i(fline_pattern),
+        .color0_i(fline_color0),
+        .color1_i(fline_color1),
+        .pmask_i(fline_pmask),
+        .raw_destination_i(fline_raw_destination),
+        .psize_i(fline_psize),
+        .inputs_valid_o(fline_inputs_valid),
+        .active_o(fline_active),
+        .diagonal_o(fline_diagonal),
+        .access_address_o(fline_access_address),
+        .source_pixel_o(fline_source_pixel),
+        .plane_mask_o(fline_plane_mask),
+        .result_pixel_o(fline_result_pixel),
+        .next_decision_o(fline_next_decision),
+        .next_daddr_o(fline_next_daddr),
+        .next_count_o(fline_next_count),
+        .next_pattern_o(fline_next_pattern),
+        .done_o(fline_done)
     );
 
     tms34020_xy_to_linear xy_to_linear_dut (
@@ -1603,6 +1656,65 @@ module tb_tms34020_verified_leaves;
             find_next_mptch == expected_next_mptch &&
             find_done == expected_done &&
             find_z == expected_z,
+            message
+        );
+    endtask
+
+    task automatic check_fline_step(
+        input logic algorithm_one,
+        input logic [31:0] decision,
+        input logic [31:0] daddr,
+        input logic [31:0] count,
+        input logic [31:0] dimensions,
+        input logic [31:0] inc1_linear,
+        input logic [31:0] inc2_linear,
+        input logic [31:0] pattern,
+        input logic [31:0] color0,
+        input logic [31:0] color1,
+        input logic [31:0] pmask,
+        input logic [31:0] raw_destination,
+        input logic [15:0] psize,
+        input logic expected_valid,
+        input logic expected_active,
+        input logic expected_diagonal,
+        input logic [31:0] expected_access_address,
+        input logic [31:0] expected_source_pixel,
+        input logic [31:0] expected_plane_mask,
+        input logic [31:0] expected_result_pixel,
+        input logic [31:0] expected_next_decision,
+        input logic [31:0] expected_next_daddr,
+        input logic [31:0] expected_next_count,
+        input logic [31:0] expected_next_pattern,
+        input logic expected_done,
+        input string message
+    );
+        fline_algorithm_one = algorithm_one;
+        fline_decision = decision;
+        fline_daddr = daddr;
+        fline_count = count;
+        fline_dimensions = dimensions;
+        fline_inc1_linear = inc1_linear;
+        fline_inc2_linear = inc2_linear;
+        fline_pattern = pattern;
+        fline_color0 = color0;
+        fline_color1 = color1;
+        fline_pmask = pmask;
+        fline_raw_destination = raw_destination;
+        fline_psize = psize;
+        #1;
+        check_condition(
+            fline_inputs_valid == expected_valid &&
+            fline_active == expected_active &&
+            fline_diagonal == expected_diagonal &&
+            fline_access_address == expected_access_address &&
+            fline_source_pixel == expected_source_pixel &&
+            fline_plane_mask == expected_plane_mask &&
+            fline_result_pixel == expected_result_pixel &&
+            fline_next_decision == expected_next_decision &&
+            fline_next_daddr == expected_next_daddr &&
+            fline_next_count == expected_next_count &&
+            fline_next_pattern == expected_next_pattern &&
+            fline_done == expected_done,
             message
         );
     endtask
@@ -3008,6 +3120,19 @@ module tb_tms34020_verified_leaves;
         find_color0 = 32'd0;
         find_pmask = 32'd0;
         find_raw_pixel = 32'd0;
+        fline_algorithm_one = 1'b0;
+        fline_decision = 32'd0;
+        fline_daddr = 32'd0;
+        fline_count = 32'd0;
+        fline_dimensions = 32'd0;
+        fline_inc1_linear = 32'd0;
+        fline_inc2_linear = 32'd0;
+        fline_pattern = 32'd0;
+        fline_color0 = 32'd0;
+        fline_color1 = 32'd0;
+        fline_pmask = 32'd0;
+        fline_raw_destination = 32'd0;
+        fline_psize = 16'd1;
         xy_linear_xy = 32'd0;
         xy_linear_pitch = 32'd0;
         xy_linear_offset = 32'd0;
@@ -3852,6 +3977,105 @@ module tb_tms34020_verified_leaves;
                     32'h0000_0400 + find_lane_loop + find_size_loop,
                     32'd0, 1'b1, 1'b1,
                     "FPIXEQ every legal PSIZE and long-word lane"
+                );
+            end
+        end
+
+        check_fline_step(
+            1'b0, 32'd0, 32'h0000_0200, 32'd1, 32'h0002_0004,
+            32'h0000_0108, 32'd8, 32'd1, 32'd0, 32'hA5A5_A5A5,
+            32'd0, 32'd0, 16'd8,
+            1'b1, 1'b1, 1'b1, 32'h0000_0200, 32'h0000_00A5,
+            32'd0, 32'h0000_00A5, 32'hFFFF_FFFC, 32'h0000_0308,
+            32'd0, 32'h8000_0000, 1'b1,
+            "FLINE algorithm zero includes decision zero"
+        );
+        check_fline_step(
+            1'b1, 32'd0, 32'h0000_0200, 32'd1, 32'h0002_0004,
+            32'h0000_0108, 32'd8, 32'd1, 32'd0, 32'hA5A5_A5A5,
+            32'd0, 32'd0, 16'd8,
+            1'b1, 1'b1, 1'b0, 32'h0000_0200, 32'h0000_00A5,
+            32'd0, 32'h0000_00A5, 32'h0000_0004, 32'h0000_0208,
+            32'd0, 32'h8000_0000, 1'b1,
+            "FLINE algorithm one excludes decision zero"
+        );
+        check_fline_step(
+            1'b0, 32'hFFFF_FFFF, 32'h0000_0104, 32'd2, 32'd0,
+            32'd8, 32'd4, 32'd0, 32'h5555_5555, 32'hAAAA_AAAA,
+            32'd0, 32'h0000_000A, 16'd4,
+            1'b1, 1'b1, 1'b0, 32'h0000_0104, 32'd5,
+            32'd0, 32'd5, 32'hFFFF_FFFF, 32'h0000_0108,
+            32'd1, 32'd0, 1'b0,
+            "FLINE COLOR0 pattern and nonterminal dominant step"
+        );
+        check_fline_step(
+            1'b0, 32'd0, 32'h0000_0208, 32'd1, 32'd0,
+            32'd0, 32'd0, 32'd1, 32'd0, 32'h0000_A500,
+            32'h0000_F000, 32'h0000_005A, 16'd8,
+            1'b1, 1'b1, 1'b1, 32'h0000_0208, 32'h0000_00A5,
+            32'h0000_00F0, 32'h0000_0055, 32'd0, 32'h0000_0208,
+            32'd0, 32'h8000_0000, 1'b1,
+            "FLINE aligned COLOR1 and plane-mask write"
+        );
+        check_fline_step(
+            1'b0, 32'h1234_5678, 32'h0000_0300, 32'd0, 32'd0,
+            32'd4, 32'd4, 32'h89AB_CDEF, 32'd0, 32'd0,
+            32'd0, 32'd0, 16'd4,
+            1'b1, 1'b0, 1'b0, 32'h0000_0300, 32'd0,
+            32'd0, 32'd0, 32'h1234_5678, 32'h0000_0300,
+            32'd0, 32'h89AB_CDEF, 1'b1,
+            "FLINE zero count performs no step"
+        );
+        check_fline_step(
+            1'b0, 32'd0, 32'h0000_0100, 32'd1, 32'd0,
+            32'd0, 32'd0, 32'd0, 32'd0, 32'd0,
+            32'd0, 32'd0, 16'd3,
+            1'b0, 1'b0, 1'b0, 32'h0000_0100, 32'd0,
+            32'd0, 32'd0, 32'd0, 32'h0000_0100,
+            32'd1, 32'd0, 1'b0,
+            "FLINE illegal PSIZE remains unsupported"
+        );
+        check_fline_step(
+            1'b0, 32'd0, 32'h0000_0102, 32'd1, 32'd0,
+            32'd0, 32'd0, 32'd0, 32'd0, 32'd0,
+            32'd0, 32'd0, 16'd4,
+            1'b0, 1'b0, 1'b0, 32'h0000_0102, 32'd0,
+            32'd0, 32'd0, 32'd0, 32'h0000_0102,
+            32'd1, 32'd0, 1'b0,
+            "FLINE misaligned pointer remains unsupported"
+        );
+        for (find_size_loop = 1; find_size_loop <= 32;
+             find_size_loop = find_size_loop * 2) begin
+            find_loop_mask =
+                32'hFFFF_FFFF >> (32 - find_size_loop);
+            find_loop_value = 32'hA5A5_5A5B & find_loop_mask;
+            for (find_lane_loop = 0; find_lane_loop < 32;
+                 find_lane_loop = find_lane_loop + find_size_loop) begin
+                check_fline_step(
+                    1'b0,
+                    32'hFFFF_FFFF,
+                    32'h0000_0400 + find_lane_loop,
+                    32'd1,
+                    32'd0,
+                    32'd0,
+                    find_size_loop,
+                    32'd1,
+                    32'd0,
+                    find_loop_value << find_lane_loop,
+                    32'd0,
+                    32'd0,
+                    find_size_loop[15:0],
+                    1'b1, 1'b1, 1'b0,
+                    32'h0000_0400 + find_lane_loop,
+                    find_loop_value,
+                    32'd0,
+                    find_loop_value,
+                    32'hFFFF_FFFF,
+                    32'h0000_0400 + find_lane_loop + find_size_loop,
+                    32'd0,
+                    32'h8000_0000,
+                    1'b1,
+                    "FLINE every legal PSIZE and long-word lane"
                 );
             end
         end
@@ -5503,6 +5727,16 @@ module tb_tms34020_verified_leaves;
             16'h0ADB, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "FPIXNE cannot bypass implied B-register/memory ownership"
+        );
+        check_register_execute(
+            16'hDE1A, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "FLINE algorithm zero cannot bypass graphics ownership"
+        );
+        check_register_execute(
+            16'hDE9A, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "FLINE algorithm one cannot bypass graphics ownership"
         );
         check_register_execute(
             16'h0A60, 32'h0001_0001, 32'hDEAD_BEEF, 32'hA123_4567,
@@ -7279,6 +7513,10 @@ module tb_tms34020_verified_leaves;
                      "FPIXEQ exact decode");
         check_decode(16'h0ADB, TMS20_OP_FPIXNE, 3'd1,
                      "FPIXNE exact decode");
+        check_decode(16'hDE1A, TMS20_OP_FLINE, 3'd1,
+                     "FLINE algorithm zero decode");
+        check_decode(16'hDE9A, TMS20_OP_FLINE, 3'd1,
+                     "FLINE algorithm one decode");
         check_decode(16'h0A60, TMS20_OP_CVMXYL, 3'd1,
                      "CVMXYL lower-bound decode");
         check_decode(16'h0A7F, TMS20_OP_CVMXYL, 3'd1,

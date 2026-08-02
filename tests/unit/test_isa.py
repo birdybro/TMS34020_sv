@@ -264,6 +264,8 @@ class IsaTests(unittest.TestCase):
             0x08F2: ("CLIP", 1),
             0x0ABB: ("FPIXEQ", 1),
             0x0ADB: ("FPIXNE", 1),
+            0xDE1A: ("FLINE", 1),
+            0xDE9A: ("FLINE", 1),
             0x0040: ("IDLE", 1),
             0x0080: ("MWAIT", 1),
             0x0900: ("TRAP", 1),
@@ -411,8 +413,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 48222)
-        self.assertEqual(unclassified, 65536 - 48222)
+        self.assertEqual(matched, 48224)
+        self.assertEqual(unclassified, 65536 - 48224)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2425,6 +2427,38 @@ class IsaTests(unittest.TestCase):
                 self.assertEqual(
                     instruction.metadata["documented_cycles"]["kind"],
                     "complex",
+                )
+
+    def test_fline_records_algorithms_state_pattern_and_timing(self) -> None:
+        for word, algorithm in ((0xDE1A, "d>=0"), (0xDE9A, "d>0")):
+            with self.subTest(word=f"{word:04X}"):
+                instruction = self.database.decode(word)
+                self.assertIsNotNone(instruction)
+                self.assertEqual(instruction.mnemonic, "FLINE")
+                self.assertEqual(instruction.opcode_mask, 0xFF7F)
+                self.assertEqual(instruction.length_words, 1)
+                self.assertEqual(
+                    instruction.metadata["status_bits_written"], []
+                )
+                self.assertTrue(
+                    any(
+                        algorithm in item
+                        for item in instruction.metadata[
+                            "pipeline_interactions"
+                        ]
+                    )
+                )
+                self.assertIn(
+                    "PATTERN",
+                    instruction.metadata["memory_transactions"][0],
+                )
+                self.assertEqual(
+                    instruction.metadata["documented_cycles"]["expression"],
+                    "12 + 3*CD + (2+P)*E + 3",
+                )
+                self.assertIn(
+                    "not established",
+                    instruction.metadata["cache_miss_cycles"],
                 )
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:

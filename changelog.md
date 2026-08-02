@@ -4,6 +4,14 @@
 
 ### Added
 
+- Primary-page-extracted FLINE algorithm zero/one at `DE1Ah`/`DE9Ah`,
+  including implied Bresenham state, linear DADDR plus converted XY increments,
+  PATTERN-controlled aligned COLOR0/COLOR1, PMASK-preserving writes, unchanged
+  ST, pixel-boundary general graphics interruption, and the published
+  `12+3CD+(2+P)E+3` no-wait formula. The independent model implements an
+  atomic replace/no-transparency logical draw; a clean-room RTL leaf implements
+  one step from normalized linear increments and owns no conversion, loop,
+  memory request, commit, continuation, or timing.
 - Primary-page-extracted exact `0ABBh` FPIXEQ and `0ADBh` FPIXNE, including
   signed B11/MPTCH postincrement/predecrement scans, B10/MADDR checkpoints,
   every legal PSIZE, aligned B8/COLOR0 and 32-bit PMASK lanes, Z-only status,
@@ -651,6 +659,21 @@
 
 ### Verified
 
+- The 145-entry ISA database classifies 48,224 first words through 80 ISA
+  tests; the 107-entry delta ledger passes schema checks. The 233-test model
+  suite covers both FLINE decision-zero algorithms, patterned output, every
+  legal PSIZE/lane/PMASK, B0/B2/B10/B13, power/arbitrary pitch formulas,
+  logical writes, status preservation, no-op counts and atomic unsupported-
+  mode rollback. Other PPOP/transparency and physical timing remain absent.
+- The FLINE leaf passes standalone warning-free lint and shared exhaustive
+  simulation, including explicit scalar noncommit. This is a one-step semantic
+  datapath result, not graphics-engine, continuation, or cycle accuracy.
+- Five warning-free Cyclone V Analysis & Synthesis smokes report 15,117 logic
+  cells/2,230 registers/9 DSPs for the observability-heavy FLINE-expanded leaf
+  wrapper, 375/200/4,096 RAM bits for cache, 527/177 for fetch,
+  919/375/4,096 RAM bits for frontend, and 5,498/1,416/4,096 RAM bits for the
+  bounded scalar composition. These remain slice-only analysis metrics, not
+  core area, fit, TimeQuest, or timing closure.
 - The 144-entry ISA database now classifies 48,222 first words through 79
   independent ISA tests; the 106-entry delta ledger passes schema checks. The
   227-test model suite covers FPIX forward/backward, first/intermediate/final/

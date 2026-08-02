@@ -5224,6 +5224,209 @@ class ExecutionTests(unittest.TestCase):
                     model.step()
                 self.assertEqual(model.snapshot(), before)
 
+    def test_fline_horizontal_pattern_draw_and_primary_timing(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0xDE1A])
+        model.state.write_io(PSIZE_ADDRESS, 4)
+        model.state.write_io(CONVDP_ADDRESS, 0x001A)
+        model.state.write_reg("B", 0, 0xFFFF_FFFE)
+        model.state.write_reg("B", 2, 0x100)
+        model.state.write_reg("B", 3, 0x20)
+        model.state.write_reg("B", 7, 0x0000_0002)
+        model.state.write_reg("B", 8, 0x5555_5555)
+        model.state.write_reg("B", 9, 0xAAAA_AAAA)
+        model.state.write_reg("B", 10, 3)
+        model.state.write_reg("B", 11, 1)
+        model.state.write_reg("B", 12, 1)
+        model.state.write_reg("B", 13, 0x0000_0005)
+        model.state.st = 0xDABC_DEF0
+
+        event = model.step()
+
+        writes = [
+            item for item in event.transactions
+            if item["class"] == "pixel_write"
+        ]
+        self.assertEqual(
+            [(item["bit_address"], item["value"]) for item in writes],
+            [(0x100, 0xA), (0x104, 0x5), (0x108, 0xA)],
+        )
+        self.assertEqual(model.state.memory.read_bits(0x100, 12), 0xA5A)
+        self.assertEqual(model.state.read_reg("B", 0), 0xFFFF_FFFE)
+        self.assertEqual(model.state.read_reg("B", 2), 0x10C)
+        self.assertEqual(model.state.read_reg("B", 10), 0)
+        self.assertEqual(model.state.read_reg("B", 13), 0xA000_0000)
+        self.assertEqual(model.state.st, 0xDABC_DEF0)
+        self.assertEqual(event.machine_states, 24)
+
+    def test_fline_algorithm_boundary_and_arbitrary_pitch(self) -> None:
+        for opcode, expected_address, expected_decision in (
+            (0xDE1A, 0x308, 0xFFFF_FFFC),
+            (0xDE9A, 0x208, 0x0000_0004),
+        ):
+            with self.subTest(opcode=f"{opcode:04X}"):
+                model = Tms34020Model()
+                model.load_program([opcode])
+                model.state.write_io(PSIZE_ADDRESS, 8)
+                model.state.write_io(CONVDP_ADDRESS, 0)
+                model.state.write_reg("B", 0, 0)
+                model.state.write_reg("B", 2, 0x200)
+                model.state.write_reg("B", 3, 0x100)
+                model.state.write_reg("B", 7, 0x0002_0004)
+                model.state.write_reg("B", 9, 0xA5A5_A5A5)
+                model.state.write_reg("B", 10, 1)
+                model.state.write_reg("B", 11, 0x0001_0001)
+                model.state.write_reg("B", 12, 0x0000_0001)
+                model.state.write_reg("B", 13, 1)
+
+                event = model.step()
+
+                write = next(
+                    item for item in event.transactions
+                    if item["class"] == "pixel_write"
+                )
+                self.assertEqual(write["value"], 0xA5)
+                self.assertEqual(write["diagonal"], opcode == 0xDE1A)
+                self.assertEqual(
+                    model.state.read_reg("B", 2), expected_address
+                )
+                self.assertEqual(
+                    model.state.read_reg("B", 0), expected_decision
+                )
+                self.assertEqual(model.state.read_reg("B", 10), 0)
+                self.assertEqual(model.state.read_reg("B", 13), 0x8000_0000)
+                self.assertEqual(event.machine_states, 53)
+
+    def test_fline_all_pixel_sizes_lanes_and_plane_mask(self) -> None:
+        for pixel_size in (1, 2, 4, 8, 16, 32):
+            pixel_mask = (
+                0xFFFF_FFFF
+                if pixel_size == 32
+                else (1 << pixel_size) - 1
+            )
+            source = 0xA5A5_5A5B & pixel_mask
+            raw = 0x5A5A_A5A4 & pixel_mask
+            protected = 0xAAAA_AAAA & pixel_mask
+            expected = (raw & protected) | (source & ~protected & pixel_mask)
+            for lane in range(0, 32, pixel_size):
+                with self.subTest(pixel_size=pixel_size, lane=lane):
+                    address = 0x400 + lane
+                    model = Tms34020Model()
+                    model.load_program([0xDE1A])
+                    model.state.write_io(CONFIG_ADDRESS, 1 << 11)
+                    model.state.write_io(PSIZE_ADDRESS, pixel_size)
+                    model.state.write_io(
+                        PMASKL_ADDRESS, (protected << lane) & 0xFFFF
+                    )
+                    model.state.write_io(
+                        PMASKH_ADDRESS, (protected << lane) >> 16
+                    )
+                    model.state.write_io(CONVDP_ADDRESS, 0x001A)
+                    model.state.write_reg("B", 0, 0xFFFF_FFFF)
+                    model.state.write_reg("B", 2, address)
+                    model.state.write_reg("B", 7, 0)
+                    model.state.write_reg("B", 9, source << lane)
+                    model.state.write_reg("B", 10, 1)
+                    model.state.write_reg("B", 13, 1)
+                    model.state.memory.write_bits(
+                        address, pixel_size, raw
+                    )
+
+                    event = model.step()
+
+                    write = next(
+                        item for item in event.transactions
+                        if item["class"] == "pixel_write"
+                    )
+                    self.assertEqual(write["source_value"], source)
+                    self.assertEqual(write["plane_mask"], protected)
+                    self.assertEqual(write["value"], expected)
+                    self.assertEqual(
+                        model.state.memory.read_bits(address, pixel_size),
+                        expected,
+                    )
+                    self.assertEqual(
+                        event.machine_states,
+                        18 if pixel_size <= 4 else 17,
+                    )
+
+    def test_fline_two_power_pitch_formula_and_increment(self) -> None:
+        model = Tms34020Model()
+        model.load_program([0xDE1A])
+        model.state.write_io(PSIZE_ADDRESS, 8)
+        model.state.write_io(CONVDP_ADDRESS, 0x1B1A)
+        model.state.write_reg("B", 0, 0xFFFF_FFFF)
+        model.state.write_reg("B", 2, 0x500)
+        model.state.write_reg("B", 9, 0xA5A5_A5A5)
+        model.state.write_reg("B", 10, 1)
+        model.state.write_reg("B", 12, 0x0001_0000)
+        model.state.write_reg("B", 13, 1)
+
+        event = model.step()
+
+        self.assertEqual(model.state.read_reg("B", 2), 0x530)
+        self.assertEqual(event.machine_states, 20)
+        self.assertIn(
+            "XY conversion pitch class: two_powers_of_two",
+            event.notes,
+        )
+
+    def test_fline_zero_and_negative_count_are_no_op_draws(self) -> None:
+        for count in (0, 0xFFFF_FFFF):
+            with self.subTest(count=f"{count:08X}"):
+                model = Tms34020Model()
+                model.load_program([0xDE1A])
+                model.state.write_io(PSIZE_ADDRESS, 4)
+                model.state.write_io(CONVDP_ADDRESS, 0x001A)
+                model.state.write_reg("B", 0, 0x1234_5678)
+                model.state.write_reg("B", 2, 0x100)
+                model.state.write_reg("B", 10, count)
+                model.state.write_reg("B", 13, 0x89AB_CDEF)
+
+                event = model.step()
+
+                self.assertFalse(
+                    any(
+                        item["class"] == "pixel_write"
+                        for item in event.transactions
+                    )
+                )
+                self.assertEqual(model.state.read_reg("B", 0), 0x1234_5678)
+                self.assertEqual(model.state.read_reg("B", 2), 0x100)
+                self.assertEqual(model.state.read_reg("B", 10), count)
+                self.assertEqual(model.state.read_reg("B", 13), 0x89AB_CDEF)
+                self.assertEqual(event.machine_states, 15)
+
+    def test_fline_unsupported_modes_and_alignment_roll_back(self) -> None:
+        for config, dpyctl, control, pixel_size, address, error_type in (
+            (1, 0, 0, 4, 0x100, UnsupportedInstruction),
+            (0, 1 << 11, 0, 4, 0x100, UnsupportedInstruction),
+            (0, 0, 1 << 10, 4, 0x100, UnsupportedInstruction),
+            (0, 0, 1 << 5, 4, 0x100, UnsupportedInstruction),
+            (0, 0, 0, 3, 0x100, ModelError),
+            (0, 0, 0, 4, 0x102, ModelError),
+        ):
+            with self.subTest(
+                config=config,
+                dpyctl=dpyctl,
+                control=control,
+                pixel_size=pixel_size,
+                address=address,
+            ):
+                model = Tms34020Model()
+                model.load_program([0xDE1A])
+                model.state.write_io(CONFIG_ADDRESS, config)
+                model.state.write_io(DPYCTL_ADDRESS, dpyctl)
+                model.state.write_io(CONTROL_ADDRESS, control)
+                model.state.write_io(PSIZE_ADDRESS, pixel_size)
+                model.state.write_io(CONVDP_ADDRESS, 0x001A)
+                model.state.write_reg("B", 2, address)
+                model.state.write_reg("B", 10, 1)
+                before = model.snapshot()
+                with self.assertRaises(error_type):
+                    model.step()
+                self.assertEqual(model.snapshot(), before)
+
     def test_cvxyl_primary_equation_rows_and_pitch_classes(self) -> None:
         primary_rows = (
             (0x0040_0030, 0x0000_0000, 16, 0x0014, 0x0002_0300),

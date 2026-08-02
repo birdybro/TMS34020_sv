@@ -36,7 +36,7 @@ Implemented:
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
-  CEXEC.S, CLIP, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
+  CEXEC.S, CLIP, FLINE, FPIXEQ, FPIXNE, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
   CMOVMC.POST.C, CMOVCM.POST.C, CMOVCM.PRE.C, CMOVMC.POST.R,
   CMOVMC.PRE.C,
   XORI,
@@ -44,7 +44,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LINIT, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 143 of 144 currently extracted database forms for their
+These handlers cover 144 of 145 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -433,6 +433,23 @@ page mode, faults/retry and the special no-temporary interrupt restart are not
 modeled. Sources: User's Guide FPIXEQ pp.13-126..13-127, FPIXNE
 pp.13-128..13-129, interrupt p.6-14, DPYCTL.CST pp.4-35..4-39, and plane
 masking pp.12-39..12-40; RSC-0044 applies.
+
+FLINE captures the implied B0/B2/B3/B7..B13 line state, PSIZE, CONVDP,
+CONTROL, DPYCTL and PMASK before an atomic logical draw. The supported slice
+requires little-endian ordinary pixel cycles, replace PPOP and transparency
+off. It decrements positive signed COUNT before each write, selects the
+aligned COLOR0/1 lane from successive PATTERN LSBs, preserves PMASK-protected
+destination bits, rotates PATTERN right, applies the algorithm-0 `d>=0` or
+algorithm-1 `d>0` boundary, and updates decision/DADDR through normalized XY
+increments. All NCZV and lower ST bits remain unchanged. Tests cover both
+zero-decision algorithms, patterned horizontal output, all PSIZE/lane/PMASK
+cases, zero/negative counts, arbitrary pitch, exact logical writes and atomic
+unsupported rollback. For replace mode, the model tests the documented
+`12+3CD+(2+P)E+3` no-wait formula, with Table-15-1's extra hidden-cycle term
+for 1/2/4-bit pixels. Physical requests, other PPOP/transparency modes,
+page/wait/fault/retry behavior and IX continuation remain absent. Sources:
+User's Guide §3.6 pp.3-15..3-16, FLINE pp.13-121..13-125, graphics
+interrupts pp.6-13..6-14, and timing pp.15-2 and 15-5.
 
 The four XY-to-linear handlers share equation-level arithmetic but retain
 their distinct explicit and implied operands. Signed X/Y halves and signed
@@ -891,6 +908,9 @@ and disclosed complex timing,
 FPIXEQ/FPIXNE positive/postincrement, negative/predecrement, exhausted and
 zero scans, every legal PSIZE/lane, aligned PMASK/COLOR0 comparison, exact
 logical read traces, B10/B11/Z results, and unsupported-mode rollback,
+FLINE algorithm-zero/one decision boundaries, PATTERN/COLOR0/COLOR1 rotation,
+all legal PSIZE/lane/PMASK writes, implied state, zero/negative counts,
+pitch-class no-wait formula cases, and atomic unsupported-mode rollback,
 all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
 coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and the
 published state cases plus provisional CVXYL arbitrary-pitch selection,
