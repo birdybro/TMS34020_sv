@@ -1211,6 +1211,8 @@
 
 ### Documentation
 
+- Recorded the verified mixed-offset field-move implementation baseline as
+  commit `f6522b1f076712b6cc64bef8920cdc8da0a66029` in the progress ledger.
 - Documented the source-offset/destination-postincrement compatibility boundary
   separately from TMS34020-owned 32-bit A–H timing, BEN, dynamic-width, hidden-
   write, page, interrupt and fault/retry realization.
