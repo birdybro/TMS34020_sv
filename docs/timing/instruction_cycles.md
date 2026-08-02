@@ -96,6 +96,12 @@ sequencer exists, so this is not an external-cycle claim. Source: TMS34020
 User's Guide Tables 15-2 and register-to-memory timing rows, printed
 pp.15-10..15-11.
 
+`MOVE *Rs,Rd[,F]` takes 3/3/4/4/4 visible states for field-alignment cases
+1..5 when FE=0, and 4/4/5/5/5 when FE=1. The model and field-load leaf expose
+those counts with little-endian logical extraction only; no request or wait-
+state waveform is claimed. Source: User's Guide memory-to-register timing
+rows, printed p.15-11.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.

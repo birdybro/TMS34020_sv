@@ -4,6 +4,14 @@
 
 ### Added
 
+- Primary-page-extracted `MOVE *Rs,Rd[,F]` as internal MOVE.MR, covering all
+  1,024 words, FS/FE selection, extension/status behavior, five alignment
+  cases, timing, alias ordering, and TMS34010 compatibility boundaries.
+- Little-endian architectural MOVE.MR field reads with logical traces, exact
+  N/C/Z/V behavior, exhaustive geometry/extension tests, and atomic BEN
+  rejection.
+- A clean-room two-long-word MOVE.MR extraction/extension/timing leaf with
+  explicit noncommit while the physical memory owner is absent.
 - Primary-page-extracted `MOVE Rs,*Rd[,F]` as the internal MOVE.RM family,
   covering all 1,024 words, both field banks, five alignment cases, BEN timing,
   pending writes, and compatibility boundaries.
@@ -444,6 +452,18 @@
 
 ### Verified
 
+- The 47-case ISA suite, 68-entry delta ledger, and 175-case model suite pass.
+  MOVE.MR coverage exhausts both FS/FE banks, every width/offset, all five
+  cases, zero/sign extension, N/C/Z/V, A/B/SP/alias ordering, logical traces,
+  visible state counts, and atomic BEN rollback. Its RTL leaf independently
+  exhausts 2,048 size/offset/extension geometries and cannot commit through
+  the register-only router.
+- Warning-free Cyclone V Analysis & Synthesis reports 12,188 leaf logic
+  cells/2,230 registers/9 DSP, 436 fetch logic cells, 808 frontend logic
+  cells, and 5,353 scalar logic cells for the 106-entry decoder/field-load
+  revision. The frontend/scalar probes retain 4,096 block-memory bits. These
+  are observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
 - The 46-case ISA suite, 67-entry delta ledger, and 172-case model suite pass.
   MOVE.RM coverage exhausts both field banks, every 1–32-bit width and every
   within-long-word offset, all five hidden-write classes, crossing-word
@@ -1037,6 +1057,8 @@
 
 ### Documentation
 
+- Documented ordinary memory-to-register compatibility separately from the
+  TMS34020-owned 32-bit/BEN/timing/request realization.
 - Recorded the verified ordinary field-store implementation baseline as commit
   `8c46ccb496ba9f3b87e0e7a0f89f3d2a8b66c207` in the progress ledger.
 - Documented MOVE.RM's compatible programmer-visible field store separately
@@ -1178,6 +1200,9 @@
 
 ### Known Issues
 
+- MOVE.MR is a little-endian logical-read model and combinational two-word
+  leaf only. BEN=1, dynamic SIZE16, physical requests, page mode, waits,
+  I/O routing, faults/retries, interrupts, and a committing sequencer remain.
 - MOVE.RM is an instruction-boundary little-endian semantic implementation and
   combinational two-word leaf only. BEN=1, byte CAS strobes, physical RMW,
   dynamic SIZE16, page mode, waits, faults/retries, I/O routing, interrupts,

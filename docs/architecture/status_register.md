@@ -174,6 +174,13 @@ C, and clears V. The field/replacement leaf produces N/Z/V; the model commits
 the complete instruction-boundary mask after its abstract locked write. No RTL
 memory/commit owner exists. Source: User's Guide SWAPF, printed p.13-247.
 
+Ordinary `MOVE Rs,*Rd[,F]` reads FS0/FS1 and leaves all ST bits unchanged.
+`MOVE *Rs,Rd[,F]` reads the selected FS/FE bank, sets N/Z from the extended
+field, preserves C, clears V, and preserves all lower fields. The model covers
+both banks and the field-load leaf independently produces N/Z/V, but no RTL
+memory/status commit owner exists. Sources: User's Guide printed pp.13-159,
+13-160, and 13-163.
+
 MMTM replaces only N and preserves C/Z/V plus every lower ST bit. The guide's
 two exceptions to the sign of `0-Rp` make the exact implemented rule
 `N = ~old_Rp[31]`: Rp zero sets N while Rp `80000000h` clears it. MMFM leaves

@@ -126,6 +126,20 @@ module tb_tms34020_verified_leaves;
     logic field_store_writes_word1;
     logic [31:0] field_store_word0_result;
     logic [31:0] field_store_word1_result;
+    logic [4:0] field_load_size;
+    logic field_load_sign_extend;
+    logic [4:0] field_load_offset;
+    logic [31:0] field_load_word0;
+    logic [31:0] field_load_word1;
+    logic [5:0] field_load_decoded_size;
+    logic [2:0] field_load_alignment_case;
+    logic field_load_reads_word1;
+    logic [2:0] field_load_visible_states;
+    logic [31:0] field_load_raw;
+    logic [31:0] field_load_result;
+    logic field_load_n;
+    logic field_load_z;
+    logic field_load_v;
     logic multiple_memory_to_registers;
     logic [15:0] multiple_register_list;
     logic [3:0] multiple_pointer_index;
@@ -409,6 +423,23 @@ module tb_tms34020_verified_leaves;
         .writes_word1_o(field_store_writes_word1),
         .word0_o(field_store_word0_result),
         .word1_o(field_store_word1_result)
+    );
+
+    tms34020_field_load field_load_dut (
+        .field_size_encoded_i(field_load_size),
+        .sign_extend_i(field_load_sign_extend),
+        .bit_offset_i(field_load_offset),
+        .word0_i(field_load_word0),
+        .word1_i(field_load_word1),
+        .field_size_o(field_load_decoded_size),
+        .alignment_case_o(field_load_alignment_case),
+        .reads_word1_o(field_load_reads_word1),
+        .visible_states_o(field_load_visible_states),
+        .raw_field_o(field_load_raw),
+        .result_o(field_load_result),
+        .n_o(field_load_n),
+        .z_o(field_load_z),
+        .v_o(field_load_v)
     );
 
     tms34020_multiple_register_control multiple_register_control_dut (
@@ -950,6 +981,41 @@ module tb_tms34020_verified_leaves;
             field_store_writes_word1 == expected_writes_word1 &&
             {field_store_word1_result, field_store_word0_result} ==
                 expected_window,
+            message
+        );
+    endtask
+
+    task automatic check_field_load(
+        input logic [4:0] field_size_encoded,
+        input logic sign_extend,
+        input logic [4:0] bit_offset,
+        input logic [63:0] source_window,
+        input logic [5:0] expected_size,
+        input logic [2:0] expected_case,
+        input logic expected_reads_word1,
+        input logic [2:0] expected_visible_states,
+        input logic [31:0] expected_raw,
+        input logic [31:0] expected_result,
+        input logic expected_n,
+        input logic expected_z,
+        input string message
+    );
+        field_load_size = field_size_encoded;
+        field_load_sign_extend = sign_extend;
+        field_load_offset = bit_offset;
+        field_load_word0 = source_window[31:0];
+        field_load_word1 = source_window[63:32];
+        #1;
+        check_condition(
+            field_load_decoded_size == expected_size &&
+            field_load_alignment_case == expected_case &&
+            field_load_reads_word1 == expected_reads_word1 &&
+            field_load_visible_states == expected_visible_states &&
+            field_load_raw == expected_raw &&
+            field_load_result == expected_result &&
+            field_load_n == expected_n &&
+            field_load_z == expected_z &&
+            !field_load_v,
             message
         );
     endtask
@@ -1973,6 +2039,11 @@ module tb_tms34020_verified_leaves;
         field_store_source = 32'd0;
         field_store_word0 = 32'd0;
         field_store_word1 = 32'd0;
+        field_load_size = 5'd0;
+        field_load_sign_extend = 1'b0;
+        field_load_offset = 5'd0;
+        field_load_word0 = 32'd0;
+        field_load_word1 = 32'd0;
         multiple_memory_to_registers = 1'b0;
         multiple_register_list = 16'd0;
         multiple_pointer_index = 4'd0;
@@ -2801,6 +2872,84 @@ module tb_tms34020_verified_leaves;
                 );
             end
         end
+        check_field_load(
+            5'd0, 1'b0, 5'd0,
+            64'hC33C_F00F_A5A5_5A5A,
+            6'd32, 3'd1, 1'b0, 3'd3,
+            32'hA5A5_5A5A, 32'hA5A5_5A5A, 1'b1, 1'b0,
+            "MOVE.MR full aligned zero-extension boundary"
+        );
+        check_field_load(
+            5'd8, 1'b1, 5'd8,
+            64'h0000_0000_0000_0000,
+            6'd8, 3'd1, 1'b0, 3'd4,
+            32'd0, 32'd0, 1'b0, 1'b1,
+            "MOVE.MR zero sign-extension and status boundary"
+        );
+        for (int unsigned sign_extend = 0; sign_extend < 2;
+             sign_extend++) begin
+            for (int unsigned encoded_size = 0; encoded_size < 32;
+                 encoded_size++) begin
+                for (int unsigned bit_offset = 0; bit_offset < 32;
+                     bit_offset++) begin
+                    logic [5:0] expected_size;
+                    logic [6:0] expected_end;
+                    logic [31:0] expected_mask;
+                    logic [63:0] expected_window;
+                    logic [4:0] expected_sign_index;
+                    logic [31:0] expected_raw;
+                    logic [31:0] expected_result;
+                    logic [2:0] expected_case;
+                    logic [2:0] expected_visible;
+                    expected_size = encoded_size == 0 ? 6'd32 :
+                        encoded_size[5:0];
+                    expected_end = bit_offset[6:0] + expected_size;
+                    expected_mask = 32'hFFFF_FFFF;
+                    if (expected_size != 6'd32) begin
+                        expected_mask =
+                            (32'd1 << expected_size) - 32'd1;
+                    end
+                    expected_window = 64'hC33C_F00F_A5A5_5A5A;
+                    expected_raw =
+                        expected_window[bit_offset +: 32] & expected_mask;
+                    expected_result = expected_raw;
+                    expected_sign_index =
+                        expected_size[4:0] - 5'd1;
+                    if (
+                        sign_extend != 0 &&
+                        expected_size != 6'd32 &&
+                        expected_raw[expected_sign_index]
+                    ) begin
+                        expected_result = expected_raw | ~expected_mask;
+                    end
+                    if (expected_end <= 7'd32) begin
+                        expected_case =
+                            ((bit_offset[2:0] == 3'd0) &&
+                             (expected_end[2:0] == 3'd0)) ? 3'd1 : 3'd2;
+                    end else if ((bit_offset[2:0] == 3'd0) &&
+                                 (expected_end[2:0] == 3'd0)) begin
+                        expected_case = 3'd3;
+                    end else if ((bit_offset[2:0] == 3'd0) ||
+                                 (expected_end[2:0] == 3'd0)) begin
+                        expected_case = 3'd4;
+                    end else begin
+                        expected_case = 3'd5;
+                    end
+                    expected_visible =
+                        ((expected_case <= 3'd2) ? 3'd3 : 3'd4) +
+                        sign_extend[2:0];
+                    check_field_load(
+                        encoded_size[4:0], sign_extend[0], bit_offset[4:0],
+                        64'hC33C_F00F_A5A5_5A5A,
+                        expected_size, expected_case,
+                        expected_end > 7'd32, expected_visible,
+                        expected_raw, expected_result,
+                        expected_result[31], expected_result == 32'd0,
+                        "MOVE.MR exhaustive little-endian field geometry"
+                    );
+                end
+            end
+        end
         check_multiple_register_control(
             1'b1, 16'h4015, 4'd15, 32'h0000_0780, 1'b0,
             16'h4015, 5'd4, 1'b1, 32'h0000_0800, 1'b1, 6'd9, 2'd0,
@@ -3402,6 +3551,12 @@ module tb_tms34020_verified_leaves;
             32'hA020_0010,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MOVE.RM cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'h8401, 32'h0000_2003, 32'hDEAD_BEEF,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MR cannot bypass absent field-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -5053,10 +5208,14 @@ module tb_tms34020_verified_leaves;
                      "MOVE.RM field-zero lower-bound decode");
         check_decode(16'h83FF, TMS20_OP_MOVE_RM, 3'd1,
                      "MOVE.RM field-one upper-bound decode");
-        decode_word = 16'h8400;
+        check_decode(16'h8400, TMS20_OP_MOVE_MR, 3'd1,
+                     "MOVE.MR field-zero lower-bound decode");
+        check_decode(16'h87FF, TMS20_OP_MOVE_MR, 3'd1,
+                     "MOVE.MR field-one upper-bound decode");
+        decode_word = 16'h8800;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
-            "unextracted MOVE memory-to-register remains open");
+            "unextracted MOVE memory-to-memory remains open");
         check_decode(16'h1C00, TMS20_OP_BTST_K, 3'd1,
                      "BTST.K lower-bound decode");
         check_decode(16'h1FFF, TMS20_OP_BTST_K, 3'd1,

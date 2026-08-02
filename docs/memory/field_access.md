@@ -62,6 +62,24 @@ two-word result into byte CAS strobes, read/modify/write cycles, dynamic
 16-bit beats, page-mode operations, waits, I/O accesses, retry, or bus-fault
 continuation.
 
+## Verified ordinary memory-to-register boundary
+
+`MOVE *Rs,Rd[,F]` occupies `8400h`/`FC00h`. F selects the corresponding
+FS/FE bank. The field at the bit address captured from Rs is right-justified,
+zero-extended for FE=0 or sign-extended for FE=1, and written to Rd. N and Z
+reflect the extended result, C is preserved, and V is cleared. If Rs and Rd
+alias, the captured pointer is overwritten by the fetched data. Sources:
+User's Guide printed pp.13-160 and 13-163; the compatible TMS34010 form is at
+printed pp.12-135..12-136.
+
+The little-endian model and clean-room `tms34020_field_load` leaf exhaust all
+32 sizes, 32 within-word offsets, both extension modes, and all five alignment
+cases. FE=0 takes 3/3/4/4/4 visible states for cases 1..5; FE=1 adds one
+state. Model tests additionally cover both banks/files, shared SP, alias
+ordering, zero/negative/positive status, logical read traces, and atomic BEN
+rollback. No request owner yet supplies dynamic-width beats, waits, page
+mode, I/O routing, fault/retry suppression, interrupts, or pin timing.
+
 ## Locked-cycle requirements
 
 The write immediately follows the read and instruction completion waits for
@@ -74,7 +92,8 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE addressing forms and memory reads, BEN mapping,
+Remaining ordinary MOVE addressing/update/absolute/memory-to-memory forms,
+BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain
 unimplemented. No complete memory-subsystem claim follows from SWAPF.

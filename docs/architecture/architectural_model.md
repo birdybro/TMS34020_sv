@@ -20,7 +20,7 @@ Implemented:
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
-  PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM,
+  PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM, MOVE.MR,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -33,7 +33,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 104 of 105 currently extracted database forms for their
+These handlers cover 105 of 106 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -53,6 +53,16 @@ rolls back atomically because BEN-aware bit mapping is not yet part of the
 memory model. The logical transaction is not evidence for byte strobes,
 dynamic width, RMW, page mode, waits, faults, retry, or pin timing. Sources:
 User's Guide printed pp.3-20..3-21, 13-19..13-23, 13-159, and 15-10..15-11.
+
+`MOVE.MR` is the internal family name for `MOVE *Rs,Rd[,F]`. It captures the
+source bit address before any aliasing destination write, reads the selected
+1–32-bit field, applies FE0/FE1 zero/sign extension, writes Rd, preserves C,
+sets N/Z from the extended value, and clears V. Its little-endian visible
+count is 3/3/4/4/4 states for alignment cases 1..5 plus one state when FE is
+set. Tests exhaust both FS/FE banks, extension modes, all widths and offsets,
+both register files, shared SP, Rs=Rd ordering, positive/negative/zero status,
+and BEN rollback. The logical read is not a physical request trace. Sources:
+User's Guide printed pp.13-160, 13-163, and 15-10..15-11.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

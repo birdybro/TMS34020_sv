@@ -170,6 +170,15 @@ semantics. Dynamic SIZE16, CAS strobes, RMW, page mode, waits, faults/retries,
 and pins require a TMS34020-owned sequencer. Sources: TMS34020 guide printed
 pp.13-159 and 15-10..15-11; TMS34010 guide printed pp.12-127..12-128.
 
+The ordinary `MOVE *Rs,Rd[,F]` encoding, FE extension, N/Z/V update and C
+preservation are likewise compatible, but the TMS34020's five 32-bit
+alignment cases and 3/3/4/4/4-state read timing are device-owned; FE adds one
+state. The current model/leaf reuse only independently verified extraction,
+extension, and visible status semantics. Pointer capture, BEN, dynamic
+SIZE16, page mode, waits, faults/retries and physical requests require the
+TMS34020 sequencer. Sources: TMS34020 guide printed pp.13-160, 13-163, and
+15-10..15-11; TMS34010 guide printed pp.12-135..12-136.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

@@ -676,6 +676,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 field model and MOVE form, printed pp.13-19..13-23 and 13-159", "TI-TMS34020-UG-1990 MOVE/MOVB timing cases, printed pp.15-10..15-11", "TI-TMS34020-UG-1990 BEN, printed pp.3-20..3-21 and 4-20..4-21", "TI-TMS34010-UG-1988 MOVE register-to-indirect, printed pp.12-127..12-128"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact native request decomposition, byte CAS strobes, dynamic SIZE16 beats, page-mode eligibility, and fault/retry checkpoint remain pending the memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "ordinary_memory_to_register_field_move",
+      "tms34010_behavior": "MOVE *Rs,Rd[,F] uses 8400h/FC00h, reads the selected field at the bit address in Rs, applies FE-selected extension, writes Rd, and updates N/Z/V while retaining C on its 16-bit memory system.",
+      "tms34020_behavior": "The encoding and programmer-visible field extraction remain compatible, but the 32-bit memory pipeline classifies five long-word/byte-boundary cases. FE=0 takes 3/3/4/4/4 visible states and FE=1 takes 4/4/5/5/5 for cases 1..5.",
+      "rtl_impact": "Reuse only field-size/extension and visible status semantics. A TMS34020-owned sequencer must capture Rs before an aliasing Rd write, map BEN, issue one/two-word requests on 32-bit and dynamic 16-bit targets, and suppress all register/status commit on fault. The current leaf only extracts a little-endian two-word semantic window and classifies timing.",
+      "test_impact": "All 1,024 encodings; both FS/FE banks; widths 1..32; every bit offset; five cases; zero/sign extension; zero/negative/positive fields; N/C/Z/V; A/B/SP and Rs=Rd ordering; BEN; 16/32-bit request traces; page boundaries; waits; faults/retries; interrupts and I/O source routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE indirect-to-register form and status, printed pp.13-160 and 13-163", "TI-TMS34020-UG-1990 MOVE/MOVB timing cases, printed pp.15-10..15-11", "TI-TMS34020-UG-1990 BEN, printed pp.3-20..3-21 and 4-20..4-21", "TI-TMS34010-UG-1988 MOVE indirect-to-register, printed pp.12-135..12-136"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact native request decomposition, dynamic SIZE16 beats, page-mode eligibility, and fault/retry checkpoint remain pending the memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

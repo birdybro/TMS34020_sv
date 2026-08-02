@@ -129,6 +129,7 @@ class Tms34020Model:
             "MOVI.W": self._execute_movi_word,
             "MOVI.L": self._execute_movi_long,
             "MOVE": self._execute_move,
+            "MOVE.MR": self._execute_move_memory_to_register,
             "MOVE.RM": self._execute_move_register_to_memory,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
@@ -1573,6 +1574,61 @@ class Tms34020Model:
             "sequencing remain pending"
         )
         return 1
+
+    def _execute_move_memory_to_register(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                "MOVE.MR big-endian field mapping is classified but not modeled"
+            )
+        first_word = words[0]
+        register_file, pointer_index, destination_index = (
+            self._decode_source_destination(first_word)
+        )
+        field_bank = (first_word >> 9) & 1
+        width = self._selected_field_size(first_word)
+        sign_extend = bool(
+            self.state.st & (1 << (field_bank * 6 + 5))
+        )
+        bit_address = self.state.read_reg(register_file, pointer_index)
+        raw_value = self.state.memory.read_bits(bit_address, width)
+        result = raw_value
+        if (
+            sign_extend
+            and width < 32
+            and raw_value & (1 << (width - 1))
+        ):
+            result |= MASK32 ^ ((1 << width) - 1)
+        result &= MASK32
+        alignment_case = self._field_alignment_case(bit_address, width)
+        machine_states = (3 if alignment_case <= 2 else 4) + int(
+            sign_extend
+        )
+        self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, False)
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "data_read",
+                "purpose": "field_move_memory_to_register",
+                "bit_address": bit_address,
+                "width": width,
+                "value": raw_value,
+                "extended_result": result,
+                "alignment_case": alignment_case,
+                "sign_extend": int(sign_extend),
+            }
+        )
+        self._active_trace.notes.append(
+            "logical little-endian field extraction; physical dynamic-width, "
+            "wait, page, fault, retry, interrupt, and I/O sequencing remain "
+            "pending"
+        )
+        return machine_states
 
     def _execute_rotate_left(
         self,

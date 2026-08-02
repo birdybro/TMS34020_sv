@@ -111,6 +111,15 @@ module tms34020_leaf_synth_top (
     logic field_store_writes_word1;
     logic [31:0] field_store_word0;
     logic [31:0] field_store_word1;
+    logic [5:0] field_load_size;
+    logic [2:0] field_load_alignment_case;
+    logic field_load_reads_word1;
+    logic [2:0] field_load_visible_states;
+    logic [31:0] field_load_raw;
+    logic [31:0] field_load_result;
+    logic field_load_n;
+    logic field_load_z;
+    logic field_load_v;
     logic [15:0] multiple_normalized_mask;
     logic [4:0] multiple_register_count;
     logic multiple_list_valid;
@@ -170,6 +179,8 @@ module tms34020_leaf_synth_top (
         swap_register_result ^
         field_store_word0 ^
         field_store_word1 ^
+        field_load_raw ^
+        field_load_result ^
         {16'd0, multiple_normalized_mask} ^
         multiple_final_pointer ^
         {26'd0, xy_linear_pitch_class, xy_linear_visible_states} ^
@@ -180,6 +191,9 @@ module tms34020_leaf_synth_top (
         {28'd0, swap_legal_in_word, swap_n, swap_z, swap_v} ^
         {19'd0, field_store_size, field_store_alignment_case,
          field_store_hidden_states, field_store_writes_word1} ^
+        {16'd0, field_load_size, field_load_alignment_case,
+         field_load_reads_word1, field_load_visible_states,
+         field_load_n, field_load_z, field_load_v} ^
         {17'd0, multiple_register_count, multiple_list_valid, multiple_n,
          multiple_visible_states, multiple_hidden_write_states} ^
         interrupt_return_final_sp ^
@@ -424,6 +438,27 @@ module tms34020_leaf_synth_top (
         .writes_word1_o(field_store_writes_word1),
         .word0_o(field_store_word0),
         .word1_o(field_store_word1)
+    );
+
+    tms34020_field_load field_load (
+        .field_size_encoded_i(
+            first_word_i[9] ? status_value[10:6] : status_value[4:0]
+        ),
+        .sign_extend_i(
+            first_word_i[9] ? status_value[11] : status_value[5]
+        ),
+        .bit_offset_i(operand_i[4:0]),
+        .word0_i(immediate_i),
+        .word1_i(operand_i),
+        .field_size_o(field_load_size),
+        .alignment_case_o(field_load_alignment_case),
+        .reads_word1_o(field_load_reads_word1),
+        .visible_states_o(field_load_visible_states),
+        .raw_field_o(field_load_raw),
+        .result_o(field_load_result),
+        .n_o(field_load_n),
+        .z_o(field_load_z),
+        .v_o(field_load_v)
     );
 
     tms34020_multiple_register_control multiple_register_control (
