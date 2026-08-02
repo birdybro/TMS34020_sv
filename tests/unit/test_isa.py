@@ -324,6 +324,20 @@ class IsaTests(unittest.TestCase):
             0xBBFF: ("MOVE.MM.OFFSET", 3),
             0xD000: ("MOVE.MM.SOFF_POST", 2),
             0xD3FF: ("MOVE.MM.SOFF_POST", 2),
+            0x0580: ("MOVE.RM.ABS", 3),
+            0x059F: ("MOVE.RM.ABS", 3),
+            0x0780: ("MOVE.RM.ABS", 3),
+            0x079F: ("MOVE.RM.ABS", 3),
+            0x05A0: ("MOVE.MR.ABS", 3),
+            0x05BF: ("MOVE.MR.ABS", 3),
+            0x07A0: ("MOVE.MR.ABS", 3),
+            0x07BF: ("MOVE.MR.ABS", 3),
+            0x05C0: ("MOVE.MM.ABS", 5),
+            0x07C0: ("MOVE.MM.ABS", 5),
+            0xD400: ("MOVE.MM.SABS_POST", 3),
+            0xD41F: ("MOVE.MM.SABS_POST", 3),
+            0xD600: ("MOVE.MM.SABS_POST", 3),
+            0xD61F: ("MOVE.MM.SABS_POST", 3),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -351,8 +365,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 44502)
-        self.assertEqual(unclassified, 65536 - 44502)
+        self.assertEqual(matched, 44696)
+        self.assertEqual(unclassified, 65536 - 44696)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -1906,6 +1920,95 @@ class IsaTests(unittest.TestCase):
         )
         self.assertEqual(instruction.metadata["status_bits_written"], [])
         self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_move_register_to_absolute_contract(self) -> None:
+        instruction = self.database.decode(0x0580)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.RM.ABS")
+        self.assertEqual(instruction.opcode_mask, 0xFDE0)
+        self.assertEqual(instruction.opcode_value, 0x0580)
+        self.assertEqual(instruction.length_words, 3)
+        self.assertEqual(
+            instruction.metadata["immediate_fields"][0]["word_order"],
+            ["word1_low", "word2_high"],
+        )
+        cycles = instruction.metadata["documented_cycles"]
+        self.assertEqual(
+            cycles["visible_machine_states_by_immediate_alignment"],
+            {"long_word_aligned": 2, "not_long_word_aligned": 3},
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+
+    def test_move_absolute_to_register_contract(self) -> None:
+        instruction = self.database.decode(0x05A0)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.MR.ABS")
+        self.assertEqual(instruction.opcode_mask, 0xFDE0)
+        self.assertEqual(instruction.opcode_value, 0x05A0)
+        self.assertEqual(instruction.length_words, 3)
+        cycles = instruction.metadata["documented_cycles"]
+        self.assertEqual(
+            cycles["zero_extended_visible_machine_states"]
+            ["long_word_aligned"],
+            {
+                "case_1": 4,
+                "case_2": 4,
+                "case_3": 5,
+                "case_4": 5,
+                "case_5": 5,
+            },
+        )
+        self.assertEqual(cycles["sign_extension_additional_states"], 1)
+        self.assertEqual(
+            instruction.metadata["status_bits_written"], ["N", "Z", "V"]
+        )
+
+    def test_move_absolute_to_postincrement_contract(self) -> None:
+        instruction = self.database.decode(0xD400)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.MM.SABS_POST")
+        self.assertEqual(instruction.opcode_mask, 0xFDE0)
+        self.assertEqual(instruction.opcode_value, 0xD400)
+        self.assertEqual(instruction.length_words, 3)
+        cycles = instruction.metadata["documented_cycles"]
+        self.assertEqual(
+            cycles["visible_machine_states"]["not_long_word_aligned"],
+            {
+                "case_1": 5,
+                "case_2": 5,
+                "case_3": 6,
+                "case_4": 6,
+                "case_5": 6,
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
+
+    def test_move_absolute_to_absolute_contract(self) -> None:
+        instruction = self.database.decode(0x05C0)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.MM.ABS")
+        self.assertEqual(instruction.opcode_mask, 0xFDFF)
+        self.assertEqual(instruction.opcode_value, 0x05C0)
+        self.assertEqual(instruction.length_words, 5)
+        self.assertEqual(
+            [
+                field["name"]
+                for field in instruction.metadata["immediate_fields"]
+            ],
+            ["source_address", "destination_address"],
+        )
+        cycles = instruction.metadata["documented_cycles"]
+        self.assertEqual(
+            cycles["visible_machine_states"]["long_word_aligned"],
+            {
+                "case_1": 5,
+                "case_2": 5,
+                "case_3": 6,
+                "case_4": 6,
+                "case_5": 6,
+            },
+        )
+        self.assertEqual(instruction.metadata["status_bits_written"], [])
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

@@ -258,6 +258,18 @@ width, page behavior, waits, interrupts and fault/retry retirement; no upstream
 timing FSM is reused. Sources: TMS34020 guide printed pp.13-14, 13-162, 13-166
 and 15-12; TMS34010 guide printed pp.12-149..12-150.
 
+The four absolute-address forms retain low-word/high-word extension ordering
+and compatible field/status semantics: `0580h`/`FDE0h` register-to-absolute,
+`05A0h`/`FDE0h` absolute-to-register, `D400h`/`FDE0h` absolute-source to
+postincrement destination, and `05C0h`/`FDFFh` absolute-to-absolute. The
+five-word form consumes complete source then destination addresses and retains
+read-before-write ordering. These semantic components may be reused only after
+independent verification. TMS34020 owns extension-fetch alignment timing,
+five-case 32-bit field timing, hidden writes, BEN, dynamic width, pages, waits,
+fault/retry and retirement: no TMS34010 timing FSM is reusable. Sources:
+TMS34020 guide printed pp.13-14..13-15, 13-159..13-166 and 15-11..15-12;
+TMS34010 guide printed pp.12-133..12-134 and 12-152..12-158.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

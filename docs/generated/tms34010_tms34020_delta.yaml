@@ -796,6 +796,46 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-14", "TI-TMS34020-UG-1990 source-offset/destination-postincrement MOVE, printed p.13-162", "TI-TMS34020-UG-1990 source-offset examples, printed p.13-166", "TI-TMS34020-UG-1990 memory-to-memory timing, printed p.15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-149..12-150"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact extension fetch, read/write and destination-increment retirement relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "absolute_destination_register_to_memory_field_move",
+      "tms34010_behavior": "MOVE Rs,@DAddress[,F] uses 0580h/FDE0h followed by the low then high 16-bit halves of the bit address. It writes the selected low source field at that absolute address and preserves ST.",
+      "tms34020_behavior": "The encoding, extension-word order, field value and status contract remain compatible. The TMS34020 takes two visible states when the first address word is long-word aligned and three otherwise, plus 1/2/2/3/4 hidden writes by destination alignment case.",
+      "rtl_impact": "Reuse low/high address assembly and field-insertion semantics only. A TMS34020-owned sequencer must fetch two extension words in documented order, account for their alignment, issue byte-strobed or read/modify/write cycles on dynamic 32/16-bit targets, and make fault/retry retirement idempotent. The current absolute-address leaf only assembles the two halves.",
+      "test_impact": "All 128 first words; low/high address ordering; first-extension aligned and unaligned timing; both FS banks; every width/offset/case; A/B/SP; unchanged ST; BEN; hidden writes; 16/32-bit targets; pages; waits; faults/retries; interrupts and I/O destinations.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-14", "TI-TMS34020-UG-1990 register-to-absolute MOVE, printed pp.13-159..13-160", "TI-TMS34020-UG-1990 absolute-address examples, printed p.13-164", "TI-TMS34020-UG-1990 register-to-memory timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible form, printed pp.12-133..12-134"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact two-extension fetch, write launch and interrupt/fault/retry checkpoints remain pending the TMS34020 sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "absolute_source_memory_to_register_field_move",
+      "tms34010_behavior": "MOVE @SAddress,Rd[,F] uses 05A0h/FDE0h followed by the low then high 16-bit halves of the source bit address. It extends the selected field into Rd and updates N/Z/V while preserving C.",
+      "tms34020_behavior": "The encoding, address assembly, field result and partial-status contract remain compatible. With FE=0 the TMS34020 takes 4/4/5/5/5 visible states when the first extension word is long-word aligned and 5/5/6/6/6 otherwise; FE=1 adds one state.",
+      "rtl_impact": "Reuse low/high address assembly, extraction, extension and status semantics only. A TMS34020-owned sequencer must fetch the address words, model extension alignment, suppress register/status retirement after a fault, and make retry idempotent for dynamic 32/16-bit targets. Current leaves remain combinational and noncommitting.",
+      "test_impact": "All 128 first words; low/high address ordering; aligned/unaligned extension timing; both FS/FE banks; every width/offset/case; zero/sign extension; N/C/Z/V; A/B/SP; BEN; 16/32-bit traces; pages; waits; faults/retries; interrupts and I/O reads.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-15", "TI-TMS34020-UG-1990 absolute-to-register MOVE and status, printed pp.13-162..13-163", "TI-TMS34020-UG-1990 absolute-address examples, printed p.13-164", "TI-TMS34020-UG-1990 memory-to-register timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible form, printed pp.12-152..12-154"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact address-fetch/read/data/status checkpoints relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "absolute_source_destination_postincrement_field_move",
+      "tms34010_behavior": "MOVE @SAddress,*Rd+[,F] uses D400h/FDE0h followed by the low then high halves of the source bit address. It copies the selected field to the original Rd address, increments Rd by the field size after the move, and preserves ST.",
+      "tms34020_behavior": "The encoding, address ordering, original destination, postincrement and status contract remain compatible. It takes 4/4/5/5/5 visible states by source case when the first extension word is aligned and 5/5/6/6/6 otherwise, plus 1/2/2/3/4 hidden destination writes.",
+      "rtl_impact": "Reuse address assembly, read-before-write, field-copy and destination-add semantics only. A TMS34020-owned sequencer must fetch the absolute source, retain the original destination pointer, map BEN, sequence dynamic-width reads/writes, increment exactly once only after a successful move, and make retry idempotent. Current leaves are noncommitting.",
+      "test_impact": "All 128 first words; address-word order; extension alignment; both FS banks; every width/source/destination alignment and all 25 timing pairs; A/B/SP; wrap and overlap; unchanged ST; BEN; 16/32-bit beats; pages; waits; faults/retries; interrupts and I/O routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-15", "TI-TMS34020-UG-1990 absolute-source/postincrement-destination MOVE, printed p.13-163", "TI-TMS34020-UG-1990 absolute-address examples, printed pp.13-165..13-166", "TI-TMS34020-UG-1990 memory-to-memory timing, printed p.15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-154..12-156"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact address-fetch/read/write/increment retirement relative to waits, interrupts, faults and retry remains pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "absolute_source_and_destination_memory_field_move",
+      "tms34010_behavior": "MOVE @SAddress,@DAddress[,F] uses 05C0h/FDFFh followed by source low/high then destination low/high address halves. It captures the source field before writing the destination and preserves ST.",
+      "tms34020_behavior": "The five-word encoding, extension order, read-before-write behavior and status contract remain compatible. It takes 5/5/6/6/6 visible states by source case when the first extension is aligned and 7/7/8/8/8 otherwise, plus 1/2/2/3/4 hidden destination writes.",
+      "rtl_impact": "Reuse address assembly, extension ordering and field-copy semantics only. A TMS34020-owned sequencer must fetch four address words, retain the complete source before any overlapping write, model the two-state unaligned-extension penalty, map BEN, sequence dynamic-width transfers and make every retry idempotent. Current address/copy leaves remain noncommitting.",
+      "test_impact": "Both first words; source-low/source-high/destination-low/destination-high ordering; aligned/unaligned extension timing; both FS banks; every source/destination width/offset case and all 25 timing pairs; overlap; unchanged ST; BEN; hidden writes; 16/32-bit beats; pages; waits; faults/retries; interrupts and I/O routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-15", "TI-TMS34020-UG-1990 absolute-to-absolute MOVE, printed p.13-163", "TI-TMS34020-UG-1990 absolute-address examples, printed pp.13-165..13-166", "TI-TMS34020-UG-1990 memory-to-memory timing, printed p.15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-156..12-158"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact four-extension fetch and read/write retirement relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

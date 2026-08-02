@@ -225,6 +225,34 @@ and bus behavior remain outside these leaves. Sources: User's Guide printed
 pp.13-14, 13-162, 13-166 and 15-12; compatible form: TMS34010 User's Guide
 printed pp.12-149..12-150.
 
+## Verified absolute-address field boundaries
+
+`MOVE Rs,@DAddress[,F]` (`0580h`/`FDE0h`) and
+`MOVE @SAddress,Rd[,F]` (`05A0h`/`FDE0h`) consume the absolute address low
+word before its high word. The store preserves ST; the load applies FE,
+replaces N/Z/V, and preserves C. An aligned first extension gives the store
+two visible states and the load 4/4/5/5/5 by source case; an unaligned first
+extension adds one visible state. FE adds one more load state. Store hidden
+writes remain 1/2/2/3/4 by destination case.
+
+`MOVE @SAddress,*Rd+[,F]` (`D400h`/`FDE0h`) reads at the assembled source,
+writes at the original Rd address, and increments Rd only after the move. Its
+aligned first-extension source timing is 4/4/5/5/5; unaligned adds one, and
+destination hidden writes remain 1/2/2/3/4. The five-word
+`MOVE @SAddress,@DAddress[,F]` (`05C0h`/`FDFFh`) consumes source low/high then
+destination low/high, captures the source before writing, and preserves ST.
+Its aligned visible timing is 5/5/6/6/6, while unaligned is 7/7/8/8/8; hidden
+writes again follow the destination case.
+
+Model tests exhaust both banks, FE, widths, all 25 source/destination timing
+pairs, A/B/SP, word order, absolute boundaries, postincrement wrap, overlap,
+status and BEN rollback. The clean-room absolute-address leaf exhausts every
+16-bit low and high half. It does not fetch extensions or issue requests.
+Physical BEN mapping, byte strobes/RMW, SIZE16, page mode, waits, fault/retry,
+interrupt and I/O behavior remain absent. Sources: User's Guide printed
+pp.13-14..13-15, 13-159..13-166 and 15-11..15-12; compatible forms:
+TMS34010 User's Guide printed pp.12-133..12-134 and 12-152..12-158.
+
 ## Locked-cycle requirements
 
 The write immediately follows the read and instruction completion waits for
@@ -237,7 +265,6 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE absolute forms,
 BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain

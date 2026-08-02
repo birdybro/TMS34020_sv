@@ -9,9 +9,9 @@
 - Target: DE10-Nano Cyclone V `5CSEBA6U23I7`
 - Command: `make quartus-leaf-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 12,843 logic cells after synthesis, 2,230 registers,
+- Analysis resources: 12,856 logic cells after synthesis, 2,230 registers,
   127 pins, 0 block-memory bits, 9 DSP blocks, and 0 PLLs
-- Scope: generated 117-entry partial decoder, A/B/SP register file, masked ST state,
+- Scope: generated 121-entry partial decoder, A/B/SP register file, masked ST state,
   instruction semantic leaves including pitch conversion and a clean-room
   iterative DIVS/DIVU/MODS/MODU datapath, combinational MPYS/MPYU leaf,
   combinational SWAPF word-local field-transform leaf,
@@ -25,6 +25,7 @@
   combinational paired-postincrement effective/final field-address leaf,
   combinational paired-predecrement effective/final field-address leaf,
   combinational signed-16 field-offset effective-address leaf,
+  combinational low-word/high-word absolute-address leaf,
   combinational source-offset/destination-postincrement effective/final-address
   leaf,
   decoder-controlled
@@ -66,9 +67,9 @@
 
 - Command: `make quartus-fetch-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 451 logic cells, 175 registers, 74 pins, 0 block-memory
+- Analysis resources: 462 logic cells, 176 registers, 74 pins, 0 block-memory
   bits, 0 DSP blocks, and 0 PLLs
-- Scope: generated 117-entry partial decoder, aligned instruction-start cursor,
+- Scope: generated 121-entry partial decoder, aligned instruction-start cursor,
   one-to-five-word packet storage, per-word cache classifications, decoupled
   cache/packet/completion handshakes, sequential/redirect selection, abort
   discard/reload, and an observability-only wrapper
@@ -82,7 +83,7 @@
 
 - Command: `make quartus-frontend-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 829 logic cells, 373 registers, 82 pins, 4,096
+- Analysis resources: 835 logic cells, 374 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`
@@ -96,7 +97,7 @@
 
 - Command: `make quartus-scalar-smoke`
 - Result: Analysis & Synthesis successful, 0 errors, 0 warnings
-- Analysis resources: 5,399 logic cells, 1,414 registers, 82 pins, 4,096
+- Analysis resources: 5,449 logic cells, 1,415 registers, 82 pins, 4,096
   block-memory bits, 0 DSP blocks, and 0 PLLs
 - Memory inference: the integrated cache retains one portable 128×32 dual-port
   RAM mapped to `altsyncram`

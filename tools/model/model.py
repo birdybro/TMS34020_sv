@@ -140,6 +140,10 @@ class Tms34020Model:
             "MOVE.MM.SOFF_POST": (
                 self._execute_move_memory_to_memory_source_offset_postincrement
             ),
+            "MOVE.MM.SABS_POST": (
+                self._execute_move_memory_to_memory_absolute_source_postincrement
+            ),
+            "MOVE.MM.ABS": self._execute_move_memory_to_memory_absolute,
             "MOVE.MR": self._execute_move_memory_to_register,
             "MOVE.MR.POST": (
                 self._execute_move_memory_to_register_postincrement
@@ -148,6 +152,7 @@ class Tms34020Model:
                 self._execute_move_memory_to_register_predecrement
             ),
             "MOVE.MR.OFFSET": self._execute_move_memory_to_register_offset,
+            "MOVE.MR.ABS": self._execute_move_memory_to_register_absolute,
             "MOVE.RM": self._execute_move_register_to_memory,
             "MOVE.RM.POST": (
                 self._execute_move_register_to_memory_postincrement
@@ -156,6 +161,7 @@ class Tms34020Model:
                 self._execute_move_register_to_memory_predecrement
             ),
             "MOVE.RM.OFFSET": self._execute_move_register_to_memory_offset,
+            "MOVE.RM.ABS": self._execute_move_register_to_memory_absolute,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
@@ -2050,6 +2056,241 @@ class Tms34020Model:
             + "; physical "
             "byte-strobe/RMW, dynamic-width, wait, page, fault, retry, "
             "interrupt, and I/O sequencing remain pending"
+        )
+        return machine_states
+
+    @staticmethod
+    def _absolute_bit_address(words: list[int], low_word_index: int) -> int:
+        return words[low_word_index] | (words[low_word_index + 1] << 16)
+
+    def _first_extension_long_word_aligned(self) -> bool:
+        assert self._active_trace is not None
+        return ((self._active_trace.start_pc + 16) & 0x1F) == 0
+
+    def _execute_move_register_to_memory_absolute(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                "MOVE.RM.ABS big-endian field mapping is classified but not modeled"
+            )
+        first_word = words[0]
+        register_file = "B" if first_word & 0x10 else "A"
+        source_index = first_word & 0xF
+        width = self._selected_field_size(first_word)
+        destination_address = self._absolute_bit_address(words, 1)
+        source = self.state.read_reg(register_file, source_index)
+        field_mask = MASK32 if width == 32 else (1 << width) - 1
+        value = source & field_mask
+        destination_case = self._field_alignment_case(
+            destination_address, width
+        )
+        hidden_states = (0, 1, 2, 2, 3, 4)[destination_case]
+        immediate_aligned = self._first_extension_long_word_aligned()
+        self.state.memory.write_bits(destination_address, width, value)
+        self._new_hidden_write_states = hidden_states
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "data_write",
+                "purpose": "field_move_register_to_absolute",
+                "bit_address": destination_address,
+                "width": width,
+                "value": value,
+                "alignment_case": destination_case,
+                "hidden_write_states": hidden_states,
+                "first_extension_long_word_aligned": int(
+                    immediate_aligned
+                ),
+            }
+        )
+        self._active_trace.notes.append(
+            "logical little-endian absolute field insertion; physical "
+            "byte strobes, read/modify/write, dynamic width, wait, page, "
+            "fault, retry, and I/O sequencing remain pending"
+        )
+        return 2 if immediate_aligned else 3
+
+    def _execute_move_memory_to_register_absolute(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                "MOVE.MR.ABS big-endian field mapping is classified but not modeled"
+            )
+        first_word = words[0]
+        register_file = "B" if first_word & 0x10 else "A"
+        destination_index = first_word & 0xF
+        field_bank = (first_word >> 9) & 1
+        width = self._selected_field_size(first_word)
+        sign_extend = bool(
+            self.state.st & (1 << (field_bank * 6 + 5))
+        )
+        source_address = self._absolute_bit_address(words, 1)
+        raw_value = self.state.memory.read_bits(source_address, width)
+        result = raw_value
+        if (
+            sign_extend
+            and width < 32
+            and raw_value & (1 << (width - 1))
+        ):
+            result |= MASK32 ^ ((1 << width) - 1)
+        result &= MASK32
+        source_case = self._field_alignment_case(source_address, width)
+        immediate_aligned = self._first_extension_long_word_aligned()
+        machine_states = (4 if source_case <= 2 else 5) + int(
+            not immediate_aligned
+        ) + int(sign_extend)
+        self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
+        self._set_status_bit(Z_BIT, result == 0)
+        self._set_status_bit(V_BIT, False)
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "data_read",
+                "purpose": "field_move_absolute_to_register",
+                "bit_address": source_address,
+                "width": width,
+                "value": raw_value,
+                "extended_result": result,
+                "alignment_case": source_case,
+                "sign_extend": int(sign_extend),
+                "first_extension_long_word_aligned": int(
+                    immediate_aligned
+                ),
+            }
+        )
+        self._active_trace.notes.append(
+            "logical little-endian absolute field extraction; physical "
+            "dynamic-width, wait, page, fault, retry, interrupt, and I/O "
+            "sequencing remain pending"
+        )
+        return machine_states
+
+    def _execute_move_memory_to_memory_absolute_source_postincrement(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                "MOVE.MM.SABS_POST big-endian field mapping is classified "
+                "but not modeled"
+            )
+        first_word = words[0]
+        register_file = "B" if first_word & 0x10 else "A"
+        destination_index = first_word & 0xF
+        width = self._selected_field_size(first_word)
+        source_address = self._absolute_bit_address(words, 1)
+        destination_address = self.state.read_reg(
+            register_file, destination_index
+        )
+        destination_after = (destination_address + width) & MASK32
+        value = self.state.memory.read_bits(source_address, width)
+        source_case = self._field_alignment_case(source_address, width)
+        destination_case = self._field_alignment_case(
+            destination_address, width
+        )
+        immediate_aligned = self._first_extension_long_word_aligned()
+        machine_states = (4 if source_case <= 2 else 5) + int(
+            not immediate_aligned
+        )
+        hidden_states = (0, 1, 2, 2, 3, 4)[destination_case]
+        self.state.memory.write_bits(destination_address, width, value)
+        self.state.write_reg(
+            register_file, destination_index, destination_after
+        )
+        self._new_hidden_write_states = hidden_states
+        assert self._active_trace is not None
+        self._active_trace.transactions.extend(
+            [
+                {
+                    "class": "data_read",
+                    "purpose": "field_move_absolute_source",
+                    "bit_address": source_address,
+                    "width": width,
+                    "value": value,
+                    "alignment_case": source_case,
+                    "first_extension_long_word_aligned": int(
+                        immediate_aligned
+                    ),
+                },
+                {
+                    "class": "data_write",
+                    "purpose": "field_move_destination_postincrement",
+                    "bit_address": destination_address,
+                    "width": width,
+                    "value": value,
+                    "alignment_case": destination_case,
+                    "hidden_write_states": hidden_states,
+                    "pointer_before": destination_address,
+                    "pointer_after": destination_after,
+                },
+            ]
+        )
+        self._active_trace.notes.append(
+            "logical little-endian absolute-source read-before-write copy "
+            "with destination postincrement; physical byte-strobe/RMW, "
+            "dynamic-width, wait, page, fault, retry, interrupt, and I/O "
+            "sequencing remain pending"
+        )
+        return machine_states
+
+    def _execute_move_memory_to_memory_absolute(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                "MOVE.MM.ABS big-endian field mapping is classified but not modeled"
+            )
+        first_word = words[0]
+        width = self._selected_field_size(first_word)
+        source_address = self._absolute_bit_address(words, 1)
+        destination_address = self._absolute_bit_address(words, 3)
+        value = self.state.memory.read_bits(source_address, width)
+        source_case = self._field_alignment_case(source_address, width)
+        destination_case = self._field_alignment_case(
+            destination_address, width
+        )
+        immediate_aligned = self._first_extension_long_word_aligned()
+        machine_states = (5 if source_case <= 2 else 6) + (
+            0 if immediate_aligned else 2
+        )
+        hidden_states = (0, 1, 2, 2, 3, 4)[destination_case]
+        self.state.memory.write_bits(destination_address, width, value)
+        self._new_hidden_write_states = hidden_states
+        assert self._active_trace is not None
+        self._active_trace.transactions.extend(
+            [
+                {
+                    "class": "data_read",
+                    "purpose": "field_move_absolute_source",
+                    "bit_address": source_address,
+                    "width": width,
+                    "value": value,
+                    "alignment_case": source_case,
+                    "first_extension_long_word_aligned": int(
+                        immediate_aligned
+                    ),
+                },
+                {
+                    "class": "data_write",
+                    "purpose": "field_move_absolute_destination",
+                    "bit_address": destination_address,
+                    "width": width,
+                    "value": value,
+                    "alignment_case": destination_case,
+                    "hidden_write_states": hidden_states,
+                },
+            ]
+        )
+        self._active_trace.notes.append(
+            "logical little-endian absolute read-before-write field copy; "
+            "physical byte-strobe/RMW, dynamic-width, wait, page, fault, "
+            "retry, interrupt, and I/O sequencing remain pending"
         )
         return machine_states
 

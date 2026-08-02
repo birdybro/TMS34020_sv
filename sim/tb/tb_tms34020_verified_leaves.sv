@@ -152,6 +152,9 @@ module tb_tms34020_verified_leaves;
     logic [31:0] field_offset_base;
     logic [15:0] field_offset_value;
     logic [31:0] field_offset_effective;
+    logic [15:0] absolute_address_low;
+    logic [15:0] absolute_address_high;
+    logic [31:0] absolute_bit_address;
     logic [4:0] field_source_offset_post_size_encoded;
     logic [31:0] field_source_offset_post_source_base;
     logic [15:0] field_source_offset_post_offset;
@@ -520,6 +523,12 @@ module tb_tms34020_verified_leaves;
         .effective_address_o(field_offset_effective)
     );
 
+    tms34020_absolute_address absolute_address_dut (
+        .address_low_i(absolute_address_low),
+        .address_high_i(absolute_address_high),
+        .bit_address_o(absolute_bit_address)
+    );
+
     tms34020_field_source_offset_postincrement
         field_source_offset_postincrement_dut (
             .field_size_encoded_i(field_source_offset_post_size_encoded),
@@ -833,6 +842,18 @@ module tb_tms34020_verified_leaves;
         field_offset_value = signed_offset;
         #1;
         check_condition(field_offset_effective == expected_effective, message);
+    endtask
+
+    task automatic check_absolute_address(
+        input logic [15:0] address_low,
+        input logic [15:0] address_high,
+        input logic [31:0] expected_address,
+        input string message
+    );
+        absolute_address_low = address_low;
+        absolute_address_high = address_high;
+        #1;
+        check_condition(absolute_bit_address == expected_address, message);
     endtask
 
     task automatic check_field_source_offset_postincrement(
@@ -2347,6 +2368,8 @@ module tb_tms34020_verified_leaves;
         field_pair_same_register = 1'b0;
         field_offset_base = 32'd0;
         field_offset_value = 16'd0;
+        absolute_address_low = 16'd0;
+        absolute_address_high = 16'd0;
         field_source_offset_post_size_encoded = 5'd0;
         field_source_offset_post_source_base = 32'd0;
         field_source_offset_post_offset = 16'd0;
@@ -3273,6 +3296,23 @@ module tb_tms34020_verified_leaves;
             32'h0000_0010, 16'hFFE0, 32'hFFFF_FFF0,
             "negative field offset wraps modulo 2^32"
         );
+        for (int unsigned address_half = 0; address_half < 65536;
+             address_half++) begin
+            check_absolute_address(
+                address_half[15:0], 16'hA55A,
+                {16'hA55A, address_half[15:0]},
+                "absolute address exhausts every low half"
+            );
+            check_absolute_address(
+                16'h5AA5, address_half[15:0],
+                {address_half[15:0], 16'h5AA5},
+                "absolute address exhausts every high half"
+            );
+        end
+        check_absolute_address(
+            16'h5678, 16'h1234, 32'h1234_5678,
+            "absolute address consumes the low word before the high word"
+        );
         for (int unsigned offset_value = 0; offset_value < 65536;
              offset_value++) begin
             logic [4:0] encoded_size;
@@ -4150,6 +4190,30 @@ module tb_tms34020_verified_leaves;
             32'hA020_0010,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "MOVE.MM.SOFF_POST cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'h0581, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.RM.ABS cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'h05A1, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MR.ABS cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'hD401, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MM.SABS_POST cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
+            16'h05C0, 32'h0000_2003, 32'h0000_3005,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MM.ABS cannot bypass absent field-memory ownership"
         );
         check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
@@ -5849,6 +5913,22 @@ module tb_tms34020_verified_leaves;
                      "MOVE.MM.SOFF_POST field-zero lower-bound decode");
         check_decode(16'hD3FF, TMS20_OP_MOVE_MM_SOFF_POST, 3'd2,
                      "MOVE.MM.SOFF_POST field-one upper-bound decode");
+        check_decode(16'h0580, TMS20_OP_MOVE_RM_ABS, 3'd3,
+                     "MOVE.RM.ABS field-zero lower-bound decode");
+        check_decode(16'h079F, TMS20_OP_MOVE_RM_ABS, 3'd3,
+                     "MOVE.RM.ABS field-one upper-bound decode");
+        check_decode(16'h05A0, TMS20_OP_MOVE_MR_ABS, 3'd3,
+                     "MOVE.MR.ABS field-zero lower-bound decode");
+        check_decode(16'h07BF, TMS20_OP_MOVE_MR_ABS, 3'd3,
+                     "MOVE.MR.ABS field-one upper-bound decode");
+        check_decode(16'hD400, TMS20_OP_MOVE_MM_SABS_POST, 3'd3,
+                     "MOVE.MM.SABS_POST field-zero lower-bound decode");
+        check_decode(16'hD61F, TMS20_OP_MOVE_MM_SABS_POST, 3'd3,
+                     "MOVE.MM.SABS_POST field-one upper-bound decode");
+        check_decode(16'h05C0, TMS20_OP_MOVE_MM_ABS, 3'd5,
+                     "MOVE.MM.ABS field-zero decode");
+        check_decode(16'h07C0, TMS20_OP_MOVE_MM_ABS, 3'd5,
+                     "MOVE.MM.ABS field-one decode");
         decode_word = 16'h8C00;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,

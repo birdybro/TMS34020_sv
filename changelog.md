@@ -4,6 +4,17 @@
 
 ### Added
 
+- Four primary-page-extracted absolute-address field MOVE forms at
+  0580h/05A0h/D400h/05C0h, covering 194 first words, low-then-high source and
+  destination extension order, FE/status, destination postincrement,
+  read-before-write overlap, first-extension alignment timing, and compatible
+  TMS34010 semantic bounds.
+- Little-endian architectural absolute field-store/load/copy traces with
+  exhaustive bank/FE/width/source/destination geometry, all timing pairs,
+  A/B/SP, exact 32-bit address word order, overlap, wrap, and atomic BEN
+  rejection.
+- A clean-room low-word/high-word absolute bit-address leaf whose RTL tests
+  independently exhaust every possible low and high half.
 - Primary-page-extracted `MOVE *Rs(offset),*Rd+[,F]` as internal
   MOVE.MM.SOFF_POST at D000h/FC00h, covering 1,024 first words, signed source
   displacement, original destination address, post-write destination update,
@@ -522,6 +533,17 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis reports 12,856 leaf logic
+  cells/2,230 registers/9 DSP, 462 fetch logic cells, 835 frontend logic cells,
+  and 5,449 scalar logic cells for the 121-entry decoder/absolute-address
+  revision. The frontend/scalar probes retain 4,096 block-memory bits. These
+  are observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
+- The 62-case ISA suite, 83-entry delta ledger, complete 204-case model
+  regression, and decoder/leaf RTL suite pass. All four absolute forms cover
+  low/high address ordering, both field banks, every geometry/timing case,
+  FE/status, A/B/SP, overlap, postincrement wrap, extension alignment and BEN
+  rollback.
 - Warning-free Cyclone V Analysis & Synthesis reports 12,843 leaf logic
   cells/2,230 registers/9 DSP, 451 fetch logic cells, 829 frontend logic cells,
   and 5,399 scalar logic cells for the 117-entry decoder/mixed-address
@@ -1211,6 +1233,10 @@
 
 ### Documentation
 
+- Documented all four absolute field MOVE encodings, low/high address-word
+  order, status behavior, aligned/unaligned extension timing, reuse boundary,
+  model/RTL ownership, remaining physical-bus gaps, and four new
+  primary-verified architectural-delta entries.
 - Recorded the verified mixed-offset field-move implementation baseline as
   commit `f6522b1f076712b6cc64bef8920cdc8da0a66029` in the progress ledger.
 - Documented the source-offset/destination-postincrement compatibility boundary

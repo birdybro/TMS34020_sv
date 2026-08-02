@@ -2597,6 +2597,525 @@ class ExecutionTests(unittest.TestCase):
             0x1234_5678,
         )
 
+    def test_move_register_to_absolute_exhaustive(self) -> None:
+        initial_window = 0x6996_3CC3_5AA5_C33C
+        source = 0xD69A_35C7
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for width in range(1, 33):
+                for bit_offset in range(32):
+                    with self.subTest(
+                        bank=field_bank, width=width, offset=bit_offset
+                    ):
+                        model = Tms34020Model(isa=shared_isa)
+                        opcode = 0x0580 | (field_bank << 9)
+                        destination = 0x2000 + bit_offset
+                        model.load_program(
+                            [opcode, destination & 0xFFFF, destination >> 16],
+                            bit_address=0x110,
+                        )
+                        model.state.write_reg("A", 0, source)
+                        encoded_width = 0 if width == 32 else width
+                        model.state.st = (
+                            0xD020_1000
+                            | (encoded_width << (field_bank * 6))
+                        )
+                        status_before = model.state.st
+                        model.state.memory.write_bits(
+                            0x2000, 32, initial_window & 0xFFFF_FFFF
+                        )
+                        model.state.memory.write_bits(
+                            0x2020, 32, initial_window >> 32
+                        )
+
+                        event = model.step()
+
+                        field_mask = (
+                            0xFFFF_FFFF
+                            if width == 32
+                            else (1 << width) - 1
+                        )
+                        value = source & field_mask
+                        positioned_mask = field_mask << bit_offset
+                        expected_window = (
+                            (initial_window & ~positioned_mask)
+                            | (value << bit_offset)
+                        ) & 0xFFFF_FFFF_FFFF_FFFF
+                        actual_window = (
+                            model.state.memory.read_bits(0x2000, 32)
+                            | (
+                                model.state.memory.read_bits(0x2020, 32)
+                                << 32
+                            )
+                        )
+                        self.assertEqual(event.mnemonic, "MOVE.RM.ABS")
+                        self.assertEqual(event.machine_states, 2)
+                        self.assertEqual(model.state.st, status_before)
+                        self.assertEqual(
+                            model.state.read_reg("A", 0), source
+                        )
+                        self.assertEqual(actual_window, expected_window)
+                        self.assertEqual(
+                            event.transactions[-1]["bit_address"], destination
+                        )
+                        self.assertEqual(
+                            event.transactions[-1]
+                            ["first_extension_long_word_aligned"],
+                            1,
+                        )
+
+    def test_move_absolute_to_register_exhaustive(self) -> None:
+        initial_window = 0xC33C_F00F_A5A5_5A5A
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for sign_extend in (0, 1):
+                for width in range(1, 33):
+                    for bit_offset in range(32):
+                        with self.subTest(
+                            bank=field_bank,
+                            sign=sign_extend,
+                            width=width,
+                            offset=bit_offset,
+                        ):
+                            model = Tms34020Model(isa=shared_isa)
+                            opcode = 0x05A1 | (field_bank << 9)
+                            source_address = 0x2000 + bit_offset
+                            model.load_program(
+                                [
+                                    opcode,
+                                    source_address & 0xFFFF,
+                                    source_address >> 16,
+                                ],
+                                bit_address=0x110,
+                            )
+                            encoded_width = 0 if width == 32 else width
+                            model.state.st = (
+                                0xD020_1000
+                                | (encoded_width << (field_bank * 6))
+                                | (sign_extend << (field_bank * 6 + 5))
+                            )
+                            c_before = (model.state.st >> 30) & 1
+                            model.state.memory.write_bits(
+                                0x2000,
+                                32,
+                                initial_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x2020, 32, initial_window >> 32
+                            )
+
+                            event = model.step()
+
+                            field_mask = (
+                                0xFFFF_FFFF
+                                if width == 32
+                                else (1 << width) - 1
+                            )
+                            raw_value = (
+                                initial_window >> bit_offset
+                            ) & field_mask
+                            result = raw_value
+                            if (
+                                sign_extend
+                                and width < 32
+                                and raw_value & (1 << (width - 1))
+                            ):
+                                result |= 0xFFFF_FFFF ^ field_mask
+                            result &= 0xFFFF_FFFF
+                            crosses = bit_offset + width > 32
+                            start_byte = bit_offset % 8 == 0
+                            end_byte = (bit_offset + width) % 8 == 0
+                            if not crosses:
+                                source_case = (
+                                    1 if start_byte and end_byte else 2
+                                )
+                            elif start_byte and end_byte:
+                                source_case = 3
+                            elif start_byte or end_byte:
+                                source_case = 4
+                            else:
+                                source_case = 5
+                            expected_states = (
+                                4 if source_case <= 2 else 5
+                            ) + sign_extend
+                            expected_nczv = (
+                                (int(bool(result & 0x8000_0000)) << 3)
+                                | (c_before << 2)
+                                | (int(result == 0) << 1)
+                            )
+                            self.assertEqual(event.mnemonic, "MOVE.MR.ABS")
+                            self.assertEqual(
+                                event.machine_states, expected_states
+                            )
+                            self.assertEqual(
+                                model.state.read_reg("A", 1), result
+                            )
+                            self.assertEqual(
+                                (model.state.st >> 28) & 0xF, expected_nczv
+                            )
+
+    def test_move_absolute_source_postincrement_exhaustive(self) -> None:
+        source_window = 0xC33C_F00F_A5A5_5A5A
+        destination_window = 0x6996_3CC3_5AA5_C33C
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for width in range(1, 33):
+                for source_offset in range(32):
+                    for destination_offset in range(32):
+                        with self.subTest(
+                            bank=field_bank,
+                            width=width,
+                            source_offset=source_offset,
+                            destination_offset=destination_offset,
+                        ):
+                            model = Tms34020Model(isa=shared_isa)
+                            opcode = 0xD401 | (field_bank << 9)
+                            source_address = 0x2000 + source_offset
+                            destination_address = 0x3000 + destination_offset
+                            model.load_program(
+                                [
+                                    opcode,
+                                    source_address & 0xFFFF,
+                                    source_address >> 16,
+                                ],
+                                bit_address=0x110,
+                            )
+                            model.state.write_reg(
+                                "A", 1, destination_address
+                            )
+                            encoded_width = 0 if width == 32 else width
+                            model.state.st = (
+                                0xD020_1000
+                                | (encoded_width << (field_bank * 6))
+                            )
+                            status_before = model.state.st
+                            model.state.memory.write_bits(
+                                0x2000,
+                                32,
+                                source_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x2020, 32, source_window >> 32
+                            )
+                            model.state.memory.write_bits(
+                                0x3000,
+                                32,
+                                destination_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x3020, 32, destination_window >> 32
+                            )
+
+                            event = model.step()
+
+                            field_mask = (
+                                0xFFFF_FFFF
+                                if width == 32
+                                else (1 << width) - 1
+                            )
+                            value = (
+                                source_window >> source_offset
+                            ) & field_mask
+                            positioned_mask = (
+                                field_mask << destination_offset
+                            )
+                            expected_destination = (
+                                (destination_window & ~positioned_mask)
+                                | (value << destination_offset)
+                            ) & 0xFFFF_FFFF_FFFF_FFFF
+
+                            def alignment_case(offset: int) -> int:
+                                crosses = offset + width > 32
+                                start_byte = offset % 8 == 0
+                                end_byte = (offset + width) % 8 == 0
+                                if not crosses:
+                                    return (
+                                        1
+                                        if start_byte and end_byte
+                                        else 2
+                                    )
+                                if start_byte and end_byte:
+                                    return 3
+                                if start_byte or end_byte:
+                                    return 4
+                                return 5
+
+                            source_case = alignment_case(source_offset)
+                            destination_case = alignment_case(
+                                destination_offset
+                            )
+                            actual_destination = (
+                                model.state.memory.read_bits(0x3000, 32)
+                                | (
+                                    model.state.memory.read_bits(0x3020, 32)
+                                    << 32
+                                )
+                            )
+                            self.assertEqual(
+                                event.mnemonic, "MOVE.MM.SABS_POST"
+                            )
+                            self.assertEqual(
+                                event.machine_states,
+                                4 if source_case <= 2 else 5,
+                            )
+                            self.assertEqual(model.state.st, status_before)
+                            self.assertEqual(
+                                model.state.read_reg("A", 1),
+                                (destination_address + width) & 0xFFFF_FFFF,
+                            )
+                            self.assertEqual(
+                                actual_destination, expected_destination
+                            )
+                            self.assertEqual(
+                                model.state.pending_write_states,
+                                (0, 1, 2, 2, 3, 4)[destination_case],
+                            )
+
+    def test_move_absolute_to_absolute_exhaustive(self) -> None:
+        source_window = 0xC33C_F00F_A5A5_5A5A
+        destination_window = 0x6996_3CC3_5AA5_C33C
+        shared_isa = Tms34020Model().isa
+        for field_bank in (0, 1):
+            for width in range(1, 33):
+                for source_offset in range(32):
+                    for destination_offset in range(32):
+                        with self.subTest(
+                            bank=field_bank,
+                            width=width,
+                            source_offset=source_offset,
+                            destination_offset=destination_offset,
+                        ):
+                            model = Tms34020Model(isa=shared_isa)
+                            opcode = 0x05C0 | (field_bank << 9)
+                            source_address = 0x2000 + source_offset
+                            destination_address = 0x3000 + destination_offset
+                            model.load_program(
+                                [
+                                    opcode,
+                                    source_address & 0xFFFF,
+                                    source_address >> 16,
+                                    destination_address & 0xFFFF,
+                                    destination_address >> 16,
+                                ],
+                                bit_address=0x110,
+                            )
+                            encoded_width = 0 if width == 32 else width
+                            model.state.st = (
+                                0xD020_1000
+                                | (encoded_width << (field_bank * 6))
+                            )
+                            status_before = model.state.st
+                            model.state.memory.write_bits(
+                                0x2000,
+                                32,
+                                source_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x2020, 32, source_window >> 32
+                            )
+                            model.state.memory.write_bits(
+                                0x3000,
+                                32,
+                                destination_window & 0xFFFF_FFFF,
+                            )
+                            model.state.memory.write_bits(
+                                0x3020, 32, destination_window >> 32
+                            )
+
+                            event = model.step()
+
+                            field_mask = (
+                                0xFFFF_FFFF
+                                if width == 32
+                                else (1 << width) - 1
+                            )
+                            value = (
+                                source_window >> source_offset
+                            ) & field_mask
+                            positioned_mask = (
+                                field_mask << destination_offset
+                            )
+                            expected_destination = (
+                                (destination_window & ~positioned_mask)
+                                | (value << destination_offset)
+                            ) & 0xFFFF_FFFF_FFFF_FFFF
+
+                            def alignment_case(offset: int) -> int:
+                                crosses = offset + width > 32
+                                start_byte = offset % 8 == 0
+                                end_byte = (offset + width) % 8 == 0
+                                if not crosses:
+                                    return (
+                                        1
+                                        if start_byte and end_byte
+                                        else 2
+                                    )
+                                if start_byte and end_byte:
+                                    return 3
+                                if start_byte or end_byte:
+                                    return 4
+                                return 5
+
+                            source_case = alignment_case(source_offset)
+                            destination_case = alignment_case(
+                                destination_offset
+                            )
+                            actual_destination = (
+                                model.state.memory.read_bits(0x3000, 32)
+                                | (
+                                    model.state.memory.read_bits(0x3020, 32)
+                                    << 32
+                                )
+                            )
+                            self.assertEqual(event.mnemonic, "MOVE.MM.ABS")
+                            self.assertEqual(
+                                event.machine_states,
+                                5 if source_case <= 2 else 6,
+                            )
+                            self.assertEqual(model.state.st, status_before)
+                            self.assertEqual(
+                                actual_destination, expected_destination
+                            )
+                            self.assertEqual(
+                                model.state.pending_write_states,
+                                (0, 1, 2, 2, 3, 4)[destination_case],
+                            )
+
+    def test_move_absolute_boundaries_alignment_registers_and_ben(self) -> None:
+        timing_cases = (
+            ([0x0580, 0x4000, 0x0000], 2, 3),
+            ([0x05A0, 0x4000, 0x0000], 4, 5),
+            ([0xD400, 0x4000, 0x0000], 4, 5),
+            ([0x05C0, 0x4000, 0x0000, 0x5000, 0x0000], 5, 7),
+        )
+        for words, aligned_states, unaligned_states in timing_cases:
+            for start_pc, expected_states in (
+                (0x110, aligned_states),
+                (0x100, unaligned_states),
+            ):
+                with self.subTest(opcode=words[0], start_pc=start_pc):
+                    model = Tms34020Model()
+                    model.load_program(words, bit_address=start_pc)
+                    model.state.write_reg("A", 0, 0x5000)
+                    model.state.st = 8
+                    model.state.memory.write_bits(0x4000, 8, 0xA5)
+                    event = model.step()
+                    self.assertEqual(event.machine_states, expected_states)
+
+        signed_unaligned = Tms34020Model()
+        signed_unaligned.load_program(
+            [0x05A0, 0x4000, 0x0000], bit_address=0x100
+        )
+        signed_unaligned.state.st = 8 | (1 << 5)
+        signed_unaligned.state.memory.write_bits(0x4000, 8, 0x80)
+        signed_event = signed_unaligned.step()
+        self.assertEqual(signed_event.machine_states, 6)
+        self.assertEqual(
+            signed_unaligned.state.read_reg("A", 0), 0xFFFF_FF80
+        )
+
+        register_to_absolute = Tms34020Model()
+        register_to_absolute.load_program(
+            [0x0590, 0x5678, 0x1234], bit_address=0x110
+        )
+        register_to_absolute.state.write_reg("B", 0, 0xA5)
+        register_to_absolute.state.st = 8
+        event = register_to_absolute.step()
+        self.assertEqual(event.transactions[-1]["bit_address"], 0x1234_5678)
+        self.assertEqual(
+            register_to_absolute.state.memory.read_bits(0x1234_5678, 8),
+            0xA5,
+        )
+
+        sp_to_absolute = Tms34020Model()
+        sp_to_absolute.load_program(
+            [0x058F, 0x6000, 0x0000], bit_address=0x110
+        )
+        sp_to_absolute.state.sp = 0xC3
+        sp_to_absolute.state.st = 8
+        sp_to_absolute.step()
+        self.assertEqual(
+            sp_to_absolute.state.memory.read_bits(0x6000, 8), 0xC3
+        )
+
+        absolute_to_sp = Tms34020Model()
+        absolute_to_sp.load_program(
+            [0x05AF, 0x5678, 0x1234], bit_address=0x110
+        )
+        absolute_to_sp.state.st = 8
+        absolute_to_sp.state.memory.write_bits(0x1234_5678, 8, 0x5A)
+        absolute_to_sp.step()
+        self.assertEqual(absolute_to_sp.state.sp, 0x5A)
+
+        absolute_to_register_b = Tms34020Model()
+        absolute_to_register_b.load_program(
+            [0x05B2, 0x5678, 0x1234], bit_address=0x110
+        )
+        absolute_to_register_b.state.st = 8
+        absolute_to_register_b.state.memory.write_bits(
+            0x1234_5678, 8, 0x96
+        )
+        absolute_to_register_b.step()
+        self.assertEqual(
+            absolute_to_register_b.state.read_reg("B", 2), 0x96
+        )
+
+        absolute_to_b = Tms34020Model()
+        absolute_to_b.load_program(
+            [0xD411, 0x5678, 0x1234], bit_address=0x110
+        )
+        absolute_to_b.state.write_reg("B", 1, 0xFFFF_FFF8)
+        absolute_to_b.state.st = 8
+        absolute_to_b.state.memory.write_bits(0x1234_5678, 8, 0x3C)
+        absolute_to_b.step()
+        self.assertEqual(
+            absolute_to_b.state.memory.read_bits(0xFFFF_FFF8, 8), 0x3C
+        )
+        self.assertEqual(absolute_to_b.state.read_reg("B", 1), 0)
+
+        absolute_to_sp_post = Tms34020Model()
+        absolute_to_sp_post.load_program(
+            [0xD40F, 0x5678, 0x1234], bit_address=0x110
+        )
+        absolute_to_sp_post.state.sp = 0x7000
+        absolute_to_sp_post.state.st = 8
+        absolute_to_sp_post.state.memory.write_bits(
+            0x1234_5678, 8, 0x69
+        )
+        absolute_to_sp_post.step()
+        self.assertEqual(
+            absolute_to_sp_post.state.memory.read_bits(0x7000, 8), 0x69
+        )
+        self.assertEqual(absolute_to_sp_post.state.sp, 0x7008)
+
+        overlap = Tms34020Model()
+        overlap.load_program(
+            [0x05C0, 0x4000, 0x0000, 0x4008, 0x0000],
+            bit_address=0x110,
+        )
+        overlap.state.st = 16
+        overlap.state.memory.write_bits(0x4000, 24, 0x12_3456)
+        overlap.step()
+        self.assertEqual(overlap.state.memory.read_bits(0x4008, 16), 0x3456)
+
+        for words in (
+            [0x0580, 0x4000, 0x0000],
+            [0x05A0, 0x4000, 0x0000],
+            [0xD400, 0x4000, 0x0000],
+            [0x05C0, 0x4000, 0x0000, 0x5000, 0x0000],
+        ):
+            with self.subTest(ben_opcode=words[0]):
+                rejected = Tms34020Model()
+                rejected.load_program(words, bit_address=0x110)
+                rejected.state.write_reg("A", 0, 0x5000)
+                rejected.state.write_io(CONFIG_ADDRESS, 1)
+                before = rejected.snapshot()
+                with self.assertRaisesRegex(
+                    UnsupportedInstruction, "big-endian field mapping"
+                ):
+                    rejected.step()
+                self.assertEqual(rejected.snapshot(), before)
+
     def test_move_offset_boundaries_alias_wrap_and_ben(self) -> None:
         for offset_word, signed_offset in (
             (0x0000, 0),

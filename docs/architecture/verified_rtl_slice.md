@@ -8,7 +8,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 117 entries currently present in the canonical ISA database, including 13,312 ordinary/postincrement/predecrement/signed-offset/mixed-offset RM/MR/MM field words, exact RETI/RETM, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 121 entries currently present in the canonical ISA database, including 13,506 ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM field words, exact RETI/RETM, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent, EXGPC sequential-PC write plus aligned old-register redirect intent, status/register-neutral JUMP aligned redirect intent, JACC all-condition fallthrough or aligned low-word/high-word absolute redirect intent, JR.L all-condition fallthrough or signed 16-bit word redirect intent, DSJ/DSJEQ/DSJNE Z-conditioned decrement plus signed 16-bit word redirect intent, and DSJS unconditional decrement plus encoded unsigned-magnitude/direction redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, EXGPC printed p.13-112, GETPC printed p.13-130, and JUMP printed p.13-141 |
@@ -30,6 +30,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/memory/tms34020_field_pair_postincrement.sv` | Clean-room paired-postincrement effective/final source/destination address calculation, including 32-bit wrap, TI's Rs=Rd once-incremented destination, and the selected CORROBORATED twice-incremented final shared pointer; it performs no operand capture, field transfer, memory request, or commit | TI *TMS34020 User's Guide*, August 1990, paired-postincrement MOVE printed p.13-161; RSC-0037/OQ-0025 |
 | `rtl/memory/tms34020_field_pair_predecrement.sv` | Clean-room paired-predecrement source/destination effective and final pointer calculation, including 32-bit wrap and TI's Rs=Rd once-decremented source/twice-decremented destination and final pointer; it performs no operand capture, field transfer, memory request, or commit | TI *TMS34020 User's Guide*, August 1990, predecrement addressing and paired-predecrement MOVE printed pp.13-8 and 13-161..13-162 |
 | `rtl/memory/tms34020_field_offset_address.sv` | Clean-room signed-16-bit displacement extension and modulo-2^32 effective-address addition; exhaustive simulation covers all 65,536 displacements and positive/negative wrap, but the leaf does not fetch extension words, select bases, issue memory requests, or commit | TI *TMS34020 User's Guide*, August 1990, signed-offset MOVE forms printed pp.13-160..13-162 |
+| `rtl/memory/tms34020_absolute_address.sv` | Clean-room low-word/high-word absolute bit-address assembly; exhaustive simulation independently covers every possible low and high half and exact word order, but the leaf does not fetch extension words, select operands, issue requests, or commit | TI *TMS34020 User's Guide*, August 1990, absolute MOVE forms printed pp.13-159..13-163 |
 | `rtl/memory/tms34020_field_source_offset_postincrement.sv` | Clean-room selected-field-size decoding, signed source-offset effective-address addition, original destination address, and modulo-2^32 destination postincrement; simulation covers every signed displacement and every encoded width including alias and wrap, but the leaf performs no operand capture, field transfer, memory request, or commit | TI *TMS34020 User's Guide*, August 1990, source-offset/destination-postincrement MOVE printed pp.13-162 and 13-166 |
 | `rtl/memory/tms34020_field_load.sv` | Clean-room two-long-word little-endian extraction, FE-selected extension, N/Z/V result, and five-case visible-state classification for `MOVE *Rs,Rd[,F]`; it performs no pointer capture, C preservation, BEN mapping, memory request, retry, fault, or commit | TI *TMS34020 User's Guide*, August 1990, printed pp.13-160, 13-163, and 15-10..15-11 |
 | `rtl/memory/tms34020_field_move.sv` | Clean-room two-source/two-destination-word little-endian field copy with independent five-case alignment, visible-source and hidden-destination timing classification for `MOVE *Rs,*Rd[,F]`; it performs no pointer capture, BEN mapping, physical read/write, retry, fault, or commit | TI *TMS34020 User's Guide*, August 1990, printed pp.13-160 and 15-10..15-12 |
@@ -78,7 +79,9 @@ SWAPF base/end guards prevent its word-transform leaf from bypassing the absent
 locked read/write owner, implicit completion wait, host exclusion, complete
 restart point, 16-bit restriction, field-address capture, and atomic Rd/ST
 commit.
-MOVE.RM/RM.POST/RM.PRE/MR/MR.POST/MR.PRE/MM/MM.POST/MM.PRE base/end guards prevent the semantic leaves from bypassing
+MOVE.RM/RM.POST/RM.PRE/MR/MR.POST/MR.PRE/MM/MM.POST/MM.PRE and the
+signed-offset/mixed-offset/absolute-form base/end guards prevent the semantic
+leaves from bypassing
 the absent operand capture, BEN mapper, byte-strobe/RMW or read requester,
 dynamic-width/page/fault controller, and atomic memory/register/status owner.
 MMTM/MMFM base/end guards likewise prevent decoded two-word lists from
@@ -127,7 +130,8 @@ Verilator. It checks:
   noncommit boundaries plus exhaustive signed-16 effective-address arithmetic;
   MOVE.MM.SOFF_POST adds exact two-word decode/noncommit, all signed source
   offsets, all encoded field widths, original destination address, alias and
-  wrap checks;
+  wrap checks; the four absolute forms add exact three-/five-word decode and
+  noncommit boundaries plus exhaustive low-word/high-word address assembly;
 - exhaustive MOVE.MM source/destination geometry for all 32 sizes and 1,024
   offset pairs, including all 25 alignment-case pairs, value preservation,
   visible/hidden timing, crossing-word writes, and direct-router noncommit;

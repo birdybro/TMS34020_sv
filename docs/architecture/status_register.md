@@ -216,6 +216,13 @@ preserves complete ST, leaves the source base unchanged when distinct, and
 increments the destination pointer after the field write. Source: User's Guide
 printed pp.13-162..13-163.
 
+The absolute register-to-memory, absolute-to-absolute, and absolute-source/
+postincrement-destination forms read only the selected FS bank and preserve
+complete ST. `MOVE @SAddress,Rd[,F]` also reads the selected FE bit, replaces
+N/Z/V from the extended result, and preserves C. Address extension words and
+the destination postincrement do not modify ST. Source: User's Guide printed
+pp.13-159..13-163.
+
 MMTM replaces only N and preserves C/Z/V plus every lower ST bit. The guide's
 two exceptions to the sign of `0-Rp` make the exact implemented rule
 `N = ~old_Rp[31]`: Rp zero sets N while Rp `80000000h` clears it. MMFM leaves

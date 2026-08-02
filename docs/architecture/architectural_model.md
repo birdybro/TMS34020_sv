@@ -24,6 +24,7 @@ Implemented:
   MOVE.RM.POST, MOVE.RM.PRE, MOVE.RM.OFFSET, MOVE.MR, MOVE.MR.POST,
   MOVE.MR.PRE, MOVE.MR.OFFSET, MOVE.MM,
   MOVE.MM.POST, MOVE.MM.PRE, MOVE.MM.OFFSET, MOVE.MM.SOFF_POST,
+  MOVE.RM.ABS, MOVE.MR.ABS, MOVE.MM.SABS_POST, MOVE.MM.ABS,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -36,7 +37,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 116 of 117 currently extracted database forms for their
+These handlers cover 120 of 121 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -176,6 +177,24 @@ logical traces and BEN rollback. This is instruction-boundary ordering, not a
 physical write/increment retirement or fault/retry checkpoint. Sources:
 User's Guide printed pp.13-14, 13-162, 13-166 and 15-12; compatible form:
 TMS34010 User's Guide printed pp.12-149..12-150.
+
+`MOVE.RM.ABS`, `MOVE.MR.ABS`, `MOVE.MM.SABS_POST`, and `MOVE.MM.ABS`
+assemble every absolute bit address from a low 16-bit extension word followed
+by its high word. The first two use an absolute destination or source with one
+explicit register. The third copies from an absolute source to the original
+destination pointer and postincrements that pointer only after the write. The
+five-word form consumes source low/high before destination low/high and
+captures the full source field before an overlapping destination write. The
+load alone applies FE and replaces N/Z/V while preserving C; all write forms
+preserve ST. Tests exhaust both field banks, every source/destination geometry
+and timing pair, FE/status, A/B/SP, exact extension ordering, absolute-address
+boundaries, alias/overlap, postincrement wrap, first-extension aligned and
+unaligned timing, and atomic BEN rollback. The clean-room address leaf
+independently exhausts every possible low and high half. These remain logical
+little-endian instruction-boundary operations, not physical bus or retirement
+owners. Sources: User's Guide printed pp.13-14..13-15, 13-159..13-166 and
+15-11..15-12; compatible forms: TMS34010 User's Guide printed
+pp.12-133..12-134 and 12-152..12-158.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

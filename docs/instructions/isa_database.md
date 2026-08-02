@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 117 page-verified encoding records and covers 44,502 of 65,536
+slice contains 121 page-verified encoding records and covers 44,696 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -64,6 +64,10 @@ first words without collisions:
 | MOVE.MR.OFFSET / `MOVE *Rs(offset),Rd[,F]` | `B400h`, mask `FC00h` | 2 | pp.13-162..13-163 |
 | MOVE.MM.OFFSET / `MOVE *Rs(SOffset),*Rd(DOffset)[,F]` | `B800h`, mask `FC00h` | 3 | p.13-162 |
 | MOVE.MM.SOFF_POST / `MOVE *Rs(offset),*Rd+[,F]` | `D000h`, mask `FC00h` | 2 | pp.13-162, 13-166 |
+| MOVE.RM.ABS / `MOVE Rs,@DAddress[,F]` | `0580h`, mask `FDE0h` | 3 | pp.13-159..13-160 |
+| MOVE.MR.ABS / `MOVE @SAddress,Rd[,F]` | `05A0h`, mask `FDE0h` | 3 | pp.13-162..13-163 |
+| MOVE.MM.SABS_POST / `MOVE @SAddress,*Rd+[,F]` | `D400h`, mask `FDE0h` | 3 | p.13-163 |
+| MOVE.MM.ABS / `MOVE @SAddress,@DAddress[,F]` | `05C0h`, mask `FDFFh` | 5 | p.13-163 |
 | RL.K / RL constant | `3000h`, mask `FC00h` | 1 | p.13-222 |
 | RL.R / RL register | `6800h`, mask `FE00h` | 1 | p.13-223 |
 | BTST.K / BTST constant | `1C00h`, mask `FC00h` | 1 | p.13-46 |

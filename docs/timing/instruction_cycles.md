@@ -154,6 +154,18 @@ the paired-offset form: 5/5/6/6/6 visible states by source case and
 counts, while the RTL leaf only calculates effective/final addresses. Source:
 User's Guide printed pp.15-10..15-12.
 
+Absolute-address MOVE timing depends on whether the first extension word is
+long-word aligned. `MOVE Rs,@DAddress[,F]` takes 2/3 visible states for
+aligned/unaligned extension placement plus 1/2/2/3/4 destination hidden
+writes. `MOVE @SAddress,Rd[,F]` takes 4/4/5/5/5 or 5/5/6/6/6 visible states
+by source case, with FE adding one. `MOVE @SAddress,*Rd+[,F]` uses those same
+two FE-free source rows plus destination hidden writes. Five-word
+`MOVE @SAddress,@DAddress[,F]` takes 5/5/6/6/6 when aligned and
+7/7/8/8/8 when unaligned, again plus destination hidden writes. The model
+reports these instruction-table values; it does not reproduce extension-fetch
+or physical memory cycles. Source: User's Guide printed pp.15-11..15-12 and
+the alignment footnote on p.13-14.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.
