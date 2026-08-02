@@ -1233,6 +1233,8 @@
 
 ### Documentation
 
+- Recorded `2c15791fbe6b04b5712dcb86ffce88308ad4e12d` as the verified
+  absolute-address field-MOVE implementation baseline.
 - Documented all four absolute field MOVE encodings, low/high address-word
   order, status behavior, aligned/unaligned extension timing, reuse boundary,
   model/RTL ownership, remaining physical-bus gaps, and four new
