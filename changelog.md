@@ -1374,6 +1374,8 @@ qualification.
 
 ### Documentation
 
+- Recorded the verified CMOVCG/CMOVCS inbound-transfer implementation milestone
+  as commit `5a7907fbc07e69d4184084fdc30074a4610e60b7` in the progress ledger.
 - Recorded the verified CMOVGC register-transfer implementation milestone as
   commit `e38834122f2fdc861494cb1a057b8ee7db522eb7` in the progress ledger.
 - Recorded the CEXEC model/RTL milestone commit
