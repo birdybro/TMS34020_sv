@@ -1461,6 +1461,9 @@ qualification.
 
 ### Documentation
 
+- Recorded corrected FPIX DPYCTL.CST model semantics as commit
+  `16bc596db106d4b03074e8544f099e8a88ddb289` after the complete 227-test
+  model regression.
 - Recorded the bounded FPIXEQ/FPIXNE ISA/model/one-step-RTL milestone as
   commit `a355eec2c5ffe5c063137e2161fc194483309075`, with no physical memory-loop,
   continuation, architectural-timing, instruction-completeness, or release-
