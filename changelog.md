@@ -1247,6 +1247,8 @@ qualification.
 
 ### Documentation
 
+- Recorded verified register-to-memory MOVB implementation commit
+  `2ce9b50c364fe72904ad8fb266f208d6dc44fc1c` in the progress ledger.
 - Recorded MOVB register-store semantics, TMS34010 compatibility bounds,
   TMS34020-only timing ownership, RTL boundary, and unresolved physical
   memory/fault/retry work across the ISA, model, field-access, timing, delta,
