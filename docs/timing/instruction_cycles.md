@@ -79,6 +79,23 @@ p.A-16. The model reports the two instruction-boundary cases; external
 stack-read waits, dynamic width, page mode, faults, retries, and redirect
 pipeline timing remain absent.
 
+CALL and CALLR each take three visible states followed by a hidden stack write
+of one state when SP is long-word aligned or four states otherwise. The model
+records that hidden dependency in `pending_write_states`; it does not claim
+physical bus scheduling, waits, dynamic-width, page-mode, fault, or retry
+timing. Their compatible TMS34010 forms publish materially longer timing, and
+pinned MAME's shared handlers omit the TMS34020 alignment/hidden cases. Sources:
+TMS34020 User's Guide printed pp.13-48, 13-50, and 15-3; TMS34010 User's Guide
+printed pp.12-48 and 12-50; RSC-0024.
+
+CALLA's three-word architectural state is implemented in the model, but no
+machine-state value is reported. The TMS34020 instruction page and repeated
+chapter-15 table print four immediate-data/SP alignment clauses whose grammar
+does not uniquely identify the four cases. Reusing TMS34010 or MAME timing
+would manufacture a result. RSC-0024 records the conflict and OQ-0015 defines
+the evidence needed to resolve it. Sources: TMS34020 User's Guide printed
+pp.13-49 and 15-3; TMS34010 User's Guide printed p.12-49.
+
 EXGF takes one state when exchanging FS0/FE0 (`F=0`) and two states when
 exchanging FS1/FE1 (`F=1`). This is a TMS34020 timing distinction: the
 TMS34010 guide lists one cache-hit state for EXGF without a field-bank split,

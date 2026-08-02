@@ -113,6 +113,18 @@ fixtures are compatibility candidates; the upstream stack/bus state machine
 is reference-only. Source: TMS34020 User's Guide printed p.13-220; TMS34010
 User's Guide printed p.12-232 and Appendix A p.A-16.
 
+CALL, CALLA, and CALLR retain their object forms and visible target/return-PC/
+stack ordering, but their TMS34010 timing state machines are not reusable.
+TMS34020 CALL and CALLR specify three visible states plus one/four hidden write
+states for aligned/unaligned SP; TMS34010 publishes materially longer values.
+TMS34020 CALLA's four immediate/SP alignment clauses are themselves
+grammatically ambiguous, while TMS34010 gives only an aligned/unaligned stack
+split. Decode and semantic fixtures are compatibility candidates. Stack-write,
+redirect, overlap, fault/retry, and physical timing require a TMS34020 owner;
+CALLA's exact schedule additionally remains OQ-0015. Sources: TMS34020 User's
+Guide printed pp.13-48..13-50 and p.15-3; TMS34010 User's Guide printed
+pp.12-48..12-50; RSC-0024.
+
 ## Cache and internal parallelism
 
 The cache changes the observable memory trace and execution timing, so it cannot

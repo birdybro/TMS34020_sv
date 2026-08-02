@@ -229,8 +229,12 @@ class IsaTests(unittest.TestCase):
             0x0080: ("MWAIT", 1),
             0x0900: ("TRAP", 1),
             0x091F: ("TRAP", 1),
+            0x0920: ("CALL", 1),
+            0x093F: ("CALL", 1),
             0x0960: ("RETS", 1),
             0x097F: ("RETS", 1),
+            0x0D3F: ("CALLR", 2),
+            0x0D5F: ("CALLA", 3),
             0x0C00: ("ADDXYI", 3),
             0x0C1E: ("ADDXYI", 3),
             0x00F0: ("BLMOVE", 1),
@@ -275,8 +279,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 25906)
-        self.assertEqual(unclassified, 65536 - 25906)
+        self.assertEqual(matched, 25940)
+        self.assertEqual(unclassified, 65536 - 25940)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -365,6 +369,59 @@ class IsaTests(unittest.TestCase):
             },
         )
         self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_call_family_records_primary_stack_and_timing_contracts(self) -> None:
+        for word in range(0x0920, 0x0940):
+            with self.subTest(word=f"{word:04X}"):
+                decoded = self.database.decode(word)
+                self.assertIsNotNone(decoded)
+                self.assertEqual(decoded.mnemonic, "CALL")
+        call = self.database.decode(0x0920)
+        self.assertEqual(call.opcode_mask, 0xFFE0)
+        self.assertEqual(call.length_words, 1)
+        self.assertEqual(call.metadata["status_bits_written"], [])
+        self.assertEqual(
+            call.metadata["documented_cycles"],
+            {
+                "kind": "visible_plus_hidden_write",
+                "visible_machine_states": 3,
+                "aligned_hidden_write_states": 1,
+                "unaligned_hidden_write_states": 4,
+                "alignment_address": (
+                    "SP/new stack-write address; predecrement by 32 "
+                    "preserves alignment"
+                ),
+            },
+        )
+
+        callr = self.database.decode(0x0D3F)
+        self.assertEqual(callr.mnemonic, "CALLR")
+        self.assertEqual(callr.length_words, 2)
+        self.assertTrue(callr.metadata["immediate_fields"][0]["signed"])
+        self.assertEqual(
+            callr.metadata["documented_cycles"],
+            call.metadata["documented_cycles"],
+        )
+
+        calla = self.database.decode(0x0D5F)
+        self.assertEqual(calla.mnemonic, "CALLA")
+        self.assertEqual(calla.length_words, 3)
+        self.assertEqual(
+            calla.metadata["immediate_fields"][0]["word_order"],
+            "low_then_high",
+        )
+        self.assertEqual(
+            calla.metadata["documented_cycles"]["kind"],
+            "ambiguous_primary_table",
+        )
+        self.assertEqual(
+            len(calla.metadata["documented_cycles"]["printed_clauses"]),
+            4,
+        )
+        self.assertIn(
+            "do not map",
+            calla.metadata["documented_cycles"]["resolution"],
+        )
 
     def test_lmo_records_primary_register_and_status_contract(self) -> None:
         lmo = self.database.decode(0x6A00)

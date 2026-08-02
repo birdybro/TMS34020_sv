@@ -556,6 +556,26 @@
       "source_citation": ["TI-TMS34020-UG-1990 RETS, printed p.13-220", "TI-TMS34010-UG-1988 RETS, printed p.12-232 and Appendix A p.A-16"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["External stack-read fault/retry, width conversion, page-mode eligibility, and physical-cycle decomposition remain pending."]
+    },
+    {
+      "feature": "call_and_callr_instruction_timing",
+      "tms34010_behavior": "CALL publishes 3+(3),9 aligned and 3+(9),15 unaligned timing; CALLR publishes 3+(2),11 aligned and 3+(8),17 unaligned timing. Both share TMS34020 object forms and visible state.",
+      "tms34020_behavior": "CALL and CALLR each publish 3 visible states plus 1 hidden write state when SP is aligned, or 4 hidden states when unaligned.",
+      "rtl_impact": "Reuse semantic fixtures only; the TMS34020 pipeline/memory owner must capture the return PC and target before a fault-safe predecrement write and implement its own hidden-write overlap.",
+      "test_impact": "A/B/shared-SP CALL sources, signed CALLR extremes, PC/SP wrap, aligned/unaligned stacks, exact write traces, hidden-write dependency, 16/32-bit targets, waits, page mode, fault/retry, and idempotence.",
+      "source_citation": ["TI-TMS34020-UG-1990 CALL/CALLR, printed pp.13-48 and 13-50; timing table p.15-3", "TI-TMS34010-UG-1988 CALL/CALLR, printed pp.12-48 and 12-50"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Physical stack-write decomposition and overlap under width/page/wait/fault/retry remain pending."]
+    },
+    {
+      "feature": "calla_instruction_timing",
+      "tms34010_behavior": "CALLA shares the 0D5Fh three-word encoding and visible state, with published 4+(2),15 aligned and 4+(8),21 unaligned timing.",
+      "tms34020_behavior": "CALLA visible state and encoding are explicit, but printed p.13-49 and timing table p.15-3 give four immediate/SP alignment clauses whose grammar does not uniquely map to four cases.",
+      "rtl_impact": "Implement decode and visible semantics independently, but leave architectural cycle classification incomplete until the primary-table grammar is resolved; do not reuse TMS34010 or MAME timing.",
+      "test_impact": "All instruction/immediate and SP alignments, low/high target order, target alignment, return PC, exact stack write, waits, faults/retries, and competing timing hypotheses.",
+      "source_citation": ["TI-TMS34020-UG-1990 CALLA, printed p.13-49 and timing table p.15-3", "TI-TMS34010-UG-1988 CALLA, printed p.12-49"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Which exact immediate-alignment/SP-alignment cell corresponds to each printed 3, 4, 3+(3), and 4+(3) clause?"]
     }
   ]
 }

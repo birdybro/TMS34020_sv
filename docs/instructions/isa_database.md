@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 85 page-verified encoding records and covers 25,906 of 65,536
+slice contains 88 page-verified encoding records and covers 25,940 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -16,6 +16,9 @@ first words without collisions:
 | NOP | `0300h` | 1 | p.13-180 |
 | REV | `0020h`, mask `FFE0h` | 1 | p.13-221 |
 | TRAP | `0900h`, mask `FFE0h` | 1 | pp.13-253..13-255 |
+| CALL | `0920h`, mask `FFE0h` | 1 | p.13-48 |
+| CALLA | `0D5Fh` plus low/high target words | 3 | p.13-49 |
+| CALLR | `0D3Fh` plus signed word displacement | 2 | p.13-50 |
 | RETS | `0960h`, mask `FFE0h` | 1 | p.13-220 |
 | ABS | `0380h`, mask `FFE0h` | 1 | p.13-32 |
 | NEG | `03A0h`, mask `FFE0h` | 1 | p.13-178 |
@@ -161,6 +164,23 @@ alignment, SP wrap, and exact read traces. RTL only decodes the form and proves
 noncommit pending stack-read ownership. Sources: TMS34020 User's Guide printed
 p.13-220 and §4.2 p.4-4; TMS34010 User's Guide printed p.12-232 and Appendix A
 p.A-16.
+
+CALL captures an A/B register or shared SP target before predecrementing SP by
+32 bit addresses, writes the sequential return PC at the new SP, and redirects
+to the aligned captured target. Capturing first is architecturally significant
+for `CALL SP`. CALLR performs the same stack write and adds a signed 16-bit
+word displacement to the address after its extension word. Both take three
+visible states plus one hidden write state for aligned SP or four hidden states
+for unaligned SP. CALLA consumes low then high absolute target words, saves the
+address after all three words, and applies the same aligned redirect and stack
+operation. Its visible state is unambiguous, but the four timing clauses on
+printed pp.13-49 and 15-3 do not uniquely map immediate/SP alignment to a case;
+RSC-0024 and OQ-0015 retain that uncertainty. The model therefore reports
+exact CALL/CALLR timing and intentionally reports CALLA timing incomplete. RTL
+classifies all forms but proves them noncommitting pending stack-write and
+direct-PC ownership. Sources: TMS34020 User's Guide printed pp.13-48..13-50,
+§4.2 p.4-4, and timing table p.15-3; compatibility cross-check: TMS34010
+User's Guide printed pp.12-48..12-50.
 
 JUMP reads an A/B register or the shared-SP alias, clears target bits `[3:0]`,
 and redirects PC in two machine states without changing ST. Its

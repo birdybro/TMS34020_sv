@@ -19,7 +19,8 @@ Implemented:
   `CD` bypass, `CF` flush, stale self-modifying-code behavior, retry, fault
   pause/resume, abort, and pending-refill snapshot/replay;
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
-  EXGPC, GETPC, GETST, JACC, JR.L, JUMP, POPST, PUSHST, PUTST, RETS,
+  EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
+  PUTST, RETS,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -31,7 +32,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 84 of 85 currently extracted database forms. REV is
+These handlers cover 87 of 88 currently extracted database forms. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
 verified. A directed test proves that attempting REV raises
@@ -56,6 +57,21 @@ wrap are tested. The model reports TI's 5/6-state alignment cases. This is an
 instruction-boundary success abstraction; stack-read width, page mode, waits,
 faults, retries, and redirect pipeline timing remain unmodeled. Source:
 TMS34020 User's Guide, printed p.13-220.
+
+CALL, CALLA, and CALLR share an independently written atomic success helper
+that captures the post-instruction return PC, predecrements SP by 32 bit
+addresses, writes the return PC, and commits an aligned redirect without
+changing ST. CALL captures its A/B/shared-SP target before the predecrement;
+CALLR sign-extends and scales its extension word relative to the sequential
+PC; CALLA assembles its low/high target words. Directed tests cover every CALL
+register file/index class, the old-SP hazard, signed CALLR extremes and PC
+wrap, both stack alignment classes, instruction alignment combinations, exact
+write traces, and status preservation. CALL/CALLR report three visible plus
+one/four hidden write states. CALLA returns `machine_states=None` and marks
+timing incomplete because its primary timing clauses are ambiguous under
+RSC-0024/OQ-0015. All three remain success-only abstractions without external
+stack fault/retry, width, page, wait, or pin transactions. Sources: TMS34020
+User's Guide, printed pp.13-48..13-50 and timing table p.15-3.
 
 JACC tests cover all 16 condition codes, a taken case for every code and a
 false case for every conditional code, low-word/high-word target assembly,
@@ -443,6 +459,9 @@ TRAPL primary vector examples, signed extremes, stack order, ST/PC changes,
 aligned/unaligned timing, and vector-target alignment,
 all RETS argument counts, both stack alignment cases, exact PC-pop traces,
 redirect alignment, SP wrap, and status preservation,
+all CALL A/B/shared-SP target classes, old-SP capture ordering, aligned and
+unaligned hidden writes, CALLR signed extremes and PC wrap, and CALLA
+low/high-word target assembly with explicitly incomplete timing,
 all BLMOVE S/D modes, alignment guards, zero/self/wrapping ranges, abstract
 transactions, overlap refusal, and final B0/B2/B7/ST state;
 IDLE claim boundaries, no mutation on unclassified instructions, and

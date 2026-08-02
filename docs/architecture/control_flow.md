@@ -72,6 +72,21 @@ instruction boundary for every N and both alignment cases. RTL decode is
 present, but execution remains blocked until stack-read completion can be
 coupled atomically to SP and direct-PC commit with fault/retry support.
 
+CALL captures its selected A/B/SP register before changing SP, saves the
+sequential address after the one-word instruction at `SP-32`, and redirects to
+the captured value with bits `[3:0]` cleared. Thus `CALL SP` uses old SP as the
+target. CALLR saves the address after its signed 16-bit displacement word and
+adds that displacement times 16 to the same address. CALLA consumes low then
+high target words, saves the address after all three words, and redirects to
+the assembled aligned absolute target. ST is unchanged in all cases. The
+independent model covers successful state ordering, A/B/shared-SP selection,
+signed extremes, PC/SP wrap, and exact writes. CALL/CALLR report their primary
+3+(1)/3+(4) timing cases; CALLA timing remains explicitly unresolved under
+RSC-0024/OQ-0015. RTL decode is present, but all three remain noncommitting
+until stack-write completion, direct-PC commit, fault/retry, and hidden-write
+ordering share one owner. Sources: User's Guide printed pp.13-48..13-50 and
+§4.2 p.4-4.
+
 TRAPL obtains its target indirectly through a 32-bit vector-table entry. For
 signed 16-bit trap number `N`, Figure 6-1 and Figure 13-13 place that entry at
 `FFFF_FFE0h - (sign_extend(N) << 5)`, modulo `2^32`. The conflicting prose

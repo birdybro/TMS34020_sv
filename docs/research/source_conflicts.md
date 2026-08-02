@@ -449,3 +449,31 @@
   useful for visible-state comparison but is not a RETS timing oracle.
   Confidence: `VERIFIED_PRIMARY` for encoding, visible state, and documented
   timing cases; `UNKNOWN` for the external-cycle decomposition.
+
+## RSC-0024: CALL-family secondary timing and CALLA primary grammar
+
+- Status: CALL/CALLR resolved from primary evidence; CALLA timing unresolved
+- Primary TMS34020 evidence: TI *TMS34020 User's Guide*, August 1990, CALL,
+  CALLA, and CALLR, printed pp.13-48..13-50, with the repeated timing table on
+  printed p.15-3. CALL and CALLR each specify three visible states plus one
+  hidden stack-write state for aligned SP or four for unaligned SP. CALLA's
+  four printed clauses—3, 4, 3+(3), and 4+(3)—refer to immediate-data and SP
+  alignment, but their grammar does not uniquely identify a four-cell matrix.
+- Compatibility evidence: TI *TMS34010 User's Guide*, 1988, printed
+  pp.12-48..12-50 specifies the same object forms and visible operations but
+  materially different timing: CALL `3+(3),9`/`3+(9),15`, CALLA
+  `4+(2),15`/`4+(8),21`, and CALLR `3+(2),11`/`3+(8),17` for aligned/unaligned
+  stack cases.
+- Secondary conflict: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`,
+  `src/devices/cpu/tms34010/34010ops.hxx`, lines 1428–1451 shares CALL-family
+  handlers between processor classes and charges fixed visible values without
+  the documented TMS34020 hidden/alignment cases.
+- Decision: implement CALL/CALLR visible state and their documented 3+(1)/
+  3+(4) abstract timing. Implement CALLA's exact architectural state but mark
+  machine-state timing incomplete; do not infer a case mapping from TMS34010
+  or MAME. Keep all three noncommitting in RTL until stack-write, redirect,
+  fault/retry, and timing ownership exists. OQ-0015 tracks the missing timing
+  evidence. Confidence: `VERIFIED_PRIMARY` for all encodings and visible
+  state, and for CALL/CALLR's instruction-boundary timing; `UNKNOWN` for the
+  CALLA timing mapping and physical-cycle decomposition.

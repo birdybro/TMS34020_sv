@@ -107,6 +107,12 @@ both TMS34020 5/6-state stack-alignment cases are tested. RETS remains blocked
 in RTL pending stack-read and direct-PC ownership. Source: User's Guide RETS,
 printed p.13-220.
 
+The independent model verifies complete ST preservation across CALL, CALLA,
+and CALLR while SP and PC change and the return-PC write occurs. This includes
+CALL's shared-SP read-before-write hazard and both stack alignment classes.
+All three forms remain blocked in RTL pending stack-write/direct-PC ownership.
+Sources: User's Guide CALL/CALLA/CALLR, printed pp.13-48..13-50.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

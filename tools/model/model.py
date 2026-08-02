@@ -99,6 +99,9 @@ class Tms34020Model:
             "EXGPC": self._execute_exgpc,
             "GETPC": self._execute_getpc,
             "GETST": self._execute_getst,
+            "CALL": self._execute_call,
+            "CALLA": self._execute_calla,
+            "CALLR": self._execute_callr,
             "JACC": self._execute_jacc,
             "JR.L": self._execute_jr_long,
             "JUMP": self._execute_jump,
@@ -506,6 +509,80 @@ class Tms34020Model:
         register_file, index = self._decode_destination(words[0])
         self.state.write_reg(register_file, index, self.state.st)
         return 1
+
+    def _complete_subroutine_call(
+        self,
+        target: int,
+        mnemonic: str,
+        machine_states: int | None,
+        hidden_write_states: int | None,
+    ) -> int | None:
+        """Commit the architecturally visible part of a CALL-family operation."""
+        return_pc = self.state.pc
+        old_sp = self.state.sp
+        new_sp = (old_sp - 32) & MASK32
+        self.state.sp = new_sp
+        self.state.memory.write_bits(new_sp, 32, return_pc)
+        self.state.pc = target & 0xFFFF_FFF0
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "data_write",
+                "purpose": "call_return_pc",
+                "bit_address": new_sp,
+                "width": 32,
+                "value": return_pc,
+            }
+        )
+        if hidden_write_states is not None:
+            self._new_hidden_write_states = hidden_write_states
+        self._active_trace.notes.append(
+            f"successful atomic {mnemonic} abstraction; stack-write fault, "
+            "retry, dynamic-width, and page-mode behavior pending"
+        )
+        if machine_states is None:
+            self._active_trace.notes.append(
+                "CALLA machine-state classification withheld because the "
+                "primary alignment table is ambiguous (RSC-0024/OQ-0015)"
+            )
+        return machine_states
+
+    def _execute_call(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, index = self._decode_destination(words[0])
+        # Capture the source before changing SP: CALL SP targets the old SP.
+        target = self.state.read_reg(register_file, index)
+        hidden_states = 1 if self.state.sp & 0x1F == 0 else 4
+        result = self._complete_subroutine_call(
+            target, "CALL", 3, hidden_states
+        )
+        assert result is not None
+        return result
+
+    def _execute_calla(
+        self, instruction: Instruction, words: list[int]
+    ) -> None:
+        del instruction
+        target = words[1] | (words[2] << 16)
+        self._complete_subroutine_call(target, "CALLA", None, None)
+        return None
+
+    def _execute_callr(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        displacement = words[1]
+        if displacement & 0x8000:
+            displacement -= 0x1_0000
+        target = (self.state.pc + displacement * 16) & MASK32
+        hidden_states = 1 if self.state.sp & 0x1F == 0 else 4
+        result = self._complete_subroutine_call(
+            target, "CALLR", 3, hidden_states
+        )
+        assert result is not None
+        return result
 
     def _execute_jump(
         self, instruction: Instruction, words: list[int]

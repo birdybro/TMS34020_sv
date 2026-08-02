@@ -4,6 +4,13 @@
 
 ### Added
 
+- Primary-page-verified CALL `0920h`/`FFE0h`, CALLA `0D5Fh`, and CALLR
+  `0D3Fh` metadata plus independent successful model semantics. Tests cover
+  every A/B/shared-SP CALL target, source capture before SP predecrement,
+  aligned/unaligned hidden writes, CALLR signed extremes and PC wrap, CALLA
+  low/high target order, exact return-PC writes, and complete ST preservation.
+- Direct RTL noncommit guards for CALL base/end, CALLR, and CALLA pending an
+  atomic stack-write/direct-PC/fault-retry owner.
 - Primary-page-verified RETS `0960h`/`FFE0h` metadata and independent model
   semantics for all 32 argument counts, aligned/unaligned old SP, exact
   return-PC reads, PC alignment, SP wrap, complete status preservation, and
@@ -267,6 +274,9 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 85 to 88 records and from
+  25,906 to 25,940 uniquely classified first words without treating remaining
+  unmatched words as reserved.
 - Expanded the generated partial decoder from 84 to 85 records and from
   25,874 to 25,906 uniquely classified first words without treating remaining
   unmatched words as reserved.
@@ -315,6 +325,14 @@
 
 ### Verified
 
+- The 36-case ISA suite, 57-entry delta ledger, and 144-case model suite pass.
+  CALL and CALLR exercise exact state/timing cases; CALLA exercises exact state
+  while proving timing remains incomplete. Direct RTL guards prove all three
+  forms cannot mutate scalar state without their missing owner. Decoder-bearing
+  Cyclone V Analysis & Synthesis passes with zero errors/warnings at 8,796
+  leaf, 428 fetch, 792 frontend, and 5,225 scalar logic cells. These are bounded
+  state and synthesis-portability results, not external stack timing, fit, or
+  TimeQuest evidence.
 - The 35-case ISA suite, 55-entry delta ledger, and 141-case model suite pass.
   RETS exercises every N value and both stack-alignment cases, while direct RTL
   guards prove decoded RETS packets cannot mutate register or status state.
@@ -811,6 +829,10 @@
 
 ### Documentation
 
+- Documented CALL-family state and compatibility, the TMS34010/TMS34020 timing
+  delta, pinned MAME's shared-handler under-modeling, and CALLA's internally
+  ambiguous primary timing clauses as RSC-0024/OQ-0015 rather than guessing a
+  four-case schedule.
 - Documented RETS state and timing compatibility, the TMS34010 7/9 versus
   TMS34020 5/6 delta, pinned MAME's fixed-7 discrepancy (RSC-0023), and the
   boundary between model success and absent RTL stack-read ownership.
@@ -890,6 +912,10 @@
 
 ### Known Issues
 
+- CALL/CALLR/CALLA have instruction-boundary model semantics only. RTL
+  execution, external stack writes, width/page/wait/fault/retry behavior, and
+  physical overlap remain unimplemented; CALLA machine-state classification is
+  also unresolved from the available primary text.
 - RETS has instruction-boundary model semantics only. RTL execution, external
   stack-read decomposition, waits, dynamic width, page mode, faults, retries,
   and exact redirect/machine-state timing remain unimplemented.
@@ -902,7 +928,7 @@
   is not a valid TMS34020 oracle for this instruction.
 - The architectural model and RTL cover only a small verified slice; modeled
   instruction fetch uses an untimed native cache transaction boundary, the
-  bounded scalar composition accepts only 51 one-word, eight two-word, and nine
+  bounded scalar composition accepts only 52 one-word, eight two-word, and nine
   three-word operations, and every other packet blocks. There is no
   complete executable core, timed retirement, pin-level completion decoder,
   CPU fault controller, overlapped pipeline, or subsystem integration.

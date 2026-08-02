@@ -2694,6 +2694,127 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(event.next_pc, 0xFFFF_FFF0)
         self.assertEqual(event.status_before, event.status_after)
 
+    def test_call_all_register_sources_capture_target_before_stack_write(self) -> None:
+        for register_file, file_bit in (("A", 0), ("B", 1)):
+            for source_index in (0, 14, 15):
+                for old_sp, expected_hidden in (
+                    (0x0000_0400, 1),
+                    (0x0000_0407, 4),
+                ):
+                    with self.subTest(
+                        register_file=register_file,
+                        source_index=source_index,
+                        old_sp=f"{old_sp:08X}",
+                    ):
+                        opcode = 0x0920 | (file_bit << 4) | source_index
+                        model = Tms34020Model()
+                        model.load_program([opcode], bit_address=0x80)
+                        model.state.st = 0xA5C3_5A3C
+                        if source_index != 15:
+                            model.state.write_reg(
+                                register_file, source_index, 0x1234_567F
+                            )
+                        model.state.sp = old_sp
+
+                        event = model.step()
+
+                        expected_target = (
+                            old_sp if source_index == 15 else 0x1234_567F
+                        ) & 0xFFFF_FFF0
+                        new_sp = (old_sp - 32) & 0xFFFF_FFFF
+                        self.assertEqual(model.state.pc, expected_target)
+                        self.assertEqual(model.state.sp, new_sp)
+                        self.assertEqual(
+                            model.state.memory.read_bits(new_sp, 32), 0x90
+                        )
+                        self.assertEqual(model.state.st, 0xA5C3_5A3C)
+                        self.assertEqual(event.machine_states, 3)
+                        self.assertEqual(
+                            model.state.pending_write_states, expected_hidden
+                        )
+                        self.assertEqual(
+                            event.transactions[-1],
+                            {
+                                "class": "data_write",
+                                "purpose": "call_return_pc",
+                                "bit_address": new_sp,
+                                "width": 32,
+                                "value": 0x90,
+                            },
+                        )
+                        self.assertEqual(
+                            event.register_writes,
+                            [{
+                                "file": "SP",
+                                "index": 15,
+                                "old": old_sp,
+                                "new": new_sp,
+                            }],
+                        )
+
+    def test_callr_signed_extremes_pc_wrap_and_stack_alignment(self) -> None:
+        cases = (
+            (0x0000_0080, 0x0000, 0x0000_00A0),
+            (0x0000_0080, 0x7FFF, 0x0008_0090),
+            (0x0000_0080, 0x8000, 0xFFF8_00A0),
+            (0xFFFF_FFF0, 0x0001, 0x0000_0020),
+        )
+        for start_pc, encoded_offset, expected_pc in cases:
+            for old_sp, expected_hidden in ((0x600, 1), (0x607, 4)):
+                with self.subTest(
+                    start_pc=f"{start_pc:08X}",
+                    encoded_offset=f"{encoded_offset:04X}",
+                    old_sp=f"{old_sp:08X}",
+                ):
+                    model = Tms34020Model()
+                    model.load_program(
+                        [0x0D3F, encoded_offset], bit_address=start_pc
+                    )
+                    model.state.sp = old_sp
+                    model.state.st = 0xF123_4567
+
+                    event = model.step()
+
+                    return_pc = (start_pc + 32) & 0xFFFF_FFFF
+                    new_sp = (old_sp - 32) & 0xFFFF_FFFF
+                    self.assertEqual(model.state.pc, expected_pc)
+                    self.assertEqual(model.state.sp, new_sp)
+                    self.assertEqual(
+                        model.state.memory.read_bits(new_sp, 32), return_pc
+                    )
+                    self.assertEqual(model.state.st, 0xF123_4567)
+                    self.assertEqual(event.machine_states, 3)
+                    self.assertEqual(
+                        model.state.pending_write_states, expected_hidden
+                    )
+
+    def test_calla_visible_state_is_modeled_without_guessed_timing(self) -> None:
+        for start_pc in (0x80, 0x90):
+            for old_sp in (0x800, 0x807):
+                with self.subTest(start_pc=start_pc, old_sp=old_sp):
+                    model = Tms34020Model()
+                    model.load_program(
+                        [0x0D5F, 0x567F, 0x1234],
+                        bit_address=start_pc,
+                    )
+                    model.state.sp = old_sp
+                    model.state.st = 0xA5C3_5A3C
+
+                    event = model.step()
+
+                    return_pc = (start_pc + 48) & 0xFFFF_FFFF
+                    new_sp = (old_sp - 32) & 0xFFFF_FFFF
+                    self.assertEqual(model.state.pc, 0x1234_5670)
+                    self.assertEqual(model.state.sp, new_sp)
+                    self.assertEqual(
+                        model.state.memory.read_bits(new_sp, 32), return_pc
+                    )
+                    self.assertEqual(model.state.st, 0xA5C3_5A3C)
+                    self.assertIsNone(event.machine_states)
+                    self.assertFalse(model.state.timing_complete)
+                    self.assertEqual(model.state.pending_write_states, 0)
+                    self.assertIn("RSC-0024/OQ-0015", event.notes[-1])
+
     def test_jump_primary_examples_align_register_target(self) -> None:
         for source, expected_pc in (
             (0x0000_1EE0, 0x0000_1EE0),
