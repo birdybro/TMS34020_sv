@@ -4,6 +4,8 @@
 
 ### Added
 
+- Commit `9f323c01a936a96481dac855c321a75c02ba3bbd` records the
+  verified explicit-REV milestone.
 - Evidence-safe REV execution: the model and bounded register/scalar RTL accept
   only an explicitly selected, format-valid TMS34020 identity, default to no
   selection, preserve ST, and cover the documented one-state result. Snapshot
