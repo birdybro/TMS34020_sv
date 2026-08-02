@@ -63,6 +63,11 @@ module tb_tms34020_verified_leaves;
     logic [31:0] cmpxy_source;
     logic [31:0] cmpxy_destination;
     logic [3:0] cmpxy_nczv;
+    logic [31:0] window_point;
+    logic [31:0] window_start;
+    logic [31:0] window_end;
+    logic [31:0] window_outcode;
+    logic window_outside;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -236,6 +241,14 @@ module tb_tms34020_verified_leaves;
         .source_i(cmpxy_source),
         .destination_i(cmpxy_destination),
         .status_nczv_o(cmpxy_nczv)
+    );
+
+    tms34020_window_compare window_compare_dut (
+        .point_i(window_point),
+        .window_start_i(window_start),
+        .window_end_i(window_end),
+        .outcode_o(window_outcode),
+        .outside_o(window_outside)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -574,6 +587,20 @@ module tb_tms34020_verified_leaves;
         cmpxy_destination = destination;
         #1;
         check_condition(cmpxy_nczv == expected_nczv, message);
+    endtask
+
+    task automatic check_window_compare(
+        input logic [31:0] point,
+        input logic [31:0] expected_outcode,
+        input string message
+    );
+        window_point = point;
+        #1;
+        check_condition(
+            window_outcode == expected_outcode &&
+            window_outside == (expected_outcode != 32'd0),
+            message
+        );
     endtask
 
     task automatic check_cmpxy_register_execute(
@@ -1487,6 +1514,11 @@ module tb_tms34020_verified_leaves;
         xy_operation = TMS34020_XY_ADD;
         xy_source = 32'd0;
         xy_destination = 32'd0;
+        cmpxy_source = 32'd0;
+        cmpxy_destination = 32'd0;
+        window_point = 32'd0;
+        window_start = 32'd0;
+        window_end = 32'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -2022,6 +2054,35 @@ module tb_tms34020_verified_leaves;
             );
         end
 
+        window_start = 32'h0005_0005;
+        window_end = 32'h000A_000A;
+        check_window_compare(
+            32'h0004_0004, 32'h0000_00A0,
+            "CPW primary above-left outcode"
+        );
+        check_window_compare(
+            32'h0005_0005, 32'd0,
+            "CPW primary inclusive start corner"
+        );
+        check_window_compare(
+            32'h000A_000A, 32'd0,
+            "CPW primary inclusive end corner"
+        );
+        check_window_compare(
+            32'h000B_000B, 32'h0000_0140,
+            "CPW primary below-right outcode"
+        );
+        window_start = 32'hFFFA_FFFB;
+        window_end = 32'h0006_0005;
+        check_window_compare(
+            32'hFFF9_FFFA, 32'h0000_00A0,
+            "CPW signed negative above-left comparison"
+        );
+        check_window_compare(
+            32'h0007_0006, 32'h0000_0140,
+            "CPW signed positive below-right comparison"
+        );
+
         check_pitch_conversion(
             32'h0000_1000, 16'h0013, 3'd4,
             "SETC pitch primary 4096 row"
@@ -2550,6 +2611,11 @@ module tb_tms34020_verified_leaves;
             16'h0D5F, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "CALLA cannot bypass extension, stack-write, and redirect ownership"
+        );
+        check_register_execute(
+            16'hE600, 32'h0004_0004, 32'hDEAD_BEEF, 32'hA123_4567,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CPW cannot bypass the unimplemented implied B5/B6 read owner"
         );
         check_register_execute(
             16'h6A01, 32'h0800_0000, 32'hDEAD_BEEF, 32'hF000_0010,
@@ -4128,6 +4194,10 @@ module tb_tms34020_verified_leaves;
                      "CMPXY base decode");
         check_decode(16'hE5FF, TMS20_OP_CMPXY, 3'd1,
                      "CMPXY masked decode");
+        check_decode(16'hE600, TMS20_OP_CPW, 3'd1,
+                     "CPW lower-bound decode");
+        check_decode(16'hE7FF, TMS20_OP_CPW, 3'd1,
+                     "CPW upper-bound decode");
         check_decode(16'h51FF, TMS20_OP_AND, 3'd1, "AND masked decode");
         check_decode(16'h53FF, TMS20_OP_ANDN, 3'd1, "ANDN masked decode");
         check_decode(16'h55FF, TMS20_OP_OR, 3'd1, "OR masked decode");

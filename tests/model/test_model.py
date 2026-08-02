@@ -1039,6 +1039,92 @@ class ExecutionTests(unittest.TestCase):
         self.assertEqual(model.state.sp, 0x8000_8000)
         self.assertEqual(shared_sp_destination.register_writes, [])
 
+    def test_cpw_primary_rows_signed_bounds_and_operand_hazards(self) -> None:
+        primary_rows = (
+            (0x0004_0004, 0x0000_00A0),
+            (0x0004_0005, 0x0000_0080),
+            (0x0004_000A, 0x0000_0080),
+            (0x0004_000B, 0x0000_00C0),
+            (0x0005_0004, 0x0000_0020),
+            (0x0005_0005, 0x0000_0000),
+            (0x0005_000A, 0x0000_0000),
+            (0x0005_000B, 0x0000_0040),
+            (0x000A_0004, 0x0000_0020),
+            (0x000A_0005, 0x0000_0000),
+            (0x000A_000A, 0x0000_0000),
+            (0x000A_000B, 0x0000_0040),
+            (0x000B_0004, 0x0000_0120),
+            (0x000B_0005, 0x0000_0100),
+            (0x000B_000A, 0x0000_0100),
+            (0x000B_000B, 0x0000_0140),
+        )
+        for point, expected in primary_rows:
+            with self.subTest(point=f"{point:08X}"):
+                model = Tms34020Model()
+                model.load_program([0xE620])
+                model.state.write_reg("A", 1, point)
+                model.state.write_reg("A", 0, 0xDEAD_BEEF)
+                model.state.write_reg("B", 5, 0x0005_0005)
+                model.state.write_reg("B", 6, 0x000A_000A)
+                model.state.st = 0xEABC_DEF0
+
+                event = model.step()
+
+                expected_status = (
+                    (0xEABC_DEF0 & ~(1 << 28))
+                    | ((expected != 0) << 28)
+                )
+                self.assertEqual(model.state.read_reg("A", 0), expected)
+                self.assertEqual(model.state.st, expected_status)
+                self.assertEqual(event.machine_states, 1)
+                self.assertEqual(event.status_before, 0xEABC_DEF0)
+                self.assertEqual(event.status_after, expected_status)
+                self.assertEqual(
+                    event.register_writes,
+                    [{
+                        "file": "A",
+                        "index": 0,
+                        "old": 0xDEAD_BEEF,
+                        "new": expected,
+                    }],
+                )
+
+        for point, expected in (
+            (0xFFF9_FFFA, 0x0000_00A0),
+            (0x0007_0006, 0x0000_0140),
+        ):
+            with self.subTest(signed_point=f"{point:08X}"):
+                model = Tms34020Model()
+                model.load_program([0xE620])
+                model.state.write_reg("A", 1, point)
+                model.state.write_reg("B", 5, 0xFFFA_FFFB)
+                model.state.write_reg("B", 6, 0x0006_0005)
+                model.step()
+                self.assertEqual(model.state.read_reg("A", 0), expected)
+
+        # B-file explicit operands may alias the implied WSTART/WEND registers.
+        hazard = Tms34020Model()
+        hazard.load_program([0xE6B6])  # CPW B5,B6
+        hazard.state.write_reg("B", 5, 0x0005_0005)
+        hazard.state.write_reg("B", 6, 0x000A_000A)
+        hazard_event = hazard.step()
+        self.assertEqual(hazard.state.read_reg("B", 5), 0x0005_0005)
+        self.assertEqual(hazard.state.read_reg("B", 6), 0)
+        self.assertEqual(hazard_event.machine_states, 1)
+
+        for register_file, file_bit in (("A", 0), ("B", 1)):
+            with self.subTest(shared_sp_file=register_file):
+                model = Tms34020Model()
+                model.load_program([
+                    0xE600 | (15 << 5) | (file_bit << 4) | 15
+                ])
+                model.state.sp = 0x000B_000B
+                model.state.write_reg("B", 5, 0x0005_0005)
+                model.state.write_reg("B", 6, 0x000A_000A)
+                event = model.step()
+                self.assertEqual(model.state.sp, 0x0000_0140)
+                self.assertEqual(event.machine_states, 1)
+
     def test_xy_arithmetic_b_file_same_register_and_shared_sp(self) -> None:
         model = Tms34020Model()
         model.load_program([

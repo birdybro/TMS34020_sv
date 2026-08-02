@@ -147,6 +147,7 @@ class Tms34020Model:
             "SUBXY": self._execute_subxy,
             "CMP": self._execute_cmp,
             "CMPXY": self._execute_cmpxy,
+            "CPW": self._execute_cpw,
             "AND": self._execute_and,
             "ANDN": self._execute_andn,
             "OR": self._execute_or,
@@ -1493,6 +1494,41 @@ class Tms34020Model:
         self._set_status_bit(C_BIT, bool(result_y & 0x8000))
         self._set_status_bit(Z_BIT, source_y == destination_y)
         self._set_status_bit(V_BIT, bool(result_x & 0x8000))
+        return 1
+
+    @staticmethod
+    def _signed_half(value: int) -> int:
+        value &= 0xFFFF
+        return value - 0x1_0000 if value & 0x8000 else value
+
+    def _execute_cpw(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        register_file, source_index, destination_index = (
+            self._decode_source_destination(words[0])
+        )
+        # All operands are captured before Rd is written; Rd may be B5/B6.
+        point = self.state.read_reg(register_file, source_index)
+        window_start = self.state.read_reg("B", 5)
+        window_end = self.state.read_reg("B", 6)
+        point_x = self._signed_half(point)
+        point_y = self._signed_half(point >> 16)
+        start_x = self._signed_half(window_start)
+        start_y = self._signed_half(window_start >> 16)
+        end_x = self._signed_half(window_end)
+        end_y = self._signed_half(window_end >> 16)
+        result = 0
+        if start_x > point_x:
+            result |= 1 << 5
+        if point_x > end_x:
+            result |= 1 << 6
+        if start_y > point_y:
+            result |= 1 << 7
+        if point_y > end_y:
+            result |= 1 << 8
+        self.state.write_reg(register_file, destination_index, result)
+        self._set_status_bit(V_BIT, result != 0)
         return 1
 
     def _execute_logical(

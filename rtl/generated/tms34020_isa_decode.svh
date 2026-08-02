@@ -68,32 +68,33 @@ typedef enum logic [6:0] {
     TMS20_OP_BTST_R = 7'd60,
     TMS20_OP_CMP = 7'd61,
     TMS20_OP_CMPXY = 7'd62,
-    TMS20_OP_LMO = 7'd63,
-    TMS20_OP_MOVX = 7'd64,
-    TMS20_OP_MOVY = 7'd65,
-    TMS20_OP_OR = 7'd66,
-    TMS20_OP_RL_R = 7'd67,
-    TMS20_OP_RMO = 7'd68,
-    TMS20_OP_SLA_R = 7'd69,
-    TMS20_OP_SLL_R = 7'd70,
-    TMS20_OP_SRA_R = 7'd71,
-    TMS20_OP_SRL_R = 7'd72,
-    TMS20_OP_SUB = 7'd73,
-    TMS20_OP_SUBB = 7'd74,
-    TMS20_OP_SUBXY = 7'd75,
-    TMS20_OP_XOR = 7'd76,
-    TMS20_OP_ADDK = 7'd77,
-    TMS20_OP_BTST_K = 7'd78,
-    TMS20_OP_CMPK = 7'd79,
-    TMS20_OP_MOVE = 7'd80,
-    TMS20_OP_MOVK = 7'd81,
-    TMS20_OP_RL_K = 7'd82,
-    TMS20_OP_SLA_K = 7'd83,
-    TMS20_OP_SLL_K = 7'd84,
-    TMS20_OP_SRA_K = 7'd85,
-    TMS20_OP_SRL_K = 7'd86,
-    TMS20_OP_SUBK = 7'd87,
-    TMS20_OP_DSJS = 7'd88
+    TMS20_OP_CPW = 7'd63,
+    TMS20_OP_LMO = 7'd64,
+    TMS20_OP_MOVX = 7'd65,
+    TMS20_OP_MOVY = 7'd66,
+    TMS20_OP_OR = 7'd67,
+    TMS20_OP_RL_R = 7'd68,
+    TMS20_OP_RMO = 7'd69,
+    TMS20_OP_SLA_R = 7'd70,
+    TMS20_OP_SLL_R = 7'd71,
+    TMS20_OP_SRA_R = 7'd72,
+    TMS20_OP_SRL_R = 7'd73,
+    TMS20_OP_SUB = 7'd74,
+    TMS20_OP_SUBB = 7'd75,
+    TMS20_OP_SUBXY = 7'd76,
+    TMS20_OP_XOR = 7'd77,
+    TMS20_OP_ADDK = 7'd78,
+    TMS20_OP_BTST_K = 7'd79,
+    TMS20_OP_CMPK = 7'd80,
+    TMS20_OP_MOVE = 7'd81,
+    TMS20_OP_MOVK = 7'd82,
+    TMS20_OP_RL_K = 7'd83,
+    TMS20_OP_SLA_K = 7'd84,
+    TMS20_OP_SLL_K = 7'd85,
+    TMS20_OP_SRA_K = 7'd86,
+    TMS20_OP_SRL_K = 7'd87,
+    TMS20_OP_SUBK = 7'd88,
+    TMS20_OP_DSJS = 7'd89
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -357,6 +358,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
             end
             16'b1110010?????????: begin
                 decoded.opcode_id = TMS20_OP_CMPXY;
+                decoded.length_words = 3'd1;
+            end
+            16'b1110011?????????: begin
+                decoded.opcode_id = TMS20_OP_CPW;
                 decoded.length_words = 3'd1;
             end
             16'b0110101?????????: begin

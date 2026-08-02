@@ -8,7 +8,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 88 entries currently present in the canonical ISA database, including all 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, and fixed CALLA/CALLR forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 89 entries currently present in the canonical ISA database, including all 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, and all 512 CPW register forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent, EXGPC sequential-PC write plus aligned old-register redirect intent, status/register-neutral JUMP aligned redirect intent, JACC all-condition fallthrough or aligned low-word/high-word absolute redirect intent, JR.L all-condition fallthrough or signed 16-bit word redirect intent, DSJ/DSJEQ/DSJNE Z-conditioned decrement plus signed 16-bit word redirect intent, and DSJS unconditional decrement plus encoded unsigned-magnitude/direction redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, EXGPC printed p.13-112, GETPC printed p.13-130, and JUMP printed p.13-141 |
@@ -33,6 +33,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/graphics/tms34020_pixel_size_ops.sv` | GETPS zero-extension and EXGPS register/16-bit PSIZE-write data paths; no I/O timing or write-queue implementation | TI *TMS34020 User's Guide*, August 1990, EXGPS, printed p.13-113; GETPS, printed p.13-131 |
 | `rtl/graphics/tms34020_pitch_conversion.sv` | Shared SETCDP/SETCMP/SETCSP conversion-field and 4/6/3 visible-state classification for one-power, two-power, and arbitrary pitches; no hidden-I/O write owner | TI *TMS34020 User's Guide*, August 1990, printed pp.4-28..4-29, Figure 12-20 p.12-49, instruction pp.13-227..13-229, and timing-table p.15-8 |
 | `rtl/graphics/tms34020_pixel_replicate.sv` | RPIX replication and documented machine-state counts for PSIZE 1, 2, 4, 8, 16, and 32 | TI *TMS34020 User's Guide*, August 1990, RPIX, printed p.13-225; §12.6, printed p.12-17 |
+| `rtl/graphics/tms34020_window_compare.sv` | Signed XY comparison against inclusive WSTART/WEND bounds, zero-extended CPW outcode bits 8:5, and outside/V condition; register capture and commit ownership remain outside the leaf | TI *TMS34020 User's Guide*, August 1990, CPW, printed pp.13-85..13-86 |
 | `rtl/cache/tms34020_icache.sv` | Bounded native-completion cache leaf: four segments, 32 subsegments, 128×32 data RAM, lookup classifications, demand-long-word-last refill, move-to-front LRU, reset abstraction, `CD` bypass, idle `CF`, backpressure, current-beat retry, and fault pause/resume/abort | TI *TMS34020 User's Guide*, August 1990, §§5.1–5.3.6, printed pp.5-2..5-8; fault/retry §§6.9 and 8.6, printed pp.6-19..6-20 and 8-12..8-14; reset §6.12.2, printed p.6-23 |
 
 REV, TRAP, RETS, CALL, CALLA, and CALLR are classified but intentionally absent
@@ -45,6 +46,8 @@ stack/vector sequencer, fault/retry state, and physical timing. It likewise
 prevents RETS from bypassing absent stack-read and direct-PC completion
 ownership. CALL-family guards likewise prevent decoded packets from bypassing
 the absent stack-write/direct-PC owner or silently assigning CALLA timing.
+CPW base-word guards prevent its verified combinational comparison leaf from
+bypassing the absent simultaneous Rs/B5/B6 read and atomic destination/V owner.
 
 The generated include `rtl/generated/tms34020_isa_decode.svh` is derived from
 `docs/generated/tms34020_isa.yaml` by
@@ -70,6 +73,9 @@ Verilator. It checks:
   flag rows, a result-sign-versus-borrow discriminator, A/B and same-register
   routing, shared-SP source/destination selection, full NCZV replacement, and
   register-write suppression through direct, commit, and scalar paths;
+- exact CPW `E600h`/`FE00h` base/end decode boundaries, primary inclusive
+  corners, signed negative/positive discriminators, outcode/V agreement, and
+  direct router noncommit while implied B5/B6 reads remain unowned;
 - all 32 CLR same-register alias encodings, equal A/B source/destination
   selectors, shared-SP selection, zero result, Z set, and N/C/V preservation
   through the canonical XOR datapath;
@@ -275,7 +281,7 @@ observable. It also keeps every output of the register-execution router
 observable and instantiates CMPXY both directly and through the commit
 composition. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 8,796 logic-cell/2,048-register resource count is not a core-area
+so its 8,846 logic-cell/2,048-register resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -287,17 +293,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 428
+packet assembler and generated decoder. Its observability wrapper uses 421
 logic cells and 175 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 792 logic cells, 373 registers, and 4,096 block-memory
+zero errors/warnings to 804 logic cells, 373 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,225 logic cells, 1,414 registers,
+composition with zero errors/warnings to 5,258 logic cells, 1,414 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

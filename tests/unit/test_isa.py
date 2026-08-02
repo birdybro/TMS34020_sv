@@ -208,6 +208,8 @@ class IsaTests(unittest.TestCase):
             0x49FF: ("CMP", 1),
             0xE400: ("CMPXY", 1),
             0xE5FF: ("CMPXY", 1),
+            0xE600: ("CPW", 1),
+            0xE7FF: ("CPW", 1),
             0x4A00: ("BTST.R", 1),
             0x4A20: ("BTST.R", 1),
             0x4BFF: ("BTST.R", 1),
@@ -271,7 +273,7 @@ class IsaTests(unittest.TestCase):
                      0x0361, 0x080E, 0x081F, 0x0A01, 0x0D61, 0x0DE1,
                      0x0FFF, 0xBFFF, 0xC001, 0xC081, 0xCFFF, 0xD000,
                      0x0AFF, 0x0C20,
-                     0x5800, 0xE600,
+                     0x5800,
                      0x79FF, 0x7C00,
                      0xD4FF, 0xD520, 0xD6FF, 0xD720):
             with self.subTest(word=f"{word:04X}"):
@@ -279,8 +281,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 25940)
-        self.assertEqual(unclassified, 65536 - 25940)
+        self.assertEqual(matched, 26452)
+        self.assertEqual(unclassified, 65536 - 26452)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -484,6 +486,31 @@ class IsaTests(unittest.TestCase):
             "X=bits 15:0",
             instruction.metadata["graphics_register_dependencies"][0],
         )
+
+    def test_cpw_records_signed_window_outcode_and_v_only_contract(self) -> None:
+        for word in range(0xE600, 0xE800):
+            with self.subTest(word=f"{word:04X}"):
+                decoded = self.database.decode(word)
+                self.assertIsNotNone(decoded)
+                self.assertEqual(decoded.mnemonic, "CPW")
+        instruction = self.database.decode(0xE600)
+        self.assertEqual(instruction.opcode_mask, 0xFE00)
+        self.assertEqual(instruction.opcode_value, 0xE600)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(instruction.metadata["status_bits_written"], ["V"])
+        self.assertEqual(
+            instruction.metadata["source_registers"],
+            ["Rs", "B5/WSTART old value", "B6/WEND old value"],
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {"kind": "fixed", "machine_states": 1},
+        )
+        self.assertIn(
+            "capture Rs, WSTART, and WEND before writing Rd",
+            instruction.metadata["pipeline_interactions"][0],
+        )
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
 
     def test_btst_forms_record_complemented_constant_and_status_only(self) -> None:
         constant = self.database.decode(0x1FE0)

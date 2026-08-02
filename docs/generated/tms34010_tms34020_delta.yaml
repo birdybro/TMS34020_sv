@@ -576,6 +576,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 CALLA, printed p.13-49 and timing table p.15-3", "TI-TMS34010-UG-1988 CALLA, printed p.12-49"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Which exact immediate-alignment/SP-alignment cell corresponds to each printed 3, 4, 3+(3), and 4+(3) clause?"]
+    },
+    {
+      "feature": "cpw_instruction_timing",
+      "tms34010_behavior": "CPW has the same E600h/FE00h encoding, signed-XY inclusive window comparison, four-bit outcode in destination bits 8:5, V-only status update, and implied B5/B6 operands, with published timing 1 machine state / 4 input clocks.",
+      "tms34020_behavior": "CPW retains the object form and visible behavior and publishes one TMS34020 machine state.",
+      "rtl_impact": "The signed comparison leaf is semantically reusable only after independent verification; capture both implied registers before any B5/B6 destination write and do not infer general graphics-pipeline equivalence from the matching count.",
+      "test_impact": "All 16 primary window-position rows, signed boundaries, inclusive edges, A/B/shared-SP explicit operands, B5/B6 source/destination hazards, V-only status update, and one-state execution.",
+      "source_citation": ["TI-TMS34020-UG-1990 CPW, printed pp.13-85..13-86 and timing table p.15-4", "TI-TMS34010-UG-1988 CPW, printed pp.12-57..12-58 and Appendix A p.A-13"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Pipeline placement relative to other graphics operations remains pending; no externally visible data bus cycle occurs."]
     }
   ]
 }

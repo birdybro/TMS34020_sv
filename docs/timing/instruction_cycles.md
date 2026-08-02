@@ -104,6 +104,14 @@ TMS34020 primary source; RSC-0019 records the secondary discrepancy. Sources:
 TMS34020 User's Guide printed pp.13-111 and 15-4; TMS34010 User's Guide
 printed pp.12-17 and 12-78.
 
+CPW takes one machine state, has no data-memory transaction, and updates only
+the V status bit while writing its destination outcode. The compatible
+TMS34010 page reports `1,4` in its machine-state/input-clock notation; this is
+compatible evidence for this instruction only, not graphics-pipeline timing
+equivalence. Sources: TMS34020 User's Guide printed pp.13-85..13-86 and
+timing table p.15-4; TMS34010 User's Guide printed pp.12-57..12-58 and
+Appendix A p.A-13.
+
 JUMP takes two machine states, preserves ST and its source register, and loads
 an aligned PC from that register. Both processor guides give the same encoding,
 operation, and two-state cache-hit summary; this isolated match is not evidence

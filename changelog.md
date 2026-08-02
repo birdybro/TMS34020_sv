@@ -4,6 +4,12 @@
 
 ### Added
 
+- Primary-page-verified CPW `E600h`/`FE00h` metadata, all 16 published model
+  rows, signed and inclusive boundary tests, A/B/shared-SP and implied B5/B6
+  hazard coverage, V-only status behavior, and one-state execution.
+- A portable signed-XY window-comparison RTL leaf with direct outcode/V tests,
+  plus scalar-router noncommit protection until three-register capture and
+  atomic destination/status ownership exist.
 - Primary-page-verified CALL `0920h`/`FFE0h`, CALLA `0D5Fh`, and CALLR
   `0D3Fh` metadata plus independent successful model semantics. Tests cover
   every A/B/shared-SP CALL target, source capture before SP predecrement,
@@ -274,6 +280,8 @@
 
 ### Changed
 
+- Expanded the generated partial decoder from 88 to 89 records and from
+  25,940 to 26,452 uniquely classified first words.
 - Expanded the generated partial decoder from 85 to 88 records and from
   25,906 to 25,940 uniquely classified first words without treating remaining
   unmatched words as reserved.
@@ -325,6 +333,14 @@
 
 ### Verified
 
+- The 37-case ISA suite, 58-entry delta ledger, and 145-case model suite pass.
+  CPW covers every published outcode row, signed discriminators, alias hazards,
+  and exact one-state/V-only behavior; direct RTL tests cover the semantic leaf
+  while the commit path remains guarded. Decoder-bearing Cyclone V Analysis &
+  Synthesis passes with zero errors/warnings at 8,846 leaf, 421 fetch, 804
+  frontend, and 5,258 scalar logic cells. These are bounded semantic and
+  synthesis-portability results, not a complete graphics path, fit, or
+  TimeQuest evidence.
 - The 36-case ISA suite, 57-entry delta ledger, and 144-case model suite pass.
   CALL and CALLR exercise exact state/timing cases; CALLA exercises exact state
   while proving timing remains incomplete. Direct RTL guards prove all three
@@ -829,6 +845,10 @@
 
 ### Documentation
 
+- Added the required pixel-processing document with an explicitly partial CPW
+  window boundary, exact outcode table, citations, and nonclaims; documented
+  CPW's TMS34010 compatibility and isolated timing equivalence without
+  generalizing it to the graphics pipeline.
 - Documented CALL-family state and compatibility, the TMS34010/TMS34020 timing
   delta, pinned MAME's shared-handler under-modeling, and CALLA's internally
   ambiguous primary timing clauses as RSC-0024/OQ-0015 rather than guessing a
@@ -912,6 +932,9 @@
 
 ### Known Issues
 
+- CPW has complete instruction-boundary model semantics and a combinational RTL
+  leaf, but no scalar three-read/atomic destination-plus-V owner. The rest of
+  window checking, clipping, and pixel processing remains unimplemented.
 - CALL/CALLR/CALLA have instruction-boundary model semantics only. RTL
   execution, external stack writes, width/page/wait/fault/retry behavior, and
   physical overlap remain unimplemented; CALLA machine-state classification is

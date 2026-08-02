@@ -87,6 +87,16 @@ be reused only after independent verification; the older instruction timing
 state machine cannot. Sources: TMS34020 guide printed p.13-84; TMS34010 guide
 printed p.12-56.
 
+CPW retains `E600h`/`FE00h`, its signed inclusive XY window comparisons,
+outcode layout, implied B5/B6 registers, and V-only status behavior. The
+TMS34020 page specifies one machine state; the TMS34010 page reports one
+machine state/four input clocks. This isolated semantic and timing-unit match
+supports an independently verified comparison leaf, not reuse of surrounding
+graphics sequencing. Both implementations must capture B5/B6 before a
+destination alias writes either register. Sources: TMS34020 guide printed
+pp.13-85..13-86 and p.15-4; TMS34010 guide printed pp.12-57..12-58 and
+Appendix A p.A-13.
+
 REV is an architecturally visible identity delta despite using the same
 `0020h`/`FFE0h` register encoding. The TMS34010 example returns `0000_0008h`
 with family bit 3 and has `1,4` timing. The TMS34020 format instead sets family

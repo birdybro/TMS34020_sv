@@ -80,6 +80,8 @@ module tms34020_leaf_synth_top (
     logic [31:0] commit_pc_redirect_bit_address;
     logic [31:0] commit_status;
     logic [31:0] commit_sp;
+    logic [31:0] window_outcode;
+    logic window_outside;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -111,6 +113,7 @@ module tms34020_leaf_synth_top (
         commit_pc_redirect_bit_address ^
         commit_status ^
         commit_sp ^
+        window_outcode ^
         {24'd0, commit_supported, commit_accepted,
          commit_register_write_enable, commit_register_write_file,
          commit_register_write_index} ^
@@ -127,6 +130,7 @@ module tms34020_leaf_synth_top (
         {28'd0, xy_nczv} ^
         {28'd0, cmpxy_nczv} ^
         {31'd0, lmo_z} ^
+        {31'd0, window_outside} ^
         {31'd0, bit_test_z} ^
         {6'd0, unary_nczv, unary_status_write_mask,
          add_nczv, compare_nczv, rmo_z, decode_valid,
@@ -250,6 +254,14 @@ module tms34020_leaf_synth_top (
         .pitch_i(operand_i),
         .conversion_o(pitch_conversion),
         .visible_states_o(pitch_conversion_visible_states)
+    );
+
+    tms34020_window_compare window_compare (
+        .point_i(operand_i),
+        .window_start_i(immediate_i),
+        .window_end_i({immediate_i[15:0], immediate_i[31:16]}),
+        .outcode_o(window_outcode),
+        .outside_o(window_outside)
     );
 
     tms34020_regfile regfile (

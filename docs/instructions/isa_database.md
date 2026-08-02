@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 88 page-verified encoding records and covers 25,940 of 65,536
+slice contains 89 page-verified encoding records and covers 26,452 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -77,6 +77,7 @@ first words without collisions:
 | SUBXY | `E200h`, mask `FE00h` | 1 | p.13-246 |
 | CMP | `4800h`, mask `FE00h` | 1 | p.13-80 |
 | CMPXY | `E400h`, mask `FE00h` | 1 | p.13-84 |
+| CPW | `E600h`, mask `FE00h` | 1 | pp.13-85..13-86 |
 | AND | `5000h`, mask `FE00h` | 1 | p.13-40 |
 | ANDN | `5200h`, mask `FE00h` | 1 | p.13-42 |
 | OR | `5400h`, mask `FE00h` | 1 | p.13-182 |
@@ -127,6 +128,19 @@ TMS34010 page documents identical encoding and visible behavior with `1,4`
 timing, so the compatibility classification does not authorize reuse of the
 older sequencer. Sources: TMS34020 User's Guide printed p.13-84; TMS34010
 User's Guide printed p.12-56.
+
+CPW compares a signed XY point in a same-file source register against the
+inclusive signed XY bounds in implied B5/WSTART and B6/WEND. It writes a
+zero-extended outcode into destination bits `[8:5]`: left, right, above, and
+below occupy bits 5, 6, 7, and 8 respectively. V is set when any outcode bit is
+set; N/C/Z and all non-V status fields are preserved. Its `E600h`/`FE00h`
+range takes one TMS34020 machine state. The independent model covers all 16
+published point/window rows, signed discriminators, A/B/shared-SP operands,
+and B5/B6 read-before-write hazards. A standalone synthesizable leaf implements
+the signed comparisons; the scalar router deliberately rejects CPW until it
+can read both implied registers atomically. Sources: TMS34020 User's Guide
+printed pp.13-85..13-86 and p.15-4; TMS34010 User's Guide printed
+pp.12-57..12-58 and Appendix A p.A-13.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

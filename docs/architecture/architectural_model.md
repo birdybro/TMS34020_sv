@@ -26,13 +26,13 @@ Implemented:
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
   SLA.K, SLA.R, SLL.K, SLL.R, SRA.K, SRA.R, SRL.K, SRL.R,
   ADD, ADDC, ADDXY, ADDI.W, ADDI.L, SUB, SUBB, SUBXY, SUBI.W, SUBI.L, CMP,
-  CMPI.W, CMPI.L, CMPXY,
+  CMPI.W, CMPI.L, CMPXY, CPW,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 87 of 88 currently extracted database forms. REV is
+These handlers cover 88 of 89 currently extracted database forms. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
 verified. A directed test proves that attempting REV raises
@@ -124,6 +124,16 @@ and places the Y/X result sign bits in C/V. It does not use unsigned borrow or
 signed overflow. Tests reproduce all nine published rows and cover cases where
 result sign differs from borrow, plus A/B, same-register, and both shared-SP
 operand positions. Source: TMS34020 User's Guide printed p.13-84.
+
+CPW captures its explicit point plus implied B5/WSTART and B6/WEND before
+writing the destination, compares signed X/Y halves against inclusive bounds,
+writes the four-bit outcode into bits `[8:5]`, and changes only V. Model tests
+reproduce all 16 primary rows, signed negative/positive boundary
+discriminators, A/B/shared-SP forms, implied-register hazards, and the
+documented one-state boundary. The standalone RTL leaf covers the signed
+comparison semantics, but the scalar owner remains absent because the current
+two-read register composition cannot simultaneously acquire Rs, B5, and B6.
+Sources: TMS34020 User's Guide printed pp.13-85..13-86 and p.15-4.
 
 BTST.K recovers the selected bit from the one's-complement object field.
 BTST.R uses only the low five bits of its same-file source. Both preserve every
@@ -462,6 +472,8 @@ redirect alignment, SP wrap, and status preservation,
 all CALL A/B/shared-SP target classes, old-SP capture ordering, aligned and
 unaligned hidden writes, CALLR signed extremes and PC wrap, and CALLA
 low/high-word target assembly with explicitly incomplete timing,
+all 16 CPW primary outcodes, signed/inclusive bounds, V-only status, explicit
+operand aliases, and implied B5/B6 read-before-write hazards,
 all BLMOVE S/D modes, alignment guards, zero/self/wrapping ranges, abstract
 transactions, overlap refusal, and final B0/B2/B7/ST state;
 IDLE claim boundaries, no mutation on unclassified instructions, and

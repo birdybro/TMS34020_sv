@@ -113,6 +113,12 @@ CALL's shared-SP read-before-write hazard and both stack alignment classes.
 All three forms remain blocked in RTL pending stack-write/direct-PC ownership.
 Sources: User's Guide CALL/CALLA/CALLR, printed pp.13-48..13-50.
 
+CPW preserves the complete status register except V, which reports whether
+any of its four signed-XY window outcode bits are set. The independent model
+tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;
+the standalone RTL comparison leaf emits the V condition but does not own ST
+commit. Sources: User's Guide CPW, printed pp.13-85..13-86.
+
 ## Incomplete behavior
 
 The following are not yet implemented:

@@ -36,6 +36,7 @@ SOURCES = [
     ROOT / "rtl/graphics/tms34020_pitch_conversion.sv",
     ROOT / "rtl/graphics/tms34020_pixel_size_ops.sv",
     ROOT / "rtl/graphics/tms34020_pixel_replicate.sv",
+    ROOT / "rtl/graphics/tms34020_window_compare.sv",
     ROOT / "sim/tb/tb_tms34020_verified_leaves.sv",
 ]
 
