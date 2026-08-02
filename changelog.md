@@ -1399,7 +1399,7 @@ qualification.
 ### Documentation
 
 - Recorded the bounded CMOVCM/CMOVMC memory-sequence milestone as commit
-  `5f0d7e2f83e269cc8d0da08fc9414fe7d783ca3b` in the progress ledger.
+  `5f0d7e25e50162f20f4eb393eed669f07ad85608` in the progress ledger.
 - Recorded the verified CMOVCG/CMOVCS inbound-transfer implementation milestone
   as commit `5a7907fbc07e69d4184084fdc30074a4610e60b7` in the progress ledger.
 - Recorded the verified CMOVGC register-transfer implementation milestone as
