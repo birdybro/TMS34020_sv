@@ -426,12 +426,13 @@ The model records one logical `pixel_read` per comparison, moves MPTCH toward
 zero, replaces only Z, and stops on equality/inequality or exhaustion. Tests
 cover forward/backward scans, first/middle/final/exhausted/zero cases, all six
 legal sizes and every long-word lane, plane masking, status preservation, and
-atomic BEN/CST/PSIZE/alignment refusal. Events intentionally have no state
+atomic BEN/DPYCTL.CST/PSIZE/alignment refusal. CONFIG bit 11 is independently
+covered as a non-CST value. Events intentionally have no state
 count because TI says only “complex instruction”; physical grouping, waits,
 page mode, faults/retry and the special no-temporary interrupt restart are not
 modeled. Sources: User's Guide FPIXEQ pp.13-126..13-127, FPIXNE
-pp.13-128..13-129, interrupt p.6-14, and plane masking pp.12-39..12-40;
-RSC-0044 applies.
+pp.13-128..13-129, interrupt p.6-14, DPYCTL.CST pp.4-35..4-39, and plane
+masking pp.12-39..12-40; RSC-0044 applies.
 
 The four XY-to-linear handlers share equation-level arithmetic but retain
 their distinct explicit and implied operands. Signed X/Y halves and signed

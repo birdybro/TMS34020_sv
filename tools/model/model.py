@@ -13,6 +13,7 @@ from .state import (
     CONVMP_ADDRESS,
     CONVSP_ADDRESS,
     CONTROL_ADDRESS,
+    DPYCTL_ADDRESS,
     HSTCTLH_ADDRESS,
     MASK32,
     PMASKH_ADDRESS,
@@ -3699,7 +3700,7 @@ class Tms34020Model:
                 f"{instruction.mnemonic} big-endian pixel mapping is "
                 "classified but not modeled"
             )
-        if config & (1 << 11):
+        if self.state.read_io(DPYCTL_ADDRESS) & (1 << 11):
             raise UnsupportedInstruction(
                 f"{instruction.mnemonic} CST-converted VRAM transfer is "
                 "classified but not modeled"

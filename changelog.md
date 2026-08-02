@@ -607,6 +607,9 @@
 
 ### Fixed
 
+- Corrected the FPIX unsupported serial-transfer guard to read CST from
+  `DPYCTL[11]` at `C0000080h`, not `CONFIG[11]`; a discriminating model test
+  now proves the neighboring CONFIG bit does not select CST behavior.
 - Corrected the CMOVGC leaf's diagnostic Quartus wrapper connections after the
   first synthesis smoke rejected nonexistent source signal names; all five
   warning-enforcing Cyclone V smokes then passed.

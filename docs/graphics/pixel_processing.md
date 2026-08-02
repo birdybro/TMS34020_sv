@@ -71,7 +71,9 @@ list omits FPIX even though both instruction pages and the PMASK register table
 explicitly enable/list it; the specific evidence governs. The model tests all
 six legal PSIZE values and every aligned long-word lane, forward/backward,
 first/intermediate/final/exhausted/zero counts, masking and exact logical read
-traces. BEN, CST, invalid PSIZE and misalignment roll back.
+traces. BEN, DPYCTL.CST, invalid PSIZE and misalignment roll back. CONFIG bit
+11 is deliberately covered as a non-CST neighbor so the two I/O registers
+cannot be confused.
 
 `tms34020_find_pixel_step.sv` implements one combinational comparison and
 pointer/count/Z step. It is not a loop, memory requester, grouping rule,
@@ -79,7 +81,7 @@ interrupt checkpoint or fault-retry owner. TI specifies complex timing and a
 special interrupt restart without saved internal temporaries; those physical
 and continuation behaviors remain unimplemented. Sources: User's Guide
 FPIXEQ pp.13-126..13-127, FPIXNE pp.13-128..13-129, interrupt p.6-14, PMASK
-p.4-76, and §12.10 pp.12-39..12-40.
+p.4-76, DPYCTL.CST pp.4-35..4-39, and §12.10 pp.12-39..12-40.
 
 ## Line initialization boundary
 

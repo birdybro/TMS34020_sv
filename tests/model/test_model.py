@@ -19,6 +19,7 @@ from tools.model import (
 )
 from tools.model.state import (
     CONFIG_ADDRESS,
+    DPYCTL_ADDRESS,
     PMASKH_ADDRESS,
     PMASKL_ADDRESS,
     PSIZE_ADDRESS,
@@ -5135,6 +5136,8 @@ class ExecutionTests(unittest.TestCase):
     def test_find_pixel_plane_mask_and_color_lane(self) -> None:
         model = Tms34020Model()
         model.load_program([0x0ABB])
+        # CONFIG[11] is not CST; CST is DPYCTL[11].
+        model.state.write_io(CONFIG_ADDRESS, 1 << 11)
         model.state.write_io(PSIZE_ADDRESS, 8)
         model.state.write_io(PMASKL_ADDRESS, 0xF000)
         model.state.write_io(PMASKH_ADDRESS, 0x0000)
@@ -5199,11 +5202,11 @@ class ExecutionTests(unittest.TestCase):
                     self.assertTrue(model.state.st & (1 << Z_BIT))
 
     def test_find_pixel_unsupported_modes_and_alignment_roll_back(self) -> None:
-        for config, pixel_size, address, error_type in (
-            (1, 4, 0x100, UnsupportedInstruction),
-            (1 << 11, 4, 0x100, UnsupportedInstruction),
-            (0, 3, 0x100, ModelError),
-            (0, 4, 0x102, ModelError),
+        for config, dpyctl, pixel_size, address, error_type in (
+            (1, 0, 4, 0x100, UnsupportedInstruction),
+            (0, 1 << 11, 4, 0x100, UnsupportedInstruction),
+            (0, 0, 3, 0x100, ModelError),
+            (0, 0, 4, 0x102, ModelError),
         ):
             with self.subTest(
                 config=config, pixel_size=pixel_size, address=address
@@ -5211,6 +5214,7 @@ class ExecutionTests(unittest.TestCase):
                 model = Tms34020Model()
                 model.load_program([0x0ABB])
                 model.state.write_io(CONFIG_ADDRESS, config)
+                model.state.write_io(DPYCTL_ADDRESS, dpyctl)
                 model.state.write_io(PSIZE_ADDRESS, pixel_size)
                 model.state.write_reg("B", 8, 0x5555_5555)
                 model.state.write_reg("B", 10, address)
