@@ -4,6 +4,19 @@
 
 ### Added
 
+- Primary-page-extracted all five CMOVCM/CMOVMC memory-sequence families,
+  adding 160 first words with constant/register counts, pre/post pointer modes,
+  both transfer directions, ID/command/size, 32-bit-only memory transactions,
+  page-break no-command-reissue behavior, status preservation, and published
+  count/alignment state formulas. Independent model semantics and a clean-room
+  noncommitting RTL formatter cover ordered logical data, zero-as-32, count/
+  pointer alias capture, bit-address wrap, required-zero/size-count legality,
+  first/final addresses, CMOVCM spacer intent, and atomic rollback.
+- RSC-0042/OQ-0027 record the CMOVCM `+/-32` operation sequences versus the
+  examples' contradictory `10h` address steps; the implementation follows the
+  repeated 32-bit bit-address pseudocode at CORROBORATED confidence.
+  RSC-0043/OQ-0028 separately record the impossible “no 32-bit transfers”
+  timing note and its provisional interpretation as a 16/32 typo.
 - Primary-page-extracted CMOVCG at `0660h`/`FFE0h` and its exact CMOVCS
   extension-packet refinement. The ISA metadata covers independent A/B/SP
   destinations, one/two inbound words, command/ID/size, required-zero fields,
@@ -609,6 +622,17 @@
 
 ### Verified
 
+- The 76-case ISA suite, 103-entry delta ledger, complete 220-case model
+  regression, warning-free lint, and decoder/leaf/fetch/frontend/scalar/cache/
+  fault RTL suites pass for the CMOVCM/CMOVMC milestone. Directed discriminators
+  cover every family boundary, both directions, constant/register counts,
+  zero-as-32, size legality, alias/wrap, ordered logical data, status
+  preservation, reserved/BEN/underflow rollback, and explicit noncommit.
+- Warning-free Cyclone V Analysis & Synthesis reports 13,481 leaf logic
+  cells/2,230 registers/9 DSP, 375 cache logic cells/4,096 RAM bits, 482 fetch
+  logic cells, 878 frontend logic cells/4,096 RAM bits, and 5,483 scalar logic
+  cells/4,096 RAM bits for the 140-entry decoder revision. These remain
+  observability-wrapper analysis results, not fit, TimeQuest, or core area.
 - The 75-case ISA suite, 98-entry delta ledger, complete 217-case model
   regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
   pass for the CMOVCG/CMOVCS milestone. Matrices cover every destination,

@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 135 page-verified encoding records and covers 48,058 of 65,536
+slice contains 140 page-verified encoding records and covers 48,218 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -135,6 +135,11 @@ first words without collisions:
 | CMOVGC.1 | `0620h`, mask `FFE0h`, plus command and ID/command words | 3 | pp.13-67..13-68 |
 | CMOVGC.2 | `0640h`, mask `FFE0h`, plus command/size/Rs2 and ID/command words | 3 | pp.13-69..13-70 |
 | CMOVCG / CMOVCS packet refinement | `0660h`, mask `FFE0h`, plus command/size/Rd2 and ID/command words | 3 | CMOVCG pp.13-59..13-60; CMOVCS p.13-66 |
+| CMOVMC.POST.C | `0680h`, mask `FFE0h`, plus command/size/Rs and ID/command words | 3 | pp.13-71..13-73 |
+| CMOVCM.POST.C | `06A0h`, mask `FFE0h`, plus command/size/count and ID/command words | 3 | pp.13-61..13-62; RSC-0042/RSC-0043 |
+| CMOVCM.PRE.C | `06C0h`, mask `FFE0h`, plus command/size/count and ID/command words | 3 | pp.13-63..13-65; RSC-0042/RSC-0043 |
+| CMOVMC.POST.R | `06E0h`, mask `FFE0h`, plus command/size/Rs and ID/command words | 3 | pp.13-78..13-79 |
+| CMOVMC.PRE.C | `0820h`, mask `FFE0h`, plus command/size/Rs and ID/command words | 3 | pp.13-74..13-77 |
 | RPIX | `0280h`, mask `FFE0h` | 1 | p.13-225 |
 | CMPK | `3400h`, mask `FC00h` | 1 | p.13-83 |
 | EXGPS | `02A0h`, mask `FFE0h` | 1 | p.13-113 |

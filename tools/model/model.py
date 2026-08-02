@@ -219,6 +219,11 @@ class Tms34020Model:
             "CMOVGC.1": self._execute_cmovgc,
             "CMOVGC.2": self._execute_cmovgc,
             "CMOVCG": self._execute_cmovcg,
+            "CMOVMC.POST.C": self._execute_coprocessor_memory_transfer,
+            "CMOVCM.POST.C": self._execute_coprocessor_memory_transfer,
+            "CMOVCM.PRE.C": self._execute_coprocessor_memory_transfer,
+            "CMOVMC.POST.R": self._execute_coprocessor_memory_transfer,
+            "CMOVMC.PRE.C": self._execute_coprocessor_memory_transfer,
             "ORI": self._execute_ori,
             "XORI": self._execute_xori,
             "IDLE": self._execute_idle,
@@ -2689,6 +2694,153 @@ class Tms34020Model:
             "sequence must reissue the command with I=1 before parameter 1; "
             "external drive timing, page interruption, LRDY/BUSFLT, retry, "
             "fault continuation and interrupt recognition remain pending"
+        )
+        return machine_states
+
+    def _execute_coprocessor_memory_transfer(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        if self.state.read_io(CONFIG_ADDRESS) & 1:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} big-endian memory mapping is "
+                "classified but not modeled"
+            )
+        first_word = words[0]
+        extension = words[1]
+        if extension & 0x0060:
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} reserved extension bits 6:5 "
+                "must be zero"
+            )
+        size = (extension >> 7) & 1
+        to_memory = instruction.mnemonic.startswith("CMOVCM")
+        predecrement = ".PRE." in instruction.mnemonic
+        register_count = instruction.mnemonic == "CMOVMC.POST.R"
+        if to_memory:
+            pointer_selector = first_word & 0x1F
+            encoded_count = extension & 0x1F
+        else:
+            pointer_selector = extension & 0x1F
+            if register_count:
+                count_file = "B" if first_word & 0x10 else "A"
+                count_index = first_word & 0xF
+                encoded_count = self.state.read_reg(
+                    count_file, count_index
+                ) & 0x1F
+            else:
+                encoded_count = first_word & 0x1F
+        if not register_count and size and (encoded_count & 1):
+            raise UnsupportedInstruction(
+                f"{instruction.mnemonic} size-one constant transfer "
+                "encoding must be even"
+            )
+        transfer_count = encoded_count if encoded_count else 32
+        if to_memory and len(self.coprocessor_read_data) < transfer_count:
+            raise ModelError(
+                "coprocessor inbound data underflow for CMOVCM"
+            )
+        pointer_file = "B" if pointer_selector & 0x10 else "A"
+        pointer_index = pointer_selector & 0xF
+        pointer_before = self.state.read_reg(pointer_file, pointer_index)
+        command = ((words[2] & 0x1FFF) << 8) | (extension >> 8)
+        coprocessor_id = (words[2] >> 13) & 7
+        command_word = (
+            (coprocessor_id << 29) |
+            (command << 8) |
+            (size << 7)
+        ) & MASK32
+        immediate_aligned = self._first_extension_long_word_aligned()
+        machine_states = transfer_count + (
+            4 if immediate_aligned else 5
+        )
+        inbound_values: list[int] = []
+        if to_memory:
+            inbound_values = self.coprocessor_read_data[:transfer_count]
+            del self.coprocessor_read_data[:transfer_count]
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "coprocessor_command",
+                "purpose": (
+                    "coprocessor_to_memory"
+                    if to_memory else "memory_to_coprocessor"
+                ),
+                "coprocessor_id": coprocessor_id,
+                "command": command,
+                "size_64": size,
+                "parameter_index": 0,
+                "bus_status": 0,
+                "special_function": 1,
+                "word_select_16": 0,
+                "lad_command": command_word,
+                "transfer_count": transfer_count,
+                "addressing_mode": instruction.mnemonic,
+                "first_extension_long_word_aligned": int(
+                    immediate_aligned
+                ),
+                "command_reissued_after_page_break": 0,
+            }
+        )
+        pointer = pointer_before
+        for transfer_index in range(transfer_count):
+            if predecrement:
+                pointer = (pointer - 32) & MASK32
+            address = pointer
+            if to_memory:
+                value = inbound_values[transfer_index]
+                self._active_trace.transactions.append(
+                    {
+                        "class": "coprocessor_data_in",
+                        "purpose": "memory_parameter",
+                        "parameter_index": transfer_index,
+                        "value": value,
+                        "width": 32,
+                        "addressing_mode": instruction.mnemonic,
+                    }
+                )
+                self.state.memory.write_bits(address, 32, value)
+                self._active_trace.transactions.append(
+                    {
+                        "class": "data_write",
+                        "purpose": "coprocessor_memory_transfer",
+                        "bit_address": address,
+                        "width": 32,
+                        "value": value,
+                        "transfer_index": transfer_index,
+                    }
+                )
+            else:
+                value = self.state.memory.read_bits(address, 32)
+                self._active_trace.transactions.extend(
+                    [
+                        {
+                            "class": "data_read",
+                            "purpose": "coprocessor_memory_transfer",
+                            "bit_address": address,
+                            "width": 32,
+                            "value": value,
+                            "transfer_index": transfer_index,
+                        },
+                        {
+                            "class": "coprocessor_data_out",
+                            "purpose": "memory_parameter",
+                            "parameter_index": transfer_index,
+                            "value": value,
+                            "width": 32,
+                            "addressing_mode": instruction.mnemonic,
+                        },
+                    ]
+                )
+            if not predecrement:
+                pointer = (pointer + 32) & MASK32
+        self.state.write_reg(pointer_file, pointer_index, pointer)
+        self._active_trace.notes.append(
+            "logical successful 32-bit coprocessor/local-memory sequence; "
+            "physical address/status, page continuation, turnaround spacer, "
+            "LRDY/BUSFLT, dynamic sizing, retry, fault/interrupt continuation "
+            "and partial pointer retirement remain pending; after a physical "
+            "page break the next memory address is issued without reissuing "
+            "the coprocessor command"
         )
         return machine_states
 

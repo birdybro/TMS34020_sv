@@ -986,6 +986,56 @@
       "source_citation": ["TI-TMS34020-UG-1990 CMOVCS, printed p.13-66", "TI-TMS34020-UG-1990 CMOVCG family, printed pp.13-59..13-60", "TI-TMS34020-UG-1990 coprocessor-to-TMS34020 cycle, §10.4.7 printed pp.10-12..10-13"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact status-retirement checkpoint relative to LRDY, BUSFLT, retry and interrupt recognition remains pending the physical sequencer."]
+    },
+    {
+      "feature": "coprocessor_memory_to_coprocessor_postincrement_constant",
+      "tms34010_behavior": "No local-memory-to-coprocessor sequence instruction is documented.",
+      "tms34020_behavior": "0680h/FFE0h plus two extensions encodes CMOVMC *Rs+ with a constant 1..32 transfer count. Every transfer reads one 32-bit memory word to the coprocessor and advances the bit pointer by 32; size groups transfers as 32- or 64-bit values, ST is unchanged, SIZE16 is ignored, and aligned/unaligned packets take count+4/count+5 states.",
+      "rtl_impact": "A captured pointer/count, special command, 32-bit page-mode read sequence, and exact-once external acceptance checkpoint are required. The current model and clean-room leaf implement logical semantics and formatting only.",
+      "test_impact": "All selectors/counts/sizes/alignments; zero-as-32 and even constant 64-bit counts; address wrap; data ordering; page break without command reissue; waits, faults, retry, interrupt and exact-once coprocessor acceptance.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVMC postincrement constant, printed pp.13-71..13-73", "TI-TMS34020-UG-1990 §10.4.8, printed pp.10-14..10-15"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["The physical wait/fault/interrupt continuation checkpoint remains unimplemented."]
+    },
+    {
+      "feature": "coprocessor_to_memory_postincrement_constant",
+      "tms34010_behavior": "No coprocessor-to-local-memory sequence instruction is documented.",
+      "tms34020_behavior": "06A0h/FFE0h plus two extensions encodes CMOVCM *Rd+ with a constant 1..32 transfer count. It accepts ordered 32-bit coprocessor words, writes memory, and advances the bit pointer by 32 per word; ST is unchanged, SIZE16 is ignored, and aligned/unaligned packets take count+4/count+5 states.",
+      "rtl_impact": "A turnaround-spaced, page-aware 32-bit write sequencer with exact-once retirement is required. The model and formatter follow the repeated +32 operation pseudocode; no physical write owner exists yet.",
+      "test_impact": "All selectors/counts/sizes/alignments; inbound underflow atomicity; data/address order; page breaks; turnaround; waits, partial-write faults, retry, interrupts and no duplicate write.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVCM postincrement, printed pp.13-61..13-62", "TI-TMS34020-UG-1990 §10.4.9, printed pp.10-15..10-16", "RSC-0042 and RSC-0043 record primary address-example and timing-note contradictions"],
+      "confidence": "CORROBORATED",
+      "unresolved_questions": ["OQ-0027: examples use contradictory 10h address steps.", "OQ-0028: timing prose impossibly excludes 32-bit transfers.", "Physical fault/continuation and turnaround sequencing remain unimplemented."]
+    },
+    {
+      "feature": "coprocessor_to_memory_predecrement_constant",
+      "tms34010_behavior": "No predecrement coprocessor-to-local-memory sequence instruction is documented.",
+      "tms34020_behavior": "06C0h/FFE0h plus two extensions encodes CMOVCM -*Rd. It subtracts 32 from the bit pointer before each ordered 32-bit coprocessor-to-memory write and otherwise shares the constant-count, size and timing rules of postincrement CMOVCM.",
+      "rtl_impact": "The physical sequence must checkpoint the next predecrement address and accepted data without duplicating a write. The current model and leaf expose only the bounded logical result.",
+      "test_impact": "All counts and selectors; first/final predecrement address and wrap; inbound order/underflow; page boundaries; waits, faults, retry, interrupts and exact-once writes.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVCM predecrement, printed pp.13-63..13-65", "TI-TMS34020-UG-1990 §10.4.9, printed pp.10-15..10-16", "RSC-0042 and RSC-0043"],
+      "confidence": "CORROBORATED",
+      "unresolved_questions": ["OQ-0027 and OQ-0028 remain open; physical continuation remains unimplemented."]
+    },
+    {
+      "feature": "coprocessor_memory_to_coprocessor_postincrement_register_count",
+      "tms34010_behavior": "No register-counted local-memory-to-coprocessor sequence is documented.",
+      "tms34020_behavior": "06E0h/FFE0h plus two extensions encodes CMOVMC *Rs+,Rd. The count register's captured low five bits select 1..31 transfers and zero selects 32; the pointer may alias the count register because count is captured before pointer updates. Size=1 software should supply an even count.",
+      "rtl_impact": "Count capture must precede any aliased pointer writeback, followed by the same page-aware 32-bit transfer sequence as constant-count CMOVMC.",
+      "test_impact": "All independent count/pointer selectors including SP and alias; all runtime low-five counts; odd size=1 observation without invented trap; wrap, page, waits, faults, retry, interrupts and exact-once acceptance.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVMC register-count form, printed pp.13-78..13-79", "TI-TMS34020-UG-1990 §10.4.8, printed pp.10-14..10-15"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["The guide recommends but does not define hardware illegal behavior for an odd runtime count with size=1; the implementation does not invent one."]
+    },
+    {
+      "feature": "coprocessor_memory_to_coprocessor_predecrement_constant",
+      "tms34010_behavior": "No predecrement local-memory-to-coprocessor sequence instruction is documented.",
+      "tms34020_behavior": "0820h/FFE0h plus two extensions encodes CMOVMC -*Rs with a constant count. It subtracts 32 from the bit pointer before each 32-bit memory read delivered to the coprocessor, preserves ST, ignores SIZE16 and uses the documented count/alignment timing.",
+      "rtl_impact": "A page-aware read sequencer must checkpoint the next predecrement address and external acceptance. The current model and formatter implement only atomic logical behavior and metadata.",
+      "test_impact": "Every constant count/size/selector/alignment; first/final address and wrap; ordered data; page breaks without command reissue; waits, faults, retry, interrupts and no duplicate coprocessor acceptance.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVMC predecrement, printed pp.13-74..13-77", "TI-TMS34020-UG-1990 §10.4.8, printed pp.10-14..10-15"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["The physical wait/fault/interrupt continuation checkpoint remains unimplemented."]
     }
   ]
 }

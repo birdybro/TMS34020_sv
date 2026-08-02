@@ -37,12 +37,14 @@ Implemented:
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
   CEXEC.S, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
+  CMOVMC.POST.C, CMOVCM.POST.C, CMOVCM.PRE.C, CMOVMC.POST.R,
+  CMOVMC.PRE.C,
   XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 134 of 135 currently extracted database forms for their
+These handlers cover 139 of 140 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -603,6 +605,20 @@ page continuation/I=1 reissue, physical completion, waits, fault/retry, or an
 external coprocessor. Sources: User's Guide CMOVCG printed pp.13-59..13-60,
 CMOVCS p.13-66, and §10.4.7 printed pp.10-12..10-13; see
 `docs/coprocessor/interface.md`.
+All five CMOVCM/CMOVMC memory sequences emit one logical command followed by
+the decoded count of ordered 32-bit data transactions. CMOVMC reads memory and
+records outbound coprocessor data; CMOVCM preflights the deterministic inbound
+queue, records input, and writes memory. Constant zero encodes 32 transfers,
+the register-count form captures its low five count bits before an aliased
+pointer update, pointers change by 32 bit addresses per word with wrap, and ST
+is preserved. The model rejects reserved control bits and odd constant counts
+for size one before any effect. It reports count+4/count+5 states from first-
+extension alignment. All updates remain instruction-atomic: the model does not
+expose partial progress, page breaks, turnaround spacers, waits, interrupts,
+fault/retry, or continuation. RSC-0042/OQ-0027 qualify the CMOVCM pointer rule,
+and RSC-0043/OQ-0028 qualify its timing note. Sources: User's Guide CMOVCM
+printed pp.13-61..13-65, CMOVMC printed pp.13-71..13-79, and §§10.4.8..10.4.9
+printed pp.10-14..10-16; see `docs/coprocessor/interface.md`.
 The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,

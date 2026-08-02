@@ -837,3 +837,40 @@
   repeatedly documented 64-bit interpretation. The physical transfer remains
   two ordered 32-bit words in either size mode; size changes the coprocessor's
   interpretation, not the LAD data width.
+
+## RSC-0042: CMOVCM examples advance bit addresses by only 10h
+
+- Status: open; repeated operation pseudocode is implemented provisionally
+- Primary contradiction: TI *TMS34020 User's Guide*, August 1990, the CMOVCM
+  postincrement and predecrement operation sequences on printed pp.13-61 and
+  13-64 repeatedly update the pointer by 32, and their prose says the pointer
+  advances by 32 bits per transfer. Examples on printed pp.13-62 and 13-65,
+  however, show successive addresses separated by `10h`, only 16 bit-address
+  units. The processor's architectural addresses are bit addresses, so a
+  32-bit transfer advances by `20h`.
+- Corroborating context: all three CMOVMC operation sequences on printed
+  pp.13-72, 13-75, and 13-79 also update their pointers by 32 for each 32-bit
+  coprocessor transfer. Chapter 10 §§10.4.8–10.4.9 on printed pp.10-14..10-16
+  specifies 32-bit memory data transfers and says `SIZE16` is ignored.
+- Provisional decision: the ISA ledger, independent model, and clean-room
+  address leaf follow the repeated explicit operation sequences and change
+  the bit address by 32 (`20h`) per transfer. Overall CMOVCM memory-sequence
+  confidence remains CORROBORATED. OQ-0027 requires another guide revision,
+  erratum, diagnostic/XDS trace, or physical address trace before the examples
+  can be dismissed as verified typographical errors.
+
+## RSC-0043: CMOVCM timing note excludes its own 32-bit transfers
+
+- Status: open; interpreted as an apparent `16-bit`/`32-bit` typographical
+  substitution
+- Primary contradiction: TI *TMS34020 User's Guide*, August 1990, the machine
+  states note on printed p.13-62 says the table assumes that there are no
+  32-bit transfers. The same instruction page defines every CMOVCM memory
+  transfer as 32 bits, while §10.4.9 on printed pp.10-15..10-16 says
+  coprocessor operations always use 32-bit transfers and ignore `SIZE16`.
+- Provisional decision: retain the published `5+(transfers-1)` aligned and
+  `6+(transfers-1)` unaligned state formulas, interpret the exclusion as the
+  contextually necessary “no 16-bit transfers,” and do not add a dynamic-bus
+  penalty. OQ-0028 tracks independent confirmation. The physical
+  turnaround-spacer, wait, fault, and page-break sequence is still outside the
+  current semantic leaf and no complete coprocessor timing claim follows.

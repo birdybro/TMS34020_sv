@@ -82,7 +82,12 @@ class IsaTests(unittest.TestCase):
                 if instruction["confidence"] == "CORROBORATED":
                     self.assertIn(
                         instruction["mnemonic"],
-                        {"MOVE.MR.POST", "MOVE.MM.POST"},
+                        {
+                            "CMOVCM.POST.C",
+                            "CMOVCM.PRE.C",
+                            "MOVE.MR.POST",
+                            "MOVE.MM.POST",
+                        },
                     )
 
     def test_independent_hand_checked_first_words(self) -> None:
@@ -364,6 +369,16 @@ class IsaTests(unittest.TestCase):
             0x065F: ("CMOVGC.2", 3),
             0x0660: ("CMOVCG", 3),
             0x067F: ("CMOVCG", 3),
+            0x0680: ("CMOVMC.POST.C", 3),
+            0x069F: ("CMOVMC.POST.C", 3),
+            0x06A0: ("CMOVCM.POST.C", 3),
+            0x06BF: ("CMOVCM.POST.C", 3),
+            0x06C0: ("CMOVCM.PRE.C", 3),
+            0x06DF: ("CMOVCM.PRE.C", 3),
+            0x06E0: ("CMOVMC.POST.R", 3),
+            0x06FF: ("CMOVMC.POST.R", 3),
+            0x0820: ("CMOVMC.PRE.C", 3),
+            0x083F: ("CMOVMC.PRE.C", 3),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -392,8 +407,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 48058)
-        self.assertEqual(unclassified, 65536 - 48058)
+        self.assertEqual(matched, 48218)
+        self.assertEqual(unclassified, 65536 - 48218)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2304,6 +2319,41 @@ class IsaTests(unittest.TestCase):
             {"visible_machine_states": 6},
         )
         self.assertIn("I=1", instruction.metadata["page_mode_effects"])
+
+    def test_coprocessor_memory_transfer_families(self) -> None:
+        expected = {
+            "CMOVMC.POST.C": (0x0680, "postincrement", "memory read"),
+            "CMOVCM.POST.C": (0x06A0, "postincrement", "memory write"),
+            "CMOVCM.PRE.C": (0x06C0, "predecrement", "memory write"),
+            "CMOVMC.POST.R": (0x06E0, "postincrement", "memory read"),
+            "CMOVMC.PRE.C": (0x0820, "predecrement", "memory read"),
+        }
+        for mnemonic, (value, direction, transfer_kind) in expected.items():
+            instruction = self.database.decode(value)
+            self.assertIsNotNone(instruction)
+            self.assertEqual(instruction.mnemonic, mnemonic)
+            self.assertEqual(instruction.opcode_mask, 0xFFE0)
+            self.assertEqual(instruction.length_words, 3)
+            self.assertIn(direction, instruction.metadata["addressing_modes"][0])
+            self.assertIn(
+                transfer_kind,
+                " ".join(instruction.metadata["bus_32_effects"].split()),
+            )
+            self.assertIn(
+                "command is not reissued",
+                instruction.metadata["page_mode_effects"],
+            )
+            self.assertEqual(
+                instruction.metadata["documented_cycles"]["transfer_range"],
+                "1..32 32-bit transfers"
+                if mnemonic != "CMOVMC.POST.R"
+                else "captured low-five zero means 32, otherwise 1..31",
+            )
+        register_count = self.database.decode(0x06E0)
+        self.assertIn(
+            "capture count register low five bits",
+            register_count.metadata["condition_fields"][0]["condition"],
+        )
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

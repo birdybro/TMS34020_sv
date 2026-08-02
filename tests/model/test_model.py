@@ -4109,6 +4109,279 @@ class ExecutionTests(unittest.TestCase):
             underflow.step()
         self.assertEqual(underflow.snapshot(), before)
 
+    def test_coprocessor_memory_constant_sequences(self) -> None:
+        shared_isa = Tms34020Model().isa
+        families = (
+            ("CMOVMC.POST.C", 0x0680, False, False),
+            ("CMOVCM.POST.C", 0x06A0, True, False),
+            ("CMOVCM.PRE.C", 0x06C0, True, True),
+            ("CMOVMC.PRE.C", 0x0820, False, True),
+        )
+        cases = (
+            (0, 0, 32),
+            (0, 1, 1),
+            (0, 31, 31),
+            (1, 0, 32),
+            (1, 2, 2),
+            (1, 30, 30),
+        )
+        for mnemonic, opcode, to_memory, predecrement in families:
+            for size, encoded_count, transfer_count in cases:
+                for start_pc, aligned in ((0x110, True), (0x100, False)):
+                    pointer_selector = 0x1F
+                    command = (
+                        opcode * 0x101 ^ encoded_count * 0x4081 ^
+                        size * 0x10003
+                    ) & 0x1F_FFFF
+                    coprocessor_id = (encoded_count + size + opcode) & 7
+                    if to_memory:
+                        first_word = opcode | pointer_selector
+                        extension1 = (
+                            ((command & 0xFF) << 8) |
+                            (size << 7) | encoded_count
+                        )
+                    else:
+                        first_word = opcode | encoded_count
+                        extension1 = (
+                            ((command & 0xFF) << 8) |
+                            (size << 7) | pointer_selector
+                        )
+                    extension2 = (
+                        (coprocessor_id << 13) |
+                        ((command >> 8) & 0x1FFF)
+                    )
+                    model = Tms34020Model(isa=shared_isa)
+                    model.load_program(
+                        [first_word, extension1, extension2],
+                        bit_address=start_pc,
+                    )
+                    pointer_before = 0x0000_8000
+                    model.state.sp = pointer_before
+                    model.state.st = 0xD234_5AA5
+                    status_before = model.state.st
+                    addresses = [
+                        (
+                            pointer_before - 32 * (index + 1)
+                            if predecrement else
+                            pointer_before + 32 * index
+                        ) & 0xFFFF_FFFF
+                        for index in range(transfer_count)
+                    ]
+                    values = [
+                        (
+                            0x5100_0000 ^ (index * 0x0102_0408) ^
+                            opcode ^ encoded_count
+                        ) & 0xFFFF_FFFF
+                        for index in range(transfer_count)
+                    ]
+                    if to_memory:
+                        model.queue_coprocessor_read_data(
+                            values + [0xCAFE_BABE]
+                        )
+                    else:
+                        model.queue_coprocessor_read_data([0xCAFE_BABE])
+                        for address, value in zip(addresses, values):
+                            model.state.memory.write_bits(address, 32, value)
+
+                    event = model.step()
+
+                    self.assertEqual(event.mnemonic, mnemonic)
+                    self.assertEqual(
+                        event.machine_states,
+                        transfer_count + (4 if aligned else 5),
+                    )
+                    self.assertEqual(model.state.st, status_before)
+                    self.assertEqual(
+                        model.state.sp,
+                        (
+                            pointer_before - 32 * transfer_count
+                            if predecrement else
+                            pointer_before + 32 * transfer_count
+                        ) & 0xFFFF_FFFF,
+                    )
+                    self.assertEqual(
+                        model.coprocessor_read_data, [0xCAFE_BABE]
+                    )
+                    command_transaction = next(
+                        item for item in event.transactions
+                        if item["class"] == "coprocessor_command"
+                    )
+                    self.assertEqual(
+                        command_transaction["lad_command"],
+                        (coprocessor_id << 29) |
+                        (command << 8) | (size << 7),
+                    )
+                    self.assertEqual(
+                        command_transaction["transfer_count"],
+                        transfer_count,
+                    )
+                    self.assertEqual(
+                        command_transaction[
+                            "command_reissued_after_page_break"
+                        ],
+                        0,
+                    )
+                    data_class = "data_write" if to_memory else "data_read"
+                    data_transactions = [
+                        item for item in event.transactions
+                        if item["class"] == data_class
+                        and item.get("purpose") ==
+                        "coprocessor_memory_transfer"
+                    ]
+                    self.assertEqual(
+                        [item["bit_address"] for item in data_transactions],
+                        addresses,
+                    )
+                    self.assertEqual(
+                        [item["value"] for item in data_transactions], values
+                    )
+                    coprocessor_class = (
+                        "coprocessor_data_in"
+                        if to_memory else "coprocessor_data_out"
+                    )
+                    self.assertEqual(
+                        [
+                            item["value"] for item in event.transactions
+                            if item["class"] == coprocessor_class
+                        ],
+                        values,
+                    )
+                    if to_memory:
+                        self.assertEqual(
+                            [
+                                model.state.memory.read_bits(address, 32)
+                                for address in addresses
+                            ],
+                            values,
+                        )
+
+    def test_cmovmc_register_count_selectors_alias_and_wrap(self) -> None:
+        shared_isa = Tms34020Model().isa
+        for count_selector in range(32):
+            for pointer_selector in range(32):
+                model = Tms34020Model(isa=shared_isa)
+                command = (
+                    count_selector * 0x18001 ^ pointer_selector * 0x20403
+                ) & 0x1F_FFFF
+                first_word = 0x06E0 | count_selector
+                extension1 = ((command & 0xFF) << 8) | pointer_selector
+                extension2 = (3 << 13) | ((command >> 8) & 0x1FFF)
+                model.load_program(
+                    [first_word, extension1, extension2],
+                    bit_address=0x110,
+                )
+                count_file = "B" if count_selector & 0x10 else "A"
+                count_index = count_selector & 0xF
+                pointer_file = "B" if pointer_selector & 0x10 else "A"
+                pointer_index = pointer_selector & 0xF
+                same_register = (
+                    (count_index == 15 and pointer_index == 15) or
+                    (count_file, count_index) ==
+                    (pointer_file, pointer_index)
+                )
+                model.state.write_reg(count_file, count_index, 1)
+                pointer_before = (
+                    0xFFFF_FFE1 if same_register else 0xFFFF_FFE0
+                )
+                model.state.write_reg(
+                    pointer_file, pointer_index, pointer_before
+                )
+                value = 0xA500_0000 | (count_selector << 8) | pointer_selector
+                model.state.memory.write_bits(pointer_before, 32, value)
+                status_before = model.state.st = 0x9234_5AA5
+
+                event = model.step()
+
+                self.assertEqual(event.mnemonic, "CMOVMC.POST.R")
+                self.assertEqual(event.machine_states, 5)
+                self.assertEqual(model.state.st, status_before)
+                self.assertEqual(
+                    model.state.read_reg(pointer_file, pointer_index),
+                    (pointer_before + 32) & 0xFFFF_FFFF,
+                )
+                self.assertEqual(
+                    [
+                        item["value"] for item in event.transactions
+                        if item["class"] == "coprocessor_data_out"
+                    ],
+                    [value],
+                )
+                if not same_register:
+                    self.assertEqual(
+                        model.state.read_reg(count_file, count_index), 1
+                    )
+
+        for raw_count, expected_count, size in (
+            (0, 32, 0),
+            (2, 2, 1),
+            (31, 31, 0),
+            (31, 31, 1),
+        ):
+            model = Tms34020Model(isa=shared_isa)
+            model.load_program(
+                [0x06E1, 0xA500 | (size << 7) | 2, 0x2000],
+                bit_address=0x100,
+            )
+            model.state.write_reg("A", 1, raw_count)
+            model.state.write_reg("A", 2, 0xA000)
+            for index in range(expected_count):
+                model.state.memory.write_bits(
+                    0xA000 + index * 32, 32, index ^ 0x5A5A_0000
+                )
+            event = model.step()
+            self.assertEqual(event.machine_states, expected_count + 5)
+            self.assertEqual(
+                model.state.read_reg("A", 2),
+                0xA000 + expected_count * 32,
+            )
+
+    def test_coprocessor_memory_reserved_underflow_and_ben_are_atomic(
+        self,
+    ) -> None:
+        shared_isa = Tms34020Model().isa
+        invalid_packets = (
+            (0x0681, 0xA520),
+            (0x06A1, 0xA520),
+            (0x06C1, 0xA540),
+            (0x06E1, 0xA560),
+            (0x0821, 0xA520),
+            (0x0681, 0xA582),
+            (0x06A1, 0xA583),
+            (0x06C1, 0xA581),
+            (0x0821, 0xA59F),
+        )
+        for first_word, extension in invalid_packets:
+            model = Tms34020Model(isa=shared_isa)
+            model.load_program(
+                [first_word, extension, 0x2000], bit_address=0x110
+            )
+            model.state.write_reg("A", 0, 0x8000)
+            model.queue_coprocessor_read_data([0x1234_5678] * 32)
+            before = model.snapshot()
+            with self.assertRaises(UnsupportedInstruction):
+                model.step()
+            self.assertEqual(model.snapshot(), before)
+
+        underflow = Tms34020Model(isa=shared_isa)
+        underflow.load_program([0x06A0, 0xA502, 0x2000], bit_address=0x110)
+        underflow.state.write_reg("A", 0, 0x8000)
+        underflow.queue_coprocessor_read_data([0x1234_5678])
+        before = underflow.snapshot()
+        with self.assertRaisesRegex(ModelError, "inbound data underflow"):
+            underflow.step()
+        self.assertEqual(underflow.snapshot(), before)
+
+        big_endian = Tms34020Model(isa=shared_isa)
+        big_endian.load_program([0x0681, 0xA500, 0x2000])
+        big_endian.state.write_reg("A", 0, 0x8000)
+        big_endian.state.write_io(CONFIG_ADDRESS, 1)
+        before = big_endian.snapshot()
+        with self.assertRaisesRegex(
+            UnsupportedInstruction, "big-endian memory mapping"
+        ):
+            big_endian.step()
+        self.assertEqual(big_endian.snapshot(), before)
+
     def test_move_offset_boundaries_alias_wrap_and_ben(self) -> None:
         for offset_word, signed_offset in (
             (0x0000, 0),

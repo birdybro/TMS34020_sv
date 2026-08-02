@@ -257,6 +257,29 @@ module tms34020_leaf_synth_top (
     logic [3:0] coprocessor_read_status_value;
     logic coprocessor_read_reissue;
     logic [2:0] coprocessor_read_visible_states;
+    logic coprocessor_memory_supported;
+    logic coprocessor_memory_legal;
+    logic coprocessor_memory_to_memory;
+    logic coprocessor_memory_predecrement;
+    logic coprocessor_memory_register_count_mode;
+    logic [2:0] coprocessor_memory_length;
+    logic coprocessor_memory_pointer_file;
+    logic [3:0] coprocessor_memory_pointer_index;
+    logic coprocessor_memory_count_file;
+    logic [3:0] coprocessor_memory_count_index;
+    logic [5:0] coprocessor_memory_transfer_count;
+    logic [2:0] coprocessor_memory_id;
+    logic [20:0] coprocessor_memory_command;
+    logic coprocessor_memory_size;
+    logic [31:0] coprocessor_memory_lad;
+    logic coprocessor_memory_sf;
+    logic [3:0] coprocessor_memory_bus_status;
+    logic coprocessor_memory_word_select;
+    logic [31:0] coprocessor_memory_first_address;
+    logic [31:0] coprocessor_memory_final_pointer;
+    logic coprocessor_memory_command_reissue;
+    logic coprocessor_memory_turnaround_spacer;
+    logic [5:0] coprocessor_memory_visible_states;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -405,6 +428,21 @@ module tms34020_leaf_synth_top (
          coprocessor_read_write1_enable, coprocessor_read_status_mask,
          coprocessor_read_status_value, coprocessor_read_reissue,
          coprocessor_read_visible_states} ^
+        coprocessor_memory_lad ^
+        coprocessor_memory_first_address ^
+        coprocessor_memory_final_pointer ^
+        {11'd0, coprocessor_memory_command} ^
+        {5'd0, coprocessor_memory_supported, coprocessor_memory_legal,
+         coprocessor_memory_to_memory, coprocessor_memory_predecrement,
+         coprocessor_memory_register_count_mode, coprocessor_memory_length,
+         coprocessor_memory_pointer_file, coprocessor_memory_pointer_index,
+         coprocessor_memory_count_file, coprocessor_memory_count_index,
+         coprocessor_memory_transfer_count, coprocessor_memory_id} ^
+        {17'd0, coprocessor_memory_size, coprocessor_memory_sf,
+         coprocessor_memory_bus_status, coprocessor_memory_word_select,
+         coprocessor_memory_command_reissue,
+         coprocessor_memory_turnaround_spacer,
+         coprocessor_memory_visible_states} ^
         {14'd0, interrupt_return_force_bypass,
          interrupt_return_delay_recognition,
          interrupt_return_saved_pc_misaligned,
@@ -938,6 +976,42 @@ module tms34020_leaf_synth_top (
         .status_nczv_value_o(coprocessor_read_status_value),
         .second_reissue_if_no_page_o(coprocessor_read_reissue),
         .visible_states_o(coprocessor_read_visible_states)
+    );
+
+    tms34020_coprocessor_memory_transfer coprocessor_memory_transfer (
+        .first_word_i(first_word_i),
+        .extension_word1_i(immediate_i[15:0]),
+        .extension_word2_i(operand_i[15:0]),
+        .first_extension_aligned_i(operand_i[5]),
+        .pointer_value_i(operand_i),
+        .register_count_value_i(immediate_i[4:0]),
+        .supported_o(coprocessor_memory_supported),
+        .legal_o(coprocessor_memory_legal),
+        .coprocessor_to_memory_o(coprocessor_memory_to_memory),
+        .predecrement_o(coprocessor_memory_predecrement),
+        .register_count_mode_o(coprocessor_memory_register_count_mode),
+        .instruction_length_words_o(coprocessor_memory_length),
+        .pointer_file_b_o(coprocessor_memory_pointer_file),
+        .pointer_index_o(coprocessor_memory_pointer_index),
+        .count_file_b_o(coprocessor_memory_count_file),
+        .count_index_o(coprocessor_memory_count_index),
+        .transfer_count_o(coprocessor_memory_transfer_count),
+        .coprocessor_id_o(coprocessor_memory_id),
+        .command_o(coprocessor_memory_command),
+        .size_64_o(coprocessor_memory_size),
+        .lad_command_o(coprocessor_memory_lad),
+        .special_function_o(coprocessor_memory_sf),
+        .bus_status_o(coprocessor_memory_bus_status),
+        .word_select_16_o(coprocessor_memory_word_select),
+        .first_address_o(coprocessor_memory_first_address),
+        .final_pointer_o(coprocessor_memory_final_pointer),
+        .command_reissue_after_page_break_o(
+            coprocessor_memory_command_reissue
+        ),
+        .write_turnaround_spacer_required_o(
+            coprocessor_memory_turnaround_spacer
+        ),
+        .visible_states_o(coprocessor_memory_visible_states)
     );
 
     tms34020_regfile regfile (

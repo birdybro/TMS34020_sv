@@ -167,6 +167,12 @@ combinational read formatter emits an NCZV mask/value intent but has no ST
 commit owner. Sources: User's Guide CMOVCG printed pp.13-59..13-60 and CMOVCS
 printed p.13-66.
 
+All five CMOVCM/CMOVMC memory-sequence forms preserve the complete ST value.
+The model tests mixed status patterns while transferring 1..32 logical words;
+the combinational memory-sequence formatter has no status or architectural
+commit port. Sources: User's Guide CMOVCM printed pp.13-61..13-65 and CMOVMC
+printed pp.13-71..13-79.
+
 CPW preserves the complete status register except V, which reports whether
 any of its four signed-XY window outcode bits are set. The independent model
 tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;

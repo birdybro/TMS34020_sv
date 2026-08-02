@@ -6,11 +6,11 @@ The TMS34020 has a processor-owned local-memory coprocessor protocol. An
 external coprocessor implements the commands and associated computation; it is
 not part of the generic CPU core. The current repository implements the two
 CEXEC encodings, both CMOVGC register-to-coprocessor forms, CMOVCG's direct
-coprocessor-to-register form, and the special CMOVCS status transfer. It has
-bounded architectural transactions and noncommitting synthesizable formatters
-for these forms. It does not yet implement the pin cycle, completion handshake,
-fault checkpoint, memory/sequence CMOV families, or a synthetic external
-coprocessor.
+coprocessor-to-register form, the special CMOVCS status transfer, and all five
+CMOVCM/CMOVMC memory-sequence forms. It has bounded architectural transactions
+and noncommitting synthesizable formatters for these forms. It does not yet
+implement the pin cycle, completion handshake, fault checkpoint, physical
+memory sequence, or a synthetic external coprocessor.
 
 Source: TI *TMS34020 User's Guide*, 2564006-9721, August 1990, Chapter 10
 overview and Table 10-1, printed pp.10-2..10-4. Confidence:
@@ -138,6 +138,62 @@ summary/timing tables, printed pp.13-10 and 15-3. Confidence:
 counts; `PROVISIONAL` for the bounded implementation without a physical
 sequencer.
 
+## CMOVCM and CMOVMC memory sequences
+
+The five three-word memory-transfer encodings share the Chapter-10 command
+packet, force 32-bit transfers regardless of `SIZE16`, preserve all ST bits,
+and perform from one through 32 explicit memory words:
+
+| Internal database name | First word | Count source | Pointer mode | Direction |
+|---|---:|---|---|---|
+| `CMOVMC.POST.C` | `0680h`/`FFE0h` | first-word low five; zero means 32 | `*Rs+` | memory to coprocessor |
+| `CMOVCM.POST.C` | `06A0h`/`FFE0h` | first-extension low five; zero means 32 | `*Rd+` | coprocessor to memory |
+| `CMOVCM.PRE.C` | `06C0h`/`FFE0h` | first-extension low five; zero means 32 | `-*Rd` | coprocessor to memory |
+| `CMOVMC.POST.R` | `06E0h`/`FFE0h` | captured count-register low five; zero means 32 | `*Rs+` | memory to coprocessor |
+| `CMOVMC.PRE.C` | `0820h`/`FFE0h` | first-word low five; zero means 32 | `-*Rs` | memory to coprocessor |
+
+Constant-count size-zero packets permit 1..32 words. For size one, legal
+constant encodings use an even number of words (2..30 or encoded zero for 32),
+grouped as 64-bit values. The register-count form captures the count before
+any pointer writeback, which makes count/pointer aliases deterministic. The
+guide says software should provide an even runtime count when size is one; it
+does not define an illegal-instruction response for an odd runtime value, so
+the model does not invent one.
+
+Postincrement transfers use the original pointer for the first word and add
+32 bit-address units after every successful word. Predecrement transfers
+subtract 32 before the first and every later word. The resulting formulas are
+`first=pointer` and `final=pointer+32*count` for postincrement, or
+`first=pointer-32` and `final=pointer-32*count` for predecrement, with 32-bit
+wrap. The two CMOVCM examples on printed pp.13-62 and 13-65 contradict these
+repeated operation sequences by showing `10h` address steps. RSC-0042/OQ-0027
+records that conflict; the model and leaf provisionally follow the repeated
+explicit `+/-32` pseudocode and the architecture's bit-addressing rule.
+
+The published visible-state formula for all five forms is
+`5+(transfers-1)` when the first extension is long-word aligned and
+`6+(transfers-1)` otherwise, equivalently count+4/count+5. RSC-0043/OQ-0028
+records a separate p.13-62 note that impossibly says this assumes no 32-bit
+transfers; Chapter 10 says these operations are always 32-bit and ignore
+`SIZE16`, so the bounded implementation interprets that as an apparent
+16/32 typographical substitution. This is not physical timing evidence.
+
+Page-mode data words may continue without another command. If a page break or
+high-priority request interrupts the data sequence, the processor issues the
+next memory address/status subcycle and does not reissue the coprocessor
+command. Coprocessor-to-memory writes require the documented turnaround spacer
+before each write data subcycle. The RTL leaf exposes direction, pointer and
+count selectors, decoded count, command, first/final address, state count,
+no-command-reissue rule, and spacer requirement. It owns no data acceptance or
+memory write and therefore cannot duplicate a transaction.
+
+Sources: User's Guide CMOVCM printed pp.13-61..13-65; CMOVMC printed
+pp.13-71..13-79; memory-to-coprocessor §10.4.8, printed pp.10-14..10-15;
+coprocessor-to-memory §10.4.9, printed pp.10-15..10-16; timing table printed
+p.15-3. Confidence: `VERIFIED_PRIMARY` for CMOVMC encoding and repeated
+operation sequences, `CORROBORATED` for CMOVCM because of RSC-0042/RSC-0043,
+and `PROVISIONAL` for the bounded implementation without physical sequencing.
+
 ## Command-cycle signaling
 
 CEXEC causes a coprocessor command cycle. The command replaces the ordinary
@@ -169,13 +225,16 @@ request stable until one completion outcome, suppress stale completion, and
 reissue without duplicating processor-visible retirement.
 
 The current model records logical `coprocessor_command`, CMOVGC
-`coprocessor_data_out`, and CMOVCG/CMOVCS `coprocessor_data_in` transactions
+`coprocessor_data_out`, CMOVCG/CMOVCS `coprocessor_data_in`, CMOVMC
+`data_read`/`coprocessor_data_out`, and CMOVCM
+`coprocessor_data_in`/`data_write` transactions
 only after legal packet decode and available deterministic input. It does not
 claim that an external device accepted them and cannot inject LRDY, BUSFLT,
 retry, or an asynchronous interrupt. The current RTL modules
 `rtl/coprocessor/tms34020_coprocessor_command.sv` and
 `rtl/coprocessor/tms34020_coprocessor_register_write.sv` and
-`rtl/coprocessor/tms34020_coprocessor_register_read.sv` are purely
+`rtl/coprocessor/tms34020_coprocessor_register_read.sv` and
+`rtl/coprocessor/tms34020_coprocessor_memory_transfer.sv` are purely
 combinational and own no pins or request state. Consequently the point at which
 an external coprocessor may acquire an irreversible side effect relative to
 BUSFLT remains an implementation checkpoint to verify with command/data-cycle
@@ -193,8 +252,8 @@ silicon edge ordering beyond the published diagrams.
 - a native command/data request and success/retry/fault response contract;
 - exact command-cycle phase generation in the original-pin bus wrapper;
 - CEXEC wait, retry, bus-fault, interrupt, and restart tests;
-- CMOVCM and CMOVMC encodings and transfers, plus physical CMOVCG/CMOVCS
-  completion and commit ownership;
+- physical CMOVCM/CMOVMC sequencing and physical CMOVCG/CMOVCS completion and
+  commit ownership;
 - direct and indirect one-word, two-word, and sequence interruption behavior;
 - a deterministic synthetic external coprocessor and randomized asynchronous
   completion tests; and

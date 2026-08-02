@@ -350,6 +350,35 @@ module tb_tms34020_verified_leaves;
     logic [3:0] coprocessor_read_status_nczv_value;
     logic coprocessor_read_second_reissue_if_no_page;
     logic [2:0] coprocessor_read_visible_states;
+    logic [15:0] coprocessor_memory_first_word;
+    logic [15:0] coprocessor_memory_extension_word1;
+    logic [15:0] coprocessor_memory_extension_word2;
+    logic coprocessor_memory_first_extension_aligned;
+    logic [31:0] coprocessor_memory_pointer_value;
+    logic [4:0] coprocessor_memory_register_count_value;
+    logic coprocessor_memory_supported;
+    logic coprocessor_memory_legal;
+    logic coprocessor_memory_to_memory;
+    logic coprocessor_memory_predecrement;
+    logic coprocessor_memory_register_count_mode;
+    logic [2:0] coprocessor_memory_instruction_length;
+    logic coprocessor_memory_pointer_file_b;
+    logic [3:0] coprocessor_memory_pointer_index;
+    logic coprocessor_memory_count_file_b;
+    logic [3:0] coprocessor_memory_count_index;
+    logic [5:0] coprocessor_memory_transfer_count;
+    logic [2:0] coprocessor_memory_id;
+    logic [20:0] coprocessor_memory_command;
+    logic coprocessor_memory_size_64;
+    logic [31:0] coprocessor_memory_lad_command;
+    logic coprocessor_memory_special_function;
+    logic [3:0] coprocessor_memory_bus_status;
+    logic coprocessor_memory_word_select_16;
+    logic [31:0] coprocessor_memory_first_address;
+    logic [31:0] coprocessor_memory_final_pointer;
+    logic coprocessor_memory_command_reissue;
+    logic coprocessor_memory_turnaround_spacer;
+    logic [5:0] coprocessor_memory_visible_states;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -909,6 +938,46 @@ module tb_tms34020_verified_leaves;
             coprocessor_read_second_reissue_if_no_page
         ),
         .visible_states_o(coprocessor_read_visible_states)
+    );
+
+    tms34020_coprocessor_memory_transfer coprocessor_memory_transfer_dut (
+        .first_word_i(coprocessor_memory_first_word),
+        .extension_word1_i(coprocessor_memory_extension_word1),
+        .extension_word2_i(coprocessor_memory_extension_word2),
+        .first_extension_aligned_i(
+            coprocessor_memory_first_extension_aligned
+        ),
+        .pointer_value_i(coprocessor_memory_pointer_value),
+        .register_count_value_i(
+            coprocessor_memory_register_count_value
+        ),
+        .supported_o(coprocessor_memory_supported),
+        .legal_o(coprocessor_memory_legal),
+        .coprocessor_to_memory_o(coprocessor_memory_to_memory),
+        .predecrement_o(coprocessor_memory_predecrement),
+        .register_count_mode_o(coprocessor_memory_register_count_mode),
+        .instruction_length_words_o(coprocessor_memory_instruction_length),
+        .pointer_file_b_o(coprocessor_memory_pointer_file_b),
+        .pointer_index_o(coprocessor_memory_pointer_index),
+        .count_file_b_o(coprocessor_memory_count_file_b),
+        .count_index_o(coprocessor_memory_count_index),
+        .transfer_count_o(coprocessor_memory_transfer_count),
+        .coprocessor_id_o(coprocessor_memory_id),
+        .command_o(coprocessor_memory_command),
+        .size_64_o(coprocessor_memory_size_64),
+        .lad_command_o(coprocessor_memory_lad_command),
+        .special_function_o(coprocessor_memory_special_function),
+        .bus_status_o(coprocessor_memory_bus_status),
+        .word_select_16_o(coprocessor_memory_word_select_16),
+        .first_address_o(coprocessor_memory_first_address),
+        .final_pointer_o(coprocessor_memory_final_pointer),
+        .command_reissue_after_page_break_o(
+            coprocessor_memory_command_reissue
+        ),
+        .write_turnaround_spacer_required_o(
+            coprocessor_memory_turnaround_spacer
+        ),
+        .visible_states_o(coprocessor_memory_visible_states)
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -2832,6 +2901,12 @@ module tb_tms34020_verified_leaves;
         coprocessor_read_first_extension_aligned = 1'b0;
         coprocessor_read_inbound_word0 = 32'd0;
         coprocessor_read_inbound_word1 = 32'd0;
+        coprocessor_memory_first_word = 16'd0;
+        coprocessor_memory_extension_word1 = 16'd0;
+        coprocessor_memory_extension_word2 = 16'd0;
+        coprocessor_memory_first_extension_aligned = 1'b0;
+        coprocessor_memory_pointer_value = 32'd0;
+        coprocessor_memory_register_count_value = 5'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -4935,6 +5010,36 @@ module tb_tms34020_verified_leaves;
             "CMOVCG/CMOVCS cannot bypass absent coprocessor ownership"
         );
         check_register_execute(
+            16'h0680, 32'hDEAD_BEEF, 32'hA500_2001,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CMOVMC.POST.C cannot bypass absent bus ownership"
+        );
+        check_register_execute(
+            16'h06A0, 32'hDEAD_BEEF, 32'hA501_2001,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CMOVCM.POST.C cannot bypass absent bus ownership"
+        );
+        check_register_execute(
+            16'h06C0, 32'hDEAD_BEEF, 32'hA501_2001,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CMOVCM.PRE.C cannot bypass absent bus ownership"
+        );
+        check_register_execute(
+            16'h06E0, 32'hDEAD_BEEF, 32'hA500_2001,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CMOVMC.POST.R cannot bypass absent bus ownership"
+        );
+        check_register_execute(
+            16'h0820, 32'hDEAD_BEEF, 32'hA500_2001,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CMOVMC.PRE.C cannot bypass absent bus ownership"
+        );
+        check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "REV cannot execute without a selected device revision profile"
@@ -6856,6 +6961,26 @@ module tb_tms34020_verified_leaves;
                      "CMOVCG/CMOVCS lower-bound decode");
         check_decode(16'h067F, TMS20_OP_CMOVCG, 3'd3,
                      "CMOVCG upper-bound decode");
+        check_decode(16'h0680, TMS20_OP_CMOVMC_POST_C, 3'd3,
+                     "CMOVMC.POST.C lower-bound decode");
+        check_decode(16'h069F, TMS20_OP_CMOVMC_POST_C, 3'd3,
+                     "CMOVMC.POST.C upper-bound decode");
+        check_decode(16'h06A0, TMS20_OP_CMOVCM_POST_C, 3'd3,
+                     "CMOVCM.POST.C lower-bound decode");
+        check_decode(16'h06BF, TMS20_OP_CMOVCM_POST_C, 3'd3,
+                     "CMOVCM.POST.C upper-bound decode");
+        check_decode(16'h06C0, TMS20_OP_CMOVCM_PRE_C, 3'd3,
+                     "CMOVCM.PRE.C lower-bound decode");
+        check_decode(16'h06DF, TMS20_OP_CMOVCM_PRE_C, 3'd3,
+                     "CMOVCM.PRE.C upper-bound decode");
+        check_decode(16'h06E0, TMS20_OP_CMOVMC_POST_R, 3'd3,
+                     "CMOVMC.POST.R lower-bound decode");
+        check_decode(16'h06FF, TMS20_OP_CMOVMC_POST_R, 3'd3,
+                     "CMOVMC.POST.R upper-bound decode");
+        check_decode(16'h0820, TMS20_OP_CMOVMC_PRE_C, 3'd3,
+                     "CMOVMC.PRE.C lower-bound decode");
+        check_decode(16'h083F, TMS20_OP_CMOVMC_PRE_C, 3'd3,
+                     "CMOVMC.PRE.C upper-bound decode");
         check_decode(16'h0C1E, TMS20_OP_ADDXYI, 3'd3,
                      "ADDXYI masked decode");
         check_decode(16'h029E, TMS20_OP_RPIX, 3'd1, "RPIX masked decode");
@@ -6890,10 +7015,10 @@ module tb_tms34020_verified_leaves;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
                "CMOVGC.1 lower neighbor must remain unclassified");
-        decode_word = 16'h0680;
+        decode_word = 16'h0840;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
-               "CMOVCG upper neighbor must remain unclassified");
+               "CMOVMC.PRE.C upper neighbor must remain unclassified");
         decode_word = 16'hD880;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
@@ -7458,6 +7583,152 @@ module tb_tms34020_verified_leaves;
             !coprocessor_read_supported && !coprocessor_read_legal &&
             coprocessor_read_instruction_length == 3'd0,
             "CMOVCG leaf rejects unclassified neighbor"
+        );
+
+        expected_coprocessor_command = {13'h123, 8'hA5};
+        coprocessor_memory_extension_word2 = 16'hE123;
+        coprocessor_memory_pointer_value = 32'h0000_1003;
+        coprocessor_memory_register_count_value = 5'd0;
+        coprocessor_memory_first_extension_aligned = 1'b1;
+
+        coprocessor_memory_first_word = 16'h069F;
+        coprocessor_memory_extension_word1 = 16'hA512;
+        #1;
+        check_condition(
+            coprocessor_memory_supported && coprocessor_memory_legal &&
+            !coprocessor_memory_to_memory &&
+            !coprocessor_memory_predecrement &&
+            !coprocessor_memory_register_count_mode &&
+            coprocessor_memory_instruction_length == 3'd3 &&
+            coprocessor_memory_pointer_file_b &&
+            coprocessor_memory_pointer_index == 4'd2 &&
+            coprocessor_memory_transfer_count == 6'd31 &&
+            coprocessor_memory_id == 3'd7 &&
+            coprocessor_memory_command == expected_coprocessor_command &&
+            !coprocessor_memory_size_64 &&
+            coprocessor_memory_lad_command == {
+                3'd7, expected_coprocessor_command, 8'd0
+            } &&
+            coprocessor_memory_special_function &&
+            coprocessor_memory_bus_status == 4'd0 &&
+            !coprocessor_memory_word_select_16 &&
+            coprocessor_memory_first_address == 32'h0000_1003 &&
+            coprocessor_memory_final_pointer == 32'h0000_13E3 &&
+            !coprocessor_memory_command_reissue &&
+            !coprocessor_memory_turnaround_spacer &&
+            coprocessor_memory_visible_states == 6'd35,
+            "CMOVMC.POST.C count/pointer/command/aligned timing"
+        );
+
+        coprocessor_memory_first_word = 16'h0680;
+        coprocessor_memory_extension_word1 = 16'hA592;
+        coprocessor_memory_first_extension_aligned = 1'b0;
+        #1;
+        check_condition(
+            coprocessor_memory_legal &&
+            coprocessor_memory_size_64 &&
+            coprocessor_memory_transfer_count == 6'd32 &&
+            coprocessor_memory_final_pointer == 32'h0000_1403 &&
+            coprocessor_memory_visible_states == 6'd37,
+            "CMOVMC.POST.C zero encodes 32 and unaligned state maximum"
+        );
+        coprocessor_memory_first_word = 16'h0681;
+        #1;
+        check_condition(
+            coprocessor_memory_supported && !coprocessor_memory_legal &&
+            !coprocessor_memory_special_function &&
+            coprocessor_memory_visible_states == 6'd0,
+            "CMOVMC.POST.C rejects odd constant size-64 transfer count"
+        );
+
+        coprocessor_memory_pointer_value = 32'h0000_2000;
+        coprocessor_memory_first_word = 16'h06B2;
+        coprocessor_memory_extension_word1 = 16'hA503;
+        coprocessor_memory_first_extension_aligned = 1'b1;
+        #1;
+        check_condition(
+            coprocessor_memory_legal && coprocessor_memory_to_memory &&
+            !coprocessor_memory_predecrement &&
+            coprocessor_memory_pointer_file_b &&
+            coprocessor_memory_pointer_index == 4'd2 &&
+            coprocessor_memory_transfer_count == 6'd3 &&
+            coprocessor_memory_first_address == 32'h0000_2000 &&
+            coprocessor_memory_final_pointer == 32'h0000_2060 &&
+            coprocessor_memory_turnaround_spacer &&
+            coprocessor_memory_visible_states == 6'd7,
+            "CMOVCM.POST.C uses 32-bit-address increments and spacer flag"
+        );
+
+        coprocessor_memory_first_word = 16'h06D2;
+        #1;
+        check_condition(
+            coprocessor_memory_legal && coprocessor_memory_to_memory &&
+            coprocessor_memory_predecrement &&
+            coprocessor_memory_first_address == 32'h0000_1FE0 &&
+            coprocessor_memory_final_pointer == 32'h0000_1FA0 &&
+            coprocessor_memory_turnaround_spacer,
+            "CMOVCM.PRE.C decrements before every 32-bit-address transfer"
+        );
+
+        coprocessor_memory_pointer_value = 32'hFFFF_FFE1;
+        coprocessor_memory_first_word = 16'h06F4;
+        coprocessor_memory_extension_word1 = 16'hA583;
+        coprocessor_memory_register_count_value = 5'd1;
+        #1;
+        check_condition(
+            coprocessor_memory_legal &&
+            coprocessor_memory_register_count_mode &&
+            coprocessor_memory_count_file_b &&
+            coprocessor_memory_count_index == 4'd4 &&
+            !coprocessor_memory_pointer_file_b &&
+            coprocessor_memory_pointer_index == 4'd3 &&
+            coprocessor_memory_transfer_count == 6'd1 &&
+            coprocessor_memory_first_address == 32'hFFFF_FFE1 &&
+            coprocessor_memory_final_pointer == 32'h0000_0001 &&
+            coprocessor_memory_visible_states == 6'd5,
+            "CMOVMC.POST.R captures runtime count and wraps bit pointer"
+        );
+        coprocessor_memory_register_count_value = 5'd3;
+        #1;
+        check_condition(
+            coprocessor_memory_legal &&
+            coprocessor_memory_size_64 &&
+            coprocessor_memory_transfer_count == 6'd3,
+            "CMOVMC.POST.R does not invent illegal handling for odd runtime count"
+        );
+
+        coprocessor_memory_pointer_value = 32'h0000_0100;
+        coprocessor_memory_first_word = 16'h0822;
+        coprocessor_memory_extension_word1 = 16'hA594;
+        #1;
+        check_condition(
+            coprocessor_memory_legal &&
+            !coprocessor_memory_to_memory &&
+            coprocessor_memory_predecrement &&
+            !coprocessor_memory_register_count_mode &&
+            coprocessor_memory_pointer_file_b &&
+            coprocessor_memory_pointer_index == 4'd4 &&
+            coprocessor_memory_transfer_count == 6'd2 &&
+            coprocessor_memory_first_address == 32'h0000_00E0 &&
+            coprocessor_memory_final_pointer == 32'h0000_00C0,
+            "CMOVMC.PRE.C constant size-64 sequence"
+        );
+
+        coprocessor_memory_extension_word1 = 16'hA5B4;
+        #1;
+        check_condition(
+            coprocessor_memory_supported && !coprocessor_memory_legal &&
+            !coprocessor_memory_special_function &&
+            !coprocessor_memory_turnaround_spacer &&
+            coprocessor_memory_visible_states == 6'd0,
+            "coprocessor memory sequences reject reserved extension bits"
+        );
+        coprocessor_memory_first_word = 16'h0840;
+        #1;
+        check_condition(
+            !coprocessor_memory_supported && !coprocessor_memory_legal &&
+            coprocessor_memory_instruction_length == 3'd0,
+            "coprocessor memory leaf rejects unclassified neighbor"
         );
 
         add_destination = 32'h0001_0001;

@@ -8,10 +8,11 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 
 | Module | Implemented behavior | Primary source |
 |---|---|---|
-| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 135 entries currently present in the canonical ISA database, including 13,506 ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM field words and 3,137 MOVB words, exact RETI/RETM and CEXEC.L, all 128 CEXEC.S first words, both 32-word CMOVGC forms, the 32-word CMOVCG/CMOVCS packet family, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
+| `rtl/core/tms34020_decode.sv` | Classification and instruction length for the 140 entries currently present in the canonical ISA database, including 13,506 ordinary/postincrement/predecrement/signed-offset/mixed-offset/absolute RM/MR/MM field words and 3,137 MOVB words, exact RETI/RETM and CEXEC.L, all 128 CEXEC.S first words, both 32-word CMOVGC forms, the 32-word CMOVCG/CMOVCS packet family, all five 32-word CMOVCM/CMOVMC memory-sequence families, all 64 MMFM/MMTM first words, 32 REV destinations, 32 TRAP vectors, 32 RETS argument counts, 32 CALL register forms, fixed CALLA/CALLR forms, all 512 CPW and 512 SWAPF forms, all 1,088 XY-conversion forms, and all 3,072 DIVS/DIVU/MODS/MODU/MPYS/MPYU forms; all other first words remain explicitly unclassified | TI *TMS34020 User's Guide*, August 1990, individual instruction pages listed in `docs/generated/tms34020_isa.yaml` |
 | `rtl/coprocessor/tms34020_coprocessor_command.sv` | Purely combinational classification and LAD command formatting for exact long CEXEC and all 128 short first words, including length, legal reserved bits, ID, 21-bit command, size, SF, BCST, I, S, and visible/hidden state metadata; no local-bus pins, request state, completion, retry, fault, or external coprocessor ownership | TI *TMS34020 User's Guide*, August 1990, §§10.3..10.4.5 printed pp.10-5..10-10 and CEXEC printed pp.13-51..13-54 |
 | `rtl/coprocessor/tms34020_coprocessor_register_write.sv` | Purely combinational classification and packet formatting for one- and two-register CMOVGC, including independent source selectors, legal reserved fields, ID/command/size, initial and I=1 reissue LAD values, ordered source data, SF/BCST/S and visible/hidden metadata; no register-file capture, page decision, request state, completion, retry, fault, interrupt, pin, or external coprocessor ownership | TI *TMS34020 User's Guide*, August 1990, §§10.3.3..10.4.6 printed pp.10-6..10-12 and CMOVGC printed pp.13-67..13-70 |
 | `rtl/coprocessor/tms34020_coprocessor_register_read.sv` | Purely combinational CMOVCG/CMOVCS packet refinement and inbound intent formatting, including independent destinations, legal required-zero fields, ID/command/size, initial/I=1 LAD values, one/two ordered data, NCZV masks/values and 4–6-state metadata; no external input queue, page decision, register/ST commit, request state, completion, retry, fault, interrupt, pin, or coprocessor ownership | TI *TMS34020 User's Guide*, August 1990, §10.4.7 printed pp.10-12..10-13, CMOVCG pp.13-59..13-60, and CMOVCS p.13-66 |
+| `rtl/coprocessor/tms34020_coprocessor_memory_transfer.sv` | Purely combinational classification/formatting for all five CMOVCM/CMOVMC memory sequences: direction, pre/post mode, constant/register count, pointer/count selectors, zero-as-32, constant size/count legality, ID/command/size/LAD, first/final 32-bit-wrapping bit addresses, count+4/count+5 state metadata, page-break no-reissue and CMOVCM spacer intent. It owns no register capture, memory/coprocessor data, page sequence, request, wait, fault/retry, interrupt, continuation, commit or pins; RSC-0042/RSC-0043 qualify CMOVCM | TI *TMS34020 User's Guide*, August 1990, CMOVCM printed pp.13-61..13-65, CMOVMC pp.13-71..13-79, and §§10.4.8..10.4.9 pp.10-14..10-16 |
 | `rtl/core/tms34020_frontend.sv` | Direct cache/fetch composition from explicit aligned PC through lookup/refill/bypass/retry/fault-abort to a complete serialized instruction packet | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1–5.3.6, 6.5–6.6, 6.9, and 8.6 |
 | `rtl/core/tms34020_instruction_fetch.sv` | Serialized aligned PC load, cache-word request, one-to-five-word packet assembly, per-word cache metadata, stable packet backpressure, explicit sequential/redirect completion, and abort-to-PC-reload behavior | TI *TMS34020 User's Guide*, August 1990, §§4.2, 5.1, 5.3.1, and 6.5–6.6, printed pp.4-4, 5-3, 5-5, 6-9, and 6-13 |
 | `rtl/core/tms34020_pc_execute.sv` | Length-checked GETPC sequential-PC write intent, EXGPC sequential-PC write plus aligned old-register redirect intent, status/register-neutral JUMP aligned redirect intent, JACC all-condition fallthrough or aligned low-word/high-word absolute redirect intent, JR.L all-condition fallthrough or signed 16-bit word redirect intent, DSJ/DSJEQ/DSJNE Z-conditioned decrement plus signed 16-bit word redirect intent, and DSJS unconditional decrement plus encoded unsigned-magnitude/direction redirect intent; no PC storage or machine-state timing | TI *TMS34020 User's Guide*, August 1990, JAcc printed pp.13-135..13-136, long JR printed pp.13-138..13-140, DSJ family printed pp.13-103..13-108, EXGPC printed p.13-112, GETPC printed p.13-130, and JUMP printed p.13-141 |
@@ -110,6 +111,8 @@ CMOVGC `0620h`/`0640h` and CMOVCG-family `0660h` guards likewise prevent the
 verified formatters from bypassing absent operand capture, external completion,
 page/reissue, register/ST commit, and retirement ownership. Direct router tests
 require all these decoded packet families to remain noncommitting.
+The five `0680h`..`06FFh`/`0820h` CMOVCM/CMOVMC guards similarly remain
+noncommitting while the local-memory/coprocessor sequence owner is absent.
 
 The generated include `rtl/generated/tms34020_isa_decode.svh` is derived from
 `docs/generated/tms34020_isa.yaml` by
@@ -191,6 +194,12 @@ Verilator. It checks:
   inbound word, initial/I=1 LAD packet, status mask/value, state class, decoder
   length, reserved guard, and direct-router noncommit while external completion
   and register/ST commit ownership are absent;
+- all five 32-word CMOVCM/CMOVMC first-word families; exact boundary decode,
+  direction/pre-post/register-count classification, selector and command
+  formation, zero-as-32 and size/count legality, bit-address wrap, first/final
+  address, count/alignment state extrema, page-break no-reissue, CMOVCM spacer
+  intent, reserved rejection, and direct-router noncommit while physical
+  memory/coprocessor sequencing is absent;
 - exact CMPXY `E400h`/`FE00h` base/end decode boundaries, all nine published
   flag rows, a result-sign-versus-borrow discriminator, A/B and same-register
   routing, shared-SP source/destination selection, full NCZV replacement, and
@@ -405,9 +414,10 @@ keeps both register-file read ports, arithmetic flags, decoder outputs, PSIZE
 data paths, unary, binary, and logical arithmetic, LMO, RMO, and RPIX timing outputs
 observable. It also keeps every output of the register-execution router
 observable, instantiates CMPXY both directly and through the commit
-composition, and retains the CEXEC/CMOVGC/CMOVCG/CMOVCS formatter outputs. The wrapper deliberately
+composition, and retains the CEXEC and every CMOVGC/CMOVCG/CMOVCS/CMOVCM/
+CMOVMC formatter output. The wrapper deliberately
 retains both the original raw state leaves and the integrated commit instance,
-so its 13,295 logic-cell/2,230-register/9-DSP resource count is not a core-area
+so its 13,481 logic-cell/2,230-register/9-DSP resource count is not a core-area
 estimate. This is an early portability check only:
 Analysis & Synthesis is not placement, routing, TimeQuest closure, or
 full-core qualification.
@@ -419,17 +429,17 @@ This is not fit, routing, TimeQuest, a complete cache, or a core-area/timing
 result.
 
 `make quartus-fetch-smoke` runs warning-free Analysis & Synthesis for the
-packet assembler and generated decoder. Its observability wrapper uses 491
+packet assembler and generated decoder. Its observability wrapper uses 482
 logic cells and 177 registers. This is not fit, routing, TimeQuest, a complete
 frontend, or a core-area/timing result.
 
 `make quartus-frontend-smoke` synthesizes the cache/fetch composition with
-zero errors/warnings to 873 logic cells, 375 registers, and 4,096 block-memory
+zero errors/warnings to 878 logic cells, 375 registers, and 4,096 block-memory
 bits. This is Analysis & Synthesis only, not fit, TimeQuest, or a full-core
 resource/timing result.
 
 `make quartus-scalar-smoke` synthesizes the bounded cache/fetch/register
-composition with zero errors/warnings to 5,486 logic cells, 1,416 registers,
+composition with zero errors/warnings to 5,483 logic cells, 1,416 registers,
 and 4,096 block-memory bits. The observability wrapper is not a core-area
 estimate, and no fit or TimeQuest result exists.
 

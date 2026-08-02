@@ -401,6 +401,17 @@ BUSFLT retry/fault, register/ST retirement, or interrupt recognition. Sources:
 User's Guide CMOVCG printed pp.13-59..13-60, CMOVCS p.13-66, Chapter 10
 §10.4.7 printed pp.10-12..10-13, and timing table p.15-3.
 
+Each CMOVCM/CMOVMC memory-sequence form publishes
+`5+(transfers-1)` visible states for a long-word-aligned first extension and
+`6+(transfers-1)` otherwise, producing 5..36 or 6..37 states for 1..32 words.
+The model and combinational leaf calculate count+4/count+5, but do not schedule
+page-mode words, CMOVCM turnaround spacers, waits, faults, retry, interrupts,
+or continuation. RSC-0043/OQ-0028 records the contradictory CMOVCM note that
+says “no 32-bit transfers” despite Chapter 10 defining only 32-bit transfers
+with SIZE16 ignored. Sources: User's Guide CMOVCM printed pp.13-61..13-65,
+CMOVMC printed pp.13-71..13-79, §§10.4.8..10.4.9 pp.10-14..10-16, and timing
+table p.15-3. No physical cycle-accuracy claim follows.
+
 ## Cache-fetch interaction
 
 A cache hit reads an instruction word in one machine state, normally overlapped
