@@ -756,6 +756,36 @@
       "source_citation": ["TI-TMS34020-UG-1990 predecrement addressing, printed p.13-8", "TI-TMS34020-UG-1990 paired-predecrement MOVE and explicit alias final pointer, printed pp.13-161..13-162", "TI-TMS34020-UG-1990 memory-to-memory timing, printed pp.15-10..15-12", "TI-TMS34010-UG-1988 compatible execution sequence, printed pp.12-138..12-139", "Pinned TMS34010 RTL 94a258e80a07ceb4303ce0b99818df832e96007f instruction_coverage.md row 102; RSC-0038"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact decrement/read/write retirement relative to waits, interrupts, faults and retry remains pending the TMS34020 memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "signed_offset_register_to_memory_field_move",
+      "tms34010_behavior": "MOVE Rs,*Rd(offset)[,F] uses B000h/FC00h plus a signed 16-bit bit displacement, writes the selected low source field at Rd+offset modulo 2^32, preserves Rd and ST, and exposes TMS34010-specific timing.",
+      "tms34020_behavior": "The encoding, extension-word order, effective-address arithmetic, field value, base preservation and status contract remain compatible. The TMS34020 exposes three visible states and 1/2/2/3/4 hidden writes by destination case.",
+      "rtl_impact": "Reuse signed-offset and field-insertion semantics only. A TMS34020-owned sequencer must consume the extension word, retain both register operands, issue byte-strobed/RMW writes across dynamic 32/16-bit targets, and make fault/retry idempotent. The current clean-room offset and insertion leaves are combinational and noncommitting.",
+      "test_impact": "All 1,024 first words; every signed-16 boundary and modulo wrap; both FS banks; every width/offset/case; A/B/SP and Rs=Rd; unchanged bases/ST; BEN; hidden writes; 16/32-bit beats; page/wait/fault/retry/interrupt and I/O destinations.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-14", "TI-TMS34020-UG-1990 register-to-offset-indirect MOVE, printed p.13-160", "TI-TMS34020-UG-1990 register-to-memory timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible form, printed pp.12-132..12-133"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact extension-word fetch, write launch and interrupt/fault/retry checkpoints remain pending the TMS34020 sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "signed_offset_memory_to_register_field_move",
+      "tms34010_behavior": "MOVE *Rs(offset),Rd[,F] uses B400h/FC00h plus a signed 16-bit bit displacement, reads at Rs+offset modulo 2^32 without changing Rs, extends the field into Rd, and updates N/Z/V while preserving C.",
+      "tms34020_behavior": "The encoding, effective-address arithmetic, base preservation, field result and status contract remain compatible. The TMS34020 exposes 4/4/5/5/5 visible states for FE=0; unlike ordinary/predecrement loads, FE=1 adds two states.",
+      "rtl_impact": "Reuse signed-offset, extraction, extension and partial-status semantics only. A TMS34020-owned sequencer must consume the extension, preserve the base until a possibly aliased destination write, suppress data/status on faults, and make retry idempotent on dynamic-width targets. Current leaves calculate offset and little-endian extraction independently.",
+      "test_impact": "All 1,024 first words; signed-offset boundaries/wrap; both FS/FE banks; every width/offset/case; zero/sign extension; N/C/Z/V; A/B/SP and Rs=Rd; BEN; 16/32-bit traces; page/wait/fault/retry/interrupt and I/O reads.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-14", "TI-TMS34020-UG-1990 offset-indirect-to-register MOVE and status, printed pp.13-162..13-163", "TI-TMS34020-UG-1990 memory-to-register timing, printed p.15-11", "TI-TMS34010-UG-1988 compatible form, printed pp.12-147..12-148"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact extension/read/data/status checkpoints relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "paired_signed_offset_memory_to_memory_field_move",
+      "tms34010_behavior": "MOVE *Rs(SOffset),*Rd(DOffset)[,F] uses B800h/FC00h followed by source then destination signed 16-bit bit displacements. It copies the selected field between the two modulo-2^32 effective addresses without changing either base or ST.",
+      "tms34020_behavior": "The encoding, extension-word order, two effective-address calculations, read-before-write behavior and state preservation remain compatible. The TMS34020 exposes 5/5/6/6/6 visible states by source case and 1/2/2/3/4 hidden writes by destination case.",
+      "rtl_impact": "Reuse extension ordering, signed-offset arithmetic and field-copy semantics only. A TMS34020-owned sequencer must fetch both extensions, preserve shared or distinct bases, map BEN, sequence dynamic-width reads and byte-strobed/RMW writes, retain hidden-write state, and avoid retry duplication. Current offset/copy leaves remain noncommitting.",
+      "test_impact": "All 1,024 first words; independent signed-offset boundaries and wrap; both FS banks; every width/source/destination alignment and all 25 timing pairs; A/B/SP and Rs=Rd with different effective addresses; overlap; unchanged bases/ST; BEN; 16/32-bit beats; pages; waits; faults/retries; interrupts and I/O routing.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary encoding, printed p.13-14", "TI-TMS34020-UG-1990 paired signed-offset MOVE, printed p.13-162", "TI-TMS34020-UG-1990 memory-to-memory timing, printed p.15-12", "TI-TMS34010-UG-1988 compatible form, printed pp.12-151..12-152"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact two-extension fetch and read/write retirement relative to waits, interrupts, faults and retry remain pending the sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
     }
   ]
 }

@@ -103,22 +103,25 @@ typedef enum logic [6:0] {
     TMS20_OP_CMPK = 7'd95,
     TMS20_OP_MOVE = 7'd96,
     TMS20_OP_MOVE_MM = 7'd97,
-    TMS20_OP_MOVE_MM_POST = 7'd98,
-    TMS20_OP_MOVE_MM_PRE = 7'd99,
-    TMS20_OP_MOVE_MR = 7'd100,
-    TMS20_OP_MOVE_MR_POST = 7'd101,
-    TMS20_OP_MOVE_MR_PRE = 7'd102,
-    TMS20_OP_MOVE_RM = 7'd103,
-    TMS20_OP_MOVE_RM_POST = 7'd104,
-    TMS20_OP_MOVE_RM_PRE = 7'd105,
-    TMS20_OP_MOVK = 7'd106,
-    TMS20_OP_RL_K = 7'd107,
-    TMS20_OP_SLA_K = 7'd108,
-    TMS20_OP_SLL_K = 7'd109,
-    TMS20_OP_SRA_K = 7'd110,
-    TMS20_OP_SRL_K = 7'd111,
-    TMS20_OP_SUBK = 7'd112,
-    TMS20_OP_DSJS = 7'd113
+    TMS20_OP_MOVE_MM_OFFSET = 7'd98,
+    TMS20_OP_MOVE_MM_POST = 7'd99,
+    TMS20_OP_MOVE_MM_PRE = 7'd100,
+    TMS20_OP_MOVE_MR = 7'd101,
+    TMS20_OP_MOVE_MR_OFFSET = 7'd102,
+    TMS20_OP_MOVE_MR_POST = 7'd103,
+    TMS20_OP_MOVE_MR_PRE = 7'd104,
+    TMS20_OP_MOVE_RM = 7'd105,
+    TMS20_OP_MOVE_RM_OFFSET = 7'd106,
+    TMS20_OP_MOVE_RM_POST = 7'd107,
+    TMS20_OP_MOVE_RM_PRE = 7'd108,
+    TMS20_OP_MOVK = 7'd109,
+    TMS20_OP_RL_K = 7'd110,
+    TMS20_OP_SLA_K = 7'd111,
+    TMS20_OP_SLL_K = 7'd112,
+    TMS20_OP_SRA_K = 7'd113,
+    TMS20_OP_SRL_K = 7'd114,
+    TMS20_OP_SUBK = 7'd115,
+    TMS20_OP_DSJS = 7'd116
 } tms34020_opcode_id_t;
 
 typedef struct packed {
@@ -524,6 +527,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_MOVE_MM;
                 decoded.length_words = 3'd1;
             end
+            16'b101110??????????: begin
+                decoded.opcode_id = TMS20_OP_MOVE_MM_OFFSET;
+                decoded.length_words = 3'd3;
+            end
             16'b100110??????????: begin
                 decoded.opcode_id = TMS20_OP_MOVE_MM_POST;
                 decoded.length_words = 3'd1;
@@ -536,6 +543,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
                 decoded.opcode_id = TMS20_OP_MOVE_MR;
                 decoded.length_words = 3'd1;
             end
+            16'b101101??????????: begin
+                decoded.opcode_id = TMS20_OP_MOVE_MR_OFFSET;
+                decoded.length_words = 3'd2;
+            end
             16'b100101??????????: begin
                 decoded.opcode_id = TMS20_OP_MOVE_MR_POST;
                 decoded.length_words = 3'd1;
@@ -547,6 +558,10 @@ function automatic tms34020_decode_t tms34020_decode_word(
             16'b100000??????????: begin
                 decoded.opcode_id = TMS20_OP_MOVE_RM;
                 decoded.length_words = 3'd1;
+            end
+            16'b101100??????????: begin
+                decoded.opcode_id = TMS20_OP_MOVE_RM_OFFSET;
+                decoded.length_words = 3'd2;
             end
             16'b100100??????????: begin
                 decoded.opcode_id = TMS20_OP_MOVE_RM_POST;

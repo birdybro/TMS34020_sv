@@ -30,6 +30,7 @@ SOURCES = [
     ROOT / "rtl/memory/tms34020_field_address_update.sv",
     ROOT / "rtl/memory/tms34020_field_pair_postincrement.sv",
     ROOT / "rtl/memory/tms34020_field_pair_predecrement.sv",
+    ROOT / "rtl/memory/tms34020_field_offset_address.sv",
     ROOT / "rtl/memory/tms34020_field_load.sv",
     ROOT / "rtl/memory/tms34020_field_move.sv",
     ROOT / "rtl/memory/tms34020_multiple_register_control.sv",

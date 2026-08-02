@@ -139,6 +139,15 @@ address/copy leaves expose these counts without claiming physical retirement,
 BEN execution, waits, width decomposition or fault timing. Source: User's Guide
 printed pp.15-10..15-12.
 
+The signed-offset field forms consume extension words without changing their
+address bases. `MOVE Rs,*Rd(offset)[,F]` exposes three visible states and the
+usual 1/2/2/3/4 destination hidden writes. `MOVE *Rs(offset),Rd[,F]` exposes
+4/4/5/5/5 visible states for FE=0 and 6/6/7/7/7 for FE=1. The paired-offset
+copy exposes 5/5/6/6/6 visible states by source case plus 1/2/2/3/4 hidden
+states by destination case. The model reports these primary-table values; the
+current RTL only classifies instruction length and signed effective addresses.
+Source: User's Guide printed pp.15-10..15-12.
+
 SETCDP, SETCMP, and SETCSP take `4(1)` states for a power-of-two pitch,
 `6(1)` for a sum of two powers, and `3(1)` for an arbitrary pitch. The model
 records 4/6/3 visible states and one pending hidden internal-I/O write state.

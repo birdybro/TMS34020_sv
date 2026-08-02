@@ -205,6 +205,12 @@ reads the selected FE bit, replaces N/Z/V from the extended field, and
 preserves C; fetched data explicitly wins when Rs=Rd. Source: User's Guide
 printed pp.13-160..13-163.
 
+The signed-offset register-to-memory and memory-to-memory forms likewise read
+only the selected FS bank and preserve ST. `MOVE *Rs(offset),Rd[,F]` reads the
+selected FE bit, replaces N/Z/V from the extended result, and preserves C;
+neither offset form modifies an address-base register. Source: User's Guide
+printed pp.13-160..13-163.
+
 MMTM replaces only N and preserves C/Z/V plus every lower ST bit. The guide's
 two exceptions to the sign of `0-Rp` make the exact implemented rule
 `N = ~old_Rp[31]`: Rp zero sets N while Rp `80000000h` clears it. MMFM leaves

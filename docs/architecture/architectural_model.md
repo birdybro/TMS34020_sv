@@ -21,8 +21,9 @@ Implemented:
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
   PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM,
-  MOVE.RM.POST, MOVE.RM.PRE, MOVE.MR, MOVE.MR.POST, MOVE.MR.PRE, MOVE.MM,
-  MOVE.MM.POST, MOVE.MM.PRE,
+  MOVE.RM.POST, MOVE.RM.PRE, MOVE.RM.OFFSET, MOVE.MR, MOVE.MR.POST,
+  MOVE.MR.PRE, MOVE.MR.OFFSET, MOVE.MM,
+  MOVE.MM.POST, MOVE.MM.PRE, MOVE.MM.OFFSET,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -35,7 +36,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 112 of 113 currently extracted database forms for their
+These handlers cover 115 of 116 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -150,6 +151,19 @@ mode, waits, fault/retry idempotence, interrupt checkpoints, I/O routing and pin
 timing remain absent. Sources: User's Guide printed pp.13-8, 13-160..13-163,
 and 15-10..15-12; compatible execution sequences: TMS34010 User's Guide
 printed pp.12-130..12-131, 12-138..12-139, and 12-143..12-144.
+
+`MOVE.RM.OFFSET`, `MOVE.MR.OFFSET`, and `MOVE.MM.OFFSET` name the three
+signed-16-bit displacement forms at `B000h`, `B400h`, and `B800h`. The first
+two consume one extension word; the paired copy consumes source then
+destination offset words. Effective addresses use modulo-2^32 addition and no
+base writeback. The load applies FE and N/Z/V exactly as the ordinary load;
+the two write forms preserve ST. The model exhausts field geometry, both banks,
+FE/status, overlap and alias behavior, offset extremes, wrap, exact logical
+traces and BEN rollback. Its reported visible/hidden states are the TMS34020
+five-case table values, not physical bus-cycle evidence. Sources: User's Guide
+printed pp.13-14, 13-160..13-163 and 15-10..15-12; compatible forms:
+TMS34010 User's Guide printed pp.12-132..12-133, 12-147..12-148 and
+12-151..12-152.
 
 MMTM/MMFM cover both operation-specific second-word mask directions, every
 register index in both files, shared SP, ascending-store/descending-load

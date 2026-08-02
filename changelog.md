@@ -4,6 +4,16 @@
 
 ### Added
 
+- Primary-page-extracted signed-offset MOVE.RM/MR/MM forms at B000h/B400h/
+  B800h, covering 3,072 first words, source/destination extension-word order,
+  modulo-2^32 bit-address addition, unchanged bases, status effects, five-case
+  timing, and compatible TMS34010 semantic bounds.
+- Little-endian architectural signed-offset field-store/load/copy traces with
+  exhaustive bank/FE/width/source/destination geometry, all alignment pairs,
+  signed immediate boundaries, A/B/SP alias, overlap, wrap, status and atomic
+  BEN rejection.
+- A clean-room signed-16 effective-address leaf whose RTL test exhausts all
+  65,536 displacements and both wrap directions.
 - Primary-page-extracted register-to-memory, memory-to-register, and paired
   memory-to-memory predecrement MOVE forms as internal MOVE.RM.PRE,
   MOVE.MR.PRE, and MOVE.MM.PRE, covering 3,072 words, before-operation pointer
@@ -501,6 +511,17 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis reports 12,826 leaf logic
+  cells/2,230 registers/9 DSP, 453 fetch logic cells, 806 frontend logic cells,
+  and 5,365 scalar logic cells for the 116-entry decoder/signed-offset revision.
+  The frontend/scalar probes retain 4,096 block-memory bits. These are
+  observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification.
+- The 57-case ISA suite, 78-entry delta ledger, and complete 197-case model
+  suite pass. Exact two-/three-word decoder boundaries, all signed-16 RTL
+  effective addresses, model immediate extremes/wrap/aliases/BEN rollback,
+  complete little-endian field geometry, FE/status behavior and all 25 paired
+  timing cases are covered.
 - Warning-free Cyclone V Analysis & Synthesis reports 12,774 leaf logic
   cells/2,230 registers/9 DSP, 439 fetch logic cells, 804 frontend logic cells,
   and 5,365 scalar logic cells for the 113-entry decoder/predecrement revision.
@@ -1168,6 +1189,9 @@
 
 ### Documentation
 
+- Documented the three signed-offset MOVE compatibility boundaries separately
+  from TMS34020-owned 32-bit alignment, BEN, hidden-write, dynamic-width, page
+  and fault/retry realization.
 - Recorded the verified predecrement field-move implementation baseline as
   commit `985b09468c8e543c38f870ec28789f5c8c68a03a` in the progress ledger.
 - Documented all three predecrement MOVE compatibility boundaries separately
@@ -1338,6 +1362,11 @@
 
 ### Known Issues
 
+- MOVE.RM.OFFSET/MR.OFFSET/MM.OFFSET are logical little-endian
+  instruction-boundary models plus separate field and signed-address leaves.
+  No RTL owner fetches their extensions or makes memory/data/status retirement
+  fault/retry/interrupt-safe; BEN, byte strobes/RMW, SIZE16, page mode, waits,
+  I/O and pin cycles remain.
 - MOVE.RM.PRE/MR.PRE/MM.PRE are logical little-endian instruction-boundary
   models plus insertion/extraction/copy and address leaves. No RTL owner makes
   pointer, memory, destination and status retirement fault/retry/interrupt-safe;

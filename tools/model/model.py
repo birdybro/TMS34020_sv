@@ -136,6 +136,7 @@ class Tms34020Model:
             "MOVE.MM.PRE": (
                 self._execute_move_memory_to_memory_predecrement
             ),
+            "MOVE.MM.OFFSET": self._execute_move_memory_to_memory_offset,
             "MOVE.MR": self._execute_move_memory_to_register,
             "MOVE.MR.POST": (
                 self._execute_move_memory_to_register_postincrement
@@ -143,6 +144,7 @@ class Tms34020Model:
             "MOVE.MR.PRE": (
                 self._execute_move_memory_to_register_predecrement
             ),
+            "MOVE.MR.OFFSET": self._execute_move_memory_to_register_offset,
             "MOVE.RM": self._execute_move_register_to_memory,
             "MOVE.RM.POST": (
                 self._execute_move_register_to_memory_postincrement
@@ -150,6 +152,7 @@ class Tms34020Model:
             "MOVE.RM.PRE": (
                 self._execute_move_register_to_memory_predecrement
             ),
+            "MOVE.RM.OFFSET": self._execute_move_register_to_memory_offset,
             "MOVX": self._execute_movx,
             "MOVY": self._execute_movy,
             "RL.K": self._execute_rl_constant,
@@ -1576,6 +1579,12 @@ class Tms34020Model:
             words, "predecrement"
         )
 
+    def _execute_move_register_to_memory_offset(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_register_to_memory_common(words, "offset")
+
     def _execute_move_register_to_memory_common(
         self, words: list[int], address_mode: str
     ) -> int:
@@ -1593,6 +1602,11 @@ class Tms34020Model:
         if address_mode == "predecrement":
             bit_address = (pointer_before - width) & MASK32
             self.state.write_reg(register_file, pointer_index, bit_address)
+        elif address_mode == "offset":
+            signed_offset = words[1]
+            if signed_offset & 0x8000:
+                signed_offset -= 0x1_0000
+            bit_address = (pointer_before + signed_offset) & MASK32
         source = self.state.read_reg(register_file, source_index)
         field_mask = MASK32 if width == 32 else (1 << width) - 1
         value = source & field_mask
@@ -1618,7 +1632,7 @@ class Tms34020Model:
             "alignment_case": alignment_case,
             "hidden_write_states": hidden_states,
         }
-        if address_mode != "ordinary":
+        if address_mode in ("postincrement", "predecrement"):
             transaction.update(
                 {
                     "pointer_before": pointer_before,
@@ -1629,6 +1643,13 @@ class Tms34020Model:
                 transaction["same_register_source_after_update"] = int(
                     source_index == pointer_index
                 )
+        elif address_mode == "offset":
+            transaction.update(
+                {
+                    "base_address": pointer_before,
+                    "signed_offset": signed_offset,
+                }
+            )
         self._active_trace.transactions.append(transaction)
         self._active_trace.notes.append(
             "logical little-endian field insertion"
@@ -1638,13 +1659,19 @@ class Tms34020Model:
                 else (
                     " with destination predecrement before source capture"
                     if address_mode == "predecrement"
-                    else ""
+                    else (
+                        " with an unmodified base plus signed 16-bit offset"
+                        if address_mode == "offset"
+                        else ""
+                    )
                 )
             )
             + "; physical byte strobes, "
             "read/modify/write, dynamic width, wait, page, fault, and retry "
             "sequencing remain pending"
         )
+        if address_mode == "offset":
+            return 3
         return 2 if address_mode == "predecrement" else 1
 
     def _execute_move_memory_to_register(
@@ -1669,6 +1696,12 @@ class Tms34020Model:
             words, "predecrement"
         )
 
+    def _execute_move_memory_to_register_offset(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_memory_to_register_common(words, "offset")
+
     def _execute_move_memory_to_register_common(
         self, words: list[int], address_mode: str
     ) -> int:
@@ -1690,6 +1723,11 @@ class Tms34020Model:
         if address_mode == "predecrement":
             bit_address = (pointer_before - width) & MASK32
             self.state.write_reg(register_file, pointer_index, bit_address)
+        elif address_mode == "offset":
+            signed_offset = words[1]
+            if signed_offset & 0x8000:
+                signed_offset -= 0x1_0000
+            bit_address = (pointer_before + signed_offset) & MASK32
         raw_value = self.state.memory.read_bits(bit_address, width)
         result = raw_value
         if (
@@ -1700,11 +1738,18 @@ class Tms34020Model:
             result |= MASK32 ^ ((1 << width) - 1)
         result &= MASK32
         alignment_case = self._field_alignment_case(bit_address, width)
-        machine_states = (
-            (4 if alignment_case <= 2 else 5)
-            if address_mode == "predecrement"
-            else (3 if alignment_case <= 2 else 4)
-        ) + int(sign_extend)
+        if address_mode == "predecrement":
+            machine_states = (4 if alignment_case <= 2 else 5) + int(
+                sign_extend
+            )
+        elif address_mode == "offset":
+            machine_states = (4 if alignment_case <= 2 else 5) + 2 * int(
+                sign_extend
+            )
+        else:
+            machine_states = (3 if alignment_case <= 2 else 4) + int(
+                sign_extend
+            )
         pointer_after = bit_address
         if address_mode == "postincrement":
             pointer_after = (bit_address + width) & MASK32
@@ -1728,7 +1773,7 @@ class Tms34020Model:
             "alignment_case": alignment_case,
             "sign_extend": int(sign_extend),
         }
-        if address_mode != "ordinary":
+        if address_mode in ("postincrement", "predecrement"):
             transaction.update(
                 {
                     "pointer_before": pointer_before,
@@ -1736,6 +1781,13 @@ class Tms34020Model:
                     "same_register_data_wins": int(
                         pointer_index == destination_index
                     ),
+                }
+            )
+        elif address_mode == "offset":
+            transaction.update(
+                {
+                    "base_address": pointer_before,
+                    "signed_offset": signed_offset,
                 }
             )
         self._active_trace.transactions.append(transaction)
@@ -1749,7 +1801,11 @@ class Tms34020Model:
                     " with source predecrement before read; TI explicitly "
                     "makes loaded data win when Rs=Rd"
                     if address_mode == "predecrement"
-                    else ""
+                    else (
+                        " with an unmodified base plus signed 16-bit offset"
+                        if address_mode == "offset"
+                        else ""
+                    )
                 )
             )
             + "; physical dynamic-width, "
@@ -1779,6 +1835,12 @@ class Tms34020Model:
         return self._execute_move_memory_to_memory_common(
             words, "predecrement"
         )
+
+    def _execute_move_memory_to_memory_offset(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_memory_to_memory_common(words, "offset")
 
     def _execute_move_memory_to_memory_common(
         self, words: list[int], address_mode: str
@@ -1825,6 +1887,19 @@ class Tms34020Model:
                 else (destination_address - width) & MASK32
             )
             destination_pointer_after = effective_destination_address
+        elif address_mode == "offset":
+            source_offset = words[1]
+            destination_offset = words[2]
+            if source_offset & 0x8000:
+                source_offset -= 0x1_0000
+            if destination_offset & 0x8000:
+                destination_offset -= 0x1_0000
+            effective_source_address = (
+                source_address + source_offset
+            ) & MASK32
+            effective_destination_address = (
+                destination_address + destination_offset
+            ) & MASK32
         value = self.state.memory.read_bits(effective_source_address, width)
         source_case = self._field_alignment_case(
             effective_source_address, width
@@ -1832,14 +1907,16 @@ class Tms34020Model:
         destination_case = self._field_alignment_case(
             effective_destination_address, width
         )
-        machine_states = (3 if source_case <= 2 else 4) + int(
-            address_mode == "predecrement"
+        machine_states = (3 if source_case <= 2 else 4) + (
+            2
+            if address_mode == "offset"
+            else int(address_mode == "predecrement")
         )
         hidden_states = (0, 1, 2, 2, 3, 4)[destination_case]
         self.state.memory.write_bits(
             effective_destination_address, width, value
         )
-        if address_mode != "ordinary":
+        if address_mode in ("postincrement", "predecrement"):
             self.state.write_reg(
                 register_file, source_index, source_pointer_after
             )
@@ -1868,7 +1945,7 @@ class Tms34020Model:
             "alignment_case": destination_case,
             "hidden_write_states": hidden_states,
         }
-        if address_mode != "ordinary":
+        if address_mode in ("postincrement", "predecrement"):
             read_transaction.update(
                 {
                     "pointer_before": source_address,
@@ -1886,6 +1963,19 @@ class Tms34020Model:
                 if address_mode == "postincrement"
                 else "same_register_uses_decremented_destination"
             ] = int(same_register)
+        elif address_mode == "offset":
+            read_transaction.update(
+                {
+                    "base_address": source_address,
+                    "signed_offset": source_offset,
+                }
+            )
+            write_transaction.update(
+                {
+                    "base_address": destination_address,
+                    "signed_offset": destination_offset,
+                }
+            )
         self._active_trace.transactions.extend(
             [read_transaction, write_transaction]
         )
@@ -1901,7 +1991,12 @@ class Tms34020Model:
                     "at original minus one field and writes/finishes at "
                     "original minus two fields"
                     if address_mode == "predecrement"
-                    else ""
+                    else (
+                        " with independent signed 16-bit source/destination "
+                        "offsets and unmodified base registers"
+                        if address_mode == "offset"
+                        else ""
+                    )
                 )
             )
             + "; physical "

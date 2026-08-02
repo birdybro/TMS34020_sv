@@ -183,6 +183,35 @@ BEN mapping, byte strobes/RMW, SIZE16, page mode, waits, fault/retry,
 interrupts, I/O and pin timing remain. Sources: User's Guide printed pp.13-8,
 13-160..13-163 and 15-10..15-12.
 
+## Verified signed-offset field boundaries
+
+`MOVE Rs,*Rd(offset)[,F]` (`B000h`/`FC00h`) adds a signed 16-bit bit
+displacement to Rd modulo 2^32, writes the selected low source field at that
+effective address, and changes neither register nor ST. It consumes two words,
+exposes three visible states, and contributes 1/2/2/3/4 hidden write states by
+destination case. `MOVE *Rs(offset),Rd[,F]` (`B400h`/`FC00h`) similarly leaves
+Rs unchanged, reads at the signed-offset effective address, applies FE, writes
+Rd, replaces N/Z/V and preserves C. Its zero-extended cases expose
+4/4/5/5/5 states; sign extension adds two states.
+
+`MOVE *Rs(SOffset),*Rd(DOffset)[,F]` (`B800h`/`FC00h`) consumes the source
+offset before the destination offset. It captures the selected field at
+`Rs + sign_extend(SOffset)` before writing at
+`Rd + sign_extend(DOffset)`, with modulo-2^32 arithmetic, and changes neither
+base nor ST. This remains true when Rs=Rd: the two offsets select independent
+effective addresses from the same unchanged base. Source cases expose
+5/5/6/6/6 visible states and destination cases add 1/2/2/3/4 hidden writes.
+
+Model tests exhaust both field banks, widths and alignment geometry, FE/status,
+source-before-destination overlap, A/B/SP aliases, signed extremes, address
+wrap and BEN rollback. The clean-room offset-address leaf independently
+exhausts all 65,536 signed extension values and wraparound. No combined memory
+owner exists, so BEN mapping, byte strobes/RMW, SIZE16, page mode, waits,
+fault/retry, interrupts, I/O and pin timing remain absent. Sources: User's
+Guide printed pp.13-14, 13-160..13-163 and 15-10..15-12; compatible forms:
+TMS34010 User's Guide printed pp.12-132..12-133, 12-147..12-148 and
+12-151..12-152.
+
 ## Locked-cycle requirements
 
 The write immediately follows the read and instruction completion waits for
@@ -195,7 +224,8 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE offset and absolute forms,
+Remaining ordinary MOVE absolute forms and the source-offset/destination-
+postincrement form,
 BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain

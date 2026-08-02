@@ -235,6 +235,19 @@ no upstream timing FSM is reused. Sources: TMS34020 guide printed pp.13-8,
 13-160..13-163 and 15-10..15-12; TMS34010 guide printed pp.12-130..12-131,
 12-138..12-139 and 12-143..12-144.
 
+The three signed-offset forms retain `B000h`, `B400h`, and `B800h` with mask
+`FC00h`, signed 16-bit bit displacements, source-before-destination extension
+word order for the paired copy, modulo-2^32 effective-address addition, and no
+base writeback. Compatible field insertion/extraction/extension/status and
+read-before-write semantics may be reused only after independent tests. The
+TMS34020 owns its five-case 32-bit timing: three visible states for the store,
+4/4/5/5/5 with a two-state FE surcharge for the load, and 5/5/6/6/6 source
+states plus 1/2/2/3/4 destination hidden writes for the paired copy. BEN,
+byte strobes/RMW, dynamic width, page behavior, waits and fault/retry retirement
+remain TMS34020-specific; no TMS34010 timing FSM is reused. Sources: TMS34020
+guide printed pp.13-14, 13-160..13-163 and 15-10..15-12; TMS34010 guide
+printed pp.12-132..12-133, 12-147..12-148 and 12-151..12-152.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

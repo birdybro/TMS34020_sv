@@ -126,6 +126,7 @@ module tms34020_leaf_synth_top (
     logic [31:0] field_pair_pre_destination_effective;
     logic [31:0] field_pair_pre_source_updated;
     logic [31:0] field_pair_pre_destination_final;
+    logic [31:0] field_offset_effective;
     logic [5:0] field_load_size;
     logic [2:0] field_load_alignment_case;
     logic field_load_reads_word1;
@@ -214,6 +215,7 @@ module tms34020_leaf_synth_top (
         field_pair_pre_destination_effective ^
         field_pair_pre_source_updated ^
         field_pair_pre_destination_final ^
+        field_offset_effective ^
         field_load_raw ^
         field_load_result ^
         field_move_value ^
@@ -528,6 +530,12 @@ module tms34020_leaf_synth_top (
         ),
         .source_updated_pointer_o(field_pair_pre_source_updated),
         .destination_final_pointer_o(field_pair_pre_destination_final)
+    );
+
+    tms34020_field_offset_address field_offset_address (
+        .base_address_i(second_register_data),
+        .signed_offset_i(operand_i[15:0]),
+        .effective_address_o(field_offset_effective)
     );
 
     tms34020_field_load field_load (
