@@ -1484,6 +1484,9 @@ qualification.
 
 ### Documentation
 
+- Recorded bounded FLINE semantics, tests, synthesis evidence, and explicit
+  physical-sequencing limitations at commit
+  `2b02ddd90bf7ebcaa3832e49f8b15689cfba0235`.
 - Recorded corrected FPIX DPYCTL.CST model semantics as commit
   `16bc596db106d4b03074e8544f099e8a88ddb289` after the complete 227-test
   model regression.
