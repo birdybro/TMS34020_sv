@@ -1458,6 +1458,10 @@ qualification.
 
 ### Documentation
 
+- Recorded the bounded FPIXEQ/FPIXNE ISA/model/one-step-RTL milestone as
+  commit `a355eec2c5ffe5c063137e2161fc194483309075`, with no physical memory-loop,
+  continuation, architectural-timing, instruction-completeness, or release-
+  readiness claim.
 - Recorded the bounded CLIP ISA/model/RTL milestone as commit
   `5c70d880e19ca1a478a824f4a90019b8fab6de68` with no zero-dimension,
   architectural-timing, graphics-engine, instruction-completeness, or
