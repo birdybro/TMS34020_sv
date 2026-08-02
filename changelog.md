@@ -934,6 +934,8 @@
 
 ### Documentation
 
+- Recorded the verified MPYS/MPYU implementation baseline as commit
+  `281989160aa466c8ab98b9d06634802e432e367b` in the progress ledger.
 - Recorded RSC-0030/OQ-0020 for the TMS34020 detailed-page/chapter-15 swap of
   MPYS/MPYU sign-dependent timing; selected detailed-page timing remains
   provisional. RSC-0031 records the impossible MPYS Example 1 operand and its
