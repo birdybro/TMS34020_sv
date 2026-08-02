@@ -155,12 +155,14 @@ CVMXYL uses Rd, B11/MPTCH, and CONVMP, with unscaled X and no offset in its
 published execution equation. CVSXYL uses Rd as XY, explicit Rs as offset,
 B1/SPTCH, CONVSP, and PSIZE. CVXYL uses explicit Rs as XY with implied B3,
 B4/OFFSET, CONVDP, and PSIZE. All preserve ST. The first three take 2/3/14
-states for one-power/two-power/arbitrary pitch; CVXYL takes 3/4/14. RSC-0025
-records three PSIZE=4 example rows that omit the X term required by the
-repeated equation; the equation is implemented without inventing a special
-case. Sources: TMS34020 User's Guide printed pp.4-28..4-29, 12-47..12-49,
-and 13-87..13-93; CVXYL compatibility cross-check: TMS34010 User's Guide
-printed pp.12-59..12-60.
+states for one-power/two-power/arbitrary pitch. CVXYL takes 3/4 for the first
+two classes; its own page says 14 for arbitrary pitch while the consolidated
+timing table says 15, and the model provisionally uses 14. RSC-0025 records
+three PSIZE=4 example rows that omit the X term required by the repeated
+equation; the equation is implemented without inventing a special case.
+RSC-0026 tracks the timing contradiction. Sources: TMS34020 User's Guide
+printed pp.4-28..4-29, 12-47..12-49, 13-87..13-93, and timing p.15-4; CVXYL
+compatibility cross-check: TMS34010 User's Guide printed pp.12-59..12-60.
 
 REV at `0020h`/`FFE0h` writes an architecturally visible physical-device
 identity to an A/B destination or the shared SP alias without changing ST. In

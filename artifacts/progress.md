@@ -14,8 +14,10 @@
 - Model status: 92 of 93 currently extracted encoding forms have bounded
   successful semantics. CVDXYL/CVMXYL/CVSXYL/CVXYL cover signed coordinates
   and arbitrary pitches, one-/two-power CONVxP paths, offsets/PSIZE, aliases,
-  unchanged ST, and exact 2/3/4/14-state classes. RSC-0025 discloses three
-  inconsistent PSIZE=4 example rows while the repeated equation is followed.
+  unchanged ST, and pitch-class state selection. RSC-0025 discloses three
+  inconsistent PSIZE=4 example rows while the repeated equation is followed;
+  RSC-0026 discloses the arbitrary-pitch 14/15-state conflict, for which the
+  model provisionally selects the instruction page's 14.
   CPW covers all published outcodes, signed inclusive
   bounds, A/B/SP operands, implied B5/B6 hazards, V-only status, and one state.
   CALL covers every A/B/shared-SP target class and
@@ -114,7 +116,7 @@
   while the scalar router rejects CPW until Rs, B5, and B6 can be captured and
   destination/V committed atomically.
   CVDXYL/CVMXYL/CVSXYL/CVXYL decode and a standalone signed conversion leaf
-  pass all pitch classes, PSIZE/mask-X, offsets, wrap, and 2/3/4/14-state
+  pass all pitch classes, PSIZE/mask-X, offsets, wrap, and published state-case
   checks; the scalar router rejects them until explicit/implied registers,
   CONVxP, PSIZE, and destination ownership can be captured atomically.
   CLR requires no duplicate execution opcode: the existing XOR path decodes
@@ -186,7 +188,8 @@
   uninitialized SSAs as abstract `None` tags and exposes native 32-bit refill
   transactions rather than pin-level dynamic-width cycles
 - Unresolved conflicts: exact game parts and REV values, original/A errata,
-  first-silicon history, and CVXYL's three contradictory PSIZE=4 table rows
+  first-silicon history, CVXYL's three contradictory PSIZE=4 table rows, and
+  its arbitrary-pitch 14/15-state primary timing disagreement
 - Battletoads readiness: not ready
 - Revolution X readiness: not ready
 - Next task: continue primary ISA extraction and preserve explicit noncommit

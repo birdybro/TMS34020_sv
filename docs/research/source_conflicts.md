@@ -506,3 +506,25 @@
   silicon/errata confirmation. Confidence: `VERIFIED_PRIMARY` for the equation
   and all nonconflicting rows, `UNKNOWN` for whether an unlocated erratum
   explicitly corrects the table.
+
+## RSC-0026: CVXYL arbitrary-pitch timing is 14 or 15 states
+
+- Status: open primary timing contradiction; instruction-page value selected
+  provisionally
+- Primary instruction-page evidence: TI *TMS34020 User's Guide*, August 1990,
+  CVXYL, printed p.13-92 specifies 3 states for a power-of-two pitch, 4 for a
+  sum of two powers, and 14 for an arbitrary pitch.
+- Conflicting primary summary: the consolidated instruction-timing table on
+  printed p.15-4 repeats 3 and 4 for the first two classes but specifies 15 for
+  the arbitrary-pitch class. The adjacent CVDXYL, CVMXYL, and CVSXYL entries
+  agree with their instruction pages at 2/3/14, so the conflict is isolated to
+  CVXYL arbitrary pitch.
+- Compatibility evidence: TI *TMS34010 User's Guide*, 1988, CVXYL, printed
+  pp.12-59..12-60 and Appendix A p.A-13 publishes the older power-of-two-only
+  `3,6` timing and cannot resolve the TMS34020 arbitrary path.
+- Decision: retain 14 states in the current model and semantic RTL leaf because
+  it is the instruction-specific value, but classify that choice as
+  `PROVISIONAL`, encode both primary values in the ISA database, and make no
+  cycle-accuracy claim for this case. OQ-0017 tracks evidence capable of
+  resolving the discrepancy. Confidence: `VERIFIED_PRIMARY` that the two
+  publications conflict; `UNKNOWN` for real-device arbitrary-pitch timing.

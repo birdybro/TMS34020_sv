@@ -8,7 +8,8 @@
   `0A60h`/`FFE0h`, CVSXYL `EA00h`/`FE00h`, and CVXYL
   `E800h`/`FE00h` metadata plus model semantics for signed coordinates,
   one-/two-power and arbitrary pitches, offsets, PSIZE, aliases, unchanged ST,
-  and documented 2/3/4/14-state classes.
+  and documented pitch-class state cases; CVXYL arbitrary pitch provisionally
+  selects its instruction page's 14 states pending RSC-0026.
 - A portable signed XY-to-linear arithmetic/classification RTL leaf with
   direct equation, pitch-class, modulo-wrap, timing-selection, and noncommit
   guard tests pending a complete implied-register/I/O owner.
@@ -315,6 +316,12 @@
 
 ### Fixed
 
+- Removed the unsupported claim that arbitrary-pitch CVXYL timing was exact:
+  the instruction page specifies 14 states but the chapter-15 table specifies
+  15. Both primary values are now machine-readable, the selected 14-state
+  model/leaf behavior is explicitly provisional, and OQ-0017 tracks hardware
+  or errata evidence.
+
 - Corrected progress text that had overstated the machine-readable delta ledger
   as 65 entries; it contained 52 before this milestone and contains 53 after
   adding REV. The schema and all 37 mandatory feature names were already
@@ -352,7 +359,7 @@
 - The 38-case ISA suite, 59-entry delta ledger, and 148-case model suite pass.
   XY conversion coverage includes all 1,088 encodings, every pitch class,
   signed arbitrary multiplication, PSIZE/offset variants, aliases, full ST
-  preservation, and exact instruction-boundary states; direct RTL tests cover
+  preservation, and the selected instruction-boundary states; direct RTL tests cover
   the shared leaf while all four commit paths remain guarded.
 - The 37-case ISA suite, 58-entry delta ledger, and 145-case model suite pass.
   CPW covers every published outcode row, signed discriminators, alias hazards,

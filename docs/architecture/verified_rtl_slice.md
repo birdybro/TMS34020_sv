@@ -34,7 +34,7 @@ core, sequencer, pipeline, complete memory controller, or pin interface.
 | `rtl/graphics/tms34020_pitch_conversion.sv` | Shared SETCDP/SETCMP/SETCSP conversion-field and 4/6/3 visible-state classification for one-power, two-power, and arbitrary pitches; no hidden-I/O write owner | TI *TMS34020 User's Guide*, August 1990, printed pp.4-28..4-29, Figure 12-20 p.12-49, instruction pp.13-227..13-229, and timing-table p.15-8 |
 | `rtl/graphics/tms34020_pixel_replicate.sv` | RPIX replication and documented machine-state counts for PSIZE 1, 2, 4, 8, 16, and 32 | TI *TMS34020 User's Guide*, August 1990, RPIX, printed p.13-225; §12.6, printed p.12-17 |
 | `rtl/graphics/tms34020_window_compare.sv` | Signed XY comparison against inclusive WSTART/WEND bounds, zero-extended CPW outcode bits 8:5, and outside/V condition; register capture and commit ownership remain outside the leaf | TI *TMS34020 User's Guide*, August 1990, CPW, printed pp.13-85..13-86 |
-| `rtl/graphics/tms34020_xy_to_linear.sv` | Signed XY and arbitrary-pitch arithmetic, one-/two-power CONVxP shifts, optional PSIZE scaling or unscaled mask X, modulo-32-bit offset addition, pitch classification, and visible 2/3/4/14-state selection; implied-register/I/O capture and commit ownership remain outside the leaf | TI *TMS34020 User's Guide*, August 1990, CONVxP printed pp.4-28..4-29, §12.12 printed pp.12-47..12-49, and CVDXYL/CVMXYL/CVSXYL/CVXYL printed pp.13-87..13-93 |
+| `rtl/graphics/tms34020_xy_to_linear.sv` | Signed XY and arbitrary-pitch arithmetic, one-/two-power CONVxP shifts, optional PSIZE scaling or unscaled mask X, modulo-32-bit offset addition, pitch classification, and visible state selection; CVXYL arbitrary pitch provisionally selects 14 under RSC-0026, while implied-register/I/O capture and commit ownership remain outside the leaf | TI *TMS34020 User's Guide*, August 1990, CONVxP printed pp.4-28..4-29, §12.12 printed pp.12-47..12-49, CVDXYL/CVMXYL/CVSXYL/CVXYL printed pp.13-87..13-93, and timing p.15-4 |
 | `rtl/cache/tms34020_icache.sv` | Bounded native-completion cache leaf: four segments, 32 subsegments, 128×32 data RAM, lookup classifications, demand-long-word-last refill, move-to-front LRU, reset abstraction, `CD` bypass, idle `CF`, backpressure, current-beat retry, and fault pause/resume/abort | TI *TMS34020 User's Guide*, August 1990, §§5.1–5.3.6, printed pp.5-2..5-8; fault/retry §§6.9 and 8.6, printed pp.6-19..6-20 and 8-12..8-14; reset §6.12.2, printed p.6-23 |
 
 REV, TRAP, RETS, CALL, CALLA, and CALLR are classified but intentionally absent
@@ -82,7 +82,7 @@ Verilator. It checks:
   direct router noncommit while implied B5/B6 reads remain unowned;
 - exact CVDXYL/CVMXYL/CVSXYL/CVXYL range boundaries, equation-based
   power-of-two, two-power, and arbitrary signed-pitch arithmetic, PSIZE and
-  mask-X selection, offsets, signed wrap, 2/3/4/14-state classification, and
+  mask-X selection, offsets, signed wrap, pitch-class state selection, and
   direct-router noncommit while implied register/I/O ownership remains absent;
 - all 32 CLR same-register alias encodings, equal A/B source/destination
   selectors, shared-SP selection, zero result, Z set, and N/C/V preservation

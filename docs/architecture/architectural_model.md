@@ -144,9 +144,12 @@ offset from explicit Rs, and CVXYL uses B4/OFFSET. All operands are captured
 before destination writeback, including same-register and implied-register
 aliases, and ST is unchanged. Directed tests cover the primary equations,
 every pitch category, signed wrap, all PSIZE values represented by the guide,
-and exact 2/3/4/14-state classes. The three inconsistent CVXYL PSIZE=4 table
-rows are corrected according to the repeated equation under RSC-0025. Sources:
-TMS34020 User's Guide printed pp.4-28..4-29, 12-47..12-49, and 13-87..13-93.
+and the published pitch-class state cases. CVXYL arbitrary pitch provisionally
+uses the instruction page's 14 states; the chapter-15 table's conflicting 15
+remains RSC-0026/OQ-0017, so that case is not timing-verified. The three
+inconsistent CVXYL PSIZE=4 table rows are corrected according to the repeated
+equation under RSC-0025. Sources: TMS34020 User's Guide printed pp.4-28..4-29,
+12-47..12-49, 13-87..13-93, and 15-4.
 
 BTST.K recovers the selected bit from the one's-complement object field.
 BTST.R uses only the low five bits of its same-file source. Both preserve every
@@ -488,8 +491,8 @@ low/high-word target assembly with explicitly incomplete timing,
 all 16 CPW primary outcodes, signed/inclusive bounds, V-only status, explicit
 operand aliases, and implied B5/B6 read-before-write hazards,
 all four XY-to-linear forms, one-/two-power and arbitrary-pitch paths, signed
-coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and exact
-2/3/4/14-state classes,
+coordinates/pitches, PSIZE/offset variants, aliases, unchanged ST, and the
+published state cases plus provisional CVXYL arbitrary-pitch selection,
 all BLMOVE S/D modes, alignment guards, zero/self/wrapping ranges, abstract
 transactions, overlap refusal, and final B0/B2/B7/ST state;
 IDLE claim boundaries, no mutation on unclassified instructions, and

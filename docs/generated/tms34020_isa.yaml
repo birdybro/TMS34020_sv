@@ -3490,18 +3490,18 @@
       "graphics_register_dependencies": ["CONVDP pitch class/factors", "B3 DPTCH arbitrary multiplier", "B4 OFFSET", "PSIZE X multiplier"],
       "cache_interactions": ["ordinary one-word cached instruction fetch only"],
       "pipeline_interactions": ["capture Rs, B3, B4, CONVDP, and PSIZE before Rd write; Rs may equal Rd"],
-      "interruptibility": "at completion of the selected 3/4/14-state pitch-class path",
+      "interruptibility": "at completion of the selected pitch-class path; arbitrary-pitch timing is unresolved by RSC-0026",
       "restartability": "no data-memory side effect; instruction-fetch retry only",
       "bus_fault_behavior": "instruction-fetch fault behavior only",
-      "documented_cycles": {"kind": "pitch_class_cases", "power_of_two_machine_states": 3, "two_powers_of_two_machine_states": 4, "arbitrary_pitch_machine_states": 14},
-      "cache_hit_cycles": "3, 4, or 14 machine states for power-of-two, sum-of-two-powers, or arbitrary pitch",
+      "documented_cycles": {"kind": "pitch_class_cases_with_primary_conflict", "power_of_two_machine_states": 3, "two_powers_of_two_machine_states": 4, "arbitrary_instruction_page_machine_states": 14, "arbitrary_chapter15_machine_states": 15, "implemented_provisional_machine_states": 14},
+      "cache_hit_cycles": "3 or 4 machine states for power-of-two or sum-of-two-powers; arbitrary pitch conflicts between 14 on p.13-92 and 15 on p.15-4 (model provisionally selects 14)",
       "cache_miss_cycles": "instruction refill composes with the selected execution path",
       "bus_16_effects": "no data transaction",
       "bus_32_effects": "no data transaction",
       "page_mode_effects": "instruction fetch only",
       "source_citations": ["TI-TMS34020-UG-1990 CVXYL, printed pp.13-92..13-93", "TI-TMS34020-UG-1990 XY conversion §12.12, printed pp.12-47..12-49", "TI-TMS34020-UG-1990 CONVxP, printed pp.4-28..4-29", "TI-TMS34010-UG-1988 CVXYL, printed pp.12-59..12-60"],
       "compatible_with_tms34010": true,
-      "confidence": "VERIFIED_PRIMARY"
+      "confidence": "PROVISIONAL"
     }
   ]
 }

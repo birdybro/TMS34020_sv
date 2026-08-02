@@ -43,7 +43,7 @@ PSIZE scales X for destination, source, and general conversion. Mask
 conversion uses the published unscaled X term and no offset.
 
 `tms34020_xy_to_linear.sv` implements the combinational arithmetic, pitch
-class, and visible 2/3/4/14-state selection independently of the register
+class, and visible pitch-class state selection independently of the register
 owner. The scalar composition rejects all four decoded forms because it cannot
 yet atomically capture their explicit operand(s), B-file pitch/offset
 registers, conversion register, and PSIZE. This leaf is not a claim that I/O
@@ -52,5 +52,8 @@ write latency, pipeline overlap, or a complete graphics operation is present.
 RSC-0025 isolates three CVXYL PSIZE=4 examples whose results omit `X × 4`
 despite the equations on printed pp.12-47 and 13-92. The model/RTL follow the
 equation, and OQ-0016 retains the need for errata or hardware confirmation.
+RSC-0026 separately records that arbitrary-pitch CVXYL is 14 states on the
+instruction page but 15 in the chapter-15 timing table. The leaf provisionally
+reports 14 and is not evidence of resolved physical timing.
 Sources: the same guide, CONVxP printed pp.4-28..4-29, §12.12 printed
-pp.12-47..12-49, and instruction pages 13-87..13-93.
+pp.12-47..12-49, instruction pages 13-87..13-93, and timing p.15-4.

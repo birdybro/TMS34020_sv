@@ -67,7 +67,12 @@ class IsaTests(unittest.TestCase):
             with self.subTest(mnemonic=instruction["mnemonic"]):
                 self.assertEqual(set(instruction), REQUIRED_FIELDS)
                 self.assertTrue(instruction["source_citations"])
-                self.assertEqual(instruction["confidence"], "VERIFIED_PRIMARY")
+                self.assertIn(
+                    instruction["confidence"],
+                    {"VERIFIED_PRIMARY", "PROVISIONAL"},
+                )
+                if instruction["confidence"] == "PROVISIONAL":
+                    self.assertEqual(instruction["mnemonic"], "CVXYL")
 
     def test_independent_hand_checked_first_words(self) -> None:
         fixtures = {
@@ -538,7 +543,7 @@ class IsaTests(unittest.TestCase):
             "CVDXYL": (2, 3, 14),
             "CVMXYL": (2, 3, 14),
             "CVSXYL": (2, 3, 14),
-            "CVXYL": (3, 4, 14),
+            "CVXYL": (3, 4, None),
         }
         for mnemonic, cycles in expected_cycles.items():
             instruction = next(
@@ -552,10 +557,24 @@ class IsaTests(unittest.TestCase):
                 (
                     timing["power_of_two_machine_states"],
                     timing["two_powers_of_two_machine_states"],
-                    timing["arbitrary_pitch_machine_states"],
+                    timing.get("arbitrary_pitch_machine_states"),
                 ),
                 cycles,
             )
+        cvxyl_timing = self.database.decode(0xE800).metadata[
+            "documented_cycles"
+        ]
+        self.assertEqual(cvxyl_timing["kind"],
+                         "pitch_class_cases_with_primary_conflict")
+        self.assertEqual(cvxyl_timing[
+            "arbitrary_instruction_page_machine_states"
+        ], 14)
+        self.assertEqual(cvxyl_timing[
+            "arbitrary_chapter15_machine_states"
+        ], 15)
+        self.assertEqual(cvxyl_timing[
+            "implemented_provisional_machine_states"
+        ], 14)
         self.assertTrue(self.database.decode(0xE800).metadata[
             "compatible_with_tms34010"
         ])

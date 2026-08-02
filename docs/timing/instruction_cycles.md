@@ -113,14 +113,17 @@ timing table p.15-4; TMS34010 User's Guide printed pp.12-57..12-58 and
 Appendix A p.A-13.
 
 CVDXYL, CVMXYL, and CVSXYL take 2 machine states for a power-of-two pitch, 3
-for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3, 4, or
-14 states for the same classes. These are register/internal-I/O execution
-cases with no data-memory transaction; an instruction-cache miss composes
-separately. CVXYL's compatible TMS34010 form publishes `3,6` under the older
-power-of-two-only conversion contract, so its timing sequencer cannot be
-inherited. Sources: TMS34020 User's Guide printed pp.12-47..12-49,
-13-87..13-93, and timing table p.15-4; TMS34010 User's Guide printed
-pp.12-59..12-60.
+for a sum of two powers, and 14 for an arbitrary pitch. CVXYL takes 3 and 4
+states for the first two classes. Its instruction page specifies 14 for an
+arbitrary pitch, while the chapter-15 table specifies 15; the model and
+semantic RTL leaf provisionally select the instruction-page value, and
+RSC-0026/OQ-0017 keep the real-device timing open. These are
+register/internal-I/O execution cases with no data-memory transaction; an
+instruction-cache miss composes separately. CVXYL's compatible TMS34010 form
+publishes `3,6` under the older power-of-two-only conversion contract, so its
+timing sequencer cannot be inherited. Sources: TMS34020 User's Guide printed
+pp.12-47..12-49, 13-87..13-93, and timing table p.15-4; TMS34010 User's Guide
+printed pp.12-59..12-60.
 
 JUMP takes two machine states, preserves ST and its source register, and loads
 an aligned PC from that register. Both processor guides give the same encoding,
