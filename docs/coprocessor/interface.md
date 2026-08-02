@@ -4,12 +4,11 @@
 
 The TMS34020 has a processor-owned local-memory coprocessor protocol. An
 external coprocessor implements the commands and associated computation; it is
-not part of the generic CPU core. The current repository implements only the
-two CEXEC instruction encodings, their architectural command value, an
-instruction-boundary model transaction, and a noncommitting synthesizable
-formatter. It does not yet implement the pin cycle, completion handshake,
-fault checkpoint, CMOV instruction families, or a synthetic external
-coprocessor.
+not part of the generic CPU core. The current repository implements the two
+CEXEC encodings and both CMOVGC register-to-coprocessor forms, their bounded
+architectural transactions, and noncommitting synthesizable formatters. It
+does not yet implement the pin cycle, completion handshake, fault checkpoint,
+the other CMOV families, or a synthetic external coprocessor.
 
 Source: TI *TMS34020 User's Guide*, 2564006-9721, August 1990, Chapter 10
 overview and Table 10-1, printed pp.10-2..10-4. Confidence:
@@ -60,6 +59,39 @@ printed pp.13-53..13-54; Chapter 15 timing table, printed p.15-3. Confidence:
 `VERIFIED_PRIMARY` for legal encoding, command formation, status, and published
 state counts.
 
+## CMOVGC register transfers
+
+CMOVGC moves captured TMS34020 register values to an external coprocessor. The
+guide defines two distinct first-word families:
+
+| Internal database name | First word | First extension | Data order | Machine states |
+|---|---:|---|---|---|
+| `CMOVGC.1` | `0620h`/`FFE0h`; Rs file/index in `[4:0]` | command `[7:0]` in `[15:8]`; low byte zero | one 32-bit Rs value | `2 (1)` aligned or `3 (1)` unaligned |
+| `CMOVGC.2` | `0640h`/`FFE0h`; Rs1 file/index in `[4:0]` | command `[7:0]`, size in bit 7, zero bits `[6:5]`, and Rs2 file/index in `[4:0]` | Rs1 then Rs2, each 32 bits | `3 (1)` aligned or `4 (1)` unaligned |
+
+Both use a second extension with ID in `[15:13]` and command `[20:8]` in
+`[12:0]`. The one-register form sends `size=0`. In the two-register form,
+`size=0` means two separate 32-bit parameters and `size=1` means two halves of
+one 64-bit parameter; the physical bus still carries two ordered 32-bit data
+words. Registers and every ST bit are unaffected. Register number 15 resolves
+through the shared SP alias in either file.
+
+The initial command has `I=0`. Ordinarily the second word follows through page
+mode. If the coprocessor rejects page mode or a high-priority local-memory
+request intervenes, the processor must issue a new address/status subcycle
+with the same ID, command, size, S, and BCST, but `I=1`, before transferring
+Rs2. The clean-room RTL leaf exposes both initial and I=1 LAD command values;
+it does not decide whether page mode continues. The model records one logical
+command followed by one or two ordered outbound data transactions, and notes
+that the physical page decision is pending.
+
+Sources: User's Guide CMOVGC one-register form, printed pp.13-67..13-68;
+CMOVGC two-register form, printed pp.13-69..13-70; §§10.3.3..10.3.5 and
+§10.4.6, printed pp.10-6..10-7 and 10-11..10-12; Chapter 15 timing table,
+printed p.15-3. Confidence: `VERIFIED_PRIMARY` for encoding, logical order,
+command/data values and published state counts; `PROVISIONAL` for the bounded
+implementation without a physical sequencer.
+
 ## Command-cycle signaling
 
 CEXEC causes a coprocessor command cycle. The command replaces the ordinary
@@ -90,15 +122,16 @@ retry. These rules require the future physical bus owner to hold a command
 request stable until one completion outcome, suppress stale completion, and
 reissue without duplicating processor-visible retirement.
 
-The current model records one logical `coprocessor_command` transaction only
-after legal packet decode, with ID, command, size, and formatted LAD value. It
-does not claim that an external device accepted the command and cannot inject
-LRDY, BUSFLT, retry, or an asynchronous interrupt. The current RTL module
-`rtl/coprocessor/tms34020_coprocessor_command.sv` is purely combinational and
-owns no pins or request state. Consequently the point at which an external
-coprocessor may acquire an irreversible side effect relative to BUSFLT remains
-an implementation checkpoint to verify with command-cycle waveforms and a
-synthetic coprocessor.
+The current model records logical `coprocessor_command` and, for CMOVGC,
+`coprocessor_data_out` transactions only after legal packet decode. It does not
+claim that an external device accepted them and cannot inject LRDY, BUSFLT,
+retry, or an asynchronous interrupt. The current RTL modules
+`rtl/coprocessor/tms34020_coprocessor_command.sv` and
+`rtl/coprocessor/tms34020_coprocessor_register_write.sv` are purely
+combinational and own no pins or request state. Consequently the point at which
+an external coprocessor may acquire an irreversible side effect relative to
+BUSFLT remains an implementation checkpoint to verify with command/data-cycle
+waveforms and a synthetic coprocessor.
 
 Sources: User's Guide §10.4.4, printed pp.10-9..10-10, with the general cycle
 completion rules in §8.6, printed pp.8-12..8-14. Confidence:
@@ -112,7 +145,7 @@ silicon edge ordering beyond the published diagrams.
 - a native command/data request and success/retry/fault response contract;
 - exact command-cycle phase generation in the original-pin bus wrapper;
 - CEXEC wait, retry, bus-fault, interrupt, and restart tests;
-- all CMOVCG, CMOVCM, CMOVCS, CMOVGC, and CMOVMC encodings and transfers;
+- all CMOVCG, CMOVCM, CMOVCS, and CMOVMC encodings and transfers;
 - direct and indirect one-word, two-word, and sequence interruption behavior;
 - a deterministic synthetic external coprocessor and randomized asynchronous
   completion tests; and

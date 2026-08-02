@@ -822,3 +822,18 @@
   all six low bits, all thirteen high bits, and zero command bits `[7:6]`.
   MAME remains a secondary differential reference and its short-CEXEC
   disassembly formula is not copied.
+
+## RSC-0041: CMOVGC example transposes the 64-bit width
+
+- Status: resolved as a primary-document typographical error; no architectural
+  ambiguity remains
+- Primary inconsistency: TI *TMS34020 User's Guide*, August 1990, CMOVGC
+  two-register description on printed p.13-69 says `size=1` moves two halves
+  of one 64-bit value. Chapter 10 §10.3.3 on printed p.10-6 defines `size=1`
+  as one 64-bit parameter, and the instruction syntax supplies two 32-bit
+  source registers. Example 2 on printed p.13-70 alone calls the value
+  “54-bit.”
+- Decision: treat “54-bit” as a transposed-digit typo and implement the
+  repeatedly documented 64-bit interpretation. The physical transfer remains
+  two ordered 32-bit words in either size mode; size changes the coprocessor's
+  interpretation, not the LAD data width.

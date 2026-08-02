@@ -1,6 +1,6 @@
 # TMS34010 to TMS34020 architectural delta
 
-Status: required-topic coverage is complete in the 94-entry generated ledger;
+Status: required-topic coverage is complete in the 96-entry generated ledger;
 instruction-by-instruction and cycle-by-cycle quantification is still in
 progress under `TMS20-0005` and `TMS20-0006`.
 

@@ -36,12 +36,12 @@ Implemented:
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
-  CEXEC.S, ORI, XORI,
+  CEXEC.S, CMOVGC.1, CMOVGC.2, ORI, XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 131 of 132 currently extracted database forms for their
+These handlers cover 133 of 134 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -578,6 +578,17 @@ the pin command cycle, LRDY/BUSFLT, retry, an external coprocessor side effect,
 or interrupt recognition. Sources: User's Guide Chapter 10, especially
 §§10.3..10.4.5 printed pp.10-5..10-10, and CEXEC printed pp.13-51..13-54;
 see `docs/coprocessor/interface.md`.
+CMOVGC.1 and CMOVGC.2 likewise preserve every register and ST bit. They emit
+one logical command followed by one or two `coprocessor_data_out`
+transactions in Rs1/Rs2 order, resolving register 15 through the shared SP.
+Tests cover all 32 first-word source selectors, every ID, both immediate
+alignments, both sizes, every second-source selector, command-bit placement,
+required-zero extension fields, ordered captured values, and atomic reserved
+packet rollback. The two-word model trace is a successful logical sequence;
+the physical page-mode continuation or I=1 reissue, arbitration, waits,
+fault/retry, external acceptance and interrupt checkpoint remain absent.
+Sources: User's Guide §§10.3.3..10.4.6 printed pp.10-6..10-12 and CMOVGC
+printed pp.13-67..13-70; see `docs/coprocessor/interface.md` and RSC-0041.
 The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,

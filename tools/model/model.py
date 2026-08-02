@@ -216,6 +216,8 @@ class Tms34020Model:
             "BLMOVE": self._execute_blmove,
             "CEXEC.L": self._execute_cexec,
             "CEXEC.S": self._execute_cexec,
+            "CMOVGC.1": self._execute_cmovgc,
+            "CMOVGC.2": self._execute_cmovgc,
             "ORI": self._execute_ori,
             "XORI": self._execute_xori,
             "IDLE": self._execute_idle,
@@ -2468,6 +2470,95 @@ class Tms34020Model:
             "transfer; external coprocessor acceptance, LRDY/BUSFLT, retry, "
             "fault continuation, page interruption, pin phases and interrupt "
             "recognition remain pending"
+        )
+        return machine_states
+
+    def _execute_cmovgc(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        first_word = words[0]
+        extension = words[1]
+        two_registers = instruction.mnemonic == "CMOVGC.2"
+        if two_registers:
+            if extension & 0x0060:
+                raise UnsupportedInstruction(
+                    "CMOVGC.2 reserved extension bits 6:5 must be zero"
+                )
+            size = (extension >> 7) & 1
+            source2_file = "B" if extension & 0x10 else "A"
+            source2_index = extension & 0xF
+        else:
+            if extension & 0x00FF:
+                raise UnsupportedInstruction(
+                    "CMOVGC.1 reserved extension bits 7:0 must be zero"
+                )
+            size = 0
+            source2_file = "A"
+            source2_index = 0
+        source1_file = "B" if first_word & 0x10 else "A"
+        source1_index = first_word & 0xF
+        source_values = [
+            self.state.read_reg(source1_file, source1_index)
+        ]
+        source_locations = [(source1_file, source1_index)]
+        if two_registers:
+            source_values.append(
+                self.state.read_reg(source2_file, source2_index)
+            )
+            source_locations.append((source2_file, source2_index))
+        command = ((words[2] & 0x1FFF) << 8) | (extension >> 8)
+        coprocessor_id = (words[2] >> 13) & 7
+        command_word = (
+            (coprocessor_id << 29) |
+            (command << 8) |
+            (size << 7)
+        ) & MASK32
+        immediate_aligned = self._first_extension_long_word_aligned()
+        machine_states = (
+            (3 if immediate_aligned else 4)
+            if two_registers
+            else (2 if immediate_aligned else 3)
+        )
+        self._new_hidden_write_states = 1
+        assert self._active_trace is not None
+        self._active_trace.transactions.append(
+            {
+                "class": "coprocessor_command",
+                "purpose": "register_to_coprocessor_transfer",
+                "coprocessor_id": coprocessor_id,
+                "command": command,
+                "size_64": size,
+                "parameter_index": 0,
+                "bus_status": 0,
+                "special_function": 1,
+                "word_select_16": 0,
+                "lad_command": command_word,
+                "addressing_mode": instruction.mnemonic,
+                "first_extension_long_word_aligned": int(immediate_aligned),
+            }
+        )
+        for parameter_index, (value, location) in enumerate(
+            zip(source_values, source_locations, strict=True)
+        ):
+            self._active_trace.transactions.append(
+                {
+                    "class": "coprocessor_data_out",
+                    "purpose": "register_parameter",
+                    "parameter_index": parameter_index,
+                    "value": value,
+                    "source_file": location[0],
+                    "source_index": location[1],
+                    "width": 32,
+                    "addressing_mode": instruction.mnemonic,
+                }
+            )
+        self._active_trace.notes.append(
+            "logical successful command followed by ordered captured 32-bit "
+            "register parameter transfer(s); a physical two-word non-page "
+            "sequence must reissue the command with I=1 before parameter 1; "
+            "external acceptance, page interruption, LRDY/BUSFLT, retry, "
+            "fault continuation, pin phases and interrupt recognition remain "
+            "pending"
         )
         return machine_states
 

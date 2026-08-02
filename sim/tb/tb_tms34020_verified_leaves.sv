@@ -19,6 +19,7 @@ module tb_tms34020_verified_leaves;
     integer coprocessor_first_word_index;
     integer coprocessor_id_index;
     integer coprocessor_command_bit;
+    integer coprocessor_source2_index;
     logic [15:0] constant_opcode;
     logic [31:0] expected_rotate;
     logic [31:0] expected_shift;
@@ -290,6 +291,34 @@ module tb_tms34020_verified_leaves;
     logic coprocessor_hidden_command_state;
     logic [20:0] expected_coprocessor_command;
     logic [12:0] expected_coprocessor_extension_payload;
+    logic [15:0] coprocessor_write_first_word;
+    logic [15:0] coprocessor_write_extension_word1;
+    logic [15:0] coprocessor_write_extension_word2;
+    logic coprocessor_write_first_extension_aligned;
+    logic [31:0] coprocessor_write_source1_value;
+    logic [31:0] coprocessor_write_source2_value;
+    logic coprocessor_write_supported;
+    logic coprocessor_write_legal;
+    logic coprocessor_write_two_registers;
+    logic [2:0] coprocessor_write_instruction_length;
+    logic coprocessor_write_source1_file_b;
+    logic [3:0] coprocessor_write_source1_index;
+    logic coprocessor_write_source2_file_b;
+    logic [3:0] coprocessor_write_source2_index;
+    logic [2:0] coprocessor_write_id;
+    logic [20:0] coprocessor_write_command;
+    logic coprocessor_write_size_64;
+    logic [31:0] coprocessor_write_lad_command;
+    logic [31:0] coprocessor_write_lad_second_reissue;
+    logic coprocessor_write_special_function;
+    logic [3:0] coprocessor_write_bus_status;
+    logic coprocessor_write_word_select_16;
+    logic [31:0] coprocessor_write_data_word0;
+    logic [31:0] coprocessor_write_data_word1;
+    logic [1:0] coprocessor_write_data_word_count;
+    logic coprocessor_write_second_reissue_if_no_page;
+    logic [2:0] coprocessor_write_visible_states;
+    logic coprocessor_write_hidden_transfer_state;
 
     tms34020_binary_op_t binary_operation;
     logic [31:0] binary_source;
@@ -766,6 +795,45 @@ module tb_tms34020_verified_leaves;
         .word_select_16_o(coprocessor_word_select_16),
         .visible_states_o(coprocessor_visible_states),
         .hidden_command_state_o(coprocessor_hidden_command_state)
+    );
+
+    tms34020_coprocessor_register_write coprocessor_register_write_dut (
+        .first_word_i(coprocessor_write_first_word),
+        .extension_word1_i(coprocessor_write_extension_word1),
+        .extension_word2_i(coprocessor_write_extension_word2),
+        .first_extension_aligned_i(
+            coprocessor_write_first_extension_aligned
+        ),
+        .source1_value_i(coprocessor_write_source1_value),
+        .source2_value_i(coprocessor_write_source2_value),
+        .supported_o(coprocessor_write_supported),
+        .legal_o(coprocessor_write_legal),
+        .two_registers_o(coprocessor_write_two_registers),
+        .instruction_length_words_o(
+            coprocessor_write_instruction_length
+        ),
+        .source1_file_b_o(coprocessor_write_source1_file_b),
+        .source1_index_o(coprocessor_write_source1_index),
+        .source2_file_b_o(coprocessor_write_source2_file_b),
+        .source2_index_o(coprocessor_write_source2_index),
+        .coprocessor_id_o(coprocessor_write_id),
+        .command_o(coprocessor_write_command),
+        .size_64_o(coprocessor_write_size_64),
+        .lad_command_o(coprocessor_write_lad_command),
+        .lad_second_reissue_o(coprocessor_write_lad_second_reissue),
+        .special_function_o(coprocessor_write_special_function),
+        .bus_status_o(coprocessor_write_bus_status),
+        .word_select_16_o(coprocessor_write_word_select_16),
+        .data_word0_o(coprocessor_write_data_word0),
+        .data_word1_o(coprocessor_write_data_word1),
+        .data_word_count_o(coprocessor_write_data_word_count),
+        .second_reissue_if_no_page_o(
+            coprocessor_write_second_reissue_if_no_page
+        ),
+        .visible_states_o(coprocessor_write_visible_states),
+        .hidden_transfer_state_o(
+            coprocessor_write_hidden_transfer_state
+        )
     );
 
     tms34020_binary_arithmetic binary_arithmetic_dut (
@@ -2677,6 +2745,12 @@ module tb_tms34020_verified_leaves;
         coprocessor_first_extension_aligned = 1'b0;
         expected_coprocessor_command = 21'd0;
         expected_coprocessor_extension_payload = 13'd0;
+        coprocessor_write_first_word = 16'd0;
+        coprocessor_write_extension_word1 = 16'd0;
+        coprocessor_write_extension_word2 = 16'd0;
+        coprocessor_write_first_extension_aligned = 1'b0;
+        coprocessor_write_source1_value = 32'd0;
+        coprocessor_write_source2_value = 32'd0;
         binary_operation = TMS34020_BINARY_ADD;
         binary_source = 32'd0;
         binary_destination = 32'd0;
@@ -4762,6 +4836,18 @@ module tb_tms34020_verified_leaves;
             "CEXEC.S cannot bypass absent coprocessor-cycle ownership"
         );
         check_register_execute(
+            16'h0620, 32'hDEAD_BEEF, 32'hA500_0000,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CMOVGC.1 cannot bypass absent coprocessor-cycle ownership"
+        );
+        check_register_execute(
+            16'h065F, 32'hDEAD_BEEF, 32'hA59F_201F,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "CMOVGC.2 cannot bypass absent coprocessor-cycle ownership"
+        );
+        check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "REV cannot execute without a selected device revision profile"
@@ -6671,6 +6757,14 @@ module tb_tms34020_verified_leaves;
                      "CEXEC.S lower-bound decode");
         check_decode(16'hD87F, TMS20_OP_CEXEC_S, 3'd2,
                      "CEXEC.S upper-bound decode");
+        check_decode(16'h0620, TMS20_OP_CMOVGC_1, 3'd3,
+                     "CMOVGC.1 lower-bound decode");
+        check_decode(16'h063F, TMS20_OP_CMOVGC_1, 3'd3,
+                     "CMOVGC.1 upper-bound decode");
+        check_decode(16'h0640, TMS20_OP_CMOVGC_2, 3'd3,
+                     "CMOVGC.2 lower-bound decode");
+        check_decode(16'h065F, TMS20_OP_CMOVGC_2, 3'd3,
+                     "CMOVGC.2 upper-bound decode");
         check_decode(16'h0C1E, TMS20_OP_ADDXYI, 3'd3,
                      "ADDXYI masked decode");
         check_decode(16'h029E, TMS20_OP_RPIX, 3'd1, "RPIX masked decode");
@@ -6701,6 +6795,14 @@ module tb_tms34020_verified_leaves;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
                "CEXEC.L neighbor must remain unclassified");
+        decode_word = 16'h061F;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "CMOVGC.1 lower neighbor must remain unclassified");
+        decode_word = 16'h0660;
+        #1;
+        check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
+               "CMOVGC.2 upper neighbor must remain unclassified");
         decode_word = 16'hD880;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,
@@ -6838,6 +6940,226 @@ module tb_tms34020_verified_leaves;
             coprocessor_visible_states == 2'd0 &&
             !coprocessor_hidden_command_state,
             "coprocessor command leaf rejects unclassified opcode"
+        );
+
+        for (
+            coprocessor_first_word_index = 0;
+            coprocessor_first_word_index < 32;
+            coprocessor_first_word_index = coprocessor_first_word_index + 1
+        ) begin
+            for (
+                coprocessor_id_index = 0;
+                coprocessor_id_index < 8;
+                coprocessor_id_index = coprocessor_id_index + 1
+            ) begin
+                for (
+                    shift_step = 0;
+                    shift_step < 2;
+                    shift_step = shift_step + 1
+                ) begin
+                    expected_coprocessor_command =
+                        {coprocessor_first_word_index[4:0],
+                         coprocessor_id_index[2:0],
+                         coprocessor_first_word_index[4:0],
+                         coprocessor_id_index[2:0],
+                         coprocessor_first_word_index[4:0]};
+                    coprocessor_write_first_word =
+                        16'h0620 +
+                        coprocessor_first_word_index[15:0];
+                    coprocessor_write_extension_word1 = {
+                        expected_coprocessor_command[7:0], 8'd0
+                    };
+                    coprocessor_write_extension_word2 = {
+                        coprocessor_id_index[2:0],
+                        expected_coprocessor_command[20:8]
+                    };
+                    coprocessor_write_first_extension_aligned = shift_step[0];
+                    coprocessor_write_source1_value = {
+                        16'hA501,
+                        coprocessor_first_word_index[7:0],
+                        coprocessor_id_index[7:0]
+                    };
+                    coprocessor_write_source2_value = 32'hDEAD_BEEF;
+                    #1;
+                    check_condition(
+                        coprocessor_write_supported &&
+                        coprocessor_write_legal &&
+                        !coprocessor_write_two_registers &&
+                        coprocessor_write_instruction_length == 3'd3 &&
+                        coprocessor_write_source1_file_b ==
+                            coprocessor_first_word_index[4] &&
+                        coprocessor_write_source1_index ==
+                            coprocessor_first_word_index[3:0] &&
+                        coprocessor_write_id ==
+                            coprocessor_id_index[2:0] &&
+                        coprocessor_write_command ==
+                            expected_coprocessor_command &&
+                        !coprocessor_write_size_64 &&
+                        coprocessor_write_lad_command == {
+                            coprocessor_id_index[2:0],
+                            expected_coprocessor_command, 8'd0
+                        } &&
+                        coprocessor_write_special_function &&
+                        coprocessor_write_bus_status == 4'd0 &&
+                        !coprocessor_write_word_select_16 &&
+                        coprocessor_write_data_word0 ==
+                            coprocessor_write_source1_value &&
+                        coprocessor_write_data_word_count == 2'd1 &&
+                        !coprocessor_write_second_reissue_if_no_page &&
+                        coprocessor_write_visible_states ==
+                            (shift_step[0] ? 3'd2 : 3'd3) &&
+                        coprocessor_write_hidden_transfer_state,
+                        "CMOVGC.1 selector/ID/alignment/data matrix"
+                    );
+                end
+            end
+        end
+        coprocessor_write_first_word = 16'h0620;
+        coprocessor_write_extension_word1 = 16'hA501;
+        coprocessor_write_extension_word2 = 16'd0;
+        #1;
+        check_condition(
+            coprocessor_write_supported && !coprocessor_write_legal &&
+            !coprocessor_write_special_function &&
+            coprocessor_write_data_word_count == 2'd0 &&
+            !coprocessor_write_hidden_transfer_state,
+            "CMOVGC.1 rejects nonzero reserved low extension byte"
+        );
+
+        for (
+            coprocessor_first_word_index = 0;
+            coprocessor_first_word_index < 32;
+            coprocessor_first_word_index = coprocessor_first_word_index + 1
+        ) begin
+            for (
+                coprocessor_source2_index = 0;
+                coprocessor_source2_index < 32;
+                coprocessor_source2_index = coprocessor_source2_index + 1
+            ) begin
+                for (
+                    constant_index = 0;
+                    constant_index < 2;
+                    constant_index = constant_index + 1
+                ) begin
+                    for (
+                        shift_step = 0;
+                        shift_step < 2;
+                        shift_step = shift_step + 1
+                    ) begin
+                        coprocessor_id_index =
+                            (coprocessor_first_word_index ^
+                             coprocessor_source2_index) & 7;
+                        expected_coprocessor_command =
+                            {coprocessor_first_word_index[4:0],
+                             coprocessor_source2_index[4:0],
+                             constant_index[0],
+                             coprocessor_source2_index[4:0],
+                             coprocessor_first_word_index[4:0]};
+                        coprocessor_write_first_word =
+                            16'h0640 +
+                            coprocessor_first_word_index[15:0];
+                        coprocessor_write_extension_word1 = {
+                            expected_coprocessor_command[7:0],
+                            constant_index[0], 2'b00,
+                            coprocessor_source2_index[4:0]
+                        };
+                        coprocessor_write_extension_word2 = {
+                            coprocessor_id_index[2:0],
+                            expected_coprocessor_command[20:8]
+                        };
+                        coprocessor_write_first_extension_aligned =
+                            shift_step[0];
+                        coprocessor_write_source1_value = {
+                            16'h1101,
+                            coprocessor_first_word_index[15:0]
+                        };
+                        coprocessor_write_source2_value = {
+                            16'h2202,
+                            coprocessor_source2_index[15:0]
+                        };
+                        #1;
+                        check_condition(
+                            coprocessor_write_supported &&
+                            coprocessor_write_legal &&
+                            coprocessor_write_two_registers &&
+                            coprocessor_write_source1_file_b ==
+                                coprocessor_first_word_index[4] &&
+                            coprocessor_write_source1_index ==
+                                coprocessor_first_word_index[3:0] &&
+                            coprocessor_write_source2_file_b ==
+                                coprocessor_source2_index[4] &&
+                            coprocessor_write_source2_index ==
+                                coprocessor_source2_index[3:0] &&
+                            coprocessor_write_id ==
+                                coprocessor_id_index[2:0] &&
+                            coprocessor_write_command ==
+                                expected_coprocessor_command &&
+                            coprocessor_write_size_64 == constant_index[0] &&
+                            coprocessor_write_lad_command == {
+                                coprocessor_id_index[2:0],
+                                expected_coprocessor_command,
+                                constant_index[0], 7'd0
+                            } &&
+                            coprocessor_write_lad_second_reissue ==
+                                (coprocessor_write_lad_command |
+                                 32'h0000_0040) &&
+                            coprocessor_write_data_word0 ==
+                                coprocessor_write_source1_value &&
+                            coprocessor_write_data_word1 ==
+                                coprocessor_write_source2_value &&
+                            coprocessor_write_data_word_count == 2'd2 &&
+                            coprocessor_write_second_reissue_if_no_page &&
+                            coprocessor_write_visible_states ==
+                                (shift_step[0] ? 3'd3 : 3'd4) &&
+                            coprocessor_write_hidden_transfer_state,
+                            "CMOVGC.2 ordered selector/size/alignment matrix"
+                        );
+                    end
+                end
+            end
+        end
+        for (
+            coprocessor_command_bit = 0;
+            coprocessor_command_bit < 22;
+            coprocessor_command_bit = coprocessor_command_bit + 1
+        ) begin
+            expected_coprocessor_command =
+                coprocessor_command_bit == 21
+                ? 21'd0
+                : (21'd1 << coprocessor_command_bit);
+            coprocessor_write_first_word = 16'h0640;
+            coprocessor_write_extension_word1 = {
+                expected_coprocessor_command[7:0], 3'b000, 5'd0
+            };
+            coprocessor_write_extension_word2 = {
+                3'd7, expected_coprocessor_command[20:8]
+            };
+            #1;
+            check_condition(
+                coprocessor_write_legal &&
+                coprocessor_write_command == expected_coprocessor_command,
+                "CMOVGC command bit placement"
+            );
+        end
+        coprocessor_write_first_word = 16'h0640;
+        coprocessor_write_extension_word1 = 16'hA560;
+        coprocessor_write_extension_word2 = 16'd0;
+        #1;
+        check_condition(
+            coprocessor_write_supported && !coprocessor_write_legal &&
+            !coprocessor_write_special_function &&
+            coprocessor_write_data_word_count == 2'd0 &&
+            !coprocessor_write_second_reissue_if_no_page &&
+            !coprocessor_write_hidden_transfer_state,
+            "CMOVGC.2 rejects reserved extension bits 6:5"
+        );
+        coprocessor_write_first_word = 16'h0660;
+        #1;
+        check_condition(
+            !coprocessor_write_supported && !coprocessor_write_legal &&
+            coprocessor_write_instruction_length == 3'd0 &&
+            coprocessor_write_data_word_count == 2'd0,
+            "CMOVGC leaf rejects unclassified neighbor"
         );
 
         add_destination = 32'h0001_0001;

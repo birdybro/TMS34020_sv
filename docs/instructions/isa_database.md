@@ -8,7 +8,7 @@ documentation, and generated coverage will be derived.
 ## Current coverage
 
 The database is deliberately marked `INCOMPLETE_PRIMARY_EXTRACTION`. Its first
-slice contains 132 page-verified encoding records and covers 47,962 of 65,536
+slice contains 134 page-verified encoding records and covers 48,026 of 65,536
 first words without collisions:
 
 | Mnemonic | First-word pattern | Words | TI source |
@@ -132,6 +132,8 @@ first words without collisions:
 | BLMOVE | `00F0h`, mask `FFFCh` | 1 | pp.13-44..13-45 |
 | CEXEC.L | exact `0600h` plus command/size and ID/command words | 3 | pp.13-51..13-52 |
 | CEXEC.S | `D800h`, mask `FF80h`, plus ID/command word | 2 | pp.13-53..13-54 |
+| CMOVGC.1 | `0620h`, mask `FFE0h`, plus command and ID/command words | 3 | pp.13-67..13-68 |
+| CMOVGC.2 | `0640h`, mask `FFE0h`, plus command/size/Rs2 and ID/command words | 3 | pp.13-69..13-70 |
 | RPIX | `0280h`, mask `FFE0h` | 1 | p.13-225 |
 | CMPK | `3400h`, mask `FC00h` | 1 | p.13-83 |
 | EXGPS | `02A0h`, mask `FFE0h` | 1 | p.13-113 |

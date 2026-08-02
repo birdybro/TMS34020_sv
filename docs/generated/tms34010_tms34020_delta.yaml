@@ -946,6 +946,26 @@
       "source_citation": ["TI-TMS34020-UG-1990 CEXEC short, printed p.13-53", "TI-TMS34020-UG-1990 coprocessor command and cycle contract, printed pp.10-3..10-9"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact architectural checkpoint and external coprocessor side-effect contract for a command cycle that is later retried or bus-faulted remain pending the physical sequencer and synthetic coprocessor model."]
+    },
+    {
+      "feature": "coprocessor_register_write_one_word",
+      "tms34010_behavior": "No processor-register-to-coprocessor instruction or special-function data cycle is documented.",
+      "tms34020_behavior": "0620h/FFE0h plus two extensions encodes one-register CMOVGC. It captures the selected A/B/SP source, sends ID and all 21 command bits with size=0 and I=0, then transfers the 32-bit source value to the coprocessor. Registers and ST are unchanged; first-extension alignment selects 2(1) or 3(1) states.",
+      "rtl_impact": "A TMS34020-only source capture, command formatter and ordered outbound data sequencer are required. The current clean-room leaf exposes source selectors, initial LAD command and data word but owns no register-file read, handshake, pin, fault or retirement state.",
+      "test_impact": "All 32 first words; every A/B/SP source; every ID and command bit; low/high extension order; required-zero low extension byte; both immediate alignments; source capture and unchanged ST/registers; waits, retry, bus fault and external no-duplicate-acceptance checks.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVGC one-register form, printed pp.13-67..13-68", "TI-TMS34020-UG-1990 TMS34020-to-coprocessor cycles, printed pp.10-6..10-12", "TI-TMS34020-UG-1990 timing table, printed p.15-3"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact register-capture and interrupt checkpoint relative to command/data waits, retry and bus fault remains pending the physical sequencer and synthetic coprocessor model."]
+    },
+    {
+      "feature": "coprocessor_register_write_two_words",
+      "tms34010_behavior": "No two-register-to-coprocessor instruction, parameter-index command reissue or special-function data sequence is documented.",
+      "tms34020_behavior": "0640h/FFE0h plus two extensions encodes two-register CMOVGC. It captures independently selected A/B/SP sources, issues ID/command/size with I=0, and transfers Rs1 then Rs2 as two 32-bit words. Size distinguishes two 32-bit parameters from one 64-bit parameter. If page mode cannot carry Rs2, the command is reissued with I=1. Registers/ST are unchanged; alignment selects 3(1) or 4(1) states.",
+      "rtl_impact": "A TMS34020-only two-source capture and page-aware command/data sequencer are required. The current clean-room leaf validates reserved bits and exposes ordered data plus both I=0 and I=1 LAD packets, but does not own page selection, arbitration, handshake, pin, fault or retirement state.",
+      "test_impact": "All 32 first words and 32 second-source selectors; A/B/SP aliases; every ID/size/command bit; extension fields and reserved bits; both alignments; Rs1/Rs2 ordering; initial and I=1 LAD packets; page continuation/interruption, waits, retry, faults, interrupts and no duplicate accepted parameters.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVGC two-register form, printed pp.13-69..13-70", "TI-TMS34020-UG-1990 parameter-index and register-transfer cycles, printed pp.10-7 and 10-11..10-12", "TI-TMS34020-UG-1990 timing table, printed p.15-3", "RSC-0041 resolves the isolated 54-bit example typo as 64-bit"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact page-break, high-priority arbitration, interrupt and bus-fault checkpoint between the accepted first and second parameter remains pending the physical sequencer and synthetic coprocessor model."]
     }
   ]
 }

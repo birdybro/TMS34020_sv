@@ -4,6 +4,18 @@
 
 ### Added
 
+- Primary-page-extracted one- and two-register CMOVGC forms at `0620h` and
+  `0640h`/`FFE0h`, adding 64 first words with independent A/B/SP source
+  selectors, command/ID/size fields, ordered 32-bit parameters, required-zero
+  validation, primary alignment timing, and the documented I=1 command reissue
+  when the second parameter cannot continue in page mode.
+- Independent CMOVGC model semantics and a clean-room combinational register-
+  write formatter. Exhaustive tests cover first/second sources, aliases, IDs,
+  sizes, command bits, alignment, data order, state preservation, initial and
+  reissued LAD packets, atomic reserved rollback, and direct-router noncommit.
+- RSC-0041 records and resolves the guide's isolated “54-bit” CMOVGC example as
+  a typographical error using the repeated 64-bit definition and two 32-bit
+  source registers; no undocumented behavior was introduced.
 - Primary-page-extracted CEXEC.L at exact `0600h` and CEXEC.S at
   `D800h`/`FF80h`, adding 129 first words with exact command/ID/size mapping,
   complete ST preservation, primary visible/hidden timing, and explicit
@@ -14,8 +26,8 @@
   traces, atomic reserved-packet rollback, and scalar noncommit while the
   physical coprocessor bus owner is absent.
 - A source-cited coprocessor-interface specification separating the verified
-  CEXEC command boundary from future LRDY/BUSFLT completion, retry/fault,
-  CMOV transfers, pin timing, and synthetic-coprocessor work.
+  CEXEC/CMOVGC command/data boundary from future LRDY/BUSFLT completion,
+  retry/fault, other CMOV transfers, pin timing, and synthetic-coprocessor work.
 - Three primary-page-extracted memory-to-memory MOVB forms at 9C00h,
   BC00h, and exact 0340h, covering 1,025 first words, fixed-eight-bit
   read-before-write semantics, indirect/signed-offset/absolute extension
@@ -544,6 +556,9 @@
 
 ### Fixed
 
+- Corrected the CMOVGC leaf's diagnostic Quartus wrapper connections after the
+  first synthesis smoke rejected nonexistent source signal names; all five
+  warning-enforcing Cyclone V smokes then passed.
 - Corrected short CEXEC packing to the primary guide's 13 high command bits,
   forced command bits 7:6, and six low command bits. RSC-0040 records that the
   pinned MAME disassembler instead shifts by five and drops one low bit; the
@@ -582,6 +597,18 @@
 
 ### Verified
 
+- The 74-case ISA suite, 96-entry delta ledger, complete 214-case model
+  regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
+  pass for the CMOVGC register-write milestone. The model/RTL matrices cover
+  every source selector, command bit, ID, size, alignment, ordering and
+  reserved path while retaining the no-register-capture/no-physical-bus-owner
+  boundary.
+- Warning-free Cyclone V Analysis & Synthesis reports 13,247 leaf logic
+  cells/2,230 registers/9 DSP, 494 fetch logic cells, 874 frontend logic cells,
+  and 5,452 scalar logic cells for the 134-entry decoder/CMOVGC revision. The
+  frontend/scalar probes retain 4,096 block-memory bits. These are
+  observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification. Yosys and formal targets remain tracked skips.
 - The 73-case ISA suite, 94-entry delta ledger, complete 212-case model
   regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
   pass for the long/short CEXEC milestone. The model and RTL matrices cover

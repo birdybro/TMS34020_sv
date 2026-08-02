@@ -358,6 +358,10 @@ class IsaTests(unittest.TestCase):
             0x0600: ("CEXEC.L", 3),
             0xD800: ("CEXEC.S", 2),
             0xD87F: ("CEXEC.S", 2),
+            0x0620: ("CMOVGC.1", 3),
+            0x063F: ("CMOVGC.1", 3),
+            0x0640: ("CMOVGC.2", 3),
+            0x065F: ("CMOVGC.2", 3),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -386,8 +390,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 47962)
-        self.assertEqual(unclassified, 65536 - 47962)
+        self.assertEqual(matched, 48026)
+        self.assertEqual(unclassified, 65536 - 48026)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2239,6 +2243,39 @@ class IsaTests(unittest.TestCase):
             "hidden_coprocessor_states": 1,
         })
         self.assertEqual(instruction.metadata["status_bits_written"], [])
+
+    def test_cmovgc_register_forms_contract(self) -> None:
+        one = self.database.decode(0x0620)
+        two = self.database.decode(0x0640)
+        self.assertIsNotNone(one)
+        self.assertIsNotNone(two)
+        self.assertEqual((one.mnemonic, one.opcode_mask), ("CMOVGC.1", 0xFFE0))
+        self.assertEqual((two.mnemonic, two.opcode_mask), ("CMOVGC.2", 0xFFE0))
+        self.assertEqual(one.length_words, 3)
+        self.assertEqual(two.length_words, 3)
+        self.assertEqual(
+            [field["name"] for field in one.metadata["immediate_fields"]],
+            ["command_low", "reserved_zero", "coprocessor_id", "command_high"],
+        )
+        self.assertEqual(
+            [field["name"] for field in two.metadata["immediate_fields"]],
+            [
+                "command_low", "size", "reserved_zero",
+                "source2_register_file", "source2_register",
+                "coprocessor_id", "command_high",
+            ],
+        )
+        self.assertEqual(
+            one.metadata["documented_cycles"]["long_word_aligned"],
+            {"visible_machine_states": 2, "hidden_coprocessor_states": 1},
+        )
+        self.assertEqual(
+            two.metadata["documented_cycles"]["not_long_word_aligned"],
+            {"visible_machine_states": 4, "hidden_coprocessor_states": 1},
+        )
+        self.assertEqual(one.metadata["status_bits_written"], [])
+        self.assertEqual(two.metadata["status_bits_written"], [])
+        self.assertIn("I=1", two.metadata["page_mode_effects"])
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

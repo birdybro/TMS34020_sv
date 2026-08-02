@@ -4,15 +4,19 @@
   model/RTL leaves
 - Completed task IDs: `TMS20-0001`, `TMS20-0003`
 - Latest committed baseline: `358dd834248f63a85ad2b40c31d42c743b5059a5`
-- Passing tests: foundation, reference/hash, delta, 73-case ISA sweep, 212 directed model
+- Passing tests: foundation, reference/hash, delta, 74-case ISA sweep, 214 directed model
   cases, warning-free Verilator lint, directed RTL leaf/cache simulation, three
   deterministic randomized cache seeds, bounded instruction-packet and
   integrated cache/fetch frontend and bounded scalar-composition tests, and
   warning-free Quartus Cyclone V leaf/cache/fetch/frontend/scalar Analysis &
   Synthesis
 - Failing tests: none observed
-- Model status: 131 of 132 currently extracted encoding forms have bounded
-  successful semantics over documented operand domains. CEXEC.L/S exhaust all
+- Model status: 133 of 134 currently extracted encoding forms have bounded
+  successful semantics over documented operand domains. CMOVGC.1/.2 exhaust
+  both source selectors, IDs, sizes, alignments, ordered register values,
+  initial command formation and reserved rollback; their traces disclose the
+  absent physical page-mode/I=1 reissue, acceptance, wait, fault and retry
+  sequence. CEXEC.L/S exhaust all
   21 command bits, IDs, sizes, long alignments and 128 short first words,
   preserve complete state, emit the formatted logical LAD command, and reject
   reserved long packets atomically. Short packing follows the primary
@@ -128,9 +132,10 @@
   SETF/SEXT/ZEXT cover sizes 1–32 in both field banks, published rows,
   instruction-specific partial ST writes, A/B selection, and shared SP
   (`TMS20-0006`, `TMS20-0007`).
-- RTL status: generated 132-entry partial decode, a combinational CEXEC.L/S
-  formatter with exhaustive command/ID/size/LAD/SF/BCST/I/S/timing tests and
-  explicit noncommit without a physical command-cycle owner, exhaustive clean-room
+- RTL status: generated 134-entry partial decode, combinational CEXEC.L/S and
+  CMOVGC.1/.2 formatters with exhaustive command/ID/size/LAD/SF/BCST/I/S/timing,
+  ordered-data, and initial/I=1 reissue tests plus explicit noncommit without a
+  register-capture or physical command-cycle owner, exhaustive clean-room
   MOVE.RM insertion, MOVE.MR/MR.POST extraction/extension, MOVE.MM two-sided copy/
   alignment, ordinary/postincrement/predecrement single-pointer, paired-
   increment/decrement, signed-offset, mixed source-offset/destination-
@@ -271,9 +276,9 @@
   SymbiYosys unavailable, so no bounded or unbounded proof result exists
 - Synthesis status: leaf, bounded-cache/fetch, composed frontend, and scalar
   composition Quartus 17.0.2 Analysis & Synthesis pass with 0 errors/0
-  warnings; the current decoder-bearing leaf wrapper uses 13,246 logic cells,
+  warnings; the current decoder-bearing leaf wrapper uses 13,247 logic cells,
   2,230 registers, and 9 DSP blocks, while
-  the fetch, frontend, and scalar wrappers use 500, 869, and 5,403 logic cells;
+  the fetch, frontend, and scalar wrappers use 494, 874, and 5,452 logic cells;
   the scalar wrapper has 1,416 registers and 4,096 block-memory bits; Yosys
   unavailable; no fit or TimeQuest result
 - Documentation acquired: nine hash-verified TI documents, an eleven-file

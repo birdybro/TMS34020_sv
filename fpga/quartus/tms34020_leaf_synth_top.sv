@@ -210,6 +210,28 @@ module tms34020_leaf_synth_top (
     logic coprocessor_command_word_select;
     logic [1:0] coprocessor_command_visible_states;
     logic coprocessor_command_hidden_state;
+    logic coprocessor_write_supported;
+    logic coprocessor_write_legal;
+    logic coprocessor_write_two_registers;
+    logic [2:0] coprocessor_write_length;
+    logic coprocessor_write_source1_file;
+    logic [3:0] coprocessor_write_source1_index;
+    logic coprocessor_write_source2_file;
+    logic [3:0] coprocessor_write_source2_index;
+    logic [2:0] coprocessor_write_id;
+    logic [20:0] coprocessor_write_command;
+    logic coprocessor_write_size;
+    logic [31:0] coprocessor_write_lad;
+    logic [31:0] coprocessor_write_reissue_lad;
+    logic coprocessor_write_sf;
+    logic [3:0] coprocessor_write_bus_status;
+    logic coprocessor_write_word_select;
+    logic [31:0] coprocessor_write_data0;
+    logic [31:0] coprocessor_write_data1;
+    logic [1:0] coprocessor_write_count;
+    logic coprocessor_write_reissue;
+    logic [2:0] coprocessor_write_visible_states;
+    logic coprocessor_write_hidden_state;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -326,6 +348,21 @@ module tms34020_leaf_synth_top (
          coprocessor_command_word_select,
          coprocessor_command_visible_states,
          coprocessor_command_hidden_state} ^
+        coprocessor_write_lad ^
+        coprocessor_write_reissue_lad ^
+        coprocessor_write_data0 ^
+        coprocessor_write_data1 ^
+        {11'd0, coprocessor_write_command} ^
+        {13'd0, coprocessor_write_supported, coprocessor_write_legal,
+         coprocessor_write_two_registers, coprocessor_write_length,
+         coprocessor_write_source1_file, coprocessor_write_source1_index,
+         coprocessor_write_source2_file, coprocessor_write_source2_index,
+         coprocessor_write_id} ^
+        {18'd0, coprocessor_write_size,
+         coprocessor_write_sf, coprocessor_write_bus_status,
+         coprocessor_write_word_select, coprocessor_write_count,
+         coprocessor_write_reissue, coprocessor_write_visible_states,
+         coprocessor_write_hidden_state} ^
         {14'd0, interrupt_return_force_bypass,
          interrupt_return_delay_recognition,
          interrupt_return_saved_pc_misaligned,
@@ -794,6 +831,37 @@ module tms34020_leaf_synth_top (
         .word_select_16_o(coprocessor_command_word_select),
         .visible_states_o(coprocessor_command_visible_states),
         .hidden_command_state_o(coprocessor_command_hidden_state)
+    );
+
+    tms34020_coprocessor_register_write coprocessor_register_write (
+        .first_word_i(first_word_i),
+        .extension_word1_i(immediate_i[15:0]),
+        .extension_word2_i(operand_i[15:0]),
+        .first_extension_aligned_i(operand_i[5]),
+        .source1_value_i(operand_i),
+        .source2_value_i(immediate_i),
+        .supported_o(coprocessor_write_supported),
+        .legal_o(coprocessor_write_legal),
+        .two_registers_o(coprocessor_write_two_registers),
+        .instruction_length_words_o(coprocessor_write_length),
+        .source1_file_b_o(coprocessor_write_source1_file),
+        .source1_index_o(coprocessor_write_source1_index),
+        .source2_file_b_o(coprocessor_write_source2_file),
+        .source2_index_o(coprocessor_write_source2_index),
+        .coprocessor_id_o(coprocessor_write_id),
+        .command_o(coprocessor_write_command),
+        .size_64_o(coprocessor_write_size),
+        .lad_command_o(coprocessor_write_lad),
+        .lad_second_reissue_o(coprocessor_write_reissue_lad),
+        .special_function_o(coprocessor_write_sf),
+        .bus_status_o(coprocessor_write_bus_status),
+        .word_select_16_o(coprocessor_write_word_select),
+        .data_word0_o(coprocessor_write_data0),
+        .data_word1_o(coprocessor_write_data1),
+        .data_word_count_o(coprocessor_write_count),
+        .second_reissue_if_no_page_o(coprocessor_write_reissue),
+        .visible_states_o(coprocessor_write_visible_states),
+        .hidden_transfer_state_o(coprocessor_write_hidden_state)
     );
 
     tms34020_regfile regfile (

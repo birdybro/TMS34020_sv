@@ -3717,6 +3717,187 @@ class ExecutionTests(unittest.TestCase):
                     self.assertEqual(transaction["word_select_16"], 0)
                     self.assertEqual(transaction["special_function"], 1)
 
+    def test_cmovgc_one_register_exhaustive_selectors_ids_and_alignment(
+        self,
+    ) -> None:
+        shared_isa = Tms34020Model().isa
+        for first_word in range(0x0620, 0x0640):
+            for coprocessor_id in range(8):
+                for start_pc, expected_states in ((0x110, 2), (0x100, 3)):
+                    with self.subTest(
+                        first_word=first_word,
+                        coprocessor_id=coprocessor_id,
+                        start_pc=start_pc,
+                    ):
+                        command = (
+                            (first_word * 0x1F31) ^
+                            (coprocessor_id * 0x20401)
+                        ) & 0x1F_FFFF
+                        extension1 = (command & 0xFF) << 8
+                        extension2 = (
+                            (coprocessor_id << 13) |
+                            ((command >> 8) & 0x1FFF)
+                        )
+                        register_file = "B" if first_word & 0x10 else "A"
+                        register_index = first_word & 0xF
+                        source_value = (
+                            0xA500_0000 |
+                            ((first_word & 0x1F) << 12) |
+                            (coprocessor_id << 4) |
+                            (start_pc >> 4)
+                        )
+                        model = Tms34020Model(isa=shared_isa)
+                        model.load_program(
+                            [first_word, extension1, extension2],
+                            bit_address=start_pc,
+                        )
+                        model.state.write_reg(
+                            register_file, register_index, source_value
+                        )
+                        model.state.st = 0xD123_5AA5
+                        before_st = model.state.st
+
+                        event = model.step()
+
+                        self.assertEqual(event.mnemonic, "CMOVGC.1")
+                        self.assertEqual(event.machine_states, expected_states)
+                        self.assertEqual(model.state.pending_write_states, 1)
+                        self.assertEqual(model.state.st, before_st)
+                        command_transaction, data_transaction = (
+                            event.transactions[-2:]
+                        )
+                        self.assertEqual(
+                            command_transaction["class"],
+                            "coprocessor_command",
+                        )
+                        self.assertEqual(
+                            command_transaction["command"], command
+                        )
+                        self.assertEqual(
+                            command_transaction["coprocessor_id"],
+                            coprocessor_id,
+                        )
+                        self.assertEqual(command_transaction["size_64"], 0)
+                        self.assertEqual(
+                            command_transaction["lad_command"],
+                            (coprocessor_id << 29) | (command << 8),
+                        )
+                        self.assertEqual(
+                            data_transaction,
+                            {
+                                "class": "coprocessor_data_out",
+                                "purpose": "register_parameter",
+                                "parameter_index": 0,
+                                "value": source_value,
+                                "source_file": register_file,
+                                "source_index": register_index,
+                                "width": 32,
+                                "addressing_mode": "CMOVGC.1",
+                            },
+                        )
+
+        rejected = Tms34020Model(isa=shared_isa)
+        rejected.load_program([0x0620, 0xA501, 0x2000], bit_address=0x110)
+        before = rejected.snapshot()
+        with self.assertRaisesRegex(
+            UnsupportedInstruction, "reserved extension bits 7:0"
+        ):
+            rejected.step()
+        self.assertEqual(rejected.snapshot(), before)
+
+    def test_cmovgc_two_register_order_size_and_reserved_rollback(self) -> None:
+        shared_isa = Tms34020Model().isa
+        for first_offset in range(32):
+            first_word = 0x0640 | first_offset
+            for coprocessor_id in range(8):
+                for size in range(2):
+                    for start_pc, expected_states in ((0x110, 3), (0x100, 4)):
+                        second_offset = (
+                            first_offset + coprocessor_id * 5 + size * 11
+                        ) & 0x1F
+                        command = (
+                            (first_offset * 0x10001) ^
+                            (second_offset * 0x8101) ^
+                            (coprocessor_id * 0x20803) ^ size
+                        ) & 0x1F_FFFF
+                        extension1 = (
+                            ((command & 0xFF) << 8) |
+                            (size << 7) | second_offset
+                        )
+                        extension2 = (
+                            (coprocessor_id << 13) |
+                            ((command >> 8) & 0x1FFF)
+                        )
+                        source1_file = "B" if first_offset & 0x10 else "A"
+                        source1_index = first_offset & 0xF
+                        source2_file = "B" if second_offset & 0x10 else "A"
+                        source2_index = second_offset & 0xF
+                        source1_value = 0x1100_0000 | (first_offset << 8)
+                        source2_value = 0x2200_0000 | second_offset
+                        model = Tms34020Model(isa=shared_isa)
+                        model.load_program(
+                            [first_word, extension1, extension2],
+                            bit_address=start_pc,
+                        )
+                        model.state.write_reg(
+                            source1_file, source1_index, source1_value
+                        )
+                        model.state.write_reg(
+                            source2_file, source2_index, source2_value
+                        )
+                        expected_source1 = model.state.read_reg(
+                            source1_file, source1_index
+                        )
+                        expected_source2 = model.state.read_reg(
+                            source2_file, source2_index
+                        )
+                        model.state.st = 0xC521_5AA5
+                        before_st = model.state.st
+
+                        event = model.step()
+
+                        self.assertEqual(event.mnemonic, "CMOVGC.2")
+                        self.assertEqual(event.machine_states, expected_states)
+                        self.assertEqual(model.state.pending_write_states, 1)
+                        self.assertEqual(model.state.st, before_st)
+                        command_transaction = event.transactions[-3]
+                        data_transactions = event.transactions[-2:]
+                        self.assertEqual(
+                            command_transaction["lad_command"],
+                            (coprocessor_id << 29) |
+                            (command << 8) |
+                            (size << 7),
+                        )
+                        self.assertEqual(
+                            [item["parameter_index"] for item in data_transactions],
+                            [0, 1],
+                        )
+                        self.assertEqual(
+                            [item["value"] for item in data_transactions],
+                            [expected_source1, expected_source2],
+                        )
+                        self.assertEqual(
+                            [item["source_file"] for item in data_transactions],
+                            [source1_file, source2_file],
+                        )
+                        self.assertEqual(
+                            [item["source_index"] for item in data_transactions],
+                            [source1_index, source2_index],
+                        )
+
+        for bad_bits in (0x0020, 0x0040, 0x0060):
+            rejected = Tms34020Model(isa=shared_isa)
+            rejected.load_program(
+                [0x0640, 0xA500 | bad_bits, 0x2000],
+                bit_address=0x110,
+            )
+            before = rejected.snapshot()
+            with self.assertRaisesRegex(
+                UnsupportedInstruction, "reserved extension bits 6:5"
+            ):
+                rejected.step()
+            self.assertEqual(rejected.snapshot(), before)
+
     def test_move_offset_boundaries_alias_wrap_and_ben(self) -> None:
         for offset_word, signed_offset in (
             (0x0000, 0),
