@@ -1296,6 +1296,8 @@ qualification.
 
 ### Documentation
 
+- Recorded verified memory-to-memory MOVB implementation commit
+  `01f72f6d1658d81e8ef3540265e001417a46cfb8` in the progress ledger.
 - Recorded verified memory-to-register MOVB implementation commit
   `6cba4ce397437ead837aa5a635c9b28a067719a6` in the progress ledger.
 - Recorded memory-to-register MOVB semantics, status, compatible reuse bounds,
