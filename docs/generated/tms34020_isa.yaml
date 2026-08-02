@@ -3,7 +3,7 @@
   "format_note": "JSON subset of YAML 1.2. This is an incomplete primary-source extraction, not an instruction-completeness claim.",
   "coverage": {
     "status": "INCOMPLETE_PRIMARY_EXTRACTION",
-    "entry_count": 134,
+    "entry_count": 135,
     "first_word_space": 65536,
     "unmatched_first_words_are_reserved": false,
     "next_source_range": "TI-TMS34020-UG-1990 chapter 13 summary and alphabetical reference",
@@ -1289,6 +1289,53 @@
       "bus_32_effects": "one special 32-bit command cycle and two ordered 32-bit outbound data transfers",
       "page_mode_effects": "normally page-mode transfer of Rs2; otherwise reissue the command with I=1 before the second word",
       "source_citations": ["TI-TMS34020-UG-1990 CMOVGC two-register form, printed pp.13-69..13-70", "TI-TMS34020-UG-1990 parameter index and direct register-to-coprocessor cycle, §§10.3.4 and 10.4.6, printed pp.10-7 and 10-11..10-12", "TI-TMS34020-UG-1990 summary/timing tables, printed pp.13-10 and 15-3"],
+      "compatible_with_tms34010": false,
+      "confidence": "VERIFIED_PRIMARY"
+    },
+    {
+      "mnemonic": "CMOVCG",
+      "aliases": ["CMOVCG Rd1[,Rd2[,size]],command[,ID]", "CMOVCS command[,ID] when first word is 0660h and extension low byte is 01h"],
+      "instruction_length_words": 3,
+      "opcode_mask": "0xFFE0",
+      "opcode_value": "0x0660",
+      "operand_fields": [
+        {"name": "destination1_register_file", "word": 0, "lsb": 4, "width": 1, "encoding": "0=A,1=B; ignored by the CMOVCS packet variant"},
+        {"name": "destination1_register", "word": 0, "lsb": 0, "width": 4, "encoding": "Rd1; register 15 is the shared SP alias; ignored by CMOVCS"}
+      ],
+      "register_file": "independently selected A/B destinations with SP aliases; no register destination for CMOVCS",
+      "immediate_fields": [
+        {"name": "command_low", "word": 1, "lsb": 8, "width": 8, "signed": false, "word_order": ["word1_bits_15_8"]},
+        {"name": "size", "word": 1, "lsb": 7, "width": 1, "signed": false, "word_order": ["word1_bit_7"], "encoding": "CMOVCG: 0=one 32-bit word and low five bits zero, 1=one 64-bit value as two 32-bit words; CMOVCS forces zero"},
+        {"name": "reserved_zero", "word": 1, "lsb": 5, "width": 2, "signed": false, "word_order": ["word1_bits_6_5"], "encoding": "legal encoding requires zero"},
+        {"name": "destination2_register_file", "word": 1, "lsb": 4, "width": 1, "signed": false, "word_order": ["word1_bit_4"], "encoding": "CMOVCG size=1 only; 0=A,1=B"},
+        {"name": "destination2_register", "word": 1, "lsb": 0, "width": 4, "signed": false, "word_order": ["word1_bits_3_0"], "encoding": "CMOVCG size=1 Rd2; register 15 is SP. CMOVCG size=0 requires all five destination2 bits zero"},
+        {"name": "coprocessor_id", "word": 2, "lsb": 13, "width": 3, "signed": false, "word_order": ["word2_bits_15_13"]},
+        {"name": "command_high", "word": 2, "lsb": 0, "width": 13, "signed": false, "word_order": ["word2_bits_12_0"]}
+      ],
+      "condition_fields": [
+        {"name": "CMOVCS_packet_variant", "condition": "first_word=0660h and extension_word1[7:0]=01h", "data_words": 1, "destination": "ST.NCZV from inbound bits 31:28", "status": "replace N,C,Z,V; ignore inbound bits 27:0"},
+        {"name": "CMOVCG_packet_variant", "condition": "all other legal 0660h/FFE0h packets", "data_words": "size+1", "destination": "Rd1 then Rd2 when size=1", "status": "N/Z from last word, C unchanged, V=0"}
+      ],
+      "addressing_modes": ["coprocessor_to_register", "coprocessor_to_status_special_encoding"],
+      "source_registers": [],
+      "destination_registers": ["CMOVCG Rd1 and optional Rd2", "CMOVCS ST.NCZV"],
+      "status_bits_read": ["CMOVCG reads C for preservation", "CMOVCS preserves ST bits 27:0"],
+      "status_bits_written": ["CMOVCG N,Z,V from last word", "CMOVCS N,C,Z,V from inbound bits 31:28"],
+      "undefined_status_bits": [],
+      "memory_transactions": ["one 32-bit SF-high coprocessor command cycle followed by one or two 32-bit coprocessor-to-TMS34020 data transfers", "if page mode cannot carry a CMOVCG size=1 second transfer, reissue the same command with I=1 before the second word"],
+      "graphics_register_dependencies": [],
+      "cache_interactions": ["all three instruction words fetched through cache"],
+      "pipeline_interactions": ["first-word decode identifies a CMOVCG/CMOVCS packet family; extension low byte refines the exact CMOVCS special encoding", "capture one or two inbound 32-bit words before register/status retirement", "first-extension alignment and size select four through six visible states"],
+      "interruptibility": "a high-priority request can prevent page mode between size=1 parameters and require an I=1 command reissue; exact interrupt checkpoint remains pending",
+      "restartability": "retry must not duplicate an accepted inbound word or destination/status retirement; checkpoint sequencing remains pending",
+      "bus_fault_behavior": "LRDY/BUSFLT terminate, retry or fault command/data cycles under the local-memory coprocessor rules; architectural continuation is not yet modeled",
+      "documented_cycles": {"kind": "packet_variant_size_and_immediate_alignment", "size_0_or_cmovcs": {"long_word_aligned": {"visible_machine_states": 4}, "not_long_word_aligned": {"visible_machine_states": 5}}, "size_1": {"long_word_aligned": {"visible_machine_states": 5}, "not_long_word_aligned": {"visible_machine_states": 6}}},
+      "cache_hit_cycles": "CMOVCG size=0 and CMOVCS: 4 aligned or 5 unaligned; CMOVCG size=1: 5 aligned or 6 unaligned",
+      "cache_miss_cycles": "refill latency plus the documented size/alignment case",
+      "bus_16_effects": "SIZE16 is ignored; coprocessor command and data cycles remain 32-bit",
+      "bus_32_effects": "one special 32-bit command cycle and one or two inbound 32-bit data transfers",
+      "page_mode_effects": "size=1 normally receives Rd2 through page mode; otherwise reissue the command with I=1 before the second word",
+      "source_citations": ["TI-TMS34020-UG-1990 CMOVCG, printed pp.13-59..13-60", "TI-TMS34020-UG-1990 CMOVCS special CMOVCG coding, printed p.13-66", "TI-TMS34020-UG-1990 coprocessor-to-register cycle, §10.4.7, printed pp.10-12..10-13", "TI-TMS34020-UG-1990 summary/timing tables, printed pp.13-10 and 15-3"],
       "compatible_with_tms34010": false,
       "confidence": "VERIFIED_PRIMARY"
     },

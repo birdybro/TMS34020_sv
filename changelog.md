@@ -4,6 +4,18 @@
 
 ### Added
 
+- Primary-page-extracted CMOVCG at `0660h`/`FFE0h` and its exact CMOVCS
+  extension-packet refinement. The ISA metadata covers independent A/B/SP
+  destinations, one/two inbound words, command/ID/size, required-zero fields,
+  I=1 page reissue, NCZV effects, 4–6-state alignment classes, and the
+  32-bit-only coprocessor-cycle constraint without inventing a separate
+  overlapping first-word encoding.
+- Deterministic inbound-coprocessor model data with version-4 snapshot/replay,
+  atomic underflow/reserved rollback, ordered CMOVCG register writes, exact
+  CMOVCS status-nibble replacement, logical command/data traces, and a
+  noncommitting clean-room RTL read formatter. Exhaustive model/RTL tests cover
+  destinations, IDs, sizes, commands, alignments, status, input order and
+  neighbor guards while physical completion remains absent.
 - Primary-page-extracted one- and two-register CMOVGC forms at `0620h` and
   `0640h`/`FFE0h`, adding 64 first words with independent A/B/SP source
   selectors, command/ID/size fields, ordered 32-bit parameters, required-zero
@@ -597,6 +609,18 @@
 
 ### Verified
 
+- The 75-case ISA suite, 98-entry delta ledger, complete 217-case model
+  regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
+  pass for the CMOVCG/CMOVCS milestone. Matrices cover every destination,
+  command bit, ID, size, alignment, ordered input, NCZV outcome, reserved
+  packet and deterministic underflow path while retaining the no-external-
+  completion/no-architectural-commit boundary.
+- Warning-free Cyclone V Analysis & Synthesis reports 13,295 leaf logic
+  cells/2,230 registers/9 DSP, 491 fetch logic cells, 873 frontend logic cells,
+  and 5,486 scalar logic cells for the 135-entry decoder/CMOVCG/CMOVCS
+  revision. Frontend/scalar probes retain 4,096 block-memory bits. These are
+  observability-wrapper analysis results, not fit, TimeQuest, or core-area
+  qualification; Yosys and formal targets remain tracked skips.
 - The 74-case ISA suite, 96-entry delta ledger, complete 214-case model
   regression, and decoder/leaf/fetch/frontend/scalar/cache/fault RTL suites
   pass for the CMOVGC register-write milestone. The model/RTL matrices cover

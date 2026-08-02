@@ -391,6 +391,16 @@ Figure 10-2 pin cycle, LRDY waits, BUSFLT retry/fault, or an external
 coprocessor. No command-cycle or instruction-retirement timing accuracy is
 claimed; see `docs/coprocessor/interface.md`.
 
+CMOVCG takes four visible states for an aligned first extension and five for
+an unaligned one when size is zero; size one takes five or six respectively.
+The special CMOVCS packet uses the size-zero 4/5 cases. CMOVGC's status derives
+from the last inbound word, while CMOVCS copies its inbound top nibble to NCZV.
+The model and combinational read formatter classify these primary counts, but
+do not schedule the physical command/data cycles, I=1 page reissue, LRDY waits,
+BUSFLT retry/fault, register/ST retirement, or interrupt recognition. Sources:
+User's Guide CMOVCG printed pp.13-59..13-60, CMOVCS p.13-66, Chapter 10
+§10.4.7 printed pp.10-12..10-13, and timing table p.15-3.
+
 ## Cache-fetch interaction
 
 A cache hit reads an instruction word in one machine state, normally overlapped

@@ -3898,6 +3898,217 @@ class ExecutionTests(unittest.TestCase):
                 rejected.step()
             self.assertEqual(rejected.snapshot(), before)
 
+    def test_cmovcg_register_packets_exhaustive_destinations_and_timing(
+        self,
+    ) -> None:
+        shared_isa = Tms34020Model().isa
+        for first_offset in range(32):
+            first_word = 0x0660 | first_offset
+            for coprocessor_id in range(8):
+                for size in range(2):
+                    for start_pc, aligned in ((0x110, True), (0x100, False)):
+                        second_offset = (
+                            first_offset + coprocessor_id * 7 + 3
+                        ) & 0x1F
+                        command = (
+                            (first_offset * 0x18001) ^
+                            (coprocessor_id * 0x20403) ^
+                            (size * 0x40101)
+                        ) & 0x1F_FFFF
+                        encoded_second = second_offset if size else 0
+                        extension1 = (
+                            ((command & 0xFF) << 8) |
+                            (size << 7) | encoded_second
+                        )
+                        extension2 = (
+                            (coprocessor_id << 13) |
+                            ((command >> 8) & 0x1FFF)
+                        )
+                        destination1_file = (
+                            "B" if first_offset & 0x10 else "A"
+                        )
+                        destination1_index = first_offset & 0xF
+                        destination2_file = (
+                            "B" if second_offset & 0x10 else "A"
+                        )
+                        destination2_index = second_offset & 0xF
+                        data0 = (
+                            0x4100_0000 |
+                            (first_offset << 12) |
+                            (coprocessor_id << 4) |
+                            size
+                        )
+                        data1 = (
+                            0x8200_0000 |
+                            (second_offset << 8) |
+                            coprocessor_id
+                        )
+                        queued = [data0, data1] if size else [data0]
+                        model = Tms34020Model(isa=shared_isa)
+                        model.load_program(
+                            [first_word, extension1, extension2],
+                            bit_address=start_pc,
+                        )
+                        model.state.st = 0x5034_5AA5
+                        model.queue_coprocessor_read_data(queued + [0x1234])
+                        before_c = (model.state.st >> 30) & 1
+
+                        event = model.step()
+
+                        self.assertEqual(event.mnemonic, "CMOVCG")
+                        self.assertEqual(
+                            event.machine_states,
+                            (5 if aligned else 6)
+                            if size else (4 if aligned else 5),
+                        )
+                        self.assertEqual(
+                            model.coprocessor_read_data, [0x1234]
+                        )
+                        self.assertEqual(
+                            model.state.read_reg(
+                                destination1_file, destination1_index
+                            ),
+                            data1
+                            if size and
+                            (destination1_file, destination1_index) ==
+                            (destination2_file, destination2_index)
+                            else data0,
+                        )
+                        if size:
+                            self.assertEqual(
+                                model.state.read_reg(
+                                    destination2_file, destination2_index
+                                ),
+                                data1,
+                            )
+                        last_value = data1 if size else data0
+                        self.assertEqual((model.state.st >> 30) & 1, before_c)
+                        self.assertEqual(
+                            (model.state.st >> 31) & 1,
+                            (last_value >> 31) & 1,
+                        )
+                        self.assertEqual(
+                            (model.state.st >> 29) & 1,
+                            int(last_value == 0),
+                        )
+                        self.assertEqual((model.state.st >> 28) & 1, 0)
+                        transactions = event.transactions[-(len(queued) + 1):]
+                        self.assertEqual(
+                            transactions[0]["class"], "coprocessor_command"
+                        )
+                        self.assertEqual(
+                            transactions[0]["lad_command"],
+                            (coprocessor_id << 29) |
+                            (command << 8) |
+                            (size << 7),
+                        )
+                        self.assertEqual(
+                            [item["value"] for item in transactions[1:]],
+                            queued,
+                        )
+                        self.assertEqual(
+                            [item["parameter_index"] for item in
+                             transactions[1:]],
+                            list(range(len(queued))),
+                        )
+
+        for last_value, expected_nzv in (
+            (0, (0, 1, 0)),
+            (1, (0, 0, 0)),
+            (0x8000_0000, (1, 0, 0)),
+            (0xFFFF_FFFF, (1, 0, 0)),
+        ):
+            model = Tms34020Model(isa=shared_isa)
+            model.load_program([0x0661, 0x3480, 0x2555], bit_address=0x110)
+            model.queue_coprocessor_read_data([0x1111_1111, last_value])
+            model.state.st = 1 << 30
+            model.step()
+            self.assertEqual(
+                (
+                    (model.state.st >> 31) & 1,
+                    (model.state.st >> 29) & 1,
+                    (model.state.st >> 28) & 1,
+                ),
+                expected_nzv,
+            )
+            self.assertTrue(model.state.st & (1 << 30))
+
+    def test_cmovcs_special_packet_status_and_snapshot_replay(self) -> None:
+        shared_isa = Tms34020Model().isa
+        for coprocessor_id in range(8):
+            for status_nczv in range(16):
+                for start_pc, expected_states in ((0x110, 4), (0x100, 5)):
+                    command = (
+                        (coprocessor_id * 0x20801) ^
+                        (status_nczv * 0x10101)
+                    ) & 0x1F_FFFF
+                    extension1 = ((command & 0xFF) << 8) | 1
+                    extension2 = (
+                        (coprocessor_id << 13) |
+                        ((command >> 8) & 0x1FFF)
+                    )
+                    inbound = (status_nczv << 28) | 0x0ABC_DEF0
+                    model = Tms34020Model(isa=shared_isa)
+                    model.load_program(
+                        [0x0660, extension1, extension2],
+                        bit_address=start_pc,
+                    )
+                    model.state.st = 0x0123_45A5
+                    model.state.write_reg("A", 0, 0xDEAD_BEEF)
+                    model.queue_coprocessor_read_data([inbound, 0xCAFE_BABE])
+                    replay = Tms34020Model.from_snapshot(
+                        json.loads(json.dumps(model.snapshot()))
+                    )
+
+                    event = model.step()
+                    replay_event = replay.step()
+
+                    self.assertEqual(event.snapshot(), replay_event.snapshot())
+                    self.assertEqual(event.mnemonic, "CMOVCS")
+                    self.assertEqual(event.machine_states, expected_states)
+                    self.assertEqual(
+                        model.state.st,
+                        (status_nczv << 28) | 0x0123_45A5,
+                    )
+                    self.assertEqual(
+                        model.state.read_reg("A", 0), 0xDEAD_BEEF
+                    )
+                    self.assertEqual(
+                        model.coprocessor_read_data, [0xCAFE_BABE]
+                    )
+                    self.assertEqual(
+                        event.transactions[-1]["value"], inbound
+                    )
+                    self.assertEqual(
+                        event.transactions[-2]["addressing_mode"], "CMOVCS"
+                    )
+
+    def test_cmovcg_reserved_and_inbound_underflow_are_atomic(self) -> None:
+        shared_isa = Tms34020Model().isa
+        for first_word, extension in (
+            (0x0661, 0xA501),
+            (0x0661, 0xA520),
+            (0x0661, 0xA540),
+            (0x0661, 0xA560),
+        ):
+            model = Tms34020Model(isa=shared_isa)
+            model.load_program(
+                [first_word, extension, 0x2000], bit_address=0x110
+            )
+            model.queue_coprocessor_read_data([0x1234_5678])
+            before = model.snapshot()
+            with self.assertRaises(UnsupportedInstruction):
+                model.step()
+            self.assertEqual(model.snapshot(), before)
+
+        underflow = Tms34020Model(isa=shared_isa)
+        underflow.load_program([0x0661, 0xA580, 0x2000], bit_address=0x110)
+        underflow.queue_coprocessor_read_data([0x1234_5678])
+        before = underflow.snapshot()
+        with self.assertRaisesRegex(ModelError, "inbound data underflow"):
+            underflow.step()
+        self.assertEqual(underflow.snapshot(), before)
+
     def test_move_offset_boundaries_alias_wrap_and_ben(self) -> None:
         for offset_word, signed_offset in (
             (0x0000, 0),

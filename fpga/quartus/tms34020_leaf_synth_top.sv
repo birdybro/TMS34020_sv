@@ -232,6 +232,31 @@ module tms34020_leaf_synth_top (
     logic coprocessor_write_reissue;
     logic [2:0] coprocessor_write_visible_states;
     logic coprocessor_write_hidden_state;
+    logic coprocessor_read_supported;
+    logic coprocessor_read_legal;
+    logic coprocessor_read_status_only;
+    logic [2:0] coprocessor_read_length;
+    logic coprocessor_read_destination1_file;
+    logic [3:0] coprocessor_read_destination1_index;
+    logic coprocessor_read_destination2_file;
+    logic [3:0] coprocessor_read_destination2_index;
+    logic [2:0] coprocessor_read_id;
+    logic [20:0] coprocessor_read_command;
+    logic coprocessor_read_size;
+    logic [31:0] coprocessor_read_lad;
+    logic [31:0] coprocessor_read_reissue_lad;
+    logic coprocessor_read_sf;
+    logic [3:0] coprocessor_read_bus_status;
+    logic coprocessor_read_word_select;
+    logic [1:0] coprocessor_read_count;
+    logic coprocessor_read_write0_enable;
+    logic [31:0] coprocessor_read_write0_data;
+    logic coprocessor_read_write1_enable;
+    logic [31:0] coprocessor_read_write1_data;
+    logic [3:0] coprocessor_read_status_mask;
+    logic [3:0] coprocessor_read_status_value;
+    logic coprocessor_read_reissue;
+    logic [2:0] coprocessor_read_visible_states;
 
     assign register_read_file = first_word_i[4];
     assign register_read_index = first_word_i[3:0];
@@ -363,6 +388,23 @@ module tms34020_leaf_synth_top (
          coprocessor_write_word_select, coprocessor_write_count,
          coprocessor_write_reissue, coprocessor_write_visible_states,
          coprocessor_write_hidden_state} ^
+        coprocessor_read_lad ^
+        coprocessor_read_reissue_lad ^
+        coprocessor_read_write0_data ^
+        coprocessor_read_write1_data ^
+        {11'd0, coprocessor_read_command} ^
+        {13'd0, coprocessor_read_supported, coprocessor_read_legal,
+         coprocessor_read_status_only, coprocessor_read_length,
+         coprocessor_read_destination1_file,
+         coprocessor_read_destination1_index,
+         coprocessor_read_destination2_file,
+         coprocessor_read_destination2_index, coprocessor_read_id} ^
+        {9'd0, coprocessor_read_size, coprocessor_read_sf,
+         coprocessor_read_bus_status, coprocessor_read_word_select,
+         coprocessor_read_count, coprocessor_read_write0_enable,
+         coprocessor_read_write1_enable, coprocessor_read_status_mask,
+         coprocessor_read_status_value, coprocessor_read_reissue,
+         coprocessor_read_visible_states} ^
         {14'd0, interrupt_return_force_bypass,
          interrupt_return_delay_recognition,
          interrupt_return_saved_pc_misaligned,
@@ -862,6 +904,40 @@ module tms34020_leaf_synth_top (
         .second_reissue_if_no_page_o(coprocessor_write_reissue),
         .visible_states_o(coprocessor_write_visible_states),
         .hidden_transfer_state_o(coprocessor_write_hidden_state)
+    );
+
+    tms34020_coprocessor_register_read coprocessor_register_read (
+        .first_word_i(first_word_i),
+        .extension_word1_i(immediate_i[15:0]),
+        .extension_word2_i(operand_i[15:0]),
+        .first_extension_aligned_i(operand_i[5]),
+        .inbound_word0_i(operand_i),
+        .inbound_word1_i(immediate_i),
+        .supported_o(coprocessor_read_supported),
+        .legal_o(coprocessor_read_legal),
+        .status_only_o(coprocessor_read_status_only),
+        .instruction_length_words_o(coprocessor_read_length),
+        .destination1_file_b_o(coprocessor_read_destination1_file),
+        .destination1_index_o(coprocessor_read_destination1_index),
+        .destination2_file_b_o(coprocessor_read_destination2_file),
+        .destination2_index_o(coprocessor_read_destination2_index),
+        .coprocessor_id_o(coprocessor_read_id),
+        .command_o(coprocessor_read_command),
+        .size_64_o(coprocessor_read_size),
+        .lad_command_o(coprocessor_read_lad),
+        .lad_second_reissue_o(coprocessor_read_reissue_lad),
+        .special_function_o(coprocessor_read_sf),
+        .bus_status_o(coprocessor_read_bus_status),
+        .word_select_16_o(coprocessor_read_word_select),
+        .data_word_count_o(coprocessor_read_count),
+        .register_write0_enable_o(coprocessor_read_write0_enable),
+        .register_write0_data_o(coprocessor_read_write0_data),
+        .register_write1_enable_o(coprocessor_read_write1_enable),
+        .register_write1_data_o(coprocessor_read_write1_data),
+        .status_nczv_write_mask_o(coprocessor_read_status_mask),
+        .status_nczv_value_o(coprocessor_read_status_value),
+        .second_reissue_if_no_page_o(coprocessor_read_reissue),
+        .visible_states_o(coprocessor_read_visible_states)
     );
 
     tms34020_regfile regfile (

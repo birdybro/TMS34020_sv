@@ -362,6 +362,8 @@ class IsaTests(unittest.TestCase):
             0x063F: ("CMOVGC.1", 3),
             0x0640: ("CMOVGC.2", 3),
             0x065F: ("CMOVGC.2", 3),
+            0x0660: ("CMOVCG", 3),
+            0x067F: ("CMOVCG", 3),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -390,8 +392,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 48026)
-        self.assertEqual(unclassified, 65536 - 48026)
+        self.assertEqual(matched, 48058)
+        self.assertEqual(unclassified, 65536 - 48058)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -2276,6 +2278,32 @@ class IsaTests(unittest.TestCase):
         self.assertEqual(one.metadata["status_bits_written"], [])
         self.assertEqual(two.metadata["status_bits_written"], [])
         self.assertIn("I=1", two.metadata["page_mode_effects"])
+
+    def test_cmovcg_and_cmovcs_packet_variant_contract(self) -> None:
+        instruction = self.database.decode(0x0660)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "CMOVCG")
+        self.assertEqual(instruction.opcode_mask, 0xFFE0)
+        self.assertEqual(instruction.length_words, 3)
+        self.assertEqual(
+            [variant["name"] for variant in
+             instruction.metadata["condition_fields"]],
+            ["CMOVCS_packet_variant", "CMOVCG_packet_variant"],
+        )
+        cmovcs = instruction.metadata["condition_fields"][0]
+        self.assertIn("first_word=0660h", cmovcs["condition"])
+        self.assertIn("extension_word1[7:0]=01h", cmovcs["condition"])
+        self.assertEqual(cmovcs["data_words"], 1)
+        cycles = instruction.metadata["documented_cycles"]
+        self.assertEqual(
+            cycles["size_0_or_cmovcs"]["long_word_aligned"],
+            {"visible_machine_states": 4},
+        )
+        self.assertEqual(
+            cycles["size_1"]["not_long_word_aligned"],
+            {"visible_machine_states": 6},
+        )
+        self.assertIn("I=1", instruction.metadata["page_mode_effects"])
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:
         constant = self.database.decode(0x3001)

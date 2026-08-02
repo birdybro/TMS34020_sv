@@ -5,10 +5,12 @@
 The TMS34020 has a processor-owned local-memory coprocessor protocol. An
 external coprocessor implements the commands and associated computation; it is
 not part of the generic CPU core. The current repository implements the two
-CEXEC encodings and both CMOVGC register-to-coprocessor forms, their bounded
-architectural transactions, and noncommitting synthesizable formatters. It
-does not yet implement the pin cycle, completion handshake, fault checkpoint,
-the other CMOV families, or a synthetic external coprocessor.
+CEXEC encodings, both CMOVGC register-to-coprocessor forms, CMOVCG's direct
+coprocessor-to-register form, and the special CMOVCS status transfer. It has
+bounded architectural transactions and noncommitting synthesizable formatters
+for these forms. It does not yet implement the pin cycle, completion handshake,
+fault checkpoint, memory/sequence CMOV families, or a synthetic external
+coprocessor.
 
 Source: TI *TMS34020 User's Guide*, 2564006-9721, August 1990, Chapter 10
 overview and Table 10-1, printed pp.10-2..10-4. Confidence:
@@ -92,6 +94,50 @@ printed p.15-3. Confidence: `VERIFIED_PRIMARY` for encoding, logical order,
 command/data values and published state counts; `PROVISIONAL` for the bounded
 implementation without a physical sequencer.
 
+## CMOVCG register reads and CMOVCS
+
+CMOVCG moves one or two ordered 32-bit words from an external coprocessor into
+TMS34020 registers. Its first word is `0660h`/`FFE0h`; bits `[4:0]` select Rd1.
+The first extension carries command `[7:0]` in `[15:8]`, size in bit 7, zero
+bits `[6:5]`, and Rd2 in `[4:0]`. For size zero, Rd2 is unused and those low
+five bits must be zero. The second extension carries the coprocessor ID in
+`[15:13]` and command `[20:8]` in `[12:0]`. Size zero receives one word into
+Rd1 in 4/5 states for aligned/unaligned first-extension placement. Size one
+receives two words in transfer order into Rd1 then Rd2 in 5/6 states. The
+external coprocessor, not the CPU, defines which transferred word is the most
+or least significant half of its 64-bit value.
+
+CMOVCG sets N from bit 31 of the last transferred word, preserves C, sets Z
+when that last word is zero, and clears V. The initial command uses I=0. If the
+second word cannot follow in page mode, the processor reissues the same command
+with I=1 before receiving it. As with outbound transfers, SIZE16 is ignored and
+the physical transfer remains 32 bits wide.
+
+CMOVCS is the exact special packet `first=0660h` and first-extension low byte
+`01h`; it is explicitly defined as special coding of CMOVCG rather than a
+separate first-word family. It receives one word, replaces ST bits 31:28
+(N/C/Z/V) from inbound bits 31:28, ignores inbound bits 27:0, writes no general
+register, and takes the same 4/5 aligned/unaligned states as one-word CMOVCG.
+The canonical ISA database therefore classifies the first word as CMOVCG and
+records CMOVCS as an extension-packet refinement, avoiding overlapping
+first-word records.
+
+The independent model consumes inbound data only from an explicit deterministic
+queue. Queue underflow or a reserved CMOVCG packet rolls back PC, registers,
+ST, cache, queue, and trace atomically. Version-4 snapshots include this queue;
+older schema numbers are accepted only when their recorded executable-coverage
+list matches the current model.
+The clean-room RTL read formatter exports destinations, command packets,
+write/status intents, and state classes, but has no register-file/ST commit or
+external completion owner.
+
+Sources: User's Guide CMOVCG, printed pp.13-59..13-60; CMOVCS, printed
+p.13-66; coprocessor-to-TMS34020 transfer, §10.4.7, printed pp.10-12..10-13;
+summary/timing tables, printed pp.13-10 and 15-3. Confidence:
+`VERIFIED_PRIMARY` for encoding, transfer order, status and published state
+counts; `PROVISIONAL` for the bounded implementation without a physical
+sequencer.
+
 ## Command-cycle signaling
 
 CEXEC causes a coprocessor command cycle. The command replaces the ordinary
@@ -122,12 +168,14 @@ retry. These rules require the future physical bus owner to hold a command
 request stable until one completion outcome, suppress stale completion, and
 reissue without duplicating processor-visible retirement.
 
-The current model records logical `coprocessor_command` and, for CMOVGC,
-`coprocessor_data_out` transactions only after legal packet decode. It does not
+The current model records logical `coprocessor_command`, CMOVGC
+`coprocessor_data_out`, and CMOVCG/CMOVCS `coprocessor_data_in` transactions
+only after legal packet decode and available deterministic input. It does not
 claim that an external device accepted them and cannot inject LRDY, BUSFLT,
 retry, or an asynchronous interrupt. The current RTL modules
 `rtl/coprocessor/tms34020_coprocessor_command.sv` and
-`rtl/coprocessor/tms34020_coprocessor_register_write.sv` are purely
+`rtl/coprocessor/tms34020_coprocessor_register_write.sv` and
+`rtl/coprocessor/tms34020_coprocessor_register_read.sv` are purely
 combinational and own no pins or request state. Consequently the point at which
 an external coprocessor may acquire an irreversible side effect relative to
 BUSFLT remains an implementation checkpoint to verify with command/data-cycle
@@ -145,7 +193,8 @@ silicon edge ordering beyond the published diagrams.
 - a native command/data request and success/retry/fault response contract;
 - exact command-cycle phase generation in the original-pin bus wrapper;
 - CEXEC wait, retry, bus-fault, interrupt, and restart tests;
-- all CMOVCG, CMOVCM, CMOVCS, and CMOVMC encodings and transfers;
+- CMOVCM and CMOVMC encodings and transfers, plus physical CMOVCG/CMOVCS
+  completion and commit ownership;
 - direct and indirect one-word, two-word, and sequence interruption behavior;
 - a deterministic synthetic external coprocessor and randomized asynchronous
   completion tests; and
@@ -153,4 +202,4 @@ silicon edge ordering beyond the published diagrams.
   idempotence, and no drive without local-bus ownership.
 
 No complete coprocessor-interface, instruction-completeness, bus-timing, or
-cycle-accuracy claim follows from the current CEXEC slice.
+cycle-accuracy claim follows from the current bounded instruction slice.

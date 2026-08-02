@@ -218,6 +218,7 @@ class Tms34020Model:
             "CEXEC.S": self._execute_cexec,
             "CMOVGC.1": self._execute_cmovgc,
             "CMOVGC.2": self._execute_cmovgc,
+            "CMOVCG": self._execute_cmovcg,
             "ORI": self._execute_ori,
             "XORI": self._execute_xori,
             "IDLE": self._execute_idle,
@@ -238,6 +239,7 @@ class Tms34020Model:
         }
         self._active_trace: StepTrace | None = None
         self._new_hidden_write_states = 0
+        self.coprocessor_read_data: list[int] = []
 
     @property
     def supported_mnemonics(self) -> tuple[str, ...]:
@@ -260,19 +262,27 @@ class Tms34020Model:
         self.state.reset_from_vector(vector)
         self.cache.reset()
 
+    def queue_coprocessor_read_data(self, values: list[int]) -> None:
+        """Queue deterministic 32-bit words returned by a coprocessor."""
+
+        if any(not 0 <= value <= MASK32 for value in values):
+            raise ValueError("coprocessor data words must fit in 32 bits")
+        self.coprocessor_read_data.extend(values)
+
     def snapshot(self) -> dict[str, Any]:
         return {
-            "model_schema_version": 3,
+            "model_schema_version": 4,
             "state": self.state.snapshot(),
             "cache": self.cache.snapshot(),
             "trace": [event.snapshot() for event in self.trace],
             "supported_mnemonics": list(self.supported_mnemonics),
+            "coprocessor_read_data": list(self.coprocessor_read_data),
         }
 
     @classmethod
     def from_snapshot(cls, snapshot: dict[str, Any]) -> "Tms34020Model":
         version = snapshot.get("model_schema_version")
-        if version not in (1, 2, 3):
+        if version not in (1, 2, 3, 4):
             raise ValueError("unsupported model snapshot")
         cache = (
             InstructionCache()
@@ -285,6 +295,14 @@ class Tms34020Model:
         )
         for raw in snapshot["trace"]:
             model.trace.append(StepTrace(**raw))
+        model.coprocessor_read_data = [
+            int(value) for value in snapshot.get("coprocessor_read_data", [])
+        ]
+        if any(
+            not 0 <= value <= MASK32
+            for value in model.coprocessor_read_data
+        ):
+            raise ValueError("snapshot coprocessor data must fit in 32 bits")
         if list(model.supported_mnemonics) != snapshot["supported_mnemonics"]:
             raise ValueError("snapshot model coverage differs from executable")
         return model
@@ -294,6 +312,7 @@ class Tms34020Model:
             raise ModelError("processor is halted in IDLE")
         state_checkpoint = self.state.snapshot()
         cache_checkpoint = self.cache.snapshot()
+        coprocessor_checkpoint = list(self.coprocessor_read_data)
         start_pc = self.state.pc
         try:
             force_instruction_bypass = (
@@ -356,6 +375,7 @@ class Tms34020Model:
         except Exception:
             self.state = ProcessorState.from_snapshot(state_checkpoint)
             self.cache = InstructionCache.from_snapshot(cache_checkpoint)
+            self.coprocessor_read_data = coprocessor_checkpoint
             raise
         finally:
             self._active_trace = None
@@ -2559,6 +2579,116 @@ class Tms34020Model:
             "external acceptance, page interruption, LRDY/BUSFLT, retry, "
             "fault continuation, pin phases and interrupt recognition remain "
             "pending"
+        )
+        return machine_states
+
+    def _execute_cmovcg(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        first_word = words[0]
+        extension = words[1]
+        status_only = first_word == 0x0660 and (extension & 0xFF) == 1
+        size = 0 if status_only else ((extension >> 7) & 1)
+        if not status_only:
+            if extension & 0x0060:
+                raise UnsupportedInstruction(
+                    "CMOVCG reserved extension bits 6:5 must be zero"
+                )
+            if not size and extension & 0x001F:
+                raise UnsupportedInstruction(
+                    "CMOVCG size-zero second destination bits must be zero"
+                )
+        data_count = 2 if size else 1
+        if len(self.coprocessor_read_data) < data_count:
+            raise ModelError(
+                "coprocessor inbound data underflow for CMOVCG/CMOVCS"
+            )
+        data_words = self.coprocessor_read_data[:data_count]
+        del self.coprocessor_read_data[:data_count]
+        command = ((words[2] & 0x1FFF) << 8) | (extension >> 8)
+        coprocessor_id = (words[2] >> 13) & 7
+        command_word = (
+            (coprocessor_id << 29) |
+            (command << 8) |
+            (size << 7)
+        ) & MASK32
+        immediate_aligned = self._first_extension_long_word_aligned()
+        machine_states = (
+            (5 if immediate_aligned else 6)
+            if size
+            else (4 if immediate_aligned else 5)
+        )
+        assert self._active_trace is not None
+        if status_only:
+            self._active_trace.mnemonic = "CMOVCS"
+        self._active_trace.transactions.append(
+            {
+                "class": "coprocessor_command",
+                "purpose": (
+                    "coprocessor_to_status"
+                    if status_only
+                    else "coprocessor_to_register"
+                ),
+                "coprocessor_id": coprocessor_id,
+                "command": command,
+                "size_64": size,
+                "parameter_index": 0,
+                "bus_status": 0,
+                "special_function": 1,
+                "word_select_16": 0,
+                "lad_command": command_word,
+                "lad_second_reissue": command_word | 0x40,
+                "addressing_mode": (
+                    "CMOVCS" if status_only else "CMOVCG"
+                ),
+                "first_extension_long_word_aligned": int(immediate_aligned),
+            }
+        )
+        for parameter_index, value in enumerate(data_words):
+            self._active_trace.transactions.append(
+                {
+                    "class": "coprocessor_data_in",
+                    "purpose": (
+                        "status_nczv"
+                        if status_only
+                        else "register_parameter"
+                    ),
+                    "parameter_index": parameter_index,
+                    "value": value,
+                    "width": 32,
+                    "addressing_mode": (
+                        "CMOVCS" if status_only else "CMOVCG"
+                    ),
+                }
+            )
+        if status_only:
+            self.state.st = (
+                (self.state.st & 0x0FFF_FFFF) |
+                (data_words[0] & 0xF000_0000)
+            ) & MASK32
+        else:
+            destination1_file = "B" if first_word & 0x10 else "A"
+            destination1_index = first_word & 0xF
+            self.state.write_reg(
+                destination1_file, destination1_index, data_words[0]
+            )
+            if size:
+                destination2_file = "B" if extension & 0x10 else "A"
+                destination2_index = extension & 0xF
+                self.state.write_reg(
+                    destination2_file, destination2_index, data_words[1]
+                )
+            last_value = data_words[-1]
+            self._set_status_bit(N_BIT, bool(last_value & 0x8000_0000))
+            self._set_status_bit(Z_BIT, last_value == 0)
+            self._set_status_bit(V_BIT, False)
+        self._active_trace.notes.append(
+            "logical successful inbound coprocessor transfer from a "
+            "deterministic queued response; a physical two-word non-page "
+            "sequence must reissue the command with I=1 before parameter 1; "
+            "external drive timing, page interruption, LRDY/BUSFLT, retry, "
+            "fault continuation and interrupt recognition remain pending"
         )
         return machine_states
 

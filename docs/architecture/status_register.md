@@ -159,6 +159,14 @@ size, and both long-form alignments; the combinational RTL formatter has no ST
 or architectural commit port. Sources: User's Guide CEXEC long and short,
 printed pp.13-51 and 13-53.
 
+CMOVCG replaces N/Z from the last inbound 32-bit word, preserves C, and clears
+V. Its exact CMOVCS packet refinement instead replaces all four N/C/Z/V bits
+from inbound bits 31:28, preserves ST bits 27:0, and writes no general
+register. The model exhausts last-word and top-nibble discriminators; the
+combinational read formatter emits an NCZV mask/value intent but has no ST
+commit owner. Sources: User's Guide CMOVCG printed pp.13-59..13-60 and CMOVCS
+printed p.13-66.
+
 CPW preserves the complete status register except V, which reports whether
 any of its four signed-XY window outcode bits are set. The independent model
 tests both V outcomes while preserving arbitrary N/C/Z and lower status bits;

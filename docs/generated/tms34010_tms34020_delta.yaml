@@ -966,6 +966,26 @@
       "source_citation": ["TI-TMS34020-UG-1990 CMOVGC two-register form, printed pp.13-69..13-70", "TI-TMS34020-UG-1990 parameter-index and register-transfer cycles, printed pp.10-7 and 10-11..10-12", "TI-TMS34020-UG-1990 timing table, printed p.15-3", "RSC-0041 resolves the isolated 54-bit example typo as 64-bit"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact page-break, high-priority arbitration, interrupt and bus-fault checkpoint between the accepted first and second parameter remains pending the physical sequencer and synthetic coprocessor model."]
+    },
+    {
+      "feature": "coprocessor_register_read_one_or_two_words",
+      "tms34010_behavior": "No coprocessor-to-processor-register instruction or special-function inbound data cycle is documented.",
+      "tms34020_behavior": "0660h/FFE0h plus two extensions encodes CMOVCG. Size zero receives one 32-bit word into Rd1 and requires the unused Rd2 field to be zero; size one receives ordered words into independently selected Rd1 then Rd2. N/Z follow the last word, C is preserved and V clears. If page mode cannot carry the second word, the command is reissued with I=1. Alignment and size select 4/5 or 5/6 states.",
+      "rtl_impact": "A TMS34020-only inbound command/data sequencer, external completion owner and atomic register/status retirement are required. The clean-room read leaf validates extension fields and exposes destinations, initial/I=1 commands, inbound intents and status masks, but owns no handshake, page decision, architectural state or pin cycle.",
+      "test_impact": "All 32 first words and optional 32 second destinations; A/B/SP aliases; every ID/size/command bit; extension ordering and required-zero fields; ordered input; last-word status; alignment classes; page interruption/I=1; waits, retry, faults, interrupts, queue underflow and no duplicate destination write.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVCG, printed pp.13-59..13-60", "TI-TMS34020-UG-1990 coprocessor-to-TMS34020 cycles, §10.4.7 printed pp.10-12..10-13", "TI-TMS34020-UG-1990 timing table, printed p.15-3"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact page-break, interrupt and fault checkpoint between accepted inbound words remains pending the physical sequencer and synthetic coprocessor model."]
+    },
+    {
+      "feature": "coprocessor_status_read_special_packet",
+      "tms34010_behavior": "No coprocessor-to-status instruction or corresponding special-function inbound cycle is documented.",
+      "tms34020_behavior": "CMOVCS is the exact first-word 0660h, first-extension-low-byte 01h special coding of CMOVCG. It receives one 32-bit word, replaces ST.NCZV from bits 31:28, ignores bits 27:0, writes no general register and takes 4/5 states according to first-extension alignment.",
+      "rtl_impact": "Decode must refine the CMOVCG packet after extensions without creating overlapping first-word entries. A future sequencer must commit the top status nibble exactly once after successful completion. The current model and read formatter implement only deterministic logical input and a noncommitting masked status intent.",
+      "test_impact": "Exact special first/extension combination; every ID, command and input top nibble; ignored low 28 bits; unchanged registers/lower ST; aligned/unaligned timing; neighbor CMOVCG packets; waits, retry, bus fault, interrupt and no duplicate status retirement.",
+      "source_citation": ["TI-TMS34020-UG-1990 CMOVCS, printed p.13-66", "TI-TMS34020-UG-1990 CMOVCG family, printed pp.13-59..13-60", "TI-TMS34020-UG-1990 coprocessor-to-TMS34020 cycle, §10.4.7 printed pp.10-12..10-13"],
+      "confidence": "VERIFIED_PRIMARY",
+      "unresolved_questions": ["Exact status-retirement checkpoint relative to LRDY, BUSFLT, retry and interrupt recognition remains pending the physical sequencer."]
     }
   ]
 }

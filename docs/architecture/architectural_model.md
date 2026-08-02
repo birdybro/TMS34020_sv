@@ -36,12 +36,13 @@ Implemented:
   CMPI.W, CMPI.L, CMPXY, CPW, CVDXYL, CVMXYL, CVSXYL, CVXYL, DIVS, DIVU,
   MODS, MODU, MPYS, MPYU, SWAPF,
   AND, ANDN, OR, XOR, ANDNI/ANDI-encoded operation, BLMOVE, CEXEC.L,
-  CEXEC.S, CMOVGC.1, CMOVGC.2, ORI, XORI,
+  CEXEC.S, CMOVGC.1, CMOVGC.2, CMOVCG (including CMOVCS refinement), ORI,
+  XORI,
   IDLE entry,
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 133 of 134 currently extracted database forms for their
+These handlers cover 134 of 135 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -302,7 +303,8 @@ p.6-10, RETI pp.13-217..13-218, and timing p.15-8; OQ-0023/RSC-0034.
 RETM shares that independently written normal-frame helper, reports ten
 states, and arms `force_next_instruction_bypass`. The following `step()` uses
 native memory bypass for every word in exactly one instruction packet, then
-clears the flag; rollback and version-3 snapshots preserve the one-shot state.
+clears the flag; rollback and current version-4 snapshots preserve the one-shot
+state (the reader remains backward compatible with version 3).
 A directed stale-cache three-word MOVI.L case proves that opcode/extensions
 are fetched from memory without replacing the cached copy and that ordinary
 cache lookup resumes for the next instruction. RETM restores IE exactly but
@@ -589,6 +591,18 @@ the physical page-mode continuation or I=1 reissue, arbitration, waits,
 fault/retry, external acceptance and interrupt checkpoint remain absent.
 Sources: User's Guide §§10.3.3..10.4.6 printed pp.10-6..10-12 and CMOVGC
 printed pp.13-67..13-70; see `docs/coprocessor/interface.md` and RSC-0041.
+CMOVCG consumes one or two deterministic queued coprocessor input words and
+writes Rd1 then optional Rd2. N/Z derive from the last word, C is preserved,
+and V clears. The exact `0660h`/first-extension-low-byte-`01h` CMOVCS packet
+instead writes inbound bits 31:28 to ST.NCZV, ignores the remaining inbound
+bits, and writes no general register. Tests exhaust both destination selectors,
+all IDs, sizes and alignments, command formation, ordered writes, status masks,
+CMOVCS top nibbles, reserved fields, queue underflow, atomic rollback, and
+snapshot/replay. The logical inbound queue and transaction trace do not model
+page continuation/I=1 reissue, physical completion, waits, fault/retry, or an
+external coprocessor. Sources: User's Guide CMOVCG printed pp.13-59..13-60,
+CMOVCS p.13-66, and §10.4.7 printed pp.10-12..10-13; see
+`docs/coprocessor/interface.md`.
 The common unary family implements the instruction-specific partial status
 writes, including ABS preserving C and NOT preserving N/C/V. Sources: TI
 *TMS34020 User's Guide*, August 1990, printed pp.13-32, 13-83, 13-113,
@@ -722,9 +736,11 @@ their architectural I/O addresses. A miss or bypass leaves the instruction's
 documented execution-state count intact but marks aggregate timing incomplete
 and records why; no unverified refill overlap is added. Decode or execution
 failure rolls processor and cache state back to the pre-step checkpoint.
-Version-3 JSON snapshots include all cache state, pending transactions, and
-the RETM one-instruction bypass state. Versions 1 and 2 remain readable with
-that state safely defaulted inactive.
+Version-4 JSON snapshots include all cache state, pending transactions, the
+RETM one-instruction bypass state, and deterministic queued coprocessor input.
+The reader accepts schema versions 1 through 3 and defaults later fields
+inactive or empty, but still rejects any snapshot whose recorded executable-
+coverage list differs from the current model.
 
 `load_program()` flushes the cache by default because it is a test/program
 loader, not a modeled CPU data write. Tests of self-modifying code write
