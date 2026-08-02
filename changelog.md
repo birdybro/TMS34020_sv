@@ -1143,6 +1143,8 @@
 
 ### Documentation
 
+- Recorded the verified paired-postincrement field-copy implementation baseline
+  as commit `a4976c969da3746f8e7f4e6d794b98d5fe093b3d` in the progress ledger.
 - Documented paired-postincrement field-copy compatibility separately from
   TMS34020-owned A–H timing, BEN, dynamic-width, hidden-write, page and
   fault/retry realization.
