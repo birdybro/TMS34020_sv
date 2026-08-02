@@ -1267,6 +1267,8 @@ qualification.
 
 ### Documentation
 
+- Recorded verified memory-to-register MOVB implementation commit
+  `6cba4ce397437ead837aa5a635c9b28a067719a6` in the progress ledger.
 - Recorded memory-to-register MOVB semantics, status, compatible reuse bounds,
   TMS34020 timing ownership, and unresolved physical read/retirement work
   across the ISA, model, field, timing, delta, task, and status ledgers.
