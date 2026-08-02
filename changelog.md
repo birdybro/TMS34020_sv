@@ -996,6 +996,8 @@
 
 ### Documentation
 
+- Recorded the verified bounded RETI implementation baseline as commit
+  `e7eed66741359d9a6bc1905dc3c0ba10011e004f` in the progress ledger.
 - Documented RETI's normal frame, restored-IE checkpoint, TMS34010 timing/
   continuation delta, and strict model/RTL boundary. RSC-0034 resolves the
   instruction page's stray `SF` label to defined ST.BF bit 26; OQ-0023 tracks
