@@ -131,6 +131,9 @@ class Tms34020Model:
             "MOVE": self._execute_move,
             "MOVE.MM": self._execute_move_memory_to_memory,
             "MOVE.MR": self._execute_move_memory_to_register,
+            "MOVE.MR.POST": (
+                self._execute_move_memory_to_register_postincrement
+            ),
             "MOVE.RM": self._execute_move_register_to_memory,
             "MOVE.RM.POST": (
                 self._execute_move_register_to_memory_postincrement
@@ -1613,6 +1616,17 @@ class Tms34020Model:
         self, instruction: Instruction, words: list[int]
     ) -> int:
         del instruction
+        return self._execute_move_memory_to_register_common(words, False)
+
+    def _execute_move_memory_to_register_postincrement(
+        self, instruction: Instruction, words: list[int]
+    ) -> int:
+        del instruction
+        return self._execute_move_memory_to_register_common(words, True)
+
+    def _execute_move_memory_to_register_common(
+        self, words: list[int], postincrement: bool
+    ) -> int:
         if self.state.read_io(CONFIG_ADDRESS) & 1:
             raise UnsupportedInstruction(
                 "MOVE.MR big-endian field mapping is classified but not modeled"
@@ -1640,25 +1654,48 @@ class Tms34020Model:
         machine_states = (3 if alignment_case <= 2 else 4) + int(
             sign_extend
         )
+        pointer_after = (bit_address + width) & MASK32
+        if postincrement:
+            self.state.write_reg(register_file, pointer_index, pointer_after)
         self.state.write_reg(register_file, destination_index, result)
         self._set_status_bit(N_BIT, bool(result & 0x8000_0000))
         self._set_status_bit(Z_BIT, result == 0)
         self._set_status_bit(V_BIT, False)
         assert self._active_trace is not None
-        self._active_trace.transactions.append(
-            {
-                "class": "data_read",
-                "purpose": "field_move_memory_to_register",
-                "bit_address": bit_address,
-                "width": width,
-                "value": raw_value,
-                "extended_result": result,
-                "alignment_case": alignment_case,
-                "sign_extend": int(sign_extend),
-            }
-        )
+        transaction = {
+            "class": "data_read",
+            "purpose": (
+                "field_move_memory_to_register_postincrement"
+                if postincrement
+                else "field_move_memory_to_register"
+            ),
+            "bit_address": bit_address,
+            "width": width,
+            "value": raw_value,
+            "extended_result": result,
+            "alignment_case": alignment_case,
+            "sign_extend": int(sign_extend),
+        }
+        if postincrement:
+            transaction.update(
+                {
+                    "pointer_before": bit_address,
+                    "pointer_after": pointer_after,
+                    "same_register_data_wins": int(
+                        pointer_index == destination_index
+                    ),
+                }
+            )
+        self._active_trace.transactions.append(transaction)
         self._active_trace.notes.append(
-            "logical little-endian field extraction; physical dynamic-width, "
+            "logical little-endian field extraction"
+            + (
+                " with captured-source postincrement; Rs=Rd loaded-data "
+                "priority is CORROBORATED under RSC-0036/OQ-0024"
+                if postincrement
+                else ""
+            )
+            + "; physical dynamic-width, "
             "wait, page, fault, retry, interrupt, and I/O sequencing remain "
             "pending"
         )

@@ -4,6 +4,13 @@
 
 ### Added
 
+- Primary-page-extracted `MOVE *Rs+,Rd[,F]` as internal MOVE.MR.POST,
+  covering all 1,024 words, captured-address field load, source-pointer update,
+  FE extension, status, five alignment classes, and compatible TMS34010
+  semantic bounds.
+- Little-endian architectural MOVE.MR.POST traces with exhaustive bank/FE/
+  width/offset geometry, A/B/SP, pointer wrap, same-register data priority,
+  and atomic BEN rejection.
 - Primary-page-extracted `MOVE Rs,*Rd+[,F]` as internal MOVE.RM.POST,
   covering all 1,024 words, captured-address store ordering, field-size pointer
   update, unchanged ST, five alignment classes, hidden writes, and compatible
@@ -469,6 +476,19 @@
 
 ### Verified
 
+- Warning-free Cyclone V Analysis & Synthesis reports 12,582 leaf logic
+  cells/2,230 registers/9 DSP, 438 fetch logic cells, 809 frontend logic
+  cells, and 5,354 scalar logic cells for the 109-entry decoder/postincrement
+  field-load revision. The frontend/scalar probes retain 4,096 block-memory
+  bits. These are observability-wrapper analysis results, not fit, TimeQuest,
+  or core-area qualification.
+- The 50-case ISA suite, 71-entry delta ledger, and 184-case model suite pass.
+  MOVE.MR.POST exhausts both banks and extension modes, every width/offset,
+  all five alignment cases, A/B/SP, pointer wrap, exact N/C/Z/V and logical
+  traces, plus BEN rollback. Exact decoder boundaries and direct-router
+  noncommit pass; extraction and pointer arithmetic are independently
+  exhaustive leaves. Same-register data priority remains CORROBORATED under
+  RSC-0036/OQ-0024.
 - Warning-free Cyclone V Analysis & Synthesis reports 12,660 leaf logic
   cells/2,230 registers/9 DSP, 437 fetch logic cells, 807 frontend logic
   cells, and 5,409 scalar logic cells for the 108-entry decoder/postincrement
@@ -1097,6 +1117,10 @@
 
 ### Documentation
 
+- Documented postincrement field-load semantic compatibility separately from
+  TMS34020-owned 32-bit alignment, BEN, physical dual-write retirement and
+  fault sequencing; recorded RSC-0036/OQ-0024 for the primary-source omission
+  of an explicit same-register write-priority rule.
 - Recorded the verified postincrement field-store implementation baseline as
   commit `58d2fe1743557cde1e8a836fba2a96047d8103a0` in the progress ledger.
 - Documented postincrement field-store semantic compatibility separately from
@@ -1251,6 +1275,11 @@
 
 ### Known Issues
 
+- MOVE.MR.POST is a logical little-endian field load plus instruction-boundary
+  source-pointer update and separate extraction/address leaves. No RTL owner
+  makes the memory read and two possible register writes fault/retry/interrupt-
+  safe. BEN, SIZE16, page mode, waits, I/O and pin cycles remain, and the
+  same-register data-wins rule is CORROBORATED rather than primary-verified.
 - MOVE.RM.POST is a logical little-endian store plus instruction-boundary
   pointer update and a separate combinational address leaf. No RTL owner yet
   makes memory and Rd commit fault/retry/interrupt-safe; BEN, CAS/RMW, SIZE16,

@@ -3831,6 +3831,12 @@ module tb_tms34020_verified_leaves;
             "MOVE.RM.POST cannot bypass absent field-memory ownership"
         );
         check_register_execute(
+            16'h9401, 32'h0000_2003, 32'hDEAD_BEEF,
+            32'hA020_0010,
+            1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
+            "MOVE.MR.POST cannot bypass absent field-memory ownership"
+        );
+        check_register_execute(
             16'h0020, 32'hDEAD_BEEF, 32'hCAFE_BABE, 32'hA123_4567,
             1'b0, 1'b0, 32'd0, 1'b0, 32'd0, 32'd0,
             "REV cannot execute without a selected device revision profile"
@@ -5492,6 +5498,10 @@ module tb_tms34020_verified_leaves;
                      "MOVE.RM.POST field-zero lower-bound decode");
         check_decode(16'h93FF, TMS20_OP_MOVE_RM_POST, 3'd1,
                      "MOVE.RM.POST field-one upper-bound decode");
+        check_decode(16'h9400, TMS20_OP_MOVE_MR_POST, 3'd1,
+                     "MOVE.MR.POST field-zero lower-bound decode");
+        check_decode(16'h97FF, TMS20_OP_MOVE_MR_POST, 3'd1,
+                     "MOVE.MR.POST field-one upper-bound decode");
         decode_word = 16'h8C00;
         #1;
         check_condition(!decode_valid && decode_id == TMS20_OP_UNCLASSIFIED,

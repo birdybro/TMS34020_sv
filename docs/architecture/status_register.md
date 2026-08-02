@@ -183,6 +183,11 @@ both banks and the field-load leaf independently produces N/Z/V, but no RTL
 memory/status commit owner exists. Sources: User's Guide printed pp.13-159,
 13-160, and 13-163.
 
+The postincrement `MOVE *Rs+,Rd[,F]` form has the same N/Z/V replacement and
+C preservation; its source-pointer update does not affect ST. The model covers
+both banks and extension modes. Source: User's Guide printed pp.13-161 and
+13-163.
+
 `MOVE *Rs,*Rd[,F]` reads the selected FS bank but preserves the complete ST;
 FE is not applied to a memory-to-memory field copy. The exhaustive model
 checks full-width preservation. Source: User's Guide printed pp.13-160 and

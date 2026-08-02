@@ -69,7 +69,7 @@ class IsaTests(unittest.TestCase):
                 self.assertTrue(instruction["source_citations"])
                 self.assertIn(
                     instruction["confidence"],
-                    {"VERIFIED_PRIMARY", "PROVISIONAL"},
+                    {"VERIFIED_PRIMARY", "CORROBORATED", "PROVISIONAL"},
                 )
                 if instruction["confidence"] == "PROVISIONAL":
                     self.assertIn(
@@ -79,6 +79,8 @@ class IsaTests(unittest.TestCase):
                             "RETI", "RETM",
                         },
                     )
+                if instruction["confidence"] == "CORROBORATED":
+                    self.assertEqual(instruction["mnemonic"], "MOVE.MR.POST")
 
     def test_independent_hand_checked_first_words(self) -> None:
         fixtures = {
@@ -301,6 +303,8 @@ class IsaTests(unittest.TestCase):
             0x8BFF: ("MOVE.MM", 1),
             0x9000: ("MOVE.RM.POST", 1),
             0x93FF: ("MOVE.RM.POST", 1),
+            0x9400: ("MOVE.MR.POST", 1),
+            0x97FF: ("MOVE.MR.POST", 1),
             0x6C00: ("MODS", 1),
             0x6DFF: ("MODS", 1),
             0x6E00: ("MODU", 1),
@@ -328,8 +332,8 @@ class IsaTests(unittest.TestCase):
 
     def test_partial_65536_word_sweep_is_unique_and_disclosed(self) -> None:
         matched, unclassified = self.database.coverage()
-        self.assertEqual(matched, 35286)
-        self.assertEqual(unclassified, 65536 - 35286)
+        self.assertEqual(matched, 36310)
+        self.assertEqual(unclassified, 65536 - 36310)
         self.assertGreater(unclassified, 0)
 
     def test_rev_records_device_profile_result_and_no_status_write(self) -> None:
@@ -1550,6 +1554,42 @@ class IsaTests(unittest.TestCase):
             },
         )
         self.assertEqual(instruction.metadata["status_bits_written"], [])
+        self.assertTrue(instruction.metadata["compatible_with_tms34010"])
+
+    def test_move_memory_to_register_postincrement_contract(self) -> None:
+        instruction = self.database.decode(0x9400)
+        self.assertIsNotNone(instruction)
+        self.assertEqual(instruction.mnemonic, "MOVE.MR.POST")
+        self.assertEqual(instruction.opcode_mask, 0xFC00)
+        self.assertEqual(instruction.opcode_value, 0x9400)
+        self.assertEqual(instruction.length_words, 1)
+        self.assertEqual(instruction.metadata["confidence"], "CORROBORATED")
+        self.assertIn(
+            "RSC-0036/OQ-0024", instruction.metadata["register_file"]
+        )
+        self.assertEqual(
+            instruction.metadata["documented_cycles"],
+            {
+                "kind": "field_alignment_cases",
+                "zero_extended_visible_machine_states": {
+                    "case_1": 3,
+                    "case_2": 3,
+                    "case_3": 4,
+                    "case_4": 4,
+                    "case_5": 4,
+                },
+                "sign_extended_visible_machine_states": {
+                    "case_1": 4,
+                    "case_2": 4,
+                    "case_3": 5,
+                    "case_4": 5,
+                    "case_5": 5,
+                },
+            },
+        )
+        self.assertEqual(
+            instruction.metadata["status_bits_written"], ["N", "Z", "V"]
+        )
         self.assertTrue(instruction.metadata["compatible_with_tms34010"])
 
     def test_rl_forms_record_count_source_and_partial_status_update(self) -> None:

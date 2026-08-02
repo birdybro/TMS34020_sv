@@ -706,6 +706,16 @@
       "source_citation": ["TI-TMS34020-UG-1990 MOVE summary and register-to-indirect-postincrement form, printed pp.13-13 and 13-160", "TI-TMS34020-UG-1990 MOVE/MOVB timing cases, printed pp.15-10..15-11", "TI-TMS34020-UG-1990 BEN, printed pp.3-20..3-21 and 4-20..4-21", "TI-TMS34010-UG-1988 MOVE register-to-indirect postincrement, printed pp.12-128..12-129"],
       "confidence": "VERIFIED_PRIMARY",
       "unresolved_questions": ["Exact ordering of pointer commit relative to physical write acceptance, retry, fault and interrupt recognition remains pending the memory sequencer.", "The architectural model rejects BEN=1 rather than fabricating big-endian bit mapping."]
+    },
+    {
+      "feature": "postincrement_memory_to_register_field_move",
+      "tms34010_behavior": "MOVE *Rs+,Rd[,F] uses 9400h/FC00h, reads and extends the field at captured Rs, advances Rs by the field size, writes Rd, and updates N/Z/V while preserving C. The primary guide does not explicitly resolve Rs=Rd; pinned MAME and pinned RTL both make loaded data win.",
+      "tms34020_behavior": "The encoding, field result, pointer addition and status contract remain compatible. TMS34020 uses five 32-bit alignment cases with 3/3/4/4/4 visible states for FE=0 and one extra for FE=1. Rs=Rd is retained as CORROBORATED under RSC-0036/OQ-0024 rather than promoted to primary-verified behavior.",
+      "rtl_impact": "Reuse extraction, extension, pointer-add and visible status semantics only. A TMS34020-owned sequencer must capture Rs/ST, suppress pointer/data/status writes on fault, update each destination exactly once on retry, and explicitly arbitrate the two writes when Rs=Rd. Current leaves calculate only little-endian extraction and effective/final pointer values.",
+      "test_impact": "All 1,024 encodings; both FS/FE banks; widths/offsets/cases; zero/sign extension; N/C/Z/V; A/B/SP; distinct operands, Rs=Rd discriminator and pointer wrap; BEN; 16/32-bit traces; pages; waits; faults/retries; interrupts and I/O reads.",
+      "source_citation": ["TI-TMS34020-UG-1990 MOVE summary and indirect-postincrement-to-register form/status, printed pp.13-13, 13-161, and 13-163", "TI-TMS34020-UG-1990 memory-to-register timing, printed pp.15-10..15-11", "TI-TMS34010-UG-1988 indirect-postincrement-to-register, printed pp.12-139..12-140", "Pinned MAME a562e947b22f4f5acff0c182c26fd649d72dad0e 34010ops.hxx lines 1269-1283", "Pinned TMS34010 RTL 94a258e80a07ceb4303ce0b99818df832e96007f instruction_coverage.md row 98"],
+      "confidence": "CORROBORATED",
+      "unresolved_questions": ["OQ-0024: physical TMS34020 confirmation that loaded data wins when Rs=Rd.", "Exact pointer/data/status commit order relative to waits, fault, retry and interrupt recognition remains pending the sequencer."]
     }
   ]
 }

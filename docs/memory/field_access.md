@@ -98,6 +98,26 @@ still no combined RTL operand-capture, store, pointer-commit or fault owner;
 BEN mapping, CAS/RMW, SIZE16, page mode, waits, retry, faults, interrupts and
 pin timing remain absent.
 
+## Verified postincrement memory-to-register boundary
+
+`MOVE *Rs+,Rd[,F]` occupies `9400h`/`FC00h`. It captures the old Rs bit
+address, reads and FE-extends the selected field, advances Rs by the field
+size, and writes the fetched result to Rd. N and Z reflect the extended data,
+C is preserved, and V is cleared. Sources: User's Guide printed pp.13-13,
+13-161, and 13-163; the compatible TMS34010 form is printed
+pp.12-139..12-140.
+
+The model exhausts both field banks and FE modes, all widths/offsets, A/B/SP,
+pointer wrap, status and the five 3/3/4/4/4 plus-FE timing cases. If Rs=Rd,
+the fetched data wins over the postincremented pointer in both pinned MAME and
+the pinned TMS34010 RTL/test record, but TI's TMS34020 operation prose does
+not state that priority explicitly. The project therefore records that corner
+as `CORROBORATED` under RSC-0036/OQ-0024 rather than primary-verified. The
+clean-room field-load and address-update leaves independently cover extraction,
+extension, timing and pointer arithmetic; there is no combined RTL memory,
+dual-register-write, fault/retry or interrupt owner. BEN mapping, SIZE16,
+page mode, waits, I/O and pin timing remain absent.
+
 ## Verified ordinary memory-to-memory boundary
 
 `MOVE *Rs,*Rd[,F]` occupies `8800h`/`FC00h`, captures both same-file bit
@@ -126,8 +146,7 @@ Guide printed pp.8-13, 8-26, and 13-247.
 
 ## Remaining field work
 
-Remaining ordinary MOVE predecrement, source-postincrement, paired-update,
-offset and absolute forms,
+Remaining ordinary MOVE predecrement, paired-update, offset and absolute forms,
 BEN mapping,
 dynamic 16-bit sizing, byte strobes, partial-word atomicity, page-mode composition,
 fault/retry checkpoints, I/O routing, host access, and pin traces remain

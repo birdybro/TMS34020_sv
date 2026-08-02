@@ -21,7 +21,7 @@ Implemented:
 - NOP, ABS, NEG, NEGB, NOT, CLRC, DINT, DSJ, DSJEQ, DSJNE, DSJS, EINT, EXGF,
   EXGPC, GETPC, GETST, CALL, CALLA, CALLR, JACC, JR.L, JUMP, POPST, PUSHST,
   PUTST, RETI/RETM (normal contexts), RETS, MMFM, MMTM, MOVE.RM,
-  MOVE.RM.POST, MOVE.MR, MOVE.MM,
+  MOVE.RM.POST, MOVE.MR, MOVE.MR.POST, MOVE.MM,
   ADDK/INC,
   SUBK/DEC, MOVK, MOVI.W, MOVI.L, MOVE, MOVX, MOVY, RL.K, RL.R, SETC,
   BTST.K, BTST.R, SETF, SEXT, ZEXT,
@@ -34,7 +34,7 @@ Implemented:
   MWAIT, ADDXYI, CMPK, EXGPS, GETPS, LMO, RMO, RPIX, SETCDP, SETCMP, SETCSP,
   TRAP, TRAPL, and VLCOL.
 
-These handlers cover 107 of 108 currently extracted database forms for their
+These handlers cover 108 of 109 currently extracted database forms for their
 documented operand domains. REV is
 decoded but deliberately has no handler: its complete result is a physical-
 device profile value, and exact target-board silicon identity is not yet
@@ -75,6 +75,21 @@ set. Tests exhaust both FS/FE banks, extension modes, all widths and offsets,
 both register files, shared SP, Rs=Rd ordering, positive/negative/zero status,
 and BEN rollback. The logical read is not a physical request trace. Sources:
 User's Guide printed pp.13-160, 13-163, and 15-10..15-11.
+
+`MOVE.MR.POST` names `MOVE *Rs+,Rd[,F]`. It captures the old source bit
+address, reads and extends the field exactly as MOVE.MR, advances Rs by the
+selected field size with 32-bit wrap, and then writes the fetched value to Rd.
+That final ordering means fetched data wins when Rs and Rd name the same
+architectural register. TI's operation page specifies the read and source
+postincrement but does not explicitly state that same-register priority;
+pinned MAME and the independently pinned TMS34010 RTL/test documentation agree
+on data winning, so the corner remains `CORROBORATED` under RSC-0036/OQ-0024.
+N/Z/V, preserved C, FE timing, and the five alignment cases are otherwise the
+same as MOVE.MR. Tests exhaust both banks, FE modes, every width/offset,
+A/B/SP, distinct and same-register ordering, pointer wrap, exact traces, and
+BEN rollback. This remains instruction-boundary logical-read evidence, not a
+physical fault/retry or interrupt checkpoint. Sources: User's Guide printed
+pp.13-13, 13-161, 13-163, and 15-10..15-11.
 
 `MOVE.MM` names `MOVE *Rs,*Rd[,F]`. It captures both pointers, reads the
 entire source field before writing, leaves registers/ST unchanged, and records

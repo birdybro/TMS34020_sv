@@ -196,6 +196,15 @@ mode, waits, interrupt recognition and idempotent fault/retry still require
 the TMS34020 sequencer. Sources: TMS34020 guide printed pp.13-13, 13-160 and
 15-10..15-11; TMS34010 guide printed pp.12-128..12-129.
 
+`MOVE *Rs+,Rd[,F]` retains `9400h`/`FC00h`, field read/FE extension, source
+postincrement, N/Z/V replacement and C preservation. TMS34020 owns the five
+32-bit alignment cases, BEN behavior, dynamic sizing and physical retirement;
+no TMS34010 timing FSM is reused. TI's TMS34020 page does not explicitly
+resolve Rs=Rd write priority. Pinned MAME and the pinned TMS34010 RTL/test
+record both make fetched data win, so only that corner is `CORROBORATED` under
+RSC-0036/OQ-0024. Sources: TMS34020 guide printed pp.13-13, 13-161, 13-163,
+and 15-10..15-11; TMS34010 guide printed pp.12-139..12-140.
+
 MMTM/MMFM retain their TMS34010 `0980h`/`FFE0h` and `09A0h`/`FFE0h`
 encodings, opposite second-word mask directions, register order, and visible
 pointer/status semantics. Their timing and memory-controller ownership do not

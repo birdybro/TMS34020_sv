@@ -711,3 +711,23 @@
   stale three-word cached instruction to distinguish all extension fetches.
   This decision does not establish local-bus phases, page mode, waits, or
   fault/retry behavior of the forced access.
+
+## RSC-0036: Postincrement field load does not state same-register priority
+
+- Status: open; bounded model behavior is CORROBORATED, not primary-verified
+- Primary evidence: TI *TMS34020 User's Guide*, August 1990, printed p.13-161
+  says `MOVE *Rs+,Rd[,F]` loads the extended field into Rd and increments Rs,
+  but does not state which architectural write wins when both operands name
+  the same physical register. The compatible 1988 TMS34010 page at printed
+  pp.12-139..12-140 has the same omission.
+- Corroborating implementations: pinned MAME commit
+  `a562e947b22f4f5acff0c182c26fd649d72dad0e`, `34010ops.hxx` lines
+  1269–1283, increments Rs before assigning captured data to Rd, so data wins.
+  Pinned TMS34010 RTL commit
+  `94a258e80a07ceb4303ce0b99818df832e96007f`,
+  `docs/instruction_coverage.md` row 98, independently documents and tests the
+  same priority.
+- Provisional decision: the model captures the memory field, writes the
+  pointer update, then writes the extended field, so loaded data wins. The ISA
+  and delta records remain CORROBORATED and OQ-0024 requires primary or
+  hardware confirmation before this corner can be called verified.

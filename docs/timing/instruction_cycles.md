@@ -108,6 +108,11 @@ those counts with little-endian logical extraction only; no request or wait-
 state waveform is claimed. Source: User's Guide memory-to-register timing
 rows, printed p.15-11.
 
+`MOVE *Rs+,Rd[,F]` has the same 3/3/4/4/4 visible alignment cases and
+FE=1 adds one state. The source pointer update is part of the successful model
+boundary, but no physical memory/dual-write retirement schedule is claimed.
+Source: User's Guide printed pp.13-161 and 15-10..15-11.
+
 For `MOVE *Rs,*Rd[,F]`, Table 15-3 combines independent source and
 destination cases. Source cases 1/2 take three visible states and cases 3–5
 take four; destination cases 1..5 add 1/2/2/3/4 hidden write states. The
