@@ -1434,6 +1434,10 @@ qualification.
 
 ### Documentation
 
+- Recorded the bounded CLIP ISA/model/RTL milestone as commit
+  `5c70d880e19ca1a478a824f4a90019b8fab6de68` with no zero-dimension,
+  architectural-timing, graphics-engine, instruction-completeness, or
+  release-readiness claim.
 - Recorded the bounded LINIT ISA/model/RTL milestone as commit
   `e523eb8e833de90b627a1bffc00e23dcc2b484d0` with no instruction-completeness,
   architectural-timing, graphics-engine, or release-readiness claim.
